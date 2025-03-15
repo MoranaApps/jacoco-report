@@ -1,6 +1,6 @@
 name: Generate JaCoCo Baseline
 
-# TODO - this workflow need to be updated when baseline logic is implemented
+# TODO - adjust this to your project
 
 on:
   push:

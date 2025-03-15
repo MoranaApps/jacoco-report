@@ -68,11 +68,6 @@ class JaCoCoReport:
         logger.info("Getting changed files in PR.")
         all_changed_files_in_pr = gh.get_pr_changed_files()
 
-        # TODO - remove these 3 lines when done
-        all_changed_files_in_pr.append("com/example/user-info/implementation/ImplementationClass.java")
-        all_changed_files_in_pr.append("com/example/user-info/client-http/ClientHttpClass.java")
-        all_changed_files_in_pr.append("com/example/module_large/BigClass.java")
-
         # map modules if comment mode is set to MODULE
         logger.info("Mapping modules (if defined).")
         modules: dict[str, Module] = self._get_modules()

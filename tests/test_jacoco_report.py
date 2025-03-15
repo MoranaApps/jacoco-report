@@ -1027,10 +1027,6 @@ def test_run_successful_empty_no_baseline(jacoco_report, mocker):
     assert jacoco_report.total_changed_files_coverage == 0.0
     assert jacoco_report.total_overall_coverage_passed is True
     assert jacoco_report.total_changed_files_coverage_passed is True
-    # TODO - test it in isolated test
-    # assert len(jacoco_report.evaluated_coverage_reports.keys()) == 1
-    # assert "data/module_b/target/jacoco_no_data.xml" in list(jacoco_report.evaluated_coverage_reports.keys())[0]
-    # assert jacoco_report.evaluated_coverage_modules == {}
     assert jacoco_report.violations == []
 
     mock_add_comment.assert_called_once_with(35, comment_no_data_no_baseline)
@@ -1050,10 +1046,6 @@ def test_run_successful_empty_with_baseline(jacoco_report, mocker):
     assert jacoco_report.total_changed_files_coverage == 0.0
     assert jacoco_report.total_overall_coverage_passed is True
     assert jacoco_report.total_changed_files_coverage_passed is True
-    # TODO - test it in isolated test
-    # assert len(jacoco_report.evaluated_coverage_reports.keys()) == 1
-    # assert "data/module_b/target/jacoco_no_data.xml" in list(jacoco_report.evaluated_coverage_reports.keys())[0]
-    # assert jacoco_report.evaluated_coverage_modules == {}
     assert jacoco_report.violations == []
 
     mock_add_comment.assert_called_once_with(35, comment_no_data_with_baseline)
@@ -1067,8 +1059,6 @@ one_source_file_scenarios = [
     (MetricTypeEnum.METHOD, CommentModeEnum.SINGLE, SensitivityEnum.MINIMAL, comment_one_file_single_minimalist_method, 100.0, 0.0, True, True),
     (MetricTypeEnum.CLASS, CommentModeEnum.SINGLE, SensitivityEnum.MINIMAL, comment_one_file_single_minimalist_class, 100.0, 0.0, True, True),
 ]
-
-# TODO - zkusit tady o ostatni MULTI, MODULE - PRO INSTRUCTION
 
 @pytest.mark.parametrize("metric, mode, template, comment, ov_cov, ch_cov, ov_cov_b, ch_cov_b", one_source_file_scenarios)
 def test_successful_one_source_file (jacoco_report, metric, mode, template, comment, ov_cov, ch_cov, ov_cov_b, ch_cov_b, mocker):
@@ -1090,10 +1080,6 @@ def test_successful_one_source_file (jacoco_report, metric, mode, template, comm
     assert jacoco_report.total_changed_files_coverage == ch_cov
     assert jacoco_report.total_overall_coverage_passed is ov_cov_b
     assert jacoco_report.total_changed_files_coverage_passed is ch_cov_b
-    # TODO - test it in isolated test
-    # assert len(jacoco_report.evaluated_coverage_reports) == 1
-    # assert "data/module_c/target/jacoco_one_source_file.xml" in list(jacoco_report.evaluated_coverage_reports.keys())[0]
-    # assert jacoco_report.evaluated_coverage_modules == {}
     assert jacoco_report.violations == []
 
     mock_add_comment.assert_called_once_with(35, comment)
