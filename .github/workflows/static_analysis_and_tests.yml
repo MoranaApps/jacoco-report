@@ -1,0 +1,88 @@
+name: "Static analysis & tests"
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+
+jobs:
+  analysis:
+    runs-on: ubuntu-latest
+    name: Pylint Analysis
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4.1.5
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5.1.0
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Analyze code with Pylint
+        id: analyze-code
+        run: |
+          pylint_score=$(pylint $(git ls-files '*.py') | grep 'rated at' | awk '{print $7}' | cut -d'/' -f1)
+          echo "PYLINT_SCORE=$pylint_score" >> $GITHUB_ENV
+
+      - name: Check Pylint score
+        run: |
+          if (( $(echo "$PYLINT_SCORE < 9.5" | bc -l) )); then
+            echo "Failure: Pylint score is below 9.5 (project score: $PYLINT_SCORE)."
+            exit 1
+          else
+            echo "Success: Pylint score is above 9.5 (project score: $PYLINT_SCORE)."
+          fi
+
+  code-format-check:
+    runs-on: ubuntu-latest
+    name: Black Format Check
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4.1.5
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5.1.0
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Check code format with Black
+        id: check-format
+        run: |
+          black --check $(git ls-files '*.py')
+
+  python-tests:
+    runs-on: ubuntu-latest
+    name: Python Tests
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4.1.5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5.1.0
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Check code coverage with Pytest
+        run: pytest --cov=. -v tests/ --cov-fail-under=80

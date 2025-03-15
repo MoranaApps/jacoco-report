@@ -1,0 +1,326 @@
+import pytest
+
+from jacoco_report.action_inputs import ActionInputs
+from jacoco_report.utils.github import GitHub
+
+# Data-driven test cases
+success_case = {
+    "get_token": "ghp_abcdefghijklmnopqrstuvwxyZ1234567890",
+    # "get_token": "github_pat_12345ABCDE67890FGHIJKL_12345ABCDE67890FGHIJKL12345ABCDE67890FGHIJKL123456789012345",
+    "get_paths": "path1,path2",
+    "get_exclude_paths": "path1,path2",
+    "get_min_coverage_overall": 80.0,
+    "get_min_coverage_changed_files": 70.0,
+    "get_title": "Custom Title",
+    "get_metric": "instruction",
+    "get_sensitivity": "detail",
+    "get_comment_mode": "single",
+    "get_modules": "module-a:context/module_a,module-b:module_b",
+    "get_modules_thresholds": "module-a:80*,module-b:*70",
+    "get_skip_not_changed": True,
+    "get_update_comment": True,
+    "get_pass_symbol": "**Passed**",
+    "get_fail_symbol": "❗",
+    "get_fail_on_threshold": True,
+    "get_debug": True,
+}
+
+
+failure_cases = [
+    ("get_token", "", "'token' must be a non-empty string."),
+    ("get_token", "-1", "'token' must be a valid GitHub token."),
+    ("get_token", 1, "'token' must be a non-empty string."),
+    ("get_paths", None, "'paths' must be defined."),
+    ("get_paths", 1, "'paths' must be a list of strings."),
+    ("get_paths", "", "'paths' must be a non-empty list of strings."),
+    ("get_min_coverage_overall", "x", "'min-coverage-overall' must be a float between 0 and 100."),
+    ("get_min_coverage_overall", True, "'min-coverage-overall' must be a float between 0 and 100."),
+    ("get_min_coverage_overall", -1, "'min-coverage-overall' must be a float between 0 and 100."),
+    ("get_min_coverage_overall", 100, "'min-coverage-overall' must be a float between 0 and 100."),
+    ("get_min_coverage_changed_files", "x", "'min-coverage-changed-files' must be a float between 0 and 100."),
+    ("get_min_coverage_changed_files", True, "'min-coverage-changed-files' must be a float between 0 and 100."),
+    ("get_min_coverage_changed_files", -1, "'min-coverage-changed-files' must be a float between 0 and 100."),
+    ("get_min_coverage_changed_files", 100, "'min-coverage-changed-files' must be a float between 0 and 100."),
+    ("get_title", "", "'title' must be a non-empty string."),
+    ("get_title", True, "'title' must be a non-empty string."),
+    ("get_title", 1, "'title' must be a non-empty string."),
+    ("get_metric", "", "'metric' must be a string from these options: 'instruction', 'line', 'branch', 'complexity', 'method', 'class'."),
+    ("get_metric", 1, "'metric' must be a string from these options: 'instruction', 'line', 'branch', 'complexity', 'method', 'class'."),
+    ("get_sensitivity", "", "'sensitivity' must be a string from these options: 'minimal', 'summary', 'detail'."),
+    ("get_sensitivity", 1, "'sensitivity' must be a string from these options: 'minimal', 'summary', 'detail'."),
+    ("get_comment_mode", "", "'comment-mode' must be a string from these options: 'single', 'multi', 'module'."),
+    ("get_comment_mode", 1, "'comment-mode' must be a string from these options: 'single', 'multi', 'module'."),
+    ("get_modules", 1, "'modules' must be a string or not defined."),
+    ("get_modules", "abcd", "'modules' must be a list of strings in format 'module:relative_path'."),
+    ("get_modules", "module-a:context/module_a,module-b", "'module':'module-b' must be in the format 'module:module_path'. Where module_path is relative from root of project. Module value: module-b"),
+    ("get_modules", "module-a: context/module_a,:module_b", "Module with value:'module_b' must have a non-empty name."),
+    ("get_modules", "module-a:context/module_a,module_b:", "Module with 'name':'module_b' must have a non-empty path."),
+    ("get_modules", "module-a:context/module_a,mo*dule:path", "'module_name':'mo*dule' must be alphanumeric with allowed (/\\-_)."),
+    ("get_modules", "module-a:context/module_a,module:pa&th", "'module_path':'pa&th' must be alphanumeric with allowed (/\\-_)."),
+    ("get_modules_thresholds", 1, "'modules-thresholds' must be a string or not defined."),
+    ("get_modules_thresholds", "ab", "'modules-thresholds' must be a list of strings in format 'module:overall*changed'."),
+    ("get_modules_thresholds", "abcd", "'modules-thresholds' must be a list of strings in format 'module:overall*changed'."),
+    ("get_modules_thresholds", "module-a: 80*,", "'module-threshold' must be a non-empty string."),
+    ("get_modules_thresholds", "module-a:80*,module-b", "'module-threshold':'module-b' must be in the format 'module:threshold'."),
+    ("get_modules_thresholds", "module-a:80*,:80.0*", "Module threshold with value:'80.0*' must have a non-empty name."),
+    ("get_modules_thresholds", "module-a:80*,module-b:", "Module threshold with 'name':'module-b' must have a non-empty threshold."),
+    ("get_modules_thresholds", "module-a:80*,module-b:80", "'module_threshold':'80' must contain '*' to split overall and changed files threshold."),
+    ("get_modules_thresholds", "module-a:80*,module-b:True*", "'module_threshold' overall value 'True' must be a float or None."),
+    ("get_modules_thresholds", "module-a:80*,module-b:*True", "'module_threshold' changed files value 'True' must be a float or None."),
+    ("get_skip_not_changed", "", "'skip-not-changed' must be a boolean."),
+    ("get_skip_not_changed", 1, "'skip-not-changed' must be a boolean."),
+    ("get_update_comment", "", "'update-comment' must be a boolean."),
+    ("get_update_comment", 1, "'update-comment' must be a boolean."),
+    ("get_pass_symbol", "", "'pass-symbol' must be a non-empty string and have a length from 1."),
+    ("get_pass_symbol", 1, "'pass-symbol' must be a non-empty string and have a length from 1."),
+    ("get_fail_symbol", "", "'fail-symbol' must be a non-empty string and have a length from 1."),
+    ("get_fail_symbol", 1, "'fail-symbol' must be a non-empty string and have a length from 1."),
+    ("get_fail_on_threshold", "", "'fail-on-threshold' must be a boolean."),
+    ("get_debug", "", "'debug' must be a boolean."),
+]
+
+
+def apply_mocks(case, mocker):
+    patchers = []
+    for key, value in case.items():
+        patcher = mocker.patch(f"jacoco_report.action_inputs.ActionInputs.{key}", return_value=value)
+        patcher.start()
+        patchers.append(patcher)
+    return patchers
+
+
+def stop_mocks(patchers):
+    for patcher in patchers:
+        patcher.stop()
+
+
+def test_validate_inputs_success(mocker):
+    patchers = apply_mocks(success_case, mocker)
+    try:
+        ActionInputs.validate_inputs()
+    finally:
+        stop_mocks(patchers)
+
+
+@pytest.mark.parametrize("method, value, expected_error", failure_cases)
+def test_validate_inputs_failure(method, value, expected_error, mocker):
+    case = success_case.copy()
+    case[method] = value
+    patchers = apply_mocks(case, mocker)
+    try:
+        mock_error = mocker.patch("jacoco_report.action_inputs.logger.error")
+        mock_exit = mocker.patch("sys.exit")
+
+        ActionInputs.validate_inputs()
+
+        mock_error.assert_called_with(expected_error)
+        mock_exit.assert_called_once_with(1)
+
+    finally:
+        stop_mocks(patchers)
+
+
+def test_get_token(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="some_token")
+    assert "some_token" == ActionInputs.get_token()
+
+
+def test_get_paths(mocker):
+    data = f"""
+    test/path1
+    test/path2
+    """
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value=data)
+    assert ["test/path1", "test/path2"] == ActionInputs.get_paths()
+
+
+def test_get_paths_raw(mocker):
+    data = f"""
+    test/path1
+    test/path2
+    """
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value=data)
+    assert data == ActionInputs.get_paths(raw=True)
+
+
+def test_get_paths_none(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value=None)
+    assert None == ActionInputs.get_paths()
+
+
+def test_get_exclude_paths(mocker):
+    data = f"""
+    test/path1
+    test/path2
+    """
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value=data)
+    assert ["test/path1", "test/path2"] == ActionInputs.get_exclude_paths()
+
+
+def test_get_exclude_paths_raw(mocker):
+    data = f"""
+    test/path1
+    test/path2
+    """
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value=data)
+    assert data == ActionInputs.get_exclude_paths(raw=True)
+
+
+def test_get_min_coverage_overall(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="0")
+    assert 0.0 == ActionInputs.get_min_coverage_overall()
+
+
+def test_get_min_coverage_changed_files(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="0")
+    assert 0.0 == ActionInputs.get_min_coverage_changed_files()
+
+
+def test_get_title(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="Custom Title")
+    assert "Custom Title" == ActionInputs.get_title()
+
+
+def test_get_title_default(mocker):
+    assert "JaCoCo Coverage Report" == ActionInputs.get_title()
+
+
+def test_get_title_default_multi(mocker):
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_comment_mode", return_value="multi")
+    assert "Report: " == ActionInputs.get_title()
+
+
+def test_get_title_default_module(mocker):
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_comment_mode", return_value="module")
+    assert "Module: " == ActionInputs.get_title()
+
+
+def test_get_comment_template(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="detailed")
+    assert "detailed" == ActionInputs.get_sensitivity()
+
+
+def test_get_comment_mode(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="single")
+    assert "single" == ActionInputs.get_comment_mode()
+
+
+def test_get_modules_no_spaces(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="module-a:context/module_a,module-b:module_b")
+    assert {"module-a": "context/module_a", "module-b": "module_b"} == ActionInputs.get_modules()
+
+
+def test_get_modules_with_spaces(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="module-a: context/module_a,module-b: module_b")
+    assert {"module-a": "context/module_a", "module-b": "module_b"} == ActionInputs.get_modules()
+
+
+def test_get_modules_raw(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="module-a:context/module_a,module-b:module_b")
+    assert "module-a:context/module_a,module-b:module_b" == ActionInputs.get_modules(raw=True)
+
+
+def test_get_modules_thresholds_no_spaces(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="module-a:80*,module-b:*70")
+    assert {"module-a": (80.0, None), "module-b": (None, 70.0)} == ActionInputs.get_modules_thresholds()
+
+
+def test_get_modules_thresholds_with_spaces(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="module-a: 80*,module-b: *70")
+    assert {"module-a": (80.0, None), "module-b": (None, 70.0)} == ActionInputs.get_modules_thresholds()
+
+
+def test_get_modules_thresholds_raw(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="module-a:80*,module-b:*70")
+    assert "module-a:80*,module-b:*70" == ActionInputs.get_modules_thresholds(raw=True)
+
+
+def test_get_skip_not_changed_true(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="true")
+    assert True == ActionInputs.get_skip_not_changed()
+
+
+def test_get_skip_not_changed_false(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="false")
+    assert False == ActionInputs.get_skip_not_changed()
+
+
+def test_get_update_comment_true(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="true")
+    assert True == ActionInputs.get_update_comment()
+
+
+def test_get_update_comment_false(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="false")
+    assert False == ActionInputs.get_update_comment()
+
+
+def test_get_pass_symbol(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="P")
+    assert "P" == ActionInputs.get_pass_symbol()
+
+
+def test_get_fail_symbol(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="F")
+    assert "F" == ActionInputs.get_fail_symbol()
+
+
+def test_get_fail_on_threshold_true(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="true")
+    assert True == ActionInputs.get_fail_on_threshold()
+
+
+def test_get_fail_on_threshold_false(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="false")
+    assert False == ActionInputs.get_fail_on_threshold()
+
+
+def test_get_debug_true(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="true")
+    assert True == ActionInputs.get_debug()
+
+
+def test_get_debug_false(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="false")
+    assert False == ActionInputs.get_debug()
+
+
+def test_get_baseline_paths(mocker):
+    data = f"""
+    test/path1
+    test/path2
+    """
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value=data)
+    assert ["test/path1", "test/path2"] == ActionInputs.get_baseline_paths()
+
+
+def test_get_baseline_paths_raw(mocker):
+    data = f"""
+    test/path1
+    test/path2
+    """
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value=data)
+    assert data == ActionInputs.get_baseline_paths(raw=True)
+
+def test_get_pr_number(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="123")
+    gh = mocker.Mock(spec=GitHub)
+    assert ActionInputs.get_pr_number(gh) == 123
+
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value=None)
+    gh.get_pr_number.return_value = 456
+    assert ActionInputs.get_pr_number(gh) == 456
+
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value=None)
+    gh.get_pr_number.return_value = None
+    mock_logger = mocker.patch("jacoco_report.action_inputs.logger")
+    assert ActionInputs.get_pr_number(gh) is None
+    mock_logger.error.assert_called_once_with("The PR number not detected.")
+
+def test_get_metric(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="branch")
+    assert ActionInputs.get_metric() == "branch"
+
+def test_get_event_name(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="push")
+    assert ActionInputs.get_event_name() == "push"

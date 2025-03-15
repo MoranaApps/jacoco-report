@@ -1,0 +1,50 @@
+<report name="Module Large Report">
+    <sessioninfo id="module-large-session" start="1609459200000" dump="1609459200000"/>
+    <package name="com/example/module_large">
+        <class name="com/example/module_large/MidClass" sourcefilename="MidClass.java">
+            <method name="midMethod" desc="()V" line="3">
+                <counter type="INSTRUCTION" missed="2" covered="98"/>
+                <counter type="LINE" missed="1" covered="9"/>
+                <counter type="COMPLEXITY" missed="0" covered="1"/>
+                <counter type="METHOD" missed="0" covered="1"/>
+            </method>
+            <counter type="INSTRUCTION" missed="20" covered="198"/>
+            <counter type="LINE" missed="6" covered="45"/>
+            <counter type="COMPLEXITY" missed="3" covered="6"/>
+            <counter type="METHOD" missed="0" covered="9"/>
+            <counter type="CLASS" missed="0" covered="1"/>
+        </class>
+        <class name="com/example/module_large/BigClass" sourcefilename="BigClass.java">
+            <method name="bigMethod" desc="()V" line="3">
+                <counter type="INSTRUCTION" missed="50" covered="450"/>
+                <counter type="LINE" missed="10" covered="90"/>
+                <counter type="COMPLEXITY" missed="5" covered="15"/>
+                <counter type="METHOD" missed="1" covered="9"/>
+            </method>
+            <counter type="INSTRUCTION" missed="50" covered="450"/>
+            <counter type="LINE" missed="10" covered="90"/>
+            <counter type="COMPLEXITY" missed="5" covered="15"/>
+            <counter type="METHOD" missed="1" covered="9"/>
+            <counter type="CLASS" missed="0" covered="1"/>
+        </class>
+        <sourcefile name="MidClass.java">
+            <line nr="3" mi="2" ci="98" mb="0" cb="1"/>
+            <counter type="INSTRUCTION" missed="20" covered="198"/>
+            <counter type="LINE" missed="6" covered="45"/>
+            <counter type="COMPLEXITY" missed="3" covered="6"/>
+            <counter type="METHOD" missed="0" covered="1"/>
+        </sourcefile>
+        <sourcefile name="BigClass.java">
+            <line nr="3" mi="50" ci="450" mb="5" cb="15"/>
+            <counter type="INSTRUCTION" missed="50" covered="450"/>
+            <counter type="LINE" missed="10" covered="90"/>
+            <counter type="COMPLEXITY" missed="5" covered="15"/>
+            <counter type="METHOD" missed="1" covered="9"/>
+        </sourcefile>
+    </package>
+    <counter type="INSTRUCTION" missed="52" covered="548"/>
+    <counter type="LINE" missed="11" covered="99"/>
+    <counter type="COMPLEXITY" missed="5" covered="16"/>
+    <counter type="METHOD" missed="1" covered="10"/>
+    <counter type="CLASS" missed="0" covered="2"/>
+</report>

@@ -1,0 +1,30 @@
+<report name="notification: Plugins Module Report">
+    <sessioninfo id="plugins-session" start="1609459200000" dump="1609459200000"/>
+    <package name="com/example/notification/plugins">
+        <class name="com/example/notification/plugins/PluginClass" sourcefilename="PluginClass.java">
+            <method name="pluginMethod" desc="()V" line="3">
+                <counter type="INSTRUCTION" missed="8" covered="92"/>
+                <counter type="LINE" missed="1" covered="9"/>
+                <counter type="COMPLEXITY" missed="0" covered="1"/>
+                <counter type="METHOD" missed="0" covered="1"/>
+            </method>
+            <counter type="INSTRUCTION" missed="8" covered="92"/>
+            <counter type="LINE" missed="1" covered="9"/>
+            <counter type="COMPLEXITY" missed="0" covered="1"/>
+            <counter type="METHOD" missed="0" covered="1"/>
+            <counter type="CLASS" missed="0" covered="1"/>
+        </class>
+        <sourcefile name="PluginClass.java">
+            <line nr="3" mi="8" ci="92" mb="0" cb="1"/>
+            <counter type="INSTRUCTION" missed="8" covered="92"/>
+            <counter type="LINE" missed="1" covered="9"/>
+            <counter type="COMPLEXITY" missed="0" covered="1"/>
+            <counter type="METHOD" missed="0" covered="1"/>
+        </sourcefile>
+    </package>
+    <counter type="INSTRUCTION" missed="8" covered="92"/>
+    <counter type="LINE" missed="1" covered="9"/>
+    <counter type="COMPLEXITY" missed="0" covered="1"/>
+    <counter type="METHOD" missed="0" covered="1"/>
+    <counter type="CLASS" missed="0" covered="1"/>
+</report>

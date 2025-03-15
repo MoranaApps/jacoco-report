@@ -1,0 +1,30 @@
+<report name="notification: Client HTTP Module Report">
+    <sessioninfo id="client-http-session" start="1609459200000" dump="1609459200000"/>
+    <package name="com/example/notification/client-http">
+        <class name="com/example/notification/client-http/ClientHttpClass" sourcefilename="ClientHttpClass.java">
+            <method name="clientHttpMethod" desc="()V" line="3">
+                <counter type="INSTRUCTION" missed="10" covered="90"/>
+                <counter type="LINE" missed="2" covered="8"/>
+                <counter type="COMPLEXITY" missed="1" covered="3"/>
+                <counter type="METHOD" missed="0" covered="1"/>
+            </method>
+            <counter type="INSTRUCTION" missed="10" covered="90"/>
+            <counter type="LINE" missed="2" covered="8"/>
+            <counter type="COMPLEXITY" missed="1" covered="3"/>
+            <counter type="METHOD" missed="0" covered="1"/>
+            <counter type="CLASS" missed="0" covered="1"/>
+        </class>
+        <sourcefile name="ClientHttpClass.java">
+            <line nr="3" mi="10" ci="90" mb="1" cb="3"/>
+            <counter type="INSTRUCTION" missed="10" covered="90"/>
+            <counter type="LINE" missed="2" covered="8"/>
+            <counter type="COMPLEXITY" missed="1" covered="3"/>
+            <counter type="METHOD" missed="0" covered="1"/>
+        </sourcefile>
+    </package>
+    <counter type="INSTRUCTION" missed="10" covered="90"/>
+    <counter type="LINE" missed="2" covered="8"/>
+    <counter type="COMPLEXITY" missed="1" covered="3"/>
+    <counter type="METHOD" missed="0" covered="1"/>
+    <counter type="CLASS" missed="0" covered="1"/>
+</report>

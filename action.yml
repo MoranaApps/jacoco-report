@@ -1,0 +1,180 @@
+name: 'JaCoCo Report to PR Comment'
+description: 'Add JaCoCo report to PR comment.'
+inputs:
+  token:
+    description: 'GitHub token for authentication. TODO improve'
+    required: true
+  paths:
+    description: 'Paths to JaCoCo reports.'
+    required: true
+  exlude-paths:
+    description: 'Paths to exclude from JaCoCo reports.'
+    required: false
+  min-coverage-overall:
+    description: 'Minimum overall coverage percentage.'
+    required: false
+    default: '0.0'
+  min-coverage-changed-files:
+    description: 'Minimum coverage percentage for changed files.'
+    required: false
+    default: '0.0'
+  title:
+    description: 'Title of the PR comment.'
+    required: false
+    default: 'JaCoCo Coverage Report'
+  pr-number:
+    description: 'PR number.'
+    required: false
+    default: ''
+  metric:
+    description: 'Type of metric to be used.'
+    required: false
+    default: 'instruction'
+  sensitivity:
+    description: 'Sensitivity of the code coverage evaluation.'
+    required: false
+    default: 'detail'
+  comment-mode:
+    description: 'Mode of the comment.'
+    required: false
+    default: 'single'
+  modules:
+    description: 'Identify the modules to be included in the report.'
+    required: false
+    default: ''
+  modules-thresholds:
+    description: 'Identify the modules and their thresholds.'
+    required: false
+    default: ''
+  skip-not-changed:
+    description: 'Reduce module table and comments to ones with changed files in PR.'
+    required: false
+    default: 'false'
+  baseline-paths:
+    description: 'Paths to JaCoCo baseline reports.'
+    required: false
+  update-comment:
+    description: 'Update the existing comment.'
+    required: false
+    default: 'true'
+  pass-symbol:
+    description: 'Symbol to represent pass status.'
+    required: false
+    default: '✅'
+  fail-symbol:
+    description: 'Symbol to represent fail status.'
+    required: false
+    default: '❌'
+  fail-on-threshold:
+    description: 'Fail the action on threshold failure.'
+    required: false
+    default: 'true'
+  debug:
+    description: 'Enable detail logging.'
+    required: false
+    default: 'false'
+
+outputs:
+  coverage-overall:
+    description: 'Overall coverage percentage.'
+    value: ${{ steps.jacoco-report-to-pr-comment.outputs.coverage-overall }}
+  coverage-changed-files:
+    description: 'Coverage percentage for changed files.'
+    value: ${{ steps.jacoco-report-to-pr-comment.outputs.coverage-changed-files }}
+  coverage-overall-passed:
+    description: 'Overall coverage pass status. (True/False)'
+    value: ${{ steps.jacoco-report-to-pr-comment.outputs.coverage-overall-passed }}
+  coverage-changed-files-passed:
+    description: 'Coverage for changed files pass status. (True/False)'
+    value: ${{ steps.jacoco-report-to-pr-comment.outputs.coverage-changed-files-passed }}
+  reports-coverage:
+    description: 'Coverage for each report.'
+    value: ${{ steps.jacoco-report-to-pr-comment.outputs.reports-coverage }}
+  modules-coverage:
+    description: 'Coverage for each module.'
+    value: ${{ steps.jacoco-report-to-pr-comment.outputs.modules-coverage }}
+
+branding:
+  icon: 'TBD'
+  color: 'TBD'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install Python dependencies
+      run: |
+        ls -l
+        pip install -r requirements.txt
+      shell: bash
+
+    - name: Set PROJECT_ROOT and update PYTHONPATH
+      run: |
+        ACTION_ROOT="${{ github.action_path }}"
+        export PYTHONPATH="${PYTHONPATH}:${ACTION_ROOT}/jacoco-report-to-pr-comment"
+      shell: bash
+
+    - name: Prepare environment based on mining regimes
+      run: |
+        echo "INPUT_TOKEN=${{ inputs.token }}" >> $GITHUB_ENV
+        
+        echo "INPUT_PATHS<<EOF" >> $GITHUB_ENV
+        echo "${{ inputs.paths }}" >> $GITHUB_ENV
+        echo "EOF" >> $GITHUB_ENV
+
+        echo "INPUT_EXCLUDE_PATHS<<EOF" >> $GITHUB_ENV
+        echo "${{ inputs.exclude-paths }}" >> $GITHUB_ENV
+        echo "EOF" >> $GITHUB_ENV
+
+        echo "INPUT_MIN_COVERAGE_OVERALL=${{ inputs.min-coverage-overall }}" >> $GITHUB_ENV
+        echo "INPUT_MIN_COVERAGE_CHANGED_FILES=${{ inputs.min-coverage-changed-files }}" >> $GITHUB_ENV
+        echo "INPUT_TITLE=${{ inputs.title }}" >> $GITHUB_ENV
+        echo "INPUT_PR_NUMBER=${{ inputs.pr-number }}" >> $GITHUB_ENV
+        echo "INPUT_METRIC=${{ inputs.metric }}" >> $GITHUB_ENV
+        echo "INPUT_SENSITIVITY=${{ inputs.sensitivity }}" >> $GITHUB_ENV
+        echo "INPUT_COMMENT_MODE=${{ inputs.comment-mode }}" >> $GITHUB_ENV
+
+        echo "INPUT_MODULES<<EOF" >> $GITHUB_ENV
+        echo "${{ inputs.modules }}" >> $GITHUB_ENV
+        echo "EOF" >> $GITHUB_ENV
+        echo "INPUT_MODULES_THRESHOLDS<<EOF" >> $GITHUB_ENV
+        echo "${{ inputs.modules-thresholds }}" >> $GITHUB_ENV
+        echo "EOF" >> $GITHUB_ENV
+    
+        echo "INPUT_SKIP_NOT_CHANGED=${{ inputs.skip-not-changed }}" >> $GITHUB_ENV
+        
+        echo "INPUT_BASELINE_PATHS<<EOF" >> $GITHUB_ENV
+        echo "${{ inputs.baseline-paths }}" >> $GITHUB_ENV
+        echo "EOF" >> $GITHUB_ENV
+        
+        echo "INPUT_UPDATE_COMMENT=${{ inputs.update-comment }}" >> $GITHUB_ENV
+        echo "INPUT_PASS_SYMBOL=${{ inputs.pass-symbol }}" >> $GITHUB_ENV
+        echo "INPUT_FAIL_SYMBOL=${{ inputs.fail-symbol }}" >> $GITHUB_ENV
+        echo "INPUT_FAIL_ON_THRESHOLD=${{ inputs.fail-on-threshold }}" >> $GITHUB_ENV
+        echo "INPUT_DEBUG=${{ inputs.debug }}" >> $GITHUB_ENV
+      shell: bash
+
+    - name: Run JaCoCo Report to PR Comment
+      id: jacoco-report-to-pr-comment
+      env:
+        INPUT_TOKEN: ${{ env.INPUT_TOKEN }}
+        INPUT_PATHS: ${{ env.INPUT_PATHS }}
+        INPUT_EXCLUDE_PATHS: ${{ env.INPUT_EXCLUDE_PATHS }}
+        INPUT_MIN_COVERAGE_OVERALL: ${{ env.INPUT_MIN_COVERAGE_OVERALL }}
+        INPUT_MIN_COVERAGE_CHANGED_FILES: ${{ env.INPUT_MIN_COVERAGE_CHANGED_FILES }}
+        INPUT_TITLE: ${{ env.INPUT_TITLE }}
+        INPUT_PR_NUMBER: ${{ env.INPUT_PR_NUMBER }}
+        INPUT_METRIC: ${{ env.INPUT_METRIC }}
+        INPUT_SENSITIVITY: ${{ env.INPUT_SENSITIVITY }}
+        INPUT_COMMENT_MODE: ${{ env.INPUT_COMMENT_MODE }}
+        INPUT_MODULES: ${{ env.INPUT_MODULES }}
+        INPUT_MODULES_THRESHOLDS: ${{ env.INPUT_MODULES_THRESHOLDS }}
+        INPUT_SKIP_NOT_CHANGED: ${{ env.INPUT_SKIP_NOT_CHANGED }}
+        INPUT_BASELINE_PATHS: ${{ env.INPUT_BASELINE_PATHS }}
+        INPUT_UPDATE_COMMENT: ${{ env.INPUT_UPDATE_COMMENT }}
+        INPUT_PASS_SYMBOL: ${{ env.INPUT_PASS_SYMBOL }}
+        INPUT_FAIL_SYMBOL: ${{ env.INPUT_FAIL_SYMBOL }}
+        INPUT_FAIL_ON_THRESHOLD: ${{ env.INPUT_FAIL_ON_THRESHOLD }}
+        INPUT_DEBUG: ${{ env.INPUT_DEBUG }}
+      run: |
+        python ${{ github.action_path }}/main.py
+      shell: bash

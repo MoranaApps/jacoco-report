@@ -1,0 +1,24 @@
+# GH workflow source https://github.com/AbsaOSS/generate-release-notes/blob/master/.github/workflows/check_pr_release_notes.yml
+name: Check PR Release Notes in Description
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited, labeled, unlabeled]
+    branches: [ main ]
+
+jobs:
+  check-release-notes:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/setup-python@v5.1.1
+        with:
+          python-version: '3.12'
+
+      - name: Check presence of release notes in PR description
+        uses: AbsaOSS/release-notes-presence-check@v0.1.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.TOKEN }}
+        with:
+          github-repository: ${{ github.repository }}
+          pr-number: ${{ github.event.number }}

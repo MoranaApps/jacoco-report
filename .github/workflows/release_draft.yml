@@ -1,0 +1,89 @@
+# GH workflow source https://github.com/AbsaOSS/generate-release-notes/blob/master/.github/workflows/release_draft.yml
+name: Release - create draft release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag-name:
+        description: 'Name of git tag to be created, and then draft release created. Syntax: "v[0-9]+.[0-9]+.[0-9]+".'
+        required: true
+
+jobs:
+  release-draft:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5.1.1
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Check format of received tag
+        id: check-version-tag
+        uses: AbsaOSS/version-tag-check@v0.1.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.TOKEN }}
+        with:
+            github-repository: ${{ github.repository }}
+            branch: 'master'
+            version-tag: ${{ github.event.inputs.tag-name }}
+
+      - name: Generate Release Notes
+        id: generate_release_notes
+        uses: AbsaOSS/generate-release-notes@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.TOKEN }}
+        with:
+          tag-name: ${{ github.event.inputs.tag-name }}
+          chapters: '[
+            {"title": "No entry 🚫", "label": "duplicate"},
+            {"title": "No entry 🚫", "label": "invalid"},
+            {"title": "No entry 🚫", "label": "wontfix"},
+            {"title": "No entry 🚫", "label": "no RN"},
+            {"title": "Breaking Changes 💥", "label": "breaking-change"},
+            {"title": "New Features 🎉", "label": "enhancement"},
+            {"title": "New Features 🎉", "label": "feature"},
+            {"title": "Bugfixes 🛠", "label": "bug"},
+            {"title": "Infrastructure ⚙️", "label": "infrastructure"},
+            {"title": "Silent-live 🤫", "label": "silent-live"},
+            {"title": "Documentation 📜", "label": "documentation"}
+          ]'
+          skip-release-notes-label: 'no RN'
+          verbose: true
+
+          warnings: true
+          print-empty-chapters: true
+
+      - name: Create and Push Tag
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const tag = core.getInput('tag-name')
+            const ref = `refs/tags/${tag}`;
+            const sha = context.sha; // The SHA of the commit to tag
+
+            await github.rest.git.createRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: ref,
+              sha: sha
+            });
+
+            console.log(`Tag created: ${tag}`);
+          github-token: ${{ secrets.TOKEN }}
+          tag-name: ${{ github.event.inputs.tag-name }}
+
+      - name: Create Draft Release
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.TOKEN }}
+        with:
+          name: ${{ github.event.inputs.tag-name }}
+          body: ${{ steps.generate_release_notes.outputs.release-notes }}
+          tag_name: ${{ github.event.inputs.tag-name }}
+          draft: true
+          prerelease: false

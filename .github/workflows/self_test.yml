@@ -1,0 +1,57 @@
+name: "Integration test"
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+
+jobs:
+  analysis:
+    runs-on: ubuntu-latest
+    name: Integration test
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4.1.5
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5.1.0
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Publish JaCoCo Report in PR comments
+        uses: MoranaApps/jacoco-report@feature/48-Implement-PR-comment-creation---module
+        with:
+          token: '${{ secrets.TOKEN }}'
+          paths: |
+            tests/data/test_project/**/jacoco.xml
+          title: 'Custom title'
+          metric: 'instruction'
+          min-coverage-overall: '25'
+          min-coverage-changed-files: '90'
+          debug: true
+          sensitivity: 'detail'
+          comment-mode: 'module'
+          update-comment: true
+          fail-on-threshold: false
+          skip-not-changed: false
+          modules: |
+            context/notification: test_project/context/notification
+            context/user-info: test_project/context/user-info
+            module_large: test_project/module_large
+            module small: test_project/module small
+          modules-thresholds: |
+            context/notification:80.5*
+            context/user-info:*70.0
+            module_large:80.0*95.0
+            module small:75.0*69.0
+          baseline-paths: |
+            tests/data_baseline/**/*.xml
+#          pass-symbol: '**P**'
+#          fail-symbol: '**F**'

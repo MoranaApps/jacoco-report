@@ -1,0 +1,30 @@
+<report name="user-info: Implementation Module Report">
+    <sessioninfo id="implementation-session" start="1609459200000" dump="1609459200000"/>
+    <package name="com/example/user-info/implementation">
+        <class name="com/example/user-info/implementation/ImplementationClass" sourcefilename="ImplementationClass.java">
+            <method name="implementationMethod" desc="()V" line="3">
+                <counter type="INSTRUCTION" missed="12" covered="88"/>
+                <counter type="LINE" missed="3" covered="7"/>
+                <counter type="COMPLEXITY" missed="1" covered="2"/>
+                <counter type="METHOD" missed="0" covered="1"/>
+            </method>
+            <counter type="INSTRUCTION" missed="12" covered="88"/>
+            <counter type="LINE" missed="3" covered="7"/>
+            <counter type="COMPLEXITY" missed="1" covered="2"/>
+            <counter type="METHOD" missed="0" covered="1"/>
+            <counter type="CLASS" missed="0" covered="1"/>
+        </class>
+        <sourcefile name="ImplementationClass.java">
+            <line nr="3" mi="12" ci="88" mb="1" cb="2"/>
+            <counter type="INSTRUCTION" missed="12" covered="88"/>
+            <counter type="LINE" missed="3" covered="7"/>
+            <counter type="COMPLEXITY" missed="1" covered="2"/>
+            <counter type="METHOD" missed="0" covered="1"/>
+        </sourcefile>
+    </package>
+    <counter type="INSTRUCTION" missed="12" covered="88"/>
+    <counter type="LINE" missed="3" covered="7"/>
+    <counter type="COMPLEXITY" missed="1" covered="2"/>
+    <counter type="METHOD" missed="0" covered="1"/>
+    <counter type="CLASS" missed="0" covered="1"/>
+</report>
