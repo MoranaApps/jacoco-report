@@ -76,8 +76,6 @@ def test_get_comment_content_summary(single_pr_comment_generator, mocker):
     assert "| **Overall**       | 85.2% | 0.0% | ✅ |" in body
     assert "| **Changed Files** | 78.4% | 0.0% | ❌ |" in body
 
-    # TODO add assert for other two tables
-
 
 def test_get_comment_content_detailed(single_pr_comment_generator, mocker):
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_title", return_value="Test Title")
@@ -91,5 +89,3 @@ def test_get_comment_content_detailed(single_pr_comment_generator, mocker):
     assert "**Test Title**" in body
     assert "| **Overall**       | 85.2% | 0.0% | ✅ |" in body
     assert "| **Changed Files** | 78.4% | 0.0% | ❌ |" in body
-
-    # TODO add assert for other two tables
