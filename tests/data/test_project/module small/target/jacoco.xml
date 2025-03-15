@@ -1,0 +1,30 @@
+<report name="Module Small Report">
+    <sessioninfo id="module-small-session" start="1609459200000" dump="1609459200000"/>
+    <package name="com/example/module_small">
+        <class name="com/example/module_small/ClassS1" sourcefilename="ClassS1.java">
+            <method name="methodS1" desc="()V" line="3">
+                <counter type="INSTRUCTION" missed="3" covered="97"/>
+                <counter type="LINE" missed="1" covered="9"/>
+                <counter type="COMPLEXITY" missed="0" covered="1"/>
+                <counter type="METHOD" missed="0" covered="1"/>
+            </method>
+            <counter type="INSTRUCTION" missed="3" covered="97"/>
+            <counter type="LINE" missed="1" covered="9"/>
+            <counter type="COMPLEXITY" missed="0" covered="1"/>
+            <counter type="METHOD" missed="0" covered="1"/>
+            <counter type="CLASS" missed="0" covered="1"/>
+        </class>
+        <sourcefile name="ClassS1.java">
+            <line nr="3" mi="3" ci="97" mb="0" cb="1"/>
+            <counter type="INSTRUCTION" missed="3" covered="97"/>
+            <counter type="LINE" missed="1" covered="9"/>
+            <counter type="COMPLEXITY" missed="0" covered="1"/>
+            <counter type="METHOD" missed="0" covered="1"/>
+        </sourcefile>
+    </package>
+    <counter type="INSTRUCTION" missed="3" covered="97"/>
+    <counter type="LINE" missed="1" covered="9"/>
+    <counter type="COMPLEXITY" missed="0" covered="1"/>
+    <counter type="METHOD" missed="0" covered="1"/>
+    <counter type="CLASS" missed="0" covered="1"/>
+</report>

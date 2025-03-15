@@ -1,0 +1,32 @@
+<report name="Example Report">
+    <sessioninfo id="example-session" start="1609459200000" dump="1609459200000"/>
+    <package name="com/example">
+        <class name="com/example/ExampleClass" sourcefilename="ExampleClass.java">
+            <method name="exampleMethod" desc="()V" line="3">
+                <counter type="INSTRUCTION" missed="10" covered="90"/>
+                <counter type="LINE" missed="2" covered="8"/>
+                <counter type="COMPLEXITY" missed="1" covered="3"/>
+                <counter type="METHOD" missed="0" covered="1"/>
+            </method>
+            <counter type="INSTRUCTION" missed="10" covered="90"/>
+            <counter type="BRANCH" missed="1" covered="3"/>
+            <counter type="LINE" missed="2" covered="8"/>
+            <counter type="COMPLEXITY" missed="1" covered="3"/>
+            <counter type="METHOD" missed="0" covered="1"/>
+            <counter type="CLASS" missed="0" covered="1"/>
+        </class>
+        <sourcefile name="ExampleClass.java">
+            <line nr="3" mi="10" ci="90" mb="1" cb="3"/>
+            <counter type="INSTRUCTION" missed="20" covered="80"/>
+            <counter type="LINE" missed="4" covered="6"/>
+            <counter type="COMPLEXITY" missed="2" covered="2"/>
+            <counter type="METHOD" missed="1" covered="0"/>
+        </sourcefile>
+    </package>
+    <counter type="INSTRUCTION" missed="10" covered="90"/>
+    <counter type="BRANCH" missed="1" covered="3"/>
+    <counter type="LINE" missed="2" covered="8"/>
+    <counter type="COMPLEXITY" missed="1" covered="3"/>
+    <counter type="METHOD" missed="0" covered="1"/>
+    <counter type="CLASS" missed="0" covered="1"/>
+</report>
