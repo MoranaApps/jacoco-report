@@ -95,8 +95,8 @@ outputs:
     value: ${{ steps.jacoco-report-to-pr-comment.outputs.modules-coverage }}
 
 branding:
-  icon: 'TBD'
-  color: 'TBD'
+  icon: 'book-open'
+  color: 'yellow'
 
 runs:
   using: 'composite'
