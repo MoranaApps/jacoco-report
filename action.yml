@@ -103,8 +103,24 @@ runs:
   steps:
     - name: Install Python dependencies
       run: |
-        ls -l
-        pip install -r requirements.txt
+        python_version=$(python --version 2>&1 | grep -oP '\d+\.\d+\.\d+')
+        minimal_required_version="3.11.0"
+        
+        function version { echo "$@" | awk -F. '{ printf("%d%03d%03d\n", $1,$2,$3); }'; }
+        
+        echo "Current Python version: $python_version"
+        echo "Minimal required Python version: $minimal_required_version"
+        
+        if [ $(version $python_version) -lt $(version $minimal_required_version) ]; then
+          echo "Python version is less than $minimal_required_version"
+          exit 1
+        else
+          echo "Python version meets the minimum requirement of $minimal_required_version"
+        fi
+        
+        python -m venv .venv
+        source .venv/bin/activate
+        pip install -r ${{ github.action_path }}/requirements.txt
       shell: bash
 
     - name: Set PROJECT_ROOT and update PYTHONPATH
