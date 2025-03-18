@@ -9,6 +9,10 @@
 
 Automates the publication of JaCoCo coverage reports directly as comments in pull requests.
 
+Requirements
+- **GitHub Token**: A GitHub token with permission to fetch repository data such as Issues and Pull Requests.
+- **Python 3.12+**: Ensure you have Python 3.12 installed on your system.
+
 ## Usage
 
 ```yaml
@@ -25,6 +29,10 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+
+      - uses: actions/setup-python@v5.1.1
+        with:
+          python-version: '3.12'
 
       - name: Publish JaCoCo Report in PR comments
         uses: MoranaApps/jacoco-report@v1.0.0
