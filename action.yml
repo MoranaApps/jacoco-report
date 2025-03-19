@@ -192,5 +192,6 @@ runs:
         INPUT_FAIL_ON_THRESHOLD: ${{ env.INPUT_FAIL_ON_THRESHOLD }}
         INPUT_DEBUG: ${{ env.INPUT_DEBUG }}
       run: |
+        source .venv/bin/activate
         python ${{ github.action_path }}/main.py
       shell: bash
