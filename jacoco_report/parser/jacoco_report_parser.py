@@ -181,7 +181,7 @@ class JaCoCoReportParser:
         logger.debug("Detecting module name from report path.")
 
         for module_name, module in self._modules.items():
-            if module.root_path in report_path:
+            if f"/{module.root_path}/" in report_path:
                 return module_name
 
         logger.error("No module name detected for module path: %s", report_path)
