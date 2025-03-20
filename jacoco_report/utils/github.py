@@ -162,7 +162,6 @@ class GitHub:
         # Check if the event is a pull request and get the PR number
         if "pull_request" in event_data:
             pr_number = event_data["pull_request"]["number"]
-            logger.debug("PR Number: %s", pr_number)
             return pr_number
 
         logger.error("This event is not a pull request.")

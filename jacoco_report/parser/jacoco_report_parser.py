@@ -131,7 +131,7 @@ class JaCoCoReportParser:
                 file_name = src_file.attrib["name"]
 
                 key = f"{file_path}/{file_name}"
-                if key in self._changed_files:
+                if any(key in changed_file for changed_file in self._changed_files):
                     logger.debug("File '%s' is in the list of changed files.", key)
                     file_coverage = FileCoverage(
                         file_path=file_path,

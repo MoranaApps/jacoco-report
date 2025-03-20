@@ -132,7 +132,7 @@ class ActionInputs:
     @staticmethod
     def get_sensitivity() -> str:
         """
-        Get the comment template from the action inputs.
+        Get the sensitivity from the action inputs.
         """
         return get_action_input(SENSITIVITY, SensitivityEnum.DETAIL)
 
@@ -502,7 +502,7 @@ class ActionInputs:
         logger.debug("Minimum coverage changed files: %s", min_coverage_changed_files)
         logger.debug("Title: %s", title)
         logger.debug("Metric: %s", metric)
-        logger.debug("Comment template: %s", sensitivity)
+        logger.debug("Sensitivity: %s", sensitivity)
         logger.debug("Comment mode: %s", comment_mode)
         logger.debug("Modules: %s", modules)
         logger.debug("Modules thresholds: %s", modules_thresholds)
