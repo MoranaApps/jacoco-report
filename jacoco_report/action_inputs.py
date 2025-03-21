@@ -496,7 +496,7 @@ class ActionInputs:
         logger.debug("Exclude paths: %s", exclude_paths)
         logger.debug("Minimum coverage overall: %s", min_coverage_overall)
         logger.debug("Minimum coverage changed files: %s", min_coverage_changed_files)
-        logger.debug("Title: %s", title)
+        logger.debug("Title: %s", ActionInputs.get_title())
         logger.debug("Metric: %s", metric)
         logger.debug("Sensitivity: %s", sensitivity)
         logger.debug("Comment mode: %s", comment_mode)
