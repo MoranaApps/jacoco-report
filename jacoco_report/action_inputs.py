@@ -406,10 +406,6 @@ class ActionInputs:
         ):
             errors.append("'min-coverage-changed-files' must be a float between 0 and 100.")
 
-        title = ActionInputs.get_title()
-        if not isinstance(title, str) or not title.strip():
-            errors.append("'title' must be a non-empty string.")
-
         metric = ActionInputs.get_metric()
         if not isinstance(metric, str) or metric not in MetricTypeEnum:
             errors.append(
