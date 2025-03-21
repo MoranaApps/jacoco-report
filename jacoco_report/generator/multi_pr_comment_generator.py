@@ -32,18 +32,18 @@ class MultiPRCommentGenerator(PRCommentGenerator):
             existing_comment = None
             for gh_comment in gh_comments:
                 if gh_comment["body"].startswith(title):  # Detects if it starts with the title
-                    logger.info(f"Found existing comment with title: {title}")
+                    logger.info(f"Found existing comment with title: '{title}'")
                     existing_comment = gh_comment
                     break
 
             if existing_comment and ActionInputs.get_update_comment():
                 # Update the existing comment
                 self.gh.update_comment(existing_comment["id"], body)
-                logger.info(f"Updated comment with title: {title}")
+                logger.info(f"Updated comment with title: '{title}'")
             else:
                 # create a comment on pull request
                 self.gh.add_comment(self.pr_number, body)
-                logger.info(f"Added comment with title: {title}")
+                logger.info(f"Added comment with title: '{title}'")
 
     def _get_comments_content(self) -> dict[str, str]:
         comments: dict[str, str] = {}
