@@ -24,7 +24,7 @@ class ModulePRCommentGenerator(MultiPRCommentGenerator):
         f = ActionInputs.get_fail_symbol()
 
         for key, evaluated_module_coverage in self.evaluator.evaluated_modules_coverage.items():
-            title = body = f"**{ActionInputs.get_title()} {evaluated_module_coverage.name}**"
+            title = body = f"**{ActionInputs.get_title()}{evaluated_module_coverage.name}**"
             baseline_evaluated_coverage_report = (
                 self.bs_evaluator.evaluated_modules_coverage[key]
                 if key in self.bs_evaluator.evaluated_modules_coverage.keys()
@@ -59,7 +59,6 @@ class ModulePRCommentGenerator(MultiPRCommentGenerator):
         ecr_key = evaluated_report_coverage.name
 
         for changed_file_key in evaluated_report_coverage.changed_files_passed.keys():
-
             filename = os.path.basename(changed_file_key)
             file_hash = hashlib.sha256(changed_file_key.encode("utf-8")).hexdigest()
             file_as_link_to_diff = (
