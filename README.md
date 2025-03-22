@@ -57,7 +57,7 @@ jobs:
 | `exclude-paths`              | Comma-separated paths to exclude from coverage analysis. Supports glob patterns.                                                                                                                                         | No                            | ''                                                                                                        |
 | `min-coverage-overall`       | Minimum overall code coverage percentage required to pass the check.                                                                                                                                                     | No                            | 0                                                                                                         |
 | `min-coverage-changed-files` | Minimum code coverage percentage required for changed files.                                                                                                                                                             | No                            | 0                                                                                                         |
-| `title`                      | Title for the coverage report comment added to the Pull Request.<br>**Warning**: Title values have to be unique values to provide comments!                                                              | No                            | single: `JaCoCo Coverage Report` <br> multi: `Report: {report name}` <br> module: `Module: {module name}` |
+| `title`                      | Title for the coverage report comment added to the Pull Request.                                                                                                                                              | No                            | single: `JaCoCo Coverage Report` <br> multi: `Report: {report name}` <br> module: `Module: {module name}` |
 | `pr-number`                  | Number of the pull request. If not provided, the action will attempt to determine <br> the PR number from the GitHub context.                                                                                            | No                            | ''                                                                                                        |
 | `metric`                     | A metric to use for coverage calculation (`instruction`, `line`, `branch`, `complexity`, `method`, `class`).                                                                                                             | No                            | `instruction`                                                                                             | 
 | `sensitivity`                | Control the sensitivity of the coverage evaluation to the thresholds (`minimal,` `summary,` or `detail`).                                                                                                                | No                            | `detailed`                                                                                                | 
@@ -156,7 +156,11 @@ The `pr-number` input allows you to specify the number of the pull request. If n
 
 #### Customizing the Report Title and Sensitivity
 
-The `title` input lets you specify a custom title for the JaCoCo coverage report comment.
+The `title` input lets you specify a `custom title` for the JaCoCo coverage report comment.
+- `single`: `{custom title}`
+- `multi`: `{custom title}{report name}`
+- `module`: `{custom title}{report name}`
+> **Hint:** `{report name}` is required to produce unique titles for each report.
 
 The `sensitivity` input allows you to choose between a `minimal,` `summary` or `detail` sensitivity levels. This setting control:
 - `minimal`: Only the overall coverage and changed files coverage are displayed.
