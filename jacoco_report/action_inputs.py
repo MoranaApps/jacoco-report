@@ -99,6 +99,8 @@ class ActionInputs:
         Get the title from the action inputs.
         """
         title = get_action_input(TITLE)
+        print(f"XXX - {title}")
+
         if title is not None:
             return title
 
