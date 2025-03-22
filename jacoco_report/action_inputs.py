@@ -99,11 +99,11 @@ class ActionInputs:
         Get the title from the action inputs.
         """
         title = get_action_input(TITLE)
-        print(f"XXX - {title}")
-
         if title is not None:
+            print(f"XXX(not none) - {title}")
             return title
 
+        print(f"XXX(none) - {title}")
         default_title = "JaCoCo Coverage Report"
         match ActionInputs.get_comment_mode():
             case CommentModeEnum.MULTI:
