@@ -70,26 +70,43 @@ class GitHub:
                 pr_number = match.group(1)
         logger.debug("GitHub - PR number: %s", pr_number)
 
-        # GitHub API endpoint for PR files
-        api_url = f"{self.__gh_url}/repos/{repo}/pulls/{pr_number}/files"
-        logger.debug("GitHub - URL: %s", api_url)
-
-        response = self._send_request("GET", api_url)
-        if response is None:
-            logger.error("Failed to get the list of changed files.")
+        if not pr_number:
+            logger.error("Failed to extract PR number from GitHub ref.")
             return None
 
-        # Extract filenames and additional information from the list of JSON objects
+        per_page = 100  # Maximum GitHub allows
+        page = 1
         file_list = []
-        for file_info in response.json():
-            filename = file_info.get("filename")
-            if filename:
-                file_list.append(filename)
+
+        while True:
+            api_url = f"{self.__gh_url}/repos/{repo}/pulls/{pr_number}/files"
+            params = {"per_page": per_page, "page": page}
+            logger.debug("GitHub - URL: %s, Page: %d", api_url, page)
+
+            response = self._send_request("GET", api_url, params=params)
+            if response is None:
+                logger.error("Failed to get the list of changed files.")
+                return None
+
+            page_files = response.json()
+            if not page_files:
+                break
+
+            for file_info in page_files:
+                filename = file_info.get("filename")
+                if filename:
+                    file_list.append(filename)
+
+            if len(page_files) < per_page:
+                break  # No more pages
+            page += 1
 
         logger.info("List of changed files in PR: %s", file_list)
         return file_list
 
-    def _send_request(self, method: str, url: str, data: dict = None) -> Optional[requests.Response]:
+    def _send_request(
+        self, method: str, url: str, data: dict = None, params: Optional[dict] = None
+    ) -> Optional[requests.Response]:
         """
         Sends a request to the GitHub API.
 
@@ -97,6 +114,7 @@ class GitHub:
             method (str): The HTTP method to use.
             url (str): The URL of the API endpoint.
             data (dict): The data to send in the request (as json).
+            params (dict): The parameters to send in the request.
 
         Returns:
             Optional[requests.Response]: The response from the API.
@@ -108,13 +126,13 @@ class GitHub:
             response = None
             # Fetch the response from the API
             if method == "GET":
-                response = self.__session.get(url)
+                response = self.__session.get(url, params=params)
                 response.raise_for_status()
             elif method == "POST":
-                response = self.__session.post(url, json=data)
+                response = self.__session.post(url, params=params, json=data)
                 response.raise_for_status()
             elif method == "PATCH":
-                response = self.__session.patch(url, json=data)
+                response = self.__session.patch(url, params=params, json=data)
                 response.raise_for_status()
             else:
                 logger.error("Unsupported HTTP method: %s.", method)
@@ -162,7 +180,6 @@ class GitHub:
         # Check if the event is a pull request and get the PR number
         if "pull_request" in event_data:
             pr_number = event_data["pull_request"]["number"]
-            logger.debug("PR Number: %s", pr_number)
             return pr_number
 
         logger.error("This event is not a pull request.")

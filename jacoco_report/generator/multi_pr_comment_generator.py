@@ -2,12 +2,15 @@
 A module that contains the MultiPRCommentGenerator class.
 """
 
+import logging
 from typing import Optional
 
 from jacoco_report.action_inputs import ActionInputs
 from jacoco_report.generator.pr_comment_generator import PRCommentGenerator
 from jacoco_report.model.evaluated_report_coverage import EvaluatedReportCoverage
 from jacoco_report.utils.enums import SensitivityEnum
+
+logger = logging.getLogger(__name__)
 
 
 # pylint: disable=too-few-public-methods
@@ -21,24 +24,28 @@ class MultiPRCommentGenerator(PRCommentGenerator):
         The method that generates the comment for each report file.
         """
         jacoco_comments: dict[str, str] = self._get_comments_content()
+        logger.info("Generating %s pr comments...", format(len(jacoco_comments)))
 
         # Get all gh_comments on the pull request
         gh_comments = self.gh.get_comments(self.pr_number)
 
         # Check for existing comment with the same title
-        existing_comment = None
         for title, body in jacoco_comments.items():
+            existing_comment = None
             for gh_comment in gh_comments:
                 if gh_comment["body"].startswith(title):  # Detects if it starts with the title
+                    logger.info("Found existing comment with title: '%s'", title)
                     existing_comment = gh_comment
                     break
 
             if existing_comment and ActionInputs.get_update_comment():
                 # Update the existing comment
                 self.gh.update_comment(existing_comment["id"], body)
+                logger.info("Updated comment with title: '%s'", title)
             else:
                 # create a comment on pull request
                 self.gh.add_comment(self.pr_number, body)
+                logger.info("Added comment with title: '%s'", title)
 
     def _get_comments_content(self) -> dict[str, str]:
         comments: dict[str, str] = {}
@@ -49,7 +56,7 @@ class MultiPRCommentGenerator(PRCommentGenerator):
             if ActionInputs.get_skip_not_changed() and len(evaluated_coverage_report.changed_files_passed) == 0:
                 continue
 
-            title = body = f"**{ActionInputs.get_title()} {evaluated_coverage_report.name}**"
+            title = body = f"**{ActionInputs.get_title(evaluated_coverage_report.name)}**"
             baseline_evaluated_coverage_report = (
                 self.bs_evaluator.evaluated_reports_coverage[key]
                 if key in self.bs_evaluator.evaluated_reports_coverage.keys()
