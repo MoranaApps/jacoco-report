@@ -100,16 +100,21 @@ class ActionInputs:
         """
         title = get_action_input(TITLE)
         if len(title) > 0:
-            return title
+            match ActionInputs.get_comment_mode():
+                case CommentModeEnum.MULTI:
+                    return title + report_name if report_name else "Unknown Report Name"
+                case CommentModeEnum.MODULE:
+                    return title + report_name if report_name else "Unknown Report Name"
+                case _:
+                    return title
 
-        default_title = "JaCoCo Coverage Report"
         match ActionInputs.get_comment_mode():
             case CommentModeEnum.MULTI:
-                return "Report: " + report_name if report_name else default_title
+                return "Report: " + report_name if report_name else "Unknown Report Name"
             case CommentModeEnum.MODULE:
-                return "Module: " + report_name if report_name else default_title
+                return "Module: " + report_name if report_name else "Unknown Report Name"
             case _:
-                return default_title
+                return "JaCoCo Coverage Report"
 
     @staticmethod
     def get_pr_number(gh: GitHub) -> Optional[int]:
