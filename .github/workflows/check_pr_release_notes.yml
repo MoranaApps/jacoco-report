@@ -23,9 +23,10 @@ jobs:
           github-repository: ${{ github.repository }}
           pr-number: ${{ github.event.number }}
 
-      - uses: actions/setup-python@v5.1.1
+      - uses: actions/checkout@v4
         with:
-          python-version: '3.12'
+          fetch-depth: 0
+          persist-credentials: false
 
       - name: Add JaCoCo Report in PR comments
         id: jacoco
