@@ -32,7 +32,7 @@ jobs:
         id: jacoco
         uses: MoranaApps/jacoco-report@feature/4-Integrate-with-1st-project
         with:
-          token: '${{ secrets.GITHUB_TOKEN }}'
+          token: '${{ secrets.TOKEN }}'
           paths: |
             **/tests/data/test_project/**/jacoco.xml
           title: Testing JaCoCo Report in PR
