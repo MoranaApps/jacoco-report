@@ -37,7 +37,7 @@ jobs:
             **/tests/data/test_project/**/jacoco.xml
 #          title: Testing JaCoCo Report in PR
           sensitivity: "detail"
-          comment-mode: 'single'
+          comment-mode: 'multi'
           min-coverage-overall: 80.0
           min-coverage-changed-files: 80.0
           debug: 'true'

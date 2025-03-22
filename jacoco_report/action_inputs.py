@@ -100,10 +100,8 @@ class ActionInputs:
         """
         title = get_action_input(TITLE)
         if len(title) > 0:
-            print(f"XXX(>0) - {title}")
             return title
 
-        print(f"XXX(0) - {title}")
         default_title = "JaCoCo Coverage Report"
         match ActionInputs.get_comment_mode():
             case CommentModeEnum.MULTI:
