@@ -24,7 +24,7 @@ class ModulePRCommentGenerator(MultiPRCommentGenerator):
         f = ActionInputs.get_fail_symbol()
 
         for key, evaluated_module_coverage in self.evaluator.evaluated_modules_coverage.items():
-            title = body = f"**{ActionInputs.get_title()}{evaluated_module_coverage.name}**"
+            title = body = f"**{ActionInputs.get_title(evaluated_module_coverage.name)}**"
             baseline_evaluated_coverage_report = (
                 self.bs_evaluator.evaluated_modules_coverage[key]
                 if key in self.bs_evaluator.evaluated_modules_coverage.keys()

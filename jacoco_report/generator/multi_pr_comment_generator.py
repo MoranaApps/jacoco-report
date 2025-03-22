@@ -56,7 +56,7 @@ class MultiPRCommentGenerator(PRCommentGenerator):
             if ActionInputs.get_skip_not_changed() and len(evaluated_coverage_report.changed_files_passed) == 0:
                 continue
 
-            title = body = f"**{ActionInputs.get_title()}{evaluated_coverage_report.name}**"
+            title = body = f"**{ActionInputs.get_title(evaluated_coverage_report.name)}**"
             baseline_evaluated_coverage_report = (
                 self.bs_evaluator.evaluated_reports_coverage[key]
                 if key in self.bs_evaluator.evaluated_reports_coverage.keys()

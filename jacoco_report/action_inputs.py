@@ -94,17 +94,22 @@ class ActionInputs:
         return float(get_action_input(MIN_COVERAGE_CHANGED_FILES, "0.0"))
 
     @staticmethod
-    def get_title() -> str:
+    def get_title(report_name: Optional[str] = None) -> str:
         """
         Get the title from the action inputs.
         """
+        title = get_action_input(TITLE)
+        if title is not None:
+            return title
+
+        default_title = "JaCoCo Coverage Report"
         match ActionInputs.get_comment_mode():
             case CommentModeEnum.MULTI:
-                return get_action_input(TITLE, "Report: ")
+                return "Report: " + report_name if report_name else default_title
             case CommentModeEnum.MODULE:
-                return get_action_input(TITLE, "Module: ")
-
-        return get_action_input(TITLE, "JaCoCo Coverage Report")
+                return "Module: " + report_name if report_name else default_title
+            case _:
+                return default_title
 
     @staticmethod
     def get_pr_number(gh: GitHub) -> Optional[int]:

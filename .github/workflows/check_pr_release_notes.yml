@@ -22,3 +22,21 @@ jobs:
         with:
           github-repository: ${{ github.repository }}
           pr-number: ${{ github.event.number }}
+
+      - uses: actions/setup-python@v5.1.1
+        with:
+          python-version: '3.12'
+
+      - name: Add JaCoCo Report in PR comments
+        id: jacoco
+        uses: MoranaApps/jacoco-report@feature/4-Integrate-with-1st-project
+        with:
+          token: '${{ secrets.GITHUB_TOKEN }}'
+          paths: |
+            tests/data/test_project/**/jacoco.xml
+          title: Testing JaCoCo Report in PR
+          sensitivity: "detail"
+          comment-mode: 'single'
+          min-coverage-overall: 80.0
+          min-coverage-changed-files: 80.0
+          debug: 'true'
