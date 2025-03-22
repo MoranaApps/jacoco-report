@@ -98,21 +98,21 @@ class ActionInputs:
         """
         Get the title from the action inputs.
         """
-        title = get_action_input(TITLE)
+        title = get_action_input(TITLE, "")
         if len(title) > 0:
             match ActionInputs.get_comment_mode():
                 case CommentModeEnum.MULTI:
-                    return title + report_name if report_name else "Unknown Report Name"
+                    return title + (report_name if report_name else "Unknown Report Name")
                 case CommentModeEnum.MODULE:
-                    return title + report_name if report_name else "Unknown Report Name"
+                    return title + (report_name if report_name else "Unknown Report Name")
                 case _:
                     return title
 
         match ActionInputs.get_comment_mode():
             case CommentModeEnum.MULTI:
-                return "Report: " + report_name if report_name else "Unknown Report Name"
+                return "Report: " + (report_name if report_name else "Unknown Report Name")
             case CommentModeEnum.MODULE:
-                return "Module: " + report_name if report_name else "Unknown Report Name"
+                return "Module: " + (report_name if report_name else "Unknown Report Name")
             case _:
                 return "JaCoCo Coverage Report"
 

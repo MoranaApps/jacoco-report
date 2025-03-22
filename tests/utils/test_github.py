@@ -39,7 +39,7 @@ def test_send_request_get(mocker):
 
     response = github._send_request("GET", "https://api.github.com/test")
 
-    mock_session.get.assert_called_once_with("https://api.github.com/test")
+    mock_session.get.assert_called_once_with("https://api.github.com/test", params=None)
     mock_response.raise_for_status.assert_called_once()
     assert response == mock_response
 
@@ -54,7 +54,7 @@ def test_send_request_post(mocker):
 
     response = github._send_request("POST", "https://api.github.com/test", data={"key": "value"})
 
-    mock_session.post.assert_called_once_with("https://api.github.com/test", json={"key": "value"})
+    mock_session.post.assert_called_once_with("https://api.github.com/test", json={"key": "value"}, params=None)
     mock_response.raise_for_status.assert_called_once()
     assert response == mock_response
 
@@ -69,7 +69,7 @@ def test_send_request_patch(mocker):
 
     response = github._send_request("PATCH", "https://api.github.com/test", data={"key": "value"})
 
-    mock_session.patch.assert_called_once_with("https://api.github.com/test", json={"key": "value"})
+    mock_session.patch.assert_called_once_with("https://api.github.com/test", json={"key": "value"}, params=None)
     mock_response.raise_for_status.assert_called_once()
     assert response == mock_response
 
@@ -94,7 +94,7 @@ def test_send_request_get_http_error(mocker):
 
     response = github._send_request("GET", "https://api.github.com/test")
 
-    mock_session.get.assert_called_once_with("https://api.github.com/test")
+    mock_session.get.assert_called_once_with("https://api.github.com/test", params=None)
     mock_response.raise_for_status.assert_called_once()
     assert response is None
 
@@ -107,7 +107,7 @@ def test_send_request_post_request_exception(mocker):
 
     response = github._send_request("POST", "https://api.github.com/test", data={"key": "value"})
 
-    mock_session.post.assert_called_once_with("https://api.github.com/test", json={"key": "value"})
+    mock_session.post.assert_called_once_with("https://api.github.com/test", json={"key": "value"}, params=None)
     assert response is None
 
 # get_pr_number

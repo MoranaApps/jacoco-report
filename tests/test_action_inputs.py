@@ -1,6 +1,7 @@
 import pytest
 
 from jacoco_report.action_inputs import ActionInputs
+from jacoco_report.utils.enums import CommentModeEnum
 from jacoco_report.utils.github import GitHub
 
 # Data-driven test cases
@@ -41,9 +42,6 @@ failure_cases = [
     ("get_min_coverage_changed_files", True, "'min-coverage-changed-files' must be a float between 0 and 100."),
     ("get_min_coverage_changed_files", -1, "'min-coverage-changed-files' must be a float between 0 and 100."),
     ("get_min_coverage_changed_files", 100, "'min-coverage-changed-files' must be a float between 0 and 100."),
-    ("get_title", "", "'title' must be a non-empty string."),
-    ("get_title", True, "'title' must be a non-empty string."),
-    ("get_title", 1, "'title' must be a non-empty string."),
     ("get_metric", "", "'metric' must be a string from these options: 'instruction', 'line', 'branch', 'complexity', 'method', 'class'."),
     ("get_metric", 1, "'metric' must be a string from these options: 'instruction', 'line', 'branch', 'complexity', 'method', 'class'."),
     ("get_sensitivity", "", "'sensitivity' must be a string from these options: 'minimal', 'summary', 'detail'."),
@@ -175,24 +173,27 @@ def test_get_min_coverage_changed_files(mocker):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="0")
     assert 0.0 == ActionInputs.get_min_coverage_changed_files()
 
+failure_cases = [
+    ("", CommentModeEnum.SINGLE, None, "JaCoCo Coverage Report"),
+    ("", CommentModeEnum.SINGLE, "Report Name", "JaCoCo Coverage Report"),
+    ("", CommentModeEnum.MULTI, None, "Report: Unknown Report Name"),
+    ("", CommentModeEnum.MULTI, "Report Name", "Report: Report Name"),
+    ("", CommentModeEnum.MODULE, None, "Module: Unknown Report Name"),
+    ("", CommentModeEnum.MODULE, "Report Name", "Module: Report Name"),
+    ("Custom title", CommentModeEnum.SINGLE, None, "Custom title"),
+    ("Custom title", CommentModeEnum.SINGLE, "Report Name", "Custom title"),
+    ("Custom title ", CommentModeEnum.MULTI, None, "Custom title Unknown Report Name"),
+    ("Custom title ", CommentModeEnum.MULTI, "Report Name", "Custom title Report Name"),
+    ("Custom title ", CommentModeEnum.MODULE, None, "Custom title Unknown Report Name"),
+    ("Custom title ", CommentModeEnum.MODULE, "Report Name", "Custom title Report Name"),
+]
 
-def test_get_title(mocker):
-    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="Custom Title")
-    assert "Custom Title" == ActionInputs.get_title()
+@pytest.mark.parametrize("input_title, comment_mode, report_name, expected_title", failure_cases)
+def test_get_title(input_title, comment_mode, report_name, expected_title, mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value=input_title)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_comment_mode", return_value=comment_mode)
 
-
-def test_get_title_default(mocker):
-    assert "JaCoCo Coverage Report" == ActionInputs.get_title()
-
-
-def test_get_title_default_multi(mocker):
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_comment_mode", return_value="multi")
-    assert "Report: " == ActionInputs.get_title()
-
-
-def test_get_title_default_module(mocker):
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_comment_mode", return_value="module")
-    assert "Module: " == ActionInputs.get_title()
+    assert expected_title == ActionInputs.get_title(report_name)
 
 
 def test_get_comment_template(mocker):
