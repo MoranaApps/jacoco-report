@@ -35,7 +35,7 @@ jobs:
           token: '${{ secrets.TOKEN }}'
           paths: |
             **/tests/data/test_project/**/jacoco.xml
-          title: Testing JaCoCo Report in PR
+#          title: Testing JaCoCo Report in PR
           sensitivity: "detail"
           comment-mode: 'single'
           min-coverage-overall: 80.0
