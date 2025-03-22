@@ -104,7 +104,9 @@ class GitHub:
         logger.info("List of changed files in PR: %s", file_list)
         return file_list
 
-    def _send_request(self, method: str, url: str, data: dict = None, params: Optional[dict] = None) -> Optional[requests.Response]:
+    def _send_request(
+        self, method: str, url: str, data: dict = None, params: Optional[dict] = None
+    ) -> Optional[requests.Response]:
         """
         Sends a request to the GitHub API.
 

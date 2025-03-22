@@ -1,6 +1,7 @@
 """
 A module that contains the MultiPRCommentGenerator class.
 """
+
 import logging
 from typing import Optional
 
@@ -10,6 +11,7 @@ from jacoco_report.model.evaluated_report_coverage import EvaluatedReportCoverag
 from jacoco_report.utils.enums import SensitivityEnum
 
 logger = logging.getLogger(__name__)
+
 
 # pylint: disable=too-few-public-methods
 class MultiPRCommentGenerator(PRCommentGenerator):
@@ -22,7 +24,7 @@ class MultiPRCommentGenerator(PRCommentGenerator):
         The method that generates the comment for each report file.
         """
         jacoco_comments: dict[str, str] = self._get_comments_content()
-        logger.info(f"Generating {len(jacoco_comments)} pr comments...")
+        logger.info("Generating %s pr comments...", format(len(jacoco_comments)))
 
         # Get all gh_comments on the pull request
         gh_comments = self.gh.get_comments(self.pr_number)
@@ -32,18 +34,18 @@ class MultiPRCommentGenerator(PRCommentGenerator):
             existing_comment = None
             for gh_comment in gh_comments:
                 if gh_comment["body"].startswith(title):  # Detects if it starts with the title
-                    logger.info(f"Found existing comment with title: '{title}'")
+                    logger.info("Found existing comment with title: '%s'", title)
                     existing_comment = gh_comment
                     break
 
             if existing_comment and ActionInputs.get_update_comment():
                 # Update the existing comment
                 self.gh.update_comment(existing_comment["id"], body)
-                logger.info(f"Updated comment with title: '{title}'")
+                logger.info("Updated comment with title: '%s'", title)
             else:
                 # create a comment on pull request
                 self.gh.add_comment(self.pr_number, body)
-                logger.info(f"Added comment with title: '{title}'")
+                logger.info("Added comment with title: '%s'", title)
 
     def _get_comments_content(self) -> dict[str, str]:
         comments: dict[str, str] = {}
