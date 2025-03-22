@@ -33,7 +33,7 @@ jobs:
         with:
           token: '${{ secrets.GITHUB_TOKEN }}'
           paths: |
-            tests/data/test_project/**/jacoco.xml
+            **/tests/data/test_project/**/jacoco.xml
           title: Testing JaCoCo Report in PR
           sensitivity: "detail"
           comment-mode: 'single'
