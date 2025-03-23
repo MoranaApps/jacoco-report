@@ -133,9 +133,13 @@ class CoverageEvaluator:
         self.total_coverage_overall = global_overall.coverage()
         self.total_coverage_changed_files = global_changed_files.coverage()
         self.total_coverage_overall_passed = self.total_coverage_overall >= self._global_min_coverage_overall
-        self.total_coverage_changed_files_passed = (
-            self.total_coverage_changed_files >= self._global_min_coverage_changed_files
-        )
+
+        if len(self.evaluated_reports_coverage.keys()) == 0:
+            self.total_coverage_changed_files_passed = True
+        else:
+            self.total_coverage_changed_files_passed = (
+                self.total_coverage_changed_files >= self._global_min_coverage_changed_files
+            )
 
         # review for violations
         self._review_violations()
