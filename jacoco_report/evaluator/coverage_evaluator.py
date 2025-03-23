@@ -65,6 +65,7 @@ class CoverageEvaluator:
         # sum variables needed for the evaluation
         global_overall = Counter(0, 0)
         global_changed_files = Counter(0, 0)
+        changed_file_counter = 0
 
         # evaluation of all report files (report == input xml file)
         for report in self._report_files_coverage:
@@ -80,6 +81,7 @@ class CoverageEvaluator:
 
             # get report's changed files values
             for key, changed_file_coverage in report.changed_files_coverage.items():
+                changed_file_counter += 1
                 mi, co = changed_file_coverage.get_values_by_metric(m)
                 global_changed_files.append(mi, co)  # sum all reports
                 evaluated_coverage_report.changed_files_coverage_reached[key] = (
@@ -134,7 +136,7 @@ class CoverageEvaluator:
         self.total_coverage_changed_files = global_changed_files.coverage()
         self.total_coverage_overall_passed = self.total_coverage_overall >= self._global_min_coverage_overall
 
-        if len(self.evaluated_reports_coverage.keys()) == 0:
+        if changed_file_counter == 0:
             self.total_coverage_changed_files_passed = True
         else:
             self.total_coverage_changed_files_passed = (
