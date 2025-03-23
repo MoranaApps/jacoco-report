@@ -94,17 +94,27 @@ class ActionInputs:
         return float(get_action_input(MIN_COVERAGE_CHANGED_FILES, "0.0"))
 
     @staticmethod
-    def get_title() -> str:
+    def get_title(report_name: Optional[str] = None) -> str:
         """
         Get the title from the action inputs.
         """
+        title = get_action_input(TITLE, "")
+        if len(title) > 0:
+            match ActionInputs.get_comment_mode():
+                case CommentModeEnum.MULTI:
+                    return title + (report_name if report_name else "Unknown Report Name")
+                case CommentModeEnum.MODULE:
+                    return title + (report_name if report_name else "Unknown Report Name")
+                case _:
+                    return title
+
         match ActionInputs.get_comment_mode():
             case CommentModeEnum.MULTI:
-                return get_action_input(TITLE, "Report: ")
+                return "Report: " + (report_name if report_name else "Unknown Report Name")
             case CommentModeEnum.MODULE:
-                return get_action_input(TITLE, "Module: ")
-
-        return get_action_input(TITLE, "JaCoCo Coverage Report")
+                return "Module: " + (report_name if report_name else "Unknown Report Name")
+            case _:
+                return "JaCoCo Coverage Report"
 
     @staticmethod
     def get_pr_number(gh: GitHub) -> Optional[int]:
@@ -132,7 +142,7 @@ class ActionInputs:
     @staticmethod
     def get_sensitivity() -> str:
         """
-        Get the comment template from the action inputs.
+        Get the sensitivity from the action inputs.
         """
         return get_action_input(SENSITIVITY, SensitivityEnum.DETAIL)
 
@@ -406,10 +416,6 @@ class ActionInputs:
         ):
             errors.append("'min-coverage-changed-files' must be a float between 0 and 100.")
 
-        title = ActionInputs.get_title()
-        if not isinstance(title, str) or not title.strip():
-            errors.append("'title' must be a non-empty string.")
-
         metric = ActionInputs.get_metric()
         if not isinstance(metric, str) or metric not in MetricTypeEnum:
             errors.append(
@@ -500,9 +506,9 @@ class ActionInputs:
         logger.debug("Exclude paths: %s", exclude_paths)
         logger.debug("Minimum coverage overall: %s", min_coverage_overall)
         logger.debug("Minimum coverage changed files: %s", min_coverage_changed_files)
-        logger.debug("Title: %s", title)
+        logger.debug("Title: %s", ActionInputs.get_title())
         logger.debug("Metric: %s", metric)
-        logger.debug("Comment template: %s", sensitivity)
+        logger.debug("Sensitivity: %s", sensitivity)
         logger.debug("Comment mode: %s", comment_mode)
         logger.debug("Modules: %s", modules)
         logger.debug("Modules thresholds: %s", modules_thresholds)
