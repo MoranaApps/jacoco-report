@@ -102,6 +102,31 @@ def test_review_violations_global_changed_files_coverage_below_threshold(evaluat
 
     assert "Global changed files coverage 40.0 is below the threshold 50.0." in evaluator.violations
 
+
+def test_review_violations_global_changed_files_coverage_zero_no_changed_file(evaluator, mocker):
+    evaluator.total_coverage_overall = 75.0
+    evaluator.total_coverage_changed_files = 0.0
+    evaluator.total_coverage_overall_passed = True
+    evaluator.total_coverage_changed_files_passed = True
+
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_sensitivity", return_value=SensitivityEnum.DETAIL)
+    evaluator._review_violations()
+
+    assert len(evaluator.violations) == 0
+
+
+def test_review_violations_global_changed_files_coverage_zero_w_changed_file(evaluator, mocker):
+    evaluator.total_coverage_overall = 75.0
+    evaluator.total_coverage_changed_files = 0.0
+    evaluator.total_coverage_overall_passed = True
+    evaluator.total_coverage_changed_files_passed = False
+
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_sensitivity", return_value=SensitivityEnum.DETAIL)
+    evaluator._review_violations()
+
+    assert "Global changed files coverage 0.0 is below the threshold 50.0." in evaluator.violations
+
+
 def test_review_violations_module_overall_coverage_below_threshold(evaluator, mocker):
     evaluator.total_coverage_overall = 75.0
     evaluator.total_coverage_changed_files = 80.0
