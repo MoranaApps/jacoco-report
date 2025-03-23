@@ -111,6 +111,9 @@ class CoverageEvaluator:
                             evaluated_report_coverage.sum_changed_files_coverage
                         )
 
+                    evaluated_coverage_module.changed_files_passed.update(evaluated_report_coverage.changed_files_passed)
+                    evaluated_coverage_module.changed_files_coverage_reached.update(evaluated_report_coverage.changed_files_coverage_reached)
+
                 # count reached values from raw weights
                 evaluated_coverage_module.overall_coverage_reached = (
                     evaluated_coverage_module.overall_coverage.coverage()
