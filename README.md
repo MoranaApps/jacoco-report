@@ -6,6 +6,7 @@
   - [Examples](#examples)
 - [Developer](#developer)
 - [License](#license)
+- [Donate](#donate)
 
 Automates the publication of JaCoCo coverage reports directly as comments in pull requests.
 
@@ -351,4 +352,13 @@ Follow the [DEVELOPER.md](DEVELOPER.md) guide to setup the development environme
 ## License
 
 [Apache License, Version 2.0](./LICENSE)
-```
+
+## Donate
+
+If you find this project useful or interesting, consider supporting it!
+
+Your donation helps me keep building, maintaining and improving this tool — every bit of support matters and is deeply appreciated.
+
+- [Buy me a coffee on Ko-fi](https://ko-fi.com/mirpo)
+
+Thanks for keeping this project alive! 💻📸
