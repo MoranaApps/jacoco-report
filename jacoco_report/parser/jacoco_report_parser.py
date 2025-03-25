@@ -122,6 +122,7 @@ class JaCoCoReportParser:
         Returns:
             A dictionary containing the changed files coverage statistics
         """
+        
         def find_file(root_dir: str, relative_path: str) -> Optional[str]:
             # pylint: disable=unused-variable
             for dirpath, _, filenames in os.walk(root_dir):
