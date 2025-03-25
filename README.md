@@ -361,4 +361,4 @@ Your donation helps me keep building, maintaining and improving this tool — ev
 
 - [Buy me a coffee on Ko-fi](https://ko-fi.com/mirpo)
 
-Thanks for keeping this project alive! 💻📸
+**Thanks for keeping this project alive!**
