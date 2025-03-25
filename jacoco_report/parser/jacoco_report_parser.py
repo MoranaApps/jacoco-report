@@ -141,7 +141,9 @@ class JaCoCoReportParser:
 
                 key = find_file(os.getcwd(), f"{file_path}/{file_name}")
                 if key is None:
-                    logger.debug(f"File '{file_path}/{file_name}' not found in the repository. Working directory: {os.getcwd()}")
+                    logger.debug(
+                        f"File '{file_path}/{file_name}' not found in the repository. Working directory: {os.getcwd()}"
+                    )
                     key = f"{file_path}/{file_name}"
 
                 if any(key in changed_file for changed_file in self._changed_files):
