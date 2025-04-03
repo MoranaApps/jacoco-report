@@ -123,13 +123,14 @@ class JaCoCoReportParser:
             A dictionary containing the changed files coverage statistics
         """
         
-        def find_file(root_dir: str, relative_path: str) -> Optional[str]:
+        def find_file(root_dir: str, relative_path: str) -> list[str]:
+            paths: list[str] = []
             # pylint: disable=unused-variable
             for dirpath, _, filenames in os.walk(root_dir):
                 full_path = os.path.join(dirpath, relative_path)
                 if os.path.isfile(full_path):
-                    return os.path.relpath(full_path, root_dir)
-            return None
+                    paths.append(os.path.relpath(full_path, root_dir))
+            return paths
 
         logger.debug("Extracting changed files coverage statistics from JaCoCo report.")
         changed_files_stats = {}
@@ -140,47 +141,48 @@ class JaCoCoReportParser:
                 file_path = pck.attrib["name"]
                 file_name = src_file.attrib["name"]
 
-                key = find_file(os.getcwd(), f"{file_path}/{file_name}")
-                if key is None:
+                keys: list[str] = find_file(os.getcwd(), f"{file_path}/{file_name}")
+                if len(keys) == 0:
                     logger.debug(
                         f"File '{file_path}/{file_name}' not found in the repository. Working directory: {os.getcwd()}"
                     )
-                    key = f"{file_path}/{file_name}"
+                    keys.append(f"{file_path}/{file_name}")
 
-                if any(key in changed_file for changed_file in self._changed_files):
-                    logger.debug("File '%s' is in the list of changed files.", key)
-                    file_coverage = FileCoverage(
-                        file_path=file_path,
-                        file_name=file_name,
-                        instruction=Counter(
-                            missed=self.__get_int(src_file, "INSTRUCTION", "missed"),
-                            covered=self.__get_int(src_file, "INSTRUCTION", "covered"),
-                        ),
-                        branch=Counter(
-                            missed=self.__get_int(src_file, "BRANCH", "missed"),
-                            covered=self.__get_int(src_file, "BRANCH", "covered"),
-                        ),
-                        line=Counter(
-                            missed=self.__get_int(src_file, "LINE", "missed"),
-                            covered=self.__get_int(src_file, "LINE", "covered"),
-                        ),
-                        complexity=Counter(
-                            missed=self.__get_int(src_file, "COMPLEXITY", "missed"),
-                            covered=self.__get_int(src_file, "COMPLEXITY", "covered"),
-                        ),
-                        method=Counter(
-                            missed=self.__get_int(src_file, "METHOD", "missed"),
-                            covered=self.__get_int(src_file, "METHOD", "covered"),
-                        ),
-                        clazz=Counter(
-                            missed=self.__get_int(src_file, "CLASS", "missed"),
-                            covered=self.__get_int(src_file, "CLASS", "covered"),
-                        ),
-                    )
+                for key in keys:
+                    if any(key in changed_file for changed_file in self._changed_files):
+                        logger.debug("File '%s' is in the list of changed files.", key)
+                        file_coverage = FileCoverage(
+                            file_path=file_path,
+                            file_name=file_name,
+                            instruction=Counter(
+                                missed=self.__get_int(src_file, "INSTRUCTION", "missed"),
+                                covered=self.__get_int(src_file, "INSTRUCTION", "covered"),
+                            ),
+                            branch=Counter(
+                                missed=self.__get_int(src_file, "BRANCH", "missed"),
+                                covered=self.__get_int(src_file, "BRANCH", "covered"),
+                            ),
+                            line=Counter(
+                                missed=self.__get_int(src_file, "LINE", "missed"),
+                                covered=self.__get_int(src_file, "LINE", "covered"),
+                            ),
+                            complexity=Counter(
+                                missed=self.__get_int(src_file, "COMPLEXITY", "missed"),
+                                covered=self.__get_int(src_file, "COMPLEXITY", "covered"),
+                            ),
+                            method=Counter(
+                                missed=self.__get_int(src_file, "METHOD", "missed"),
+                                covered=self.__get_int(src_file, "METHOD", "covered"),
+                            ),
+                            clazz=Counter(
+                                missed=self.__get_int(src_file, "CLASS", "missed"),
+                                covered=self.__get_int(src_file, "CLASS", "covered"),
+                            ),
+                        )
 
-                    changed_files_stats[key] = file_coverage
-                else:
-                    logger.debug("File '%s' is not in the list of changed files.", key)
+                        changed_files_stats[key] = file_coverage
+                    else:
+                        logger.debug("File '%s' is not in the list of changed files.", key)
 
         return changed_files_stats
 
