@@ -122,7 +122,7 @@ class JaCoCoReportParser:
         Returns:
             A dictionary containing the changed files coverage statistics
         """
-        
+
         def find_file(root_dir: str, relative_path: str) -> list[str]:
             paths: list[str] = []
             # pylint: disable=unused-variable
@@ -144,7 +144,10 @@ class JaCoCoReportParser:
                 keys: list[str] = find_file(os.getcwd(), f"{file_path}/{file_name}")
                 if len(keys) == 0:
                     logger.debug(
-                        f"File '{file_path}/{file_name}' not found in the repository. Working directory: {os.getcwd()}"
+                        "File '%s/%s' not found in the repository. Working directory: %s",
+                        file_path,
+                        file_name,
+                        os.getcwd(),
                     )
                     keys.append(f"{file_path}/{file_name}")
 
