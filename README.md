@@ -304,7 +304,7 @@ The comment is identified by the title.
 
 The `baseline-paths` input allows you to define paths to baseline coverage reports. This enables comparing the pull request coverage with an established baseline, such as the main branch.
 
-**Required**: Each report has defined unique report name (report title). The report name is used to match the baseline report with the current report. The report name is generated from the path to the report. The report name is case-insensitive.
+**Required**: Each report has defined unique report name (report title). The report name is used to match the baseline report with the current report.
 
 ```yaml
 - name: Publish JaCoCo Report
