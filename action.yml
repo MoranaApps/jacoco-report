@@ -7,7 +7,7 @@ inputs:
   paths:
     description: 'Paths to JaCoCo reports.'
     required: true
-  exlude-paths:
+  exclude-paths:
     description: 'Paths to exclude from JaCoCo reports.'
     required: false
   min-coverage-overall:
