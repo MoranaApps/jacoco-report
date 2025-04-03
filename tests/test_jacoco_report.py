@@ -117,9 +117,9 @@ comment_more_files_single_summary_instruction_with_modules_with_bs = """**JaCoCo
 
 | Module | Coverage (O/Ch) | Threshold (O/Ch) | Δ Coverage (O/Ch) | Status (O/Ch) |
 |--------|-----------------|------------------|---------------|---------------|
-| `context/notification` | 92.33% / 0.0% | 22.0% / 60.0% | +92.3% / 0.0% | ✅/✅ |
+| `context/notification` | 92.33% / 0.0% | 22.0% / 60.0% | +92.33% / 0.0% | ✅/✅ |
 | `context/user-info` | 91.5% / 89.0% | 21.0% / 59.0% | +22.0% / +44.0% | ✅/✅ |
-| `module_large` | 91.33% / 90.0% | 20.0% / 91.0% | -4.2% / -5.0% | ✅/❌ |
+| `module_large` | 91.33% / 90.0% | 20.0% / 91.0% | -4.17% / -5.0% | ✅/❌ |
 | `module small` | 97.0% / 0.0% | 29.0% / 37.0% | +97.0% / 0.0% | ✅/✅ |"""
 
 comment_more_files_single_summary_instruction_with_modules_no_module_thresholds = """**JaCoCo Coverage Report**
@@ -145,9 +145,9 @@ comment_more_files_single_summary_instruction_with_modules_no_module_thresholds_
 
 | Module | Coverage (O/Ch) | Threshold (O/Ch) | Δ Coverage (O/Ch) | Status (O/Ch) |
 |--------|-----------------|------------------|---------------|---------------|
-| `context/notification` | 92.33% / 0.0% | 75.0% / 80.0% | +92.3% / 0.0% | ✅/✅ |
+| `context/notification` | 92.33% / 0.0% | 75.0% / 80.0% | +92.33% / 0.0% | ✅/✅ |
 | `context/user-info` | 91.5% / 89.0% | 75.0% / 80.0% | +22.0% / +44.0% | ✅/✅ |
-| `module_large` | 91.33% / 90.0% | 75.0% / 80.0% | -4.2% / -5.0% | ✅/✅ |
+| `module_large` | 91.33% / 90.0% | 75.0% / 80.0% | -4.17% / -5.0% | ✅/✅ |
 | `module small` | 97.0% / 0.0% | 75.0% / 80.0% | +97.0% / 0.0% | ✅/✅ |"""
 
 comment_more_files_single_detailed_instruction_no_modules = """**JaCoCo Coverage Report**
@@ -205,9 +205,9 @@ comment_more_files_single_detailed_instruction_with_modules_with_bs = """**JaCoC
 
 | Module | Coverage (O/Ch) | Threshold (O/Ch) | Δ Coverage (O/Ch) | Status (O/Ch) |
 |--------|-----------------|------------------|---------------|---------------|
-| `context/notification` | 92.33% / 0.0% | 22.0% / 60.0% | +92.3% / 0.0% | ✅/✅ |
+| `context/notification` | 92.33% / 0.0% | 22.0% / 60.0% | +92.33% / 0.0% | ✅/✅ |
 | `context/user-info` | 91.5% / 89.0% | 21.0% / 59.0% | +22.0% / +44.0% | ✅/✅ |
-| `module_large` | 91.33% / 90.0% | 20.0% / 91.0% | -4.2% / -5.0% | ✅/❌ |
+| `module_large` | 91.33% / 90.0% | 20.0% / 91.0% | -4.17% / -5.0% | ✅/❌ |
 | `module small` | 97.0% / 0.0% | 29.0% / 37.0% | +97.0% / 0.0% | ✅/✅ |
 
 | File Path | Coverage | Threshold | Δ Coverage | Status |
@@ -245,9 +245,9 @@ comment_more_files_single_detailed_instruction_with_modules_no_module_thresholds
 
 | Module | Coverage (O/Ch) | Threshold (O/Ch) | Δ Coverage (O/Ch) | Status (O/Ch) |
 |--------|-----------------|------------------|---------------|---------------|
-| `context/notification` | 92.33% / 0.0% | 75.0% / 80.0% | +92.3% / 0.0% | ✅/✅ |
+| `context/notification` | 92.33% / 0.0% | 75.0% / 80.0% | +92.33% / 0.0% | ✅/✅ |
 | `context/user-info` | 91.5% / 89.0% | 75.0% / 80.0% | +22.0% / +44.0% | ✅/✅ |
-| `module_large` | 91.33% / 90.0% | 75.0% / 80.0% | -4.2% / -5.0% | ✅/✅ |
+| `module_large` | 91.33% / 90.0% | 75.0% / 80.0% | -4.17% / -5.0% | ✅/✅ |
 | `module small` | 97.0% / 0.0% | 75.0% / 80.0% | +97.0% / 0.0% | ✅/✅ |
 
 | File Path | Coverage | Threshold | Δ Coverage | Status |
@@ -284,7 +284,7 @@ comment_more_files_single_detailed_instruction_with_modules_no_module_thresholds
 | Module | Coverage (O/Ch) | Threshold (O/Ch) | Δ Coverage (O/Ch) | Status (O/Ch) |
 |--------|-----------------|------------------|---------------|---------------|
 | `context/user-info` | 91.5% / 89.0% | 75.0% / 80.0% | +22.0% / +44.0% | ✅/✅ |
-| `module_large` | 91.33% / 90.0% | 75.0% / 80.0% | -4.2% / -5.0% | ✅/✅ |
+| `module_large` | 91.33% / 90.0% | 75.0% / 80.0% | -4.17% / -5.0% | ✅/✅ |
 
 | File Path | Coverage | Threshold | Δ Coverage | Status |
 |-----------|----------|-----------|------------|--------|
@@ -353,7 +353,7 @@ comment_multi_minimalist_instruction_with_bs = [
 
 | Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |
 |-------------------|-----|-----|-----|----|
-| **Overall**       | 91.33% | 75.0% | -4.2% | ✅ |
+| **Overall**       | 91.33% | 75.0% | -4.17% | ✅ |
 | **Changed Files** | 90.0% | 80.0% | -5.0% | ✅ |""",
 """**Report: notification: Client HTTP Module Report**
 
@@ -442,7 +442,7 @@ comment_multi_minimalist_instruction_with_bs_skip = [
 
 | Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |
 |-------------------|-----|-----|-----|----|
-| **Overall**       | 91.33% | 75.0% | -4.2% | ✅ |
+| **Overall**       | 91.33% | 75.0% | -4.17% | ✅ |
 | **Changed Files** | 90.0% | 80.0% | -5.0% | ✅ |""",
 ]
 
@@ -526,7 +526,7 @@ comment_multi_summary_instruction_with_modules_with_bs = [
 
 | Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |
 |-------------------|-----|-----|-----|----|
-| **Overall**       | 91.33% | 20.0% | -4.2% | ✅ |
+| **Overall**       | 91.33% | 20.0% | -4.17% | ✅ |
 | **Changed Files** | 90.0% | 91.0% | -5.0% | ❌ |""",
 """**Report: user-info: API Module Report**
 
@@ -646,7 +646,7 @@ comment_multi_detailed_instruction_no_modules_with_bs = [
 """**Report: user-info:  Controller Module Report**\n\n| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |\n|-------------------|-----|-----|-----|----|\n| **Overall**       | 93.0% | 75.0% | +93.0% | ✅ |\n| **Changed Files** | 0.0% | 80.0% | 0.0% | ✅ |\n\nNo changed file in report.""",
 """**Report: Module Small Report**\n\n| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |\n|-------------------|-----|-----|-----|----|\n| **Overall**       | 97.0% | 75.0% | +97.0% | ✅ |\n| **Changed Files** | 0.0% | 80.0% | 0.0% | ✅ |\n\nNo changed file in report.""",
 """**Report: notification: Client HTTP Module Report**\n\n| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |\n|-------------------|-----|-----|-----|----|\n| **Overall**       | 90.0% | 75.0% | +90.0% | ✅ |\n| **Changed Files** | 0.0% | 80.0% | 0.0% | ✅ |\n\nNo changed file in report.""",
-"""**Report: Module Large Report**\n\n| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |\n|-------------------|-----|-----|-----|----|\n| **Overall**       | 91.33% | 75.0% | -4.2% | ✅ |\n| **Changed Files** | 90.0% | 80.0% | -5.0% | ✅ |\n\n| File Path | Coverage | Threshold | Δ Coverage | Status |\n|-----------|----------|-----------|------------|--------|\n| [BigClass.java](https://github.com/MoranaApps/jacoco-report/pull/35/files#diff-ead3b50565c5dda5dc7e32be690e80a71f6e317d66aaa386b5942b484476832d) | 90.0% | 80.0% | -5.0% | ✅ |""",
+"""**Report: Module Large Report**\n\n| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |\n|-------------------|-----|-----|-----|----|\n| **Overall**       | 91.33% | 75.0% | -4.17% | ✅ |\n| **Changed Files** | 90.0% | 80.0% | -5.0% | ✅ |\n\n| File Path | Coverage | Threshold | Δ Coverage | Status |\n|-----------|----------|-----------|------------|--------|\n| [BigClass.java](https://github.com/MoranaApps/jacoco-report/pull/35/files#diff-ead3b50565c5dda5dc7e32be690e80a71f6e317d66aaa386b5942b484476832d) | 90.0% | 80.0% | -5.0% | ✅ |""",
 """**Report: user-info: Implementation Module Report**\n\n| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |\n|-------------------|-----|-----|-----|----|\n| **Overall**       | 88.0% | 75.0% | +8.0% | ✅ |\n| **Changed Files** | 88.0% | 80.0% | +8.0% | ✅ |\n\n| File Path | Coverage | Threshold | Δ Coverage | Status |\n|-----------|----------|-----------|------------|--------|\n| [ImplementationClass.java](https://github.com/MoranaApps/jacoco-report/pull/35/files#diff-7a267b2f062048b58eaf9c03df9857a0b95e8425451a7a68e18508a2ccb0d316) | 88.0% | 80.0% | +8.0% | ✅ |""",
 """**Report: user-info: API Module Report**\n\n| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |\n|-------------------|-----|-----|-----|----|\n| **Overall**       | 95.0% | 75.0% | 0.0% | ✅ |\n| **Changed Files** | 0.0% | 80.0% | 0.0% | ✅ |\n\nNo changed file in report.""",
 """**Report: user-info: Client HTTP Module Report**\n\n| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |\n|-------------------|-----|-----|-----|----|\n| **Overall**       | 90.0% | 75.0% | +80.0% | ✅ |\n| **Changed Files** | 90.0% | 80.0% | +80.0% | ✅ |\n\n| File Path | Coverage | Threshold | Δ Coverage | Status |\n|-----------|----------|-----------|------------|--------|\n| [ClientHttpClass.java](https://github.com/MoranaApps/jacoco-report/pull/35/files#diff-233a8df372c1ee3631d77bd1afb2eb2c5729cdb125b277a3b0eb51a4933b888a) | 90.0% | 80.0% | +80.0% | ✅ |""",
@@ -671,7 +671,7 @@ comment_multi_detailed_instruction_with_modules_with_bs = [
 """**Report: user-info: Implementation Module Report**\n\n| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |\n|-------------------|-----|-----|-----|----|\n| **Overall**       | 88.0% | 21.0% | +8.0% | ✅ |\n| **Changed Files** | 88.0% | 59.0% | +8.0% | ✅ |\n\n| File Path | Coverage | Threshold | Δ Coverage | Status |\n|-----------|----------|-----------|------------|--------|\n| [ImplementationClass.java](https://github.com/MoranaApps/jacoco-report/pull/35/files#diff-7a267b2f062048b58eaf9c03df9857a0b95e8425451a7a68e18508a2ccb0d316) | 88.0% | 59.0% | +8.0% | ✅ |""",
 """**Report: user-info: Client HTTP Module Report**\n\n| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |\n|-------------------|-----|-----|-----|----|\n| **Overall**       | 90.0% | 21.0% | +80.0% | ✅ |\n| **Changed Files** | 90.0% | 59.0% | +80.0% | ✅ |\n\n| File Path | Coverage | Threshold | Δ Coverage | Status |\n|-----------|----------|-----------|------------|--------|\n| [ClientHttpClass.java](https://github.com/MoranaApps/jacoco-report/pull/35/files#diff-233a8df372c1ee3631d77bd1afb2eb2c5729cdb125b277a3b0eb51a4933b888a) | 90.0% | 59.0% | +80.0% | ✅ |""",
 """**Report: notification: Plugins Module Report**\n\n| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |\n|-------------------|-----|-----|-----|----|\n| **Overall**       | 92.0% | 22.0% | +92.0% | ✅ |\n| **Changed Files** | 0.0% | 60.0% | 0.0% | ✅ |\n\nNo changed file in report.""",
-"""**Report: Module Large Report**\n\n| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |\n|-------------------|-----|-----|-----|----|\n| **Overall**       | 91.33% | 20.0% | -4.2% | ✅ |\n| **Changed Files** | 90.0% | 91.0% | -5.0% | ❌ |\n\n| File Path | Coverage | Threshold | Δ Coverage | Status |\n|-----------|----------|-----------|------------|--------|\n| [BigClass.java](https://github.com/MoranaApps/jacoco-report/pull/35/files#diff-ead3b50565c5dda5dc7e32be690e80a71f6e317d66aaa386b5942b484476832d) | 90.0% | 91.0% | -5.0% | ❌ |""",
+"""**Report: Module Large Report**\n\n| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |\n|-------------------|-----|-----|-----|----|\n| **Overall**       | 91.33% | 20.0% | -4.17% | ✅ |\n| **Changed Files** | 90.0% | 91.0% | -5.0% | ❌ |\n\n| File Path | Coverage | Threshold | Δ Coverage | Status |\n|-----------|----------|-----------|------------|--------|\n| [BigClass.java](https://github.com/MoranaApps/jacoco-report/pull/35/files#diff-ead3b50565c5dda5dc7e32be690e80a71f6e317d66aaa386b5942b484476832d) | 90.0% | 91.0% | -5.0% | ❌ |""",
 """**Report: Module Small Report**\n\n| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |\n|-------------------|-----|-----|-----|----|\n| **Overall**       | 97.0% | 29.0% | +97.0% | ✅ |\n| **Changed Files** | 0.0% | 37.0% | 0.0% | ✅ |\n\nNo changed file in report.""",
 """**Report: user-info:  Controller Module Report**\n\n| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |\n|-------------------|-----|-----|-----|----|\n| **Overall**       | 93.0% | 21.0% | +93.0% | ✅ |\n| **Changed Files** | 0.0% | 59.0% | 0.0% | ✅ |\n\nNo changed file in report.""",
 """**Report: notification: Client HTTP Module Report**\n\n| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |\n|-------------------|-----|-----|-----|----|\n| **Overall**       | 90.0% | 22.0% | +90.0% | ✅ |\n| **Changed Files** | 0.0% | 60.0% | 0.0% | ✅ |\n\nNo changed file in report.""",
@@ -692,7 +692,7 @@ comment_multi_detailed_instruction_with_modules_no_module_thresholds_not_skip_ch
 comment_multi_detailed_instruction_with_modules_no_module_thresholds_not_skip_changed_with_bs = [
 """**Report: notification: Plugins Module Report**\n\n| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |\n|-------------------|-----|-----|-----|----|\n| **Overall**       | 92.0% | 75.0% | +92.0% | ✅ |\n| **Changed Files** | 0.0% | 80.0% | 0.0% | ✅ |\n\nNo changed file in report.""",
 """**Report: user-info:  Controller Module Report**\n\n| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |\n|-------------------|-----|-----|-----|----|\n| **Overall**       | 93.0% | 75.0% | +93.0% | ✅ |\n| **Changed Files** | 0.0% | 80.0% | 0.0% | ✅ |\n\nNo changed file in report.""",
-"""**Report: Module Large Report**\n\n| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |\n|-------------------|-----|-----|-----|----|\n| **Overall**       | 91.33% | 75.0% | -4.2% | ✅ |\n| **Changed Files** | 90.0% | 80.0% | -5.0% | ✅ |\n\n| File Path | Coverage | Threshold | Δ Coverage | Status |\n|-----------|----------|-----------|------------|--------|\n| [BigClass.java](https://github.com/MoranaApps/jacoco-report/pull/35/files#diff-ead3b50565c5dda5dc7e32be690e80a71f6e317d66aaa386b5942b484476832d) | 90.0% | 80.0% | -5.0% | ✅ |""",
+"""**Report: Module Large Report**\n\n| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |\n|-------------------|-----|-----|-----|----|\n| **Overall**       | 91.33% | 75.0% | -4.17% | ✅ |\n| **Changed Files** | 90.0% | 80.0% | -5.0% | ✅ |\n\n| File Path | Coverage | Threshold | Δ Coverage | Status |\n|-----------|----------|-----------|------------|--------|\n| [BigClass.java](https://github.com/MoranaApps/jacoco-report/pull/35/files#diff-ead3b50565c5dda5dc7e32be690e80a71f6e317d66aaa386b5942b484476832d) | 90.0% | 80.0% | -5.0% | ✅ |""",
 """**Report: user-info: API Module Report**\n\n| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |\n|-------------------|-----|-----|-----|----|\n| **Overall**       | 95.0% | 75.0% | 0.0% | ✅ |\n| **Changed Files** | 0.0% | 80.0% | 0.0% | ✅ |\n\nNo changed file in report.""",
 """**Report: user-info: Client HTTP Module Report**\n\n| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |\n|-------------------|-----|-----|-----|----|\n| **Overall**       | 90.0% | 75.0% | +80.0% | ✅ |\n| **Changed Files** | 90.0% | 80.0% | +80.0% | ✅ |\n\n| File Path | Coverage | Threshold | Δ Coverage | Status |\n|-----------|----------|-----------|------------|--------|\n| [ClientHttpClass.java](https://github.com/MoranaApps/jacoco-report/pull/35/files#diff-233a8df372c1ee3631d77bd1afb2eb2c5729cdb125b277a3b0eb51a4933b888a) | 90.0% | 80.0% | +80.0% | ✅ |""",
 """**Report: Module Small Report**\n\n| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |\n|-------------------|-----|-----|-----|----|\n| **Overall**       | 97.0% | 75.0% | +97.0% | ✅ |\n| **Changed Files** | 0.0% | 80.0% | 0.0% | ✅ |\n\nNo changed file in report.""",
@@ -710,7 +710,7 @@ comment_multi_detailed_instruction_with_modules_no_module_thresholds_skip_change
 comment_multi_detailed_instruction_with_modules_no_module_thresholds_skip_changed_with_bs = [
 """**Report: user-info: Client HTTP Module Report**\n\n| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |\n|-------------------|-----|-----|-----|----|\n| **Overall**       | 90.0% | 75.0% | +80.0% | ✅ |\n| **Changed Files** | 90.0% | 80.0% | +80.0% | ✅ |\n\n| File Path | Coverage | Threshold | Δ Coverage | Status |\n|-----------|----------|-----------|------------|--------|\n| [ClientHttpClass.java](https://github.com/MoranaApps/jacoco-report/pull/35/files#diff-233a8df372c1ee3631d77bd1afb2eb2c5729cdb125b277a3b0eb51a4933b888a) | 90.0% | 80.0% | +80.0% | ✅ |""",
 """**Report: user-info: Implementation Module Report**\n\n| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |\n|-------------------|-----|-----|-----|----|\n| **Overall**       | 88.0% | 75.0% | +8.0% | ✅ |\n| **Changed Files** | 88.0% | 80.0% | +8.0% | ✅ |\n\n| File Path | Coverage | Threshold | Δ Coverage | Status |\n|-----------|----------|-----------|------------|--------|\n| [ImplementationClass.java](https://github.com/MoranaApps/jacoco-report/pull/35/files#diff-7a267b2f062048b58eaf9c03df9857a0b95e8425451a7a68e18508a2ccb0d316) | 88.0% | 80.0% | +8.0% | ✅ |""",
-"""**Report: Module Large Report**\n\n| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |\n|-------------------|-----|-----|-----|----|\n| **Overall**       | 91.33% | 75.0% | -4.2% | ✅ |\n| **Changed Files** | 90.0% | 80.0% | -5.0% | ✅ |\n\n| File Path | Coverage | Threshold | Δ Coverage | Status |\n|-----------|----------|-----------|------------|--------|\n| [BigClass.java](https://github.com/MoranaApps/jacoco-report/pull/35/files#diff-ead3b50565c5dda5dc7e32be690e80a71f6e317d66aaa386b5942b484476832d) | 90.0% | 80.0% | -5.0% | ✅ |""",
+"""**Report: Module Large Report**\n\n| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |\n|-------------------|-----|-----|-----|----|\n| **Overall**       | 91.33% | 75.0% | -4.17% | ✅ |\n| **Changed Files** | 90.0% | 80.0% | -5.0% | ✅ |\n\n| File Path | Coverage | Threshold | Δ Coverage | Status |\n|-----------|----------|-----------|------------|--------|\n| [BigClass.java](https://github.com/MoranaApps/jacoco-report/pull/35/files#diff-ead3b50565c5dda5dc7e32be690e80a71f6e317d66aaa386b5942b484476832d) | 90.0% | 80.0% | -5.0% | ✅ |""",
 ]
 
 comment_module_detailed_instruction_with_modules_with_bs = [
@@ -718,7 +718,7 @@ comment_module_detailed_instruction_with_modules_with_bs = [
 
 | Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |
 |-------------------|-----|-----|-----|----|
-| **Overall**       | 92.33% | 22.0% | +92.3% | ✅ |
+| **Overall**       | 92.33% | 22.0% | +92.33% | ✅ |
 | **Changed Files** | 0.0% | 60.0% | 0.0% | ✅ |
 
 No changed file in reports.""",
@@ -737,7 +737,7 @@ No changed file in reports.""",
 
 | Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |
 |-------------------|-----|-----|-----|----|
-| **Overall**       | 91.33% | 20.0% | -4.2% | ✅ |
+| **Overall**       | 91.33% | 20.0% | -4.17% | ✅ |
 | **Changed Files** | 90.0% | 91.0% | -5.0% | ❌ |
 
 | File Path | Coverage | Threshold | Δ Coverage | Status |
@@ -785,7 +785,7 @@ comment_module_minimalist_instruction_with_bs = [
 
 | Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |
 |-------------------|-----|-----|-----|----|
-| **Overall**       | 92.33% | 75.0% | +92.3% | ✅ |
+| **Overall**       | 92.33% | 75.0% | +92.33% | ✅ |
 | **Changed Files** | 0.0% | 80.0% | 0.0% | ✅ |""",
 """**Module: context/user-info**
 
@@ -797,7 +797,7 @@ comment_module_minimalist_instruction_with_bs = [
 
 | Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |
 |-------------------|-----|-----|-----|----|
-| **Overall**       | 91.33% | 75.0% | -4.2% | ✅ |
+| **Overall**       | 91.33% | 75.0% | -4.17% | ✅ |
 | **Changed Files** | 90.0% | 80.0% | -5.0% | ✅ |""",
 """**Module: module small**
 
@@ -815,9 +815,9 @@ comment_module_summary_instruction_with_modules = [
 ]
 
 comment_module_summary_instruction_with_modules_with_bs = [
-"""**Module: context/notification**\n\n| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |\n|-------------------|-----|-----|-----|----|\n| **Overall**       | 92.33% | 22.0% | +92.3% | ✅ |\n| **Changed Files** | 0.0% | 60.0% | 0.0% | ✅ |""",
+"""**Module: context/notification**\n\n| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |\n|-------------------|-----|-----|-----|----|\n| **Overall**       | 92.33% | 22.0% | +92.33% | ✅ |\n| **Changed Files** | 0.0% | 60.0% | 0.0% | ✅ |""",
 """**Module: context/user-info**\n\n| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |\n|-------------------|-----|-----|-----|----|\n| **Overall**       | 91.5% | 21.0% | +22.0% | ✅ |\n| **Changed Files** | 89.0% | 59.0% | +44.0% | ✅ |""",
-"""**Module: module_large**\n\n| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |\n|-------------------|-----|-----|-----|----|\n| **Overall**       | 91.33% | 20.0% | -4.2% | ✅ |\n| **Changed Files** | 90.0% | 91.0% | -5.0% | ❌ |""",
+"""**Module: module_large**\n\n| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |\n|-------------------|-----|-----|-----|----|\n| **Overall**       | 91.33% | 20.0% | -4.17% | ✅ |\n| **Changed Files** | 90.0% | 91.0% | -5.0% | ❌ |""",
 """**Module: module small**\n\n| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |\n|-------------------|-----|-----|-----|----|\n| **Overall**       | 97.0% | 29.0% | +97.0% | ✅ |\n| **Changed Files** | 0.0% | 37.0% | 0.0% | ✅ |""",
 ]
 
@@ -862,9 +862,9 @@ No changed file in reports.""",
 ]
 
 comment_module_detail_instruction_with_modules_with_bs = [
-"""**Module: context/notification**\n\n| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |\n|-------------------|-----|-----|-----|----|\n| **Overall**       | 92.33% | 22.0% | +92.3% | ✅ |\n| **Changed Files** | 0.0% | 60.0% | 0.0% | ✅ |\n\nNo changed file in report.""",
+"""**Module: context/notification**\n\n| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |\n|-------------------|-----|-----|-----|----|\n| **Overall**       | 92.33% | 22.0% | +92.33% | ✅ |\n| **Changed Files** | 0.0% | 60.0% | 0.0% | ✅ |\n\nNo changed file in report.""",
 """**Module: context/user-info**\n\n| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |\n|-------------------|-----|-----|-----|----|\n| **Overall**       | 91.5% | 21.0% | +22.0% | ✅ |\n| **Changed Files** | 89.0% | 59.0% | +44.0% | ✅ |""",
-"""**Module: module_large**\n\n| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |\n|-------------------|-----|-----|-----|----|\n| **Overall**       | 91.33% | 20.0% | -4.2% | ✅ |\n| **Changed Files** | 90.0% | 91.0% | -5.0% | ❌ |""",
+"""**Module: module_large**\n\n| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |\n|-------------------|-----|-----|-----|----|\n| **Overall**       | 91.33% | 20.0% | -4.17% | ✅ |\n| **Changed Files** | 90.0% | 91.0% | -5.0% | ❌ |""",
 """**Module: module small**\n\n| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |\n|-------------------|-----|-----|-----|----|\n| **Overall**       | 97.0% | 29.0% | +97.0% | ✅ |\n| **Changed Files** | 0.0% | 37.0% | 0.0% | ✅ |\n\nNo changed file in report.""",
 ]
 
@@ -909,9 +909,9 @@ No changed file in reports.""",
 ]
 
 comment_module_detailed_instruction_with_modules_no_module_thresholds_not_skip_changed_with_bs = [
-"""**Module: context/notification**\n\n| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |\n|-------------------|-----|-----|-----|----|\n| **Overall**       | 92.33% | 75.0% | +92.3% | ✅ |\n| **Changed Files** | 0.0% | 80.0% | 0.0% | ✅ |\n\nNo changed file in reports.""",
+"""**Module: context/notification**\n\n| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |\n|-------------------|-----|-----|-----|----|\n| **Overall**       | 92.33% | 75.0% | +92.33% | ✅ |\n| **Changed Files** | 0.0% | 80.0% | 0.0% | ✅ |\n\nNo changed file in reports.""",
 """**Module: context/user-info**\n\n| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |\n|-------------------|-----|-----|-----|----|\n| **Overall**       | 91.5% | 75.0% | +22.0% | ✅ |\n| **Changed Files** | 89.0% | 80.0% | +44.0% | ✅ |\n\n| File Path | Coverage | Threshold | Δ Coverage | Status |\n|-----------|----------|-----------|------------|--------|\n| [ClientHttpClass.java](https://github.com/MoranaApps/jacoco-report/pull/35/files#diff-233a8df372c1ee3631d77bd1afb2eb2c5729cdb125b277a3b0eb51a4933b888a) | 90.0% | 80.0% | +80.0% | ✅ |\n| [ImplementationClass.java](https://github.com/MoranaApps/jacoco-report/pull/35/files#diff-7a267b2f062048b58eaf9c03df9857a0b95e8425451a7a68e18508a2ccb0d316) | 88.0% | 80.0% | +8.0% | ✅ |""",
-"""**Module: module_large**\n\n| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |\n|-------------------|-----|-----|-----|----|\n| **Overall**       | 91.33% | 75.0% | -4.2% | ✅ |\n| **Changed Files** | 90.0% | 80.0% | -5.0% | ✅ |\n\n| File Path | Coverage | Threshold | Δ Coverage | Status |\n|-----------|----------|-----------|------------|--------|\n| [BigClass.java](https://github.com/MoranaApps/jacoco-report/pull/35/files#diff-ead3b50565c5dda5dc7e32be690e80a71f6e317d66aaa386b5942b484476832d) | 90.0% | 80.0% | -5.0% | ✅ |""",
+"""**Module: module_large**\n\n| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |\n|-------------------|-----|-----|-----|----|\n| **Overall**       | 91.33% | 75.0% | -4.17% | ✅ |\n| **Changed Files** | 90.0% | 80.0% | -5.0% | ✅ |\n\n| File Path | Coverage | Threshold | Δ Coverage | Status |\n|-----------|----------|-----------|------------|--------|\n| [BigClass.java](https://github.com/MoranaApps/jacoco-report/pull/35/files#diff-ead3b50565c5dda5dc7e32be690e80a71f6e317d66aaa386b5942b484476832d) | 90.0% | 80.0% | -5.0% | ✅ |""",
 """**Module: module small**\n\n| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |\n|-------------------|-----|-----|-----|----|\n| **Overall**       | 97.0% | 75.0% | +97.0% | ✅ |\n| **Changed Files** | 0.0% | 80.0% | 0.0% | ✅ |\n\nNo changed file in reports.""",
 ]
 
@@ -955,7 +955,7 @@ comment_module_detailed_instruction_with_modules_no_module_thresholds_skip_chang
 
 | Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |
 |-------------------|-----|-----|-----|----|
-| **Overall**       | 91.33% | 75.0% | -4.2% | ✅ |
+| **Overall**       | 91.33% | 75.0% | -4.17% | ✅ |
 | **Changed Files** | 90.0% | 80.0% | -5.0% | ✅ |
 
 | File Path | Coverage | Threshold | Δ Coverage | Status |

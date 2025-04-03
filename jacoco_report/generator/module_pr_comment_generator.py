@@ -92,8 +92,8 @@ class ModulePRCommentGenerator(MultiPRCommentGenerator):
                     f"[{filename}]({file_as_link_to_diff})",
                     evaluated_report_coverage.changed_files_coverage_reached[changed_file_key],
                     evaluated_report_coverage.changed_files_threshold,
-                    "+" if diff > 0 else "",
-                    round(diff, 1),
+                    "+" if diff > 0.001 else "",
+                    round(diff, 2),
                     (p if evaluated_report_coverage.changed_files_passed[changed_file_key] else f),
                 )
 

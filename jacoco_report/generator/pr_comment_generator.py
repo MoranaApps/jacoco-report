@@ -114,13 +114,13 @@ class PRCommentGenerator:
                 metric,
                 total_overall_reached,
                 min_overall,
-                "+" if diff_o > 0 else "",
-                round(diff_o, 1),
+                "+" if diff_o > 0.001 else "",
+                round(diff_o, 2),
                 p if total_overall_passed else f,
                 total_changed_files_reached,
                 min_changed_files,
-                "+" if diff_ch > 0 else "",
-                round(diff_ch, 1),
+                "+" if diff_ch > 0.001 else "",
+                round(diff_ch, 2),
                 p if total_changed_files_passed else f,
             )
         )
@@ -188,10 +188,10 @@ class PRCommentGenerator:
                 evaluated_coverage_module.sum_changed_files_coverage_reached,
                 evaluated_coverage_module.overall_coverage_threshold,
                 evaluated_coverage_module.changed_files_threshold,
-                "+" if diff_o > 0 else "",
-                round(diff_o, 1),
-                "+" if diff_ch > 0 else "",
-                round(diff_ch, 1),
+                "+" if diff_o > 0.001 else "",
+                round(diff_o, 2),
+                "+" if diff_ch > 0.001 else "",
+                round(diff_ch, 2),
                 p if evaluated_coverage_module.overall_passed else f,
                 p if evaluated_coverage_module.sum_changed_files_passed else f,
             )
@@ -303,8 +303,8 @@ class PRCommentGenerator:
                     f"[{filename}]({file_as_link_to_diff})",
                     evaluated_reports_coverage[ecr_key].changed_files_coverage_reached[file_key],
                     evaluated_reports_coverage[ecr_key].changed_files_threshold,
-                    "+" if diff > 0 else "",
-                    round(diff, 1),
+                    "+" if diff > 0.001 else "",
+                    round(diff, 2),
                     (p if evaluated_reports_coverage[ecr_key].changed_files_passed[file_key] else f),
                 )
                 lines.append(line)
