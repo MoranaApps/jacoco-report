@@ -36,7 +36,7 @@ jobs:
           python-version: '3.12'
 
       - name: Publish JaCoCo Report in PR comments
-        uses: MoranaApps/jacoco-report@v1.0.0
+        uses: MoranaApps/jacoco-report@v1
         with:
           token: '${{ secrets.TOKEN }}'
           paths: |
@@ -113,7 +113,7 @@ The `exclude-paths` input allows you to specify files or directories that should
 
 ```yaml
 - name: Publish JaCoCo Report
-  uses: MoranaApps/jacoco-report@v1.0.0
+  uses: MoranaApps/jacoco-report@v1
   with:
     token: '${{ secrets.TOKEN }}'
     paths: |
@@ -133,7 +133,7 @@ The `min-coverage-overall` and `min-coverage-changed-files` inputs allow you to 
 
 ```yaml
 - name: Publish JaCoCo Report
-  uses: MoranaApps/jacoco-report@v1.0.0
+  uses: MoranaApps/jacoco-report@v1
   with:
     token: '${{ secrets.TOKEN }}'
     paths: **/jacoco/**/*.xml
@@ -148,7 +148,7 @@ The `pr-number` input allows you to specify the number of the pull request. If n
 
 ```yaml
 - name: Publish JaCoCo Report
-  uses: MoranaApps/jacoco-report@v1.0.0
+  uses: MoranaApps/jacoco-report@v1
   with:
     token: '${{ secrets.TOKEN }}'
     paths: **/jacoco/**/*.xml
@@ -172,7 +172,7 @@ With increased sensitivity and more detailed comments, the number of detectable 
 
 ```yaml
 - name: Publish JaCoCo Report
-  uses: MoranaApps/jacoco-report@v1.0.0
+  uses: MoranaApps/jacoco-report@v1
   with:
     token: '${{ secrets.TOKEN }}'
     paths: **/jacoco/**/*.xml
@@ -194,7 +194,7 @@ The `modules-thresholds` input allows you to set custom coverage thresholds for 
 
 ```yaml
 - name: Publish JaCoCo Report
-  uses: MoranaApps/jacoco-report@v1.0.0
+  uses: MoranaApps/jacoco-report@v1
   with:
     token: '${{ secrets.TOKEN }}'
     paths: **/jacoco/**/*.xml
@@ -292,7 +292,7 @@ The comment is identified by the title.
 
 ```yaml
 - name: Publish JaCoCo Report
-  uses: MoranaApps/jacoco-report@v1.0.0
+  uses: MoranaApps/jacoco-report@v1
   with:
     token: '${{ secrets.TOKEN }}'
     paths: **/jacoco/**/*.xml
@@ -308,7 +308,7 @@ The `baseline-paths` input allows you to define paths to baseline coverage repor
 
 ```yaml
 - name: Publish JaCoCo Report
-  uses: MoranaApps/jacoco-report@v1.0.0
+  uses: MoranaApps/jacoco-report@v1
   with:
     token: '${{ secrets.TOKEN }}'
     paths: |
@@ -323,7 +323,7 @@ The `pass-symbol` and `fail-symbol` inputs allow you to define custom symbols fo
 
 ```yaml
 - name: Publish JaCoCo Report
-  uses: MoranaApps/jacoco-report@v1.0.0
+  uses: MoranaApps/jacoco-report@v1
   with:
     token: '${{ secrets.TOKEN }}'
     paths: **/jacoco/**/*.xml
@@ -338,7 +338,7 @@ The `verbose` input enables detailed logging for debugging. This is automaticall
 
 ```yaml
 - name: Publish JaCoCo Report
-  uses: MoranaApps/jacoco-report@v1.0.0
+  uses: MoranaApps/jacoco-report@v1
   with:
     token: '${{ secrets.TOKEN }}'
     paths: **/jacoco/**/*.xml
