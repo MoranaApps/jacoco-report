@@ -1,3 +1,5 @@
+![GitHub tag (v1)](https://img.shields.io/github/v/tag/MoranaApps/jacoco-report?label=latest%20v1&style=flat-square&color=blue)
+
 # Jacoco Report GitHub Action
 
 - [Usage](#usage)
