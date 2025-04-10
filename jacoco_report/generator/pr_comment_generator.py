@@ -151,7 +151,12 @@ class PRCommentGenerator:
         ).strip()
 
         for evaluated_coverage_module in self.evaluator.evaluated_modules_coverage.values():
-            if ActionInputs.get_skip_not_changed() and evaluated_coverage_module.name not in self.changed_modules:
+            if (
+                ActionInputs.get_skip_not_changed()
+                and evaluated_coverage_module.name not in self.changed_modules
+                and evaluated_coverage_module.overall_passed
+                and evaluated_coverage_module.sum_changed_files_passed
+            ):
                 continue
 
             # pylint: disable=C0209
@@ -176,7 +181,12 @@ class PRCommentGenerator:
         ).strip()
 
         for evaluated_coverage_module in self.evaluator.evaluated_modules_coverage.values():
-            if ActionInputs.get_skip_not_changed() and evaluated_coverage_module.name not in self.changed_modules:
+            if (
+                ActionInputs.get_skip_not_changed()
+                and evaluated_coverage_module.name not in self.changed_modules
+                and evaluated_coverage_module.overall_passed
+                and evaluated_coverage_module.sum_changed_files_passed
+            ):
                 continue
 
             diff_o, diff_ch = self._calculate_module_diff(evaluated_coverage_module)
