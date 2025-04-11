@@ -47,7 +47,12 @@ class ModulePRCommentGenerator(MultiPRCommentGenerator):
                 else:
                     body += "\n\nNo changed file in reports."
 
-            if ActionInputs.get_skip_not_changed() and len(changed_lines) == 0:
+            if (
+                ActionInputs.get_skip_not_changed()
+                and len(changed_lines) == 0
+                and evaluated_module_coverage.overall_passed
+                and evaluated_module_coverage.sum_changed_files_passed
+            ):
                 continue
 
             comments[title] = body

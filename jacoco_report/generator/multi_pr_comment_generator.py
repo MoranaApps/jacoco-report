@@ -53,7 +53,12 @@ class MultiPRCommentGenerator(PRCommentGenerator):
         f = ActionInputs.get_fail_symbol()
 
         for key, evaluated_coverage_report in self.evaluator.evaluated_reports_coverage.items():
-            if ActionInputs.get_skip_not_changed() and len(evaluated_coverage_report.changed_files_passed) == 0:
+            if (
+                ActionInputs.get_skip_not_changed()
+                and len(evaluated_coverage_report.changed_files_passed) == 0
+                and evaluated_coverage_report.overall_passed
+                and evaluated_coverage_report.sum_changed_files_passed
+            ):
                 continue
 
             title = body = f"**{ActionInputs.get_title(evaluated_coverage_report.name)}**"

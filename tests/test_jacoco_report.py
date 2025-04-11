@@ -216,6 +216,25 @@ comment_more_files_single_detailed_instruction_with_modules_with_bs = """**JaCoC
 | [ClientHttpClass.java](https://github.com/MoranaApps/jacoco-report/pull/35/files#diff-233a8df372c1ee3631d77bd1afb2eb2c5729cdb125b277a3b0eb51a4933b888a) | 90.0% | 59.0% | +80.0% | ✅ |
 | [ImplementationClass.java](https://github.com/MoranaApps/jacoco-report/pull/35/files#diff-7a267b2f062048b58eaf9c03df9857a0b95e8425451a7a68e18508a2ccb0d316) | 88.0% | 59.0% | +8.0% | ✅ |"""
 
+comment_more_files_single_detailed_instruction_with_modules_with_bs_fail_module = """**JaCoCo Coverage Report**
+
+| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |
+|-------------------|-----|-----|-----|----|
+| **Overall**       | 92.0% | 75.0% | +6.9% | ✅ |
+| **Changed Files** | 89.71% | 80.0% | +9.0% | ✅ |
+
+| Module | Coverage (O/Ch) | Threshold (O/Ch) | Δ Coverage (O/Ch) | Status (O/Ch) |
+|--------|-----------------|------------------|---------------|---------------|
+| `context/user-info` | 91.5% / 89.0% | 21.0% / 59.0% | +22.0% / +44.0% | ✅/✅ |
+| `module_large` | 91.33% / 90.0% | 20.0% / 91.0% | -4.17% / -5.0% | ✅/❌ |
+| `module small` | 97.0% / 0.0% | 100.0% / 37.0% | +97.0% / 0.0% | ❌/✅ |
+
+| File Path | Coverage | Threshold | Δ Coverage | Status |
+|-----------|----------|-----------|------------|--------|
+| [BigClass.java](https://github.com/MoranaApps/jacoco-report/pull/35/files#diff-ead3b50565c5dda5dc7e32be690e80a71f6e317d66aaa386b5942b484476832d) | 90.0% | 91.0% | -5.0% | ❌ |
+| [ClientHttpClass.java](https://github.com/MoranaApps/jacoco-report/pull/35/files#diff-233a8df372c1ee3631d77bd1afb2eb2c5729cdb125b277a3b0eb51a4933b888a) | 90.0% | 59.0% | +80.0% | ✅ |
+| [ImplementationClass.java](https://github.com/MoranaApps/jacoco-report/pull/35/files#diff-7a267b2f062048b58eaf9c03df9857a0b95e8425451a7a68e18508a2ccb0d316) | 88.0% | 59.0% | +8.0% | ✅ |"""
+
 comment_more_files_single_detailed_instruction_with_modules_no_module_thresholds_not_skip_changed = """**JaCoCo Coverage Report**
 
 | Metric (instruction) | Coverage | Threshold | Status |
@@ -677,6 +696,13 @@ comment_multi_detailed_instruction_with_modules_with_bs = [
 """**Report: notification: Client HTTP Module Report**\n\n| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |\n|-------------------|-----|-----|-----|----|\n| **Overall**       | 90.0% | 22.0% | +90.0% | ✅ |\n| **Changed Files** | 0.0% | 60.0% | 0.0% | ✅ |\n\nNo changed file in report.""",
 ]
 
+comment_multi_detailed_instruction_with_modules_with_bs_fail_module = [
+"""**Report: user-info: Implementation Module Report**\n\n| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |\n|-------------------|-----|-----|-----|----|\n| **Overall**       | 88.0% | 21.0% | +8.0% | ✅ |\n| **Changed Files** | 88.0% | 59.0% | +8.0% | ✅ |\n\n| File Path | Coverage | Threshold | Δ Coverage | Status |\n|-----------|----------|-----------|------------|--------|\n| [ImplementationClass.java](https://github.com/MoranaApps/jacoco-report/pull/35/files#diff-7a267b2f062048b58eaf9c03df9857a0b95e8425451a7a68e18508a2ccb0d316) | 88.0% | 59.0% | +8.0% | ✅ |""",
+"""**Report: Module Large Report**\n\n| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |\n|-------------------|-----|-----|-----|----|\n| **Overall**       | 91.33% | 20.0% | -4.17% | ✅ |\n| **Changed Files** | 90.0% | 91.0% | -5.0% | ❌ |\n\n| File Path | Coverage | Threshold | Δ Coverage | Status |\n|-----------|----------|-----------|------------|--------|\n| [BigClass.java](https://github.com/MoranaApps/jacoco-report/pull/35/files#diff-ead3b50565c5dda5dc7e32be690e80a71f6e317d66aaa386b5942b484476832d) | 90.0% | 91.0% | -5.0% | ❌ |""",
+"""**Report: Module Small Report**\n\n| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |\n|-------------------|-----|-----|-----|----|\n| **Overall**       | 97.0% | 100.0% | +97.0% | ❌ |\n| **Changed Files** | 0.0% | 37.0% | 0.0% | ✅ |\n\nNo changed file in report.""",
+"""**Report: user-info: Client HTTP Module Report**\n\n| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |\n|-------------------|-----|-----|-----|----|\n| **Overall**       | 90.0% | 21.0% | +80.0% | ✅ |\n| **Changed Files** | 90.0% | 59.0% | +80.0% | ✅ |\n\n| File Path | Coverage | Threshold | Δ Coverage | Status |\n|-----------|----------|-----------|------------|--------|\n| [ClientHttpClass.java](https://github.com/MoranaApps/jacoco-report/pull/35/files#diff-233a8df372c1ee3631d77bd1afb2eb2c5729cdb125b277a3b0eb51a4933b888a) | 90.0% | 59.0% | +80.0% | ✅ |""",
+]
+
 comment_multi_detailed_instruction_with_modules_no_module_thresholds_not_skip_changed = [
 """**Report: notification: Plugins Module Report**\n\n| Metric (instruction) | Coverage | Threshold | Status |\n|----------------------|----------|-----------|--------|\n| **Overall**       | 92.0% | 75.0% | ✅ |\n| **Changed Files** | 0.0% | 80.0% | ✅ |\n\nNo changed file in report.""",
 """**Report: user-info:  Controller Module Report**\n\n| Metric (instruction) | Coverage | Threshold | Status |\n|----------------------|----------|-----------|--------|\n| **Overall**       | 93.0% | 75.0% | ✅ |\n| **Changed Files** | 0.0% | 80.0% | ✅ |\n\nNo changed file in report.""",
@@ -748,6 +774,38 @@ No changed file in reports.""",
 | Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |
 |-------------------|-----|-----|-----|----|
 | **Overall**       | 97.0% | 29.0% | +97.0% | ✅ |
+| **Changed Files** | 0.0% | 37.0% | 0.0% | ✅ |
+
+No changed file in reports.""",
+]
+
+comment_module_detailed_instruction_with_modules_with_bs_fail_non_changed_module = [
+"""**Module: context/user-info**
+
+| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |
+|-------------------|-----|-----|-----|----|
+| **Overall**       | 91.5% | 21.0% | +22.0% | ✅ |
+| **Changed Files** | 89.0% | 59.0% | +44.0% | ✅ |
+
+| File Path | Coverage | Threshold | Δ Coverage | Status |
+|-----------|----------|-----------|------------|--------|
+| [ClientHttpClass.java](https://github.com/MoranaApps/jacoco-report/pull/35/files#diff-233a8df372c1ee3631d77bd1afb2eb2c5729cdb125b277a3b0eb51a4933b888a) | 90.0% | 59.0% | +80.0% | ✅ |
+| [ImplementationClass.java](https://github.com/MoranaApps/jacoco-report/pull/35/files#diff-7a267b2f062048b58eaf9c03df9857a0b95e8425451a7a68e18508a2ccb0d316) | 88.0% | 59.0% | +8.0% | ✅ |""",
+"""**Module: module_large**
+
+| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |
+|-------------------|-----|-----|-----|----|
+| **Overall**       | 91.33% | 20.0% | -4.17% | ✅ |
+| **Changed Files** | 90.0% | 91.0% | -5.0% | ❌ |
+
+| File Path | Coverage | Threshold | Δ Coverage | Status |
+|-----------|----------|-----------|------------|--------|
+| [BigClass.java](https://github.com/MoranaApps/jacoco-report/pull/35/files#diff-ead3b50565c5dda5dc7e32be690e80a71f6e317d66aaa386b5942b484476832d) | 90.0% | 91.0% | -5.0% | ❌ |""",
+"""**Module: module small**
+
+| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |
+|-------------------|-----|-----|-----|----|
+| **Overall**       | 97.0% | 100.0% | +97.0% | ❌ |
 | **Changed Files** | 0.0% | 37.0% | 0.0% | ✅ |
 
 No changed file in reports.""",
@@ -983,6 +1041,13 @@ modules_thresholds = {
     "module small": (29.0, 37.0),
 }
 
+modules_thresholds_100 = {
+    "context/notification": (22.0, 60.0),
+    "context/user-info": (21.0, 59.0),
+    "module_large": (20.0, 91.0),
+    "module small": (100.0, 37.0),
+}
+
 @pytest.fixture
 def jacoco_report():
     return JaCoCoReport()
@@ -1137,6 +1202,9 @@ more_source_files_scenarios = [
     ("48", CommentModeEnum.MODULE, SensitivityEnum.DETAIL, modules, {}, changed_files, comment_module_detailed_instruction_with_modules_no_module_thresholds_not_skip_changed_with_bs, 9, 4, [], False, True),
     ("49", CommentModeEnum.MODULE, SensitivityEnum.DETAIL, modules, {}, changed_files, comment_module_detailed_instruction_with_modules_no_module_thresholds_skip_changed, 9, 4, [], True, False),
     ("50", CommentModeEnum.MODULE, SensitivityEnum.DETAIL, modules, {}, changed_files, comment_module_detailed_instruction_with_modules_no_module_thresholds_skip_changed_with_bs, 9, 4, [], True, True),
+    ("51", CommentModeEnum.MODULE, SensitivityEnum.DETAIL, modules, modules_thresholds_100, changed_files, comment_module_detailed_instruction_with_modules_with_bs_fail_non_changed_module, 9, 4, [], True, True),
+    ("52", CommentModeEnum.SINGLE, SensitivityEnum.DETAIL, modules, modules_thresholds_100, changed_files, [comment_more_files_single_detailed_instruction_with_modules_with_bs_fail_module], 9, 4, ["Module 'module_large' changed files coverage 90.0 is below the threshold 91.0.", "Module Large Report' changed files coverage 90.0 is below the threshold 91.0.", "Module Large Report' changed file 'com/example/module_large/BigClass.java' coverage 90.0 is below the threshold 91.0."], True, True),
+    ("53", CommentModeEnum.MULTI, SensitivityEnum.DETAIL, modules, modules_thresholds_100, changed_files, comment_multi_detailed_instruction_with_modules_with_bs_fail_module, 9, 0, [], True, True),
 ]
 
 @pytest.mark.parametrize("id, mode, template, modules, modules_thresholds, changed_files, expected_comments, evaluated_cov_reports, evaluated_cov_modules, violations, skip_not_changed, use_baseline", more_source_files_scenarios)
