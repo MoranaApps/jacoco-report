@@ -71,6 +71,8 @@ class JaCoCoReport:
         # map modules if comment mode is set to MODULE
         logger.info("Mapping modules (if defined).")
         modules: dict[str, Module] = self._get_modules()
+        logger.debug(f"Found {len(modules)} modules.")
+        logger.debug(f"Modules: {modules}")
 
         # analyse received xml report files
         logger.info("Analyzing JaCoCo (xml) reports.")
@@ -99,6 +101,7 @@ class JaCoCoReport:
 
         # evaluate the coverage and module to xml file mapping
         logger.info("Evaluating the coverage of the reports.")
+        logger.debug(f"Providing {len(report_files_coverage)} reports for evaluation.")
         evaluator: CoverageEvaluator = CoverageEvaluator(
             report_files_coverage=report_files_coverage,
             global_min_coverage_overall=ActionInputs.get_min_coverage_overall(),
@@ -107,6 +110,7 @@ class JaCoCoReport:
         )
         evaluator.evaluate()
 
+        logger.debug(f"Providing {len(report_files_coverage)} baseline reports for evaluation.")
         bs_evaluator: CoverageEvaluator = CoverageEvaluator(
             report_files_coverage=bs_report_files_coverage,
             global_min_coverage_overall=ActionInputs.get_min_coverage_overall(),

@@ -10,6 +10,57 @@ from jacoco_report.jacoco_report import JaCoCoReport
 from jacoco_report.utils.gh_action import set_action_output, set_action_failed, set_action_output_text
 from jacoco_report.utils.logging_config import setup_logging
 
+# TODO & notes
+'''
+Config:
+    sensitivity: "detail"
+    comment-mode: 'module'
+    skip-not-changed: 'true'
+    modules: ${{ env.MODULES }}
+    modules-thresholds: ${{ env.MODULES_THRESHOLDS }}
+
+all modules defined
+    TODO - co kdyz existuje jacoxo.xml mimo definovane moduly ???
+        - nejaky orphan module
+    
+several module-thresholds commented out
+    - TODO - ty commented se dostavaji do kodu jako input - jaky to ma dopad
+    - TODO - dodat detekci na # a ty vyradit uz na  vstupu?
+
+Outputs
+- TODO - to co je v komentu uz pak neni uvedeno jako error - cast violations?
+
+
+Bugs:
+- TODO - proc se v module regimu negenerujic komenty pro vsechny moduly?
+
+Log
+Generating PR comment(s).
+Generating 0 pr comments...     - znamena tahle hlaska, ze se negeneruje new comment?
+
+Visible comments
+- aws - failing 0/43 %
+- awsutils - failing 0/43 %
+- bootstrap - failing 22,4/43 %
+- config - failing 0/43 %
+- datamodel - 33,74/43 %
+- restcontroller - 32,63/43 %
+- user-identity-info - 42,09/43 %
+
+Not visible comments
+- domain-questions-spring-web - 0/43 %
+- domnain-execution-api - 30,99/43 %
+- use-identity-info-spring0controller - 11,9/43 %
+- data-cataloging-spring-web - 41,03/43 %
+- data-access-spring-web - 0/43 %
+- user-identity-info-implementation - 39,19/43 %
+- notification-delivery-api - 0/43 %
+- data-measurement-impementation - 0/43 %
+- feed-management-api - 0/43 %
+- domain-management-api - 28,21/43 %
+
+'''
+
 
 def run() -> None:
     """

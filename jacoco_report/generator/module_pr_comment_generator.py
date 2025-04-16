@@ -3,6 +3,7 @@ This module is responsible for generating PR comments for a single module.
 """
 
 import hashlib
+import logging
 import os
 from textwrap import dedent
 
@@ -11,6 +12,7 @@ from jacoco_report.generator.multi_pr_comment_generator import MultiPRCommentGen
 from jacoco_report.model.evaluated_report_coverage import EvaluatedReportCoverage
 from jacoco_report.utils.enums import SensitivityEnum
 
+logger = logging.getLogger(__name__)
 
 # pylint: disable=too-few-public-methods
 class ModulePRCommentGenerator(MultiPRCommentGenerator):
@@ -22,6 +24,8 @@ class ModulePRCommentGenerator(MultiPRCommentGenerator):
         comments: dict[str, str] = {}
         p = ActionInputs.get_pass_symbol()
         f = ActionInputs.get_fail_symbol()
+
+        logger.debug(f"ModulePRCommentGenerator: {len(self.evaluator.evaluated_modules_coverage.items())} evaluated modules to process.")
 
         for key, evaluated_module_coverage in self.evaluator.evaluated_modules_coverage.items():
             title = body = f"**{ActionInputs.get_title(evaluated_module_coverage.name)}**"

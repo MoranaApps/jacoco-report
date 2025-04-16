@@ -80,6 +80,7 @@ class CoverageEvaluator:
             global_overall.append(mi, co)
 
             # get report's changed files values
+            logger.debug(f"For report '{report.name}' found {len(report.changed_files_coverage)} changed files.")
             for key, changed_file_coverage in report.changed_files_coverage.items():
                 changed_file_counter += 1
                 mi, co = changed_file_coverage.get_values_by_metric(m)

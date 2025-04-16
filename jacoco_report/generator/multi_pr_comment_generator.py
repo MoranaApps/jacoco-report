@@ -52,6 +52,8 @@ class MultiPRCommentGenerator(PRCommentGenerator):
         p = ActionInputs.get_pass_symbol()
         f = ActionInputs.get_fail_symbol()
 
+        logger.debug(f"MultiPRCommentGenerator: {len(self.evaluator.evaluated_modules_coverage.items())} evaluated modules to process.")
+
         for key, evaluated_coverage_report in self.evaluator.evaluated_reports_coverage.items():
             if (
                 ActionInputs.get_skip_not_changed()

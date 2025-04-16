@@ -57,6 +57,7 @@ class JaCoCoReportParser:
         else:
             module_name = None
 
+        logger.debug(f"For report '{report_path}' module name is '{module_name}'")
         return ReportFileCoverage(report_path, name, overall_stats, changed_files_stats, module_name)
 
     def _extract_overall_stats(self, root: ET.Element) -> Coverage:
