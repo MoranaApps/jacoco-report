@@ -57,6 +57,11 @@ class ModulePRCommentGenerator(MultiPRCommentGenerator):
                 and evaluated_module_coverage.overall_passed
                 and evaluated_module_coverage.sum_changed_files_passed
             ):
+                logger.debug(f"ModulePRCommentGenerator: key:name - '{key}:{evaluated_module_coverage.name}' skipped.")
+                logger.debug(f"ModulePRCommentGenerator: skip active - '{ActionInputs.get_skip_not_changed()}'.")
+                logger.debug(f"ModulePRCommentGenerator: len(changed_lines) - '{len(changed_lines)}'.")
+                logger.debug(f"ModulePRCommentGenerator: overall_passed - '{evaluated_module_coverage.overall_passed}'.")
+                logger.debug(f"ModulePRCommentGenerator: sum_changed_files_passed - '{evaluated_module_coverage.sum_changed_files_passed}'.")
                 continue
 
             comments[title] = body
