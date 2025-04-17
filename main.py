@@ -22,6 +22,7 @@ Config:
 all modules defined
     TODO - co kdyz existuje jacoxo.xml mimo definovane moduly ???
         - nejaky orphan module
+        
     
 several module-thresholds commented out
     - TODO - ty commented se dostavaji do kodu jako input - jaky to ma dopad
@@ -29,6 +30,8 @@ several module-thresholds commented out
 
 Outputs
 - TODO - to co je v komentu uz pak neni uvedeno jako error - cast violations?
+    - tady bude potrebna revize, zda toto plati nebo ne
+    - kazda chyba by zde mela byt videt, aby se vystup dal pouzit jako ekvivalent ke komentum
 
 
 Bugs:
@@ -36,7 +39,17 @@ Bugs:
 
 Log
 Generating PR comment(s).
-Generating 0 pr comments...     - znamena tahle hlaska, ze se negeneruje new comment?
+Generating 0 pr comments...     - znamena tahle hlaska, ze se negeneruje new comment? - DUSLEDEK Bugu, rekl bych
+  rerun - uz je jich tam 7 - ale to je stale malo proc?
+
+pozorovani
+- vioaltions by nemely obsahovat report errors v pripade module regime - tam doslo k merge a resi se cely module
+- nabizi se myslenka pridat reports table s prehledem overall
+
+TESTED
+- modules detection for report files - OK
+- module loading - OK + TODO - modules se spatne prevadeji do stringu: class Module - check str, repr method
+
 
 Visible comments
 - aws - failing 0/43 %

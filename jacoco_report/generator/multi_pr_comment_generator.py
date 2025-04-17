@@ -78,6 +78,7 @@ class MultiPRCommentGenerator(PRCommentGenerator):
                 body += f"\n\n{self._get_changed_files_table_for_report(p, f, key, evaluated_coverage_report)}"
 
             comments[title] = body
+            logger.debug(f"Comment generated for report: '{title}': '{body}'")
 
         return comments
 
