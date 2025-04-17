@@ -132,6 +132,16 @@ def test_get_paths(mocker):
     assert ["test/path1", "test/path2"] == ActionInputs.get_paths()
 
 
+def test_get_paths_with_comment(mocker):
+    data = f"""
+    test/path1
+    test/path2
+    # test/path3    
+    """
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value=data)
+    assert ["test/path1", "test/path2"] == ActionInputs.get_paths()
+
+
 def test_get_paths_raw(mocker):
     data = f"""
     test/path1
@@ -143,13 +153,23 @@ def test_get_paths_raw(mocker):
 
 def test_get_paths_none(mocker):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value=None)
-    assert None == ActionInputs.get_paths()
+    assert [] == ActionInputs.get_paths()
 
 
 def test_get_exclude_paths(mocker):
     data = f"""
     test/path1
     test/path2
+    """
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value=data)
+    assert ["test/path1", "test/path2"] == ActionInputs.get_exclude_paths()
+
+
+def test_get_exclude_paths_with_comment(mocker):
+    data = f"""
+    test/path1
+    test/path2
+    #test/path3    
     """
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value=data)
     assert ["test/path1", "test/path2"] == ActionInputs.get_exclude_paths()
@@ -216,8 +236,18 @@ def test_get_modules_with_spaces(mocker):
     assert {"module-a": "context/module_a", "module-b": "module_b"} == ActionInputs.get_modules()
 
 
+def test_get_modules_with_commented_line(mocker):
+    input_data = """module-a: context/module_a
+    # module-b: module_b
+    # module-c: context/module_c
+    module-d: context/module_d
+    """
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value=input_data)
+    assert {"module-a": "context/module_a", "module-d": "context/module_d"} == ActionInputs.get_modules()
+
+
 def test_get_modules_raw(mocker):
-    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="module-a:context/module_a,module-b:module_b")
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="  module-a:context/module_a,module-b:module_b")
     assert "module-a:context/module_a,module-b:module_b" == ActionInputs.get_modules(raw=True)
 
 
@@ -231,9 +261,19 @@ def test_get_modules_thresholds_with_spaces(mocker):
     assert {"module-a": (80.0, None), "module-b": (None, 70.0)} == ActionInputs.get_modules_thresholds()
 
 
+def test_get_modules_thresholds_with_commented_line(mocker):
+    input_data = """module-a: 80*
+    module-b: *70
+    #module-c: 90*
+    # module-d: *100
+    """
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value=input_data)
+    assert {"module-a": (80.0, None), "module-b": (None, 70.0)} == ActionInputs.get_modules_thresholds()
+
+
 def test_get_modules_thresholds_raw(mocker):
-    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="module-a:80*,module-b:*70")
-    assert "module-a:80*,module-b:*70" == ActionInputs.get_modules_thresholds(raw=True)
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="  module-a:80*,module-b:  *70")
+    assert "module-a:80*,module-b:  *70" == ActionInputs.get_modules_thresholds(raw=True)
 
 
 def test_get_skip_not_changed_true(mocker):
@@ -290,6 +330,16 @@ def test_get_baseline_paths(mocker):
     data = f"""
     test/path1
     test/path2
+    """
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value=data)
+    assert ["test/path1", "test/path2"] == ActionInputs.get_baseline_paths()
+
+
+def test_get_baseline_paths_with_comment(mocker):
+    data = f"""
+    test/path1
+    test/path2
+    #test/path3
     """
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value=data)
     assert ["test/path1", "test/path2"] == ActionInputs.get_baseline_paths()
