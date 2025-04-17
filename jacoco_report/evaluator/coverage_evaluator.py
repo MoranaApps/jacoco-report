@@ -4,6 +4,8 @@ A module evaluating the coverage of the reports.
 
 import logging
 
+from typing_extensions import Optional
+
 from jacoco_report.action_inputs import ActionInputs
 from jacoco_report.model.counter import Counter
 from jacoco_report.model.report_file_coverage import ReportFileCoverage
@@ -27,7 +29,7 @@ class CoverageEvaluator:
         report_files_coverage: list[ReportFileCoverage],
         global_min_coverage_overall: float,
         global_min_coverage_changed_files: float,
-        modules: dict[str, Module] = None,
+        modules: Optional[dict[str, Module]] = None,
     ):
         # input data stats
         self._report_files_coverage: list[ReportFileCoverage] = report_files_coverage
@@ -102,7 +104,7 @@ class CoverageEvaluator:
             ActionInputs.get_comment_mode() in (CommentModeEnum.SINGLE, CommentModeEnum.MODULE)
             and ActionInputs.get_modules() != {}
         ):
-            for module_name in ActionInputs.get_modules().keys():
+            for module_name in ActionInputs.get_modules().keys():  # type: ignore[union-attr]
                 evaluated_coverage_module: EvaluatedReportCoverage = EvaluatedReportCoverage(module_name)
 
                 # get the numbers from all module's reports counters (raw weights)
@@ -287,7 +289,7 @@ class CoverageEvaluator:
 
         return evaluated_coverage_report
 
-    def _set_thresholds(self, module_name: str) -> (float, float):
+    def _set_thresholds(self, module_name: str) -> tuple[float, float]:
         """
         Sets the coverage thresholds for the report.
         """

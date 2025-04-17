@@ -2,6 +2,8 @@
 A module that contains the PR Comment Generator Factory.
 """
 
+from typing_extensions import Optional
+
 from jacoco_report.evaluator.coverage_evaluator import CoverageEvaluator
 from jacoco_report.generator.module_pr_comment_generator import ModulePRCommentGenerator
 from jacoco_report.generator.multi_pr_comment_generator import MultiPRCommentGenerator
@@ -24,7 +26,7 @@ class PRCommentGeneratorFactory:
         evaluator: CoverageEvaluator,
         bs_evaluator: CoverageEvaluator,
         pr_number: int,
-        changed_modules: list[str] = None,
+        changed_modules: Optional[list[str]] = None,
     ):
         """
         The method that returns the PR Comment Generator based on the generator type.

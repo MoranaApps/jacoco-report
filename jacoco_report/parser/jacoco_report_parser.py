@@ -100,7 +100,8 @@ class JaCoCoReportParser:
 
     def __get_int(self, root: ET.Element, counter_type: str, counter_name: str) -> int:
         try:
-            res = root.find(f"counter[@type='{counter_type}']").attrib[counter_name]
+            elem = root.find(f"counter[@type='{counter_type}']")
+            res = elem.attrib[counter_name] if elem is not None else 0
             return int(res)
         except AttributeError:
             logger.warning("Failed to find %s counter in JaCoCo report. Zero will be used.", counter_type)
