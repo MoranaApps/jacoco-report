@@ -448,8 +448,9 @@ class ActionInputs:
                 for module in f_modules:
                     errors.extend(ActionInputs.validate_module(module))
 
-        if (comment_mode == CommentModeEnum.MODULE
-                and len(ActionInputs.get_modules().keys()) == 0):  # type: ignore[union-attr]
+        if (
+            comment_mode == CommentModeEnum.MODULE and len(ActionInputs.get_modules().keys()) == 0  # type: ignore[union-attr]
+        ):  # type: ignore[union-attr]
             errors.append("'comment-mode' is 'module' but 'modules' is not defined.")
 
         modules_thresholds: dict[str, tuple[Optional[float], Optional[float]]] | str = (

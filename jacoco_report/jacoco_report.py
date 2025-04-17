@@ -152,6 +152,6 @@ class JaCoCoReport:
 
     def _get_modules(self) -> dict[str, Module]:
         return ModuleParser().parse(
-            modules=ActionInputs.get_modules(),    # type: ignore[arg-type]
-            modules_thresholds=ActionInputs.get_modules_thresholds()  # type: ignore[arg-type]
+            modules=ActionInputs.get_modules(),  # type: ignore[arg-type]
+            modules_thresholds=ActionInputs.get_modules_thresholds(),  # type: ignore[arg-type]
         )
