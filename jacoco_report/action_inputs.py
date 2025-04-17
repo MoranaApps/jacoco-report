@@ -462,8 +462,8 @@ class ActionInputs:
                     errors.extend(ActionInputs.validate_module(module))
 
         if (
-            comment_mode == CommentModeEnum.MODULE and
-                len(ActionInputs.get_modules().keys()) == 0  # type: ignore[union-attr]
+            comment_mode == CommentModeEnum.MODULE
+            and len(ActionInputs.get_modules().keys()) == 0  # type: ignore[union-attr]
         ):  # type: ignore[union-attr]
             errors.append("'comment-mode' is 'module' but 'modules' is not defined.")
 
@@ -567,7 +567,7 @@ class ActionInputs:
         res: list[str] = []
         for path in paths.splitlines():
             # detect presence of '#' char - user commented out the line
-            if path.strip().startswith('#'):
+            if path.strip().startswith("#"):
                 continue
 
             # format string, clean up, ...
