@@ -30,8 +30,9 @@ class ModulePRCommentGenerator(MultiPRCommentGenerator):
                 if key in self.bs_evaluator.evaluated_modules_coverage.keys()
                 else None
             )
-            basic_table = self._get_basic_table_for_report(p, f, evaluated_module_coverage,
-                                                           baseline_evaluated_coverage_report)
+            basic_table = self._get_basic_table_for_report(
+                p, f, evaluated_module_coverage, baseline_evaluated_coverage_report
+            )
             body += f"\n\n{basic_table}"
 
             # Hint: no module table makes sense for set of reports in one module
