@@ -570,12 +570,12 @@ class ActionInputs:
         res: list[str] = []
         for path in paths.splitlines():
             # detect presence of '#' char - user commented out the line
-            if "#" in path:
+            if path.strip().startswith('#'):
                 continue
 
             # format string, clean up, ...
             formatted_path = path.strip()
             if len(formatted_path) > 0:
-                res.append(path.strip())
+                res.append(formatted_path.strip())
 
         return res
