@@ -71,9 +71,6 @@ class ActionInputs:
         if raw:
             return exclude_paths
 
-        if exclude_paths is None:
-            return []
-
         return ActionInputs.__parse_paths(exclude_paths)
 
     @staticmethod
@@ -289,7 +286,7 @@ class ActionInputs:
             list: A list of errors if any.
         """
         # Check if the module is in the format 'module:module_path'
-        if ":" not in module_touple:
+        if ":" not in module_touple or module_touple.count(":") > 1:
             return [
                 f"'module':'{module_touple}' must be in the format 'module:module_path'. "
                 f"Where module_path is relative from root of project. "
@@ -560,7 +557,7 @@ class ActionInputs:
         return get_action_input("GITHUB_REPOSITORY", prefix="")
 
     @staticmethod
-    def __parse_paths(paths: str) -> list[str]:
+    def __parse_paths(paths: Optional[str]) -> list[str]:
         """
         Parse the paths from the action inputs.
         """

@@ -55,6 +55,7 @@ failure_cases = [
     ("get_modules", "module-a:context/module_a,module_b:", "Module with 'name':'module_b' must have a non-empty path."),
     ("get_modules", "module-a:context/module_a,mo*dule:path", "'module_name':'mo*dule' must be alphanumeric with allowed (/\\-_)."),
     ("get_modules", "module-a:context/module_a,module:pa&th", "'module_path':'pa&th' must be alphanumeric with allowed (/\\-_)."),
+    ("get_modules", "module-a:context/module_a,module-b:module_b:c", "'module':'module-b:module_b:c' must be in the format 'module:module_path'. Where module_path is relative from root of project. Module value: module-b:module_b:c"),
     ("get_modules_thresholds", 1, "'modules-thresholds' must be a string or not defined."),
     ("get_modules_thresholds", "ab", "'modules-thresholds' must be a list of strings in format 'module:overall*changed'."),
     ("get_modules_thresholds", "abcd", "'modules-thresholds' must be a list of strings in format 'module:overall*changed'."),
