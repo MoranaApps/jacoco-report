@@ -50,7 +50,7 @@ class ActionInputs:
         return get_action_input(TOKEN)
 
     @staticmethod
-    def get_paths(raw: bool = False) -> None | list[str] | str:
+    def get_paths(raw: bool = False) -> list[str] | str:
         """
         Get the paths from the action inputs.
         """
@@ -59,10 +59,7 @@ class ActionInputs:
         if raw:
             return paths
 
-        if paths is None:
-            return None
-
-        return [path.strip() for path in paths.splitlines() if path.strip()]
+        return ActionInputs.__parse_paths(paths)
 
     @staticmethod
     def get_exclude_paths(raw: bool = False) -> list[str] | str:
@@ -74,10 +71,7 @@ class ActionInputs:
         if raw:
             return exclude_paths
 
-        if exclude_paths is None:
-            return []
-
-        return [path.strip() for path in exclude_paths.splitlines() if path.strip()]
+        return ActionInputs.__parse_paths(exclude_paths)
 
     @staticmethod
     def get_min_coverage_overall() -> float:
@@ -167,7 +161,20 @@ class ActionInputs:
             mods = mods.replace(": ", ":")
 
         split_by: str = "," if "," in mods else "\n"
-        d = dict(mod.split(":") for mod in mods.split(split_by)) if mods else {}
+        d = {}
+
+        if len(mods) > 0:
+            for mod in mods.split(split_by):
+                # detect presence of '#' char - user commented out the line
+                if "#" in mod:
+                    continue
+
+                # format string, clean up, ...
+                formatted_mod = mod.strip()
+
+                # create a dictionary record from formatted string
+                key, value = formatted_mod.split(":")
+                d[key] = value.strip()
 
         return d
 
@@ -185,11 +192,20 @@ class ActionInputs:
             split_by: str = "," if "," in received else "\n"
             mts: list[str] = received.split(split_by)
             for mt in mts:
-                name, values = mt.split(":")
-                parts = values.split("*")
+                # detect presence of '#' char - user commented out the line
+                if "#" in mt:
+                    continue
+
+                # format string, clean up, ...
+                formatted_mt = mt.strip()
+
+                name, values = formatted_mt.split(":")
+                f_name = name.strip()
+                f_values = values.strip()
+                parts = f_values.split("*")
                 overall = float(parts[0]) if len(parts[0]) > 0 else None
                 changed = float(parts[1]) if len(parts[1]) > 1 else None
-                result[name] = (overall, changed)
+                result[f_name] = (overall, changed)
             return result
 
         raw_input = get_action_input(MODULES_THRESHOLDS, "").strip()
@@ -255,10 +271,7 @@ class ActionInputs:
         if raw:
             return baseline_paths
 
-        if baseline_paths is None:
-            return []
-
-        return [path.strip() for path in baseline_paths.splitlines() if path.strip()]
+        return ActionInputs.__parse_paths(baseline_paths)
 
     @staticmethod
     def validate_module(module_touple: str) -> list[str]:
@@ -273,7 +286,7 @@ class ActionInputs:
             list: A list of errors if any.
         """
         # Check if the module is in the format 'module:module_path'
-        if ":" not in module_touple:
+        if ":" not in module_touple or module_touple.count(":") > 1:
             return [
                 f"'module':'{module_touple}' must be in the format 'module:module_path'. "
                 f"Where module_path is relative from root of project. "
@@ -318,7 +331,7 @@ class ActionInputs:
             return ["'module-threshold' must be a non-empty string."]
 
         # Check if the module is in the format 'module:threshold'
-        if ":" not in input_module_threshold:
+        if ":" not in input_module_threshold or input_module_threshold.count(":") > 1:
             return [f"'module-threshold':'{input_module_threshold}' must be in the format 'module:threshold'."]
 
         # Check if the module name is a non-empty string
@@ -449,7 +462,8 @@ class ActionInputs:
                     errors.extend(ActionInputs.validate_module(module))
 
         if (
-            comment_mode == CommentModeEnum.MODULE and len(ActionInputs.get_modules().keys()) == 0  # type: ignore[union-attr]
+            comment_mode == CommentModeEnum.MODULE
+            and len(ActionInputs.get_modules().keys()) == 0  # type: ignore[union-attr]
         ):  # type: ignore[union-attr]
             errors.append("'comment-mode' is 'module' but 'modules' is not defined.")
 
@@ -541,3 +555,24 @@ class ActionInputs:
         Get the repository from the GitHub environment variables.
         """
         return get_action_input("GITHUB_REPOSITORY", prefix="")
+
+    @staticmethod
+    def __parse_paths(paths: Optional[str]) -> list[str]:
+        """
+        Parse the paths from the action inputs.
+        """
+        if paths is None:
+            return []
+
+        res: list[str] = []
+        for path in paths.splitlines():
+            # detect presence of '#' char - user commented out the line
+            if path.strip().startswith("#"):
+                continue
+
+            # format string, clean up, ...
+            formatted_path = path.strip()
+            if len(formatted_path) > 0:
+                res.append(formatted_path.strip())
+
+        return res
