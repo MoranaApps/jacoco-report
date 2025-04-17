@@ -30,7 +30,7 @@ class GitHub:
             None
         """
         self.__token = token
-        self.__session: Session = None
+        self.__session: Optional[Session] = None
         self.__gh_url = "https://api.github.com"
 
     def __initialize_request_session(self) -> requests.Session:
@@ -41,7 +41,7 @@ class GitHub:
             requests.Session: The initialized request Session.
         """
 
-        self.__session: Session = requests.Session()
+        self.__session: Optional[Session] = requests.Session()  # type: ignore[no-redef]
         headers = {
             "Authorization": f"Bearer {self.__token}",
             "Host": "api.github.com",
@@ -105,7 +105,7 @@ class GitHub:
         return file_list
 
     def _send_request(
-        self, method: str, url: str, data: dict = None, params: Optional[dict] = None
+        self, method: str, url: str, data: Optional[dict] = None, params: Optional[dict] = None
     ) -> Optional[requests.Response]:
         """
         Sends a request to the GitHub API.
@@ -126,13 +126,13 @@ class GitHub:
             response = None
             # Fetch the response from the API
             if method == "GET":
-                response = self.__session.get(url, params=params)
+                response = self.__session.get(url, params=params)  # type: ignore[union-attr]
                 response.raise_for_status()
             elif method == "POST":
-                response = self.__session.post(url, params=params, json=data)
+                response = self.__session.post(url, params=params, json=data)  # type: ignore[union-attr]
                 response.raise_for_status()
             elif method == "PATCH":
-                response = self.__session.patch(url, params=params, json=data)
+                response = self.__session.patch(url, params=params, json=data)  # type: ignore[union-attr]
                 response.raise_for_status()
             else:
                 logger.error("Unsupported HTTP method: %s.", method)
@@ -174,13 +174,13 @@ class GitHub:
         event_path = os.getenv("GITHUB_EVENT_PATH")
 
         # Read and parse the event payload
-        with open(event_path, "r", encoding="utf-8") as f:
+        with open(event_path, "r", encoding="utf-8") as f:  # type: ignore[arg-type]
             event_data = json.load(f)
 
         # Check if the event is a pull request and get the PR number
         if "pull_request" in event_data:
             pr_number = event_data["pull_request"]["number"]
-            return pr_number
+            return int(pr_number)
 
         logger.error("This event is not a pull request.")
         return None
@@ -213,7 +213,7 @@ class GitHub:
         logger.info("Comment added to the PR.")
         return True
 
-    def get_comments(self, pr_number: int) -> []:
+    def get_comments(self, pr_number: int) -> list:
         """
         Retrieves all comments from the pull request.
 

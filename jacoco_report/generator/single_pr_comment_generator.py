@@ -36,7 +36,7 @@ class SinglePRCommentGenerator(PRCommentGenerator):
             # create a comment on pull request
             self.gh.add_comment(self.pr_number, pr_body)
 
-    def _get_comment_content(self) -> (str, str):
+    def _get_comment_content(self) -> tuple[str, str]:
         title = body = f"**{ActionInputs.get_title()}**"
 
         p = ActionInputs.get_pass_symbol()

@@ -29,7 +29,7 @@ class PRCommentGenerator:
         evaluator: CoverageEvaluator,
         bs_evaluator: CoverageEvaluator,
         pr_number: int,
-        changed_modules: list[str] = None,
+        changed_modules: Optional[list[str]] = None,
     ):
         self.gh: GitHub = gh
         self.evaluator: CoverageEvaluator = evaluator
@@ -208,7 +208,7 @@ class PRCommentGenerator:
 
         return s
 
-    def _calculate_module_diff(self, evaluated_coverage_module) -> (float, float):
+    def _calculate_module_diff(self, evaluated_coverage_module) -> tuple[float, float]:
         if evaluated_coverage_module.name not in self.bs_evaluator.evaluated_modules_coverage.keys():
             return 0.0, 0.0
 

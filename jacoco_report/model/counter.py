@@ -2,7 +2,7 @@
 A module that contains the Counter class.
 """
 
-from typing import Union
+from typing import Union, Optional
 
 
 # pylint: disable=too-few-public-methods
@@ -34,7 +34,7 @@ class Counter:
 
         return round(self.covered / (self.missed + self.covered) * 100, 2)
 
-    def append(self, missed: Union[int, "Counter"], covered: int = None):
+    def append(self, missed: Union[int, "Counter"], covered: Optional[int] = None):
         """
         A method that appends the counter.
 

@@ -125,7 +125,7 @@ class ActionInputs:
         if pr_number:
             return int(pr_number)
 
-        pr_number = gh.get_pr_number()
+        pr_number: Optional[int] = gh.get_pr_number()  # type: ignore[no-redef]
         if pr_number:
             return pr_number
 
@@ -172,16 +172,16 @@ class ActionInputs:
         return d
 
     @staticmethod
-    def get_modules_thresholds(raw: bool = False) -> dict[str, [Optional[float], Optional[float]]] | str:
+    def get_modules_thresholds(raw: bool = False) -> dict[str, tuple[Optional[float], Optional[float]]] | str:
         """
         Get the modules thresholds from the action inputs.
         """
 
-        def parse_module_thresholds(received: str) -> dict[str, (Optional[float], Optional[float])]:
+        def parse_module_thresholds(received: str) -> dict[str, tuple[Optional[float], Optional[float]]]:
             if len(received) == 0:
                 return {}
 
-            result = dict[str, (Optional[float], Optional[float])]()
+            result = dict[str, tuple[Optional[float], Optional[float]]]()
             split_by: str = "," if "," in received else "\n"
             mts: list[str] = received.split(split_by)
             for mt in mts:
@@ -431,7 +431,7 @@ class ActionInputs:
         if not isinstance(comment_mode, str) or comment_mode not in CommentModeEnum:
             errors.append("'comment-mode' must be a string from these options: 'single', 'multi', 'module'.")
 
-        modules: str = ActionInputs.get_modules(raw=True)
+        modules: dict[str, str] | str = ActionInputs.get_modules(raw=True)
         if not isinstance(modules, str):
             errors.append("'modules' must be a string or not defined.")
         else:
@@ -448,10 +448,14 @@ class ActionInputs:
                 for module in f_modules:
                     errors.extend(ActionInputs.validate_module(module))
 
-        if comment_mode == CommentModeEnum.MODULE and len(ActionInputs.get_modules().keys()) == 0:
+        if (
+            comment_mode == CommentModeEnum.MODULE and len(ActionInputs.get_modules().keys()) == 0  # type: ignore[union-attr]
+        ):  # type: ignore[union-attr]
             errors.append("'comment-mode' is 'module' but 'modules' is not defined.")
 
-        modules_thresholds: str = ActionInputs.get_modules_thresholds(raw=True)
+        modules_thresholds: dict[str, tuple[Optional[float], Optional[float]]] | str = (
+            ActionInputs.get_modules_thresholds(raw=True)
+        )
         if not isinstance(modules_thresholds, str):
             errors.append("'modules-thresholds' must be a string or not defined.")
         else:
@@ -463,7 +467,7 @@ class ActionInputs:
             elif len(modules_thresholds) < 3 or ":" not in modules_thresholds:
                 errors.append("'modules-thresholds' must be a list of strings in format 'module:overall*changed'.")
             else:
-                split_by: str = "," if "," in modules_thresholds else "\n"
+                split_by: str = "," if "," in modules_thresholds else "\n"  # type: ignore[no-redef]
                 f_modules_thresholds = modules_thresholds.split(split_by)
                 for module_threshold in f_modules_thresholds:
                     errors.extend(ActionInputs.validate_module_threshold(module_threshold))

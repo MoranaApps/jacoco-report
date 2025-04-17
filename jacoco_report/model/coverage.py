@@ -66,7 +66,7 @@ class Coverage:
                 logger.error("Unknown metric type: %s", metric_type)
                 return Counter(0, 0).coverage()
 
-    def get_values_by_metric(self, metric_type: str) -> (int, int):
+    def get_values_by_metric(self, metric_type: str) -> tuple[int, int]:
         """
         Returns the values of the given counter
 

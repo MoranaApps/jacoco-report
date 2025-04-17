@@ -13,7 +13,7 @@ class ModuleParser:
     """
 
     @staticmethod
-    def parse(modules: dict[str, str], modules_thresholds: dict[str, (float, float)]) -> dict[str, Module]:
+    def parse(modules: dict[str, str], modules_thresholds: dict[str, tuple[float, float]]) -> dict[str, Module]:
         """
         Parse the module information from the action inputs.
         If no threshold is provided for a module, the default threshold is used.

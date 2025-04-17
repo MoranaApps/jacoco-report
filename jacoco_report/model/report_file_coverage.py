@@ -40,10 +40,7 @@ class ReportFileCoverage:
         self.name = name
 
         # Represents the module name of the report file.
-        if module_name is not None:
-            self.module_name: str = module_name
-        else:
-            self.module_name: str = "Unknown"
+        self.module_name: str = module_name if module_name else "Unknown"
 
         # Represents the overall coverage of the report file.
         self.overall_coverage: Coverage = overall_coverage
