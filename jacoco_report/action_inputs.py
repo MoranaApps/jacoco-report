@@ -331,7 +331,7 @@ class ActionInputs:
             return ["'module-threshold' must be a non-empty string."]
 
         # Check if the module is in the format 'module:threshold'
-        if ":" not in input_module_threshold:
+        if ":" not in input_module_threshold or input_module_threshold.count(":") > 1:
             return [f"'module-threshold':'{input_module_threshold}' must be in the format 'module:threshold'."]
 
         # Check if the module name is a non-empty string

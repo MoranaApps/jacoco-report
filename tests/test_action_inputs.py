@@ -66,6 +66,7 @@ failure_cases = [
     ("get_modules_thresholds", "module-a:80*,module-b:80", "'module_threshold':'80' must contain '*' to split overall and changed files threshold."),
     ("get_modules_thresholds", "module-a:80*,module-b:True*", "'module_threshold' overall value 'True' must be a float or None."),
     ("get_modules_thresholds", "module-a:80*,module-b:*True", "'module_threshold' changed files value 'True' must be a float or None."),
+    ("get_modules_thresholds", "module-a:80*,module-b:*80:9", "'module-threshold':'module-b:*80:9' must be in the format 'module:threshold'."),
     ("get_skip_not_changed", "", "'skip-not-changed' must be a boolean."),
     ("get_skip_not_changed", 1, "'skip-not-changed' must be a boolean."),
     ("get_update_comment", "", "'update-comment' must be a boolean."),
