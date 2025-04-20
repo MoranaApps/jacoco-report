@@ -200,15 +200,20 @@ class CoverageEvaluator:
                     )
 
         # Add all violations to the list depending on the sensitivity and comment mode
-        modules_defined = len(ActionInputs.get_modules().keys()) > 0
-        combination: tuple[str, str, bool] = (ActionInputs.get_comment_mode(), ActionInputs.get_sensitivity(), modules_defined)
+        modules_defined: bool = len(ActionInputs.get_modules().keys()) > 0  # type: ignore[union-attr]
+        combination: tuple[str, str, bool] = (
+            ActionInputs.get_comment_mode(),
+            ActionInputs.get_sensitivity(),
+            modules_defined,
+        )
         match combination:
             case (CommentModeEnum.SINGLE, SensitivityEnum.MINIMAL, _):
                 return
             case (CommentModeEnum.SINGLE, SensitivityEnum.SUMMARY, False):
                 return
             case (CommentModeEnum.SINGLE, SensitivityEnum.SUMMARY, True):
-                # self.violations.extend(report_violations) # TODO - add support in https://github.com/MoranaApps/jacoco-report/issues/31
+                # TODO - add support in https://github.com/MoranaApps/jacoco-report/issues/31
+                # self.violations.extend(report_violations)
                 self.violations.extend(module_violations)
             case (CommentModeEnum.SINGLE, SensitivityEnum.DETAIL, False):
                 self.violations.extend(report_violations)
