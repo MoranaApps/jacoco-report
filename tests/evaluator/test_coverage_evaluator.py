@@ -6,9 +6,14 @@ from jacoco_report.model.evaluated_report_coverage import EvaluatedReportCoverag
 from jacoco_report.model.file_coverage import FileCoverage
 from jacoco_report.model.report_file_coverage import ReportFileCoverage
 from jacoco_report.model.coverage import Coverage
-from jacoco_report.utils.enums import SensitivityEnum
-from jacoco_report.utils.github import GitHub
+from jacoco_report.utils.enums import SensitivityEnum, CommentModeEnum
 
+modules = {
+    "context/notification": 'test_project/context/notification',
+    "context/user-info": 'test_project/context/user-info',
+    "module_large": 'test_project/module_large',
+    "module small": 'test_project/module small',
+}
 
 @pytest.fixture
 def sample_report_file_coverage():
@@ -128,6 +133,10 @@ def test_review_violations_global_changed_files_coverage_zero_w_changed_file(eva
 
 
 def test_review_violations_module_overall_coverage_below_threshold(evaluator, mocker):
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_comment_mode", return_value=CommentModeEnum.SINGLE)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_sensitivity", return_value=SensitivityEnum.SUMMARY)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_modules", return_value=modules)
+
     evaluator.total_coverage_overall = 75.0
     evaluator.total_coverage_changed_files = 80.0
     evaluator.total_coverage_overall_passed = True
@@ -146,6 +155,10 @@ def test_review_violations_module_overall_coverage_below_threshold(evaluator, mo
     assert "Module 'module-a' overall coverage 40.0 is below the threshold 50.0." in evaluator.violations
 
 def test_review_violations_module_changed_files_coverage_below_threshold(evaluator, mocker):
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_comment_mode", return_value=CommentModeEnum.SINGLE)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_sensitivity", return_value=SensitivityEnum.SUMMARY)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_modules", return_value=modules)
+
     evaluator.total_coverage_overall = 75.0
     evaluator.total_coverage_changed_files = 80.0
     evaluator.total_coverage_overall_passed = True

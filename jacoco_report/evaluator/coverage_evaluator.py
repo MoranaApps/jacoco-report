@@ -161,46 +161,76 @@ class CoverageEvaluator:
                 f"{self._global_min_coverage_changed_files}."
             )
 
-        # modules
-        if ActionInputs.get_sensitivity() == SensitivityEnum.MINIMAL:
-            return
-
+        # module violations
+        module_violations: list[str] = []
         for module_name, evaluated_coverage_module in self.evaluated_modules_coverage.items():
             if not evaluated_coverage_module.overall_passed:
-                self.violations.append(
+                module_violations.append(
                     f"Module '{module_name}' overall coverage {evaluated_coverage_module.overall_coverage_reached} "
                     f"is below the threshold {evaluated_coverage_module.overall_coverage_threshold}."
                 )
             if not evaluated_coverage_module.sum_changed_files_passed:
-                self.violations.append(
+                module_violations.append(
                     f"Module '{module_name}' changed files coverage "
                     f"{evaluated_coverage_module.sum_changed_files_coverage_reached} is below the threshold "
                     f"{evaluated_coverage_module.changed_files_threshold}."
                 )
 
-        # reports
-        if ActionInputs.get_sensitivity() != SensitivityEnum.DETAIL:
-            return
+        report_violations: list[str] = []
+        changed_files_violations: list[str] = []
 
         for report_path, evaluated_coverage_report in self.evaluated_reports_coverage.items():
             if not evaluated_coverage_report.overall_passed:
-                self.violations.append(
+                report_violations.append(
                     f"Report '{report_path}' overall coverage {evaluated_coverage_report.overall_coverage_reached} "
                     f"is below the threshold {evaluated_coverage_report.overall_coverage_threshold}."
                 )
             if not evaluated_coverage_report.sum_changed_files_passed:
-                self.violations.append(
+                report_violations.append(
                     f"Report '{report_path}' changed files coverage "
                     f"{evaluated_coverage_report.sum_changed_files_coverage_reached} is below the threshold "
                     f"{evaluated_coverage_report.changed_files_threshold}."
                 )
             for key, passed in evaluated_coverage_report.changed_files_passed.items():
                 if not passed:
-                    self.violations.append(
+                    changed_files_violations.append(
                         f"Report '{report_path}' changed file '{key}' coverage "
                         f"{evaluated_coverage_report.changed_files_coverage_reached[key]} is below the threshold "
                         f"{evaluated_coverage_report.changed_files_threshold}."
                     )
+
+        # Add all violations to the list depending on the sensitivity and comment mode
+        modules_defined = len(ActionInputs.get_modules().keys()) > 0
+        combination: tuple[str, str, bool] = (ActionInputs.get_comment_mode(), ActionInputs.get_sensitivity(), modules_defined)
+        match combination:
+            case (CommentModeEnum.SINGLE, SensitivityEnum.MINIMAL, _):
+                return
+            case (CommentModeEnum.SINGLE, SensitivityEnum.SUMMARY, False):
+                return
+            case (CommentModeEnum.SINGLE, SensitivityEnum.SUMMARY, True):
+                # self.violations.extend(report_violations) # TODO - add support in https://github.com/MoranaApps/jacoco-report/issues/31
+                self.violations.extend(module_violations)
+            case (CommentModeEnum.SINGLE, SensitivityEnum.DETAIL, False):
+                self.violations.extend(report_violations)
+                self.violations.extend(changed_files_violations)
+            case (CommentModeEnum.SINGLE, SensitivityEnum.DETAIL, True):
+                self.violations.extend(module_violations)
+                self.violations.extend(report_violations)
+                self.violations.extend(changed_files_violations)
+            case (CommentModeEnum.MULTI, SensitivityEnum.MINIMAL, _):
+                self.violations.extend(report_violations)
+            case (CommentModeEnum.MULTI, SensitivityEnum.SUMMARY, _):
+                self.violations.extend(report_violations)
+            case (CommentModeEnum.MULTI, SensitivityEnum.DETAIL, _):
+                self.violations.extend(report_violations)
+                self.violations.extend(changed_files_violations)
+            case (CommentModeEnum.MODULE, SensitivityEnum.MINIMAL, True):
+                self.violations.extend(module_violations)
+            case (CommentModeEnum.MODULE, SensitivityEnum.SUMMARY, True):
+                self.violations.extend(module_violations)
+            case (CommentModeEnum.MODULE, SensitivityEnum.DETAIL, True):
+                self.violations.extend(module_violations)
+                self.violations.extend(changed_files_violations)
 
     def _evaluate_module(self, evaluated_coverage: EvaluatedReportCoverage) -> EvaluatedReportCoverage:
         """
