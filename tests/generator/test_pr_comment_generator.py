@@ -78,19 +78,18 @@ def test_generate_modules_table_with_baseline(pr_comment_generator, mocker):
     pr_comment_generator.evaluator.evaluated_modules_coverage["test"] = EvaluatedReportCoverage()
     pr_comment_generator.evaluator.evaluated_modules_coverage["test"].name = "test"
 
-    expected_table = """| Module | Coverage (O/Ch) | Threshold (O/Ch) | Δ Coverage (O/Ch) | Status (O/Ch) |
-|--------|-----------------|------------------|---------------|---------------|"""
+    expected_table = """| Module | Coverage (O/Ch) | Threshold (O/Ch) | Δ Coverage (O/Ch) | Status (O/Ch) |\n|--------|-----------------|------------------|---------------|---------------|\nNo changed file in reports."""
 
     table = pr_comment_generator._get_modules_table("✅", "❌")
     assert expected_table == table
 
 def test_get_changed_files_table_without_baseline(pr_comment_generator):
     table = pr_comment_generator._generate_changed_files_table_without_baseline("✅", "❌")
-    assert "No changed file in report." in table
+    assert "| File Path | Coverage | Threshold | Status |\n|-----------|----------|-----------|--------|\nNo changed file in reports." in table
 
 def test_get_changed_files_table_with_baseline(pr_comment_generator):
     table = pr_comment_generator._generate_changed_files_table_with_baseline("✅", "❌")
-    assert "No changed file in report." in table
+    assert "| File Path | Coverage | Threshold | Δ Coverage | Status |\n|-----------|----------|-----------|------------|--------|\nNo changed file in reports." in table
 
 def test_calculate_module_diff(pr_comment_generator, mocker):
     # Mock the baseline evaluator with some values

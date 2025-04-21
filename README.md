@@ -249,10 +249,17 @@ The `minimal` sensitivity level displays only the overall coverage and coverage 
 | `module-2`  | 80.0% / 45.6%   | 40% / 82%        | +0.3% / -2.1%     | ✅/✅           |
 | `module-3`  | 76.3% / 76.4%   | 50% / 76%        | -2.5% / -1.2%     | ❌/✅           |
 
+| Report          | Coverage (O/Ch) | Threshold (O/Ch) | Δ Coverage (O/Ch) | Status (O/Ch) |
+|-----------------|-----------------|------------------|-------------------|---------------|
+| `Report 1 name` | 87.5% / 35.2%   | 60% / 80%        | -0.6% / +1.0%     | ✅/✅           |
+| `Report 2 name` | 80.0% / 45.6%   | 40% / 82%        | +0.3% / -2.1%     | ✅/✅           |
+| `Report 3 name` | 76.3% / 76.4%   | 50% / 76%        | -2.5% / -1.2%     | ❌/✅           |
+
 > - **(O)** - Overall coverage.
 > - **(Ch)** - Coverage for changed files.
-> - **Δ Coverage** is visible when `baseline-paths` defined and data is available.
-> - Module table visible when input `modules` defined and `comment-mode` is `single`.
+> - **Δ Coverage** is visible when `baseline-paths` are defined and data is available.
+> - Module table visible when input `modules` is defined and `comment-mode` is `single`.
+> - The report table is always visible. When `modules` and `modules-thresholds` are defined, the module's thresholds are used; otherwise, the minimal thresholds are used.
 
 ##### Detailed Sensitivity
 - When the `comment-mode` is set to `single`, one comment is added to the pull request representing the overall and changed files coverage for all detected report files.
@@ -274,6 +281,12 @@ The `minimal` sensitivity level displays only the overall coverage and coverage 
 | `module-2`  | 80.0% / 45.6%   | 40% / 82%        | +0.3% / -2.1%     | ✅/✅           |
 | `module-3`  | 76.3% / 76.4%   | 50% / 76%        | -2.5% / -1.2%     | ❌/✅           |
 
+| Report          | Coverage (O/Ch) | Threshold (O/Ch) | Δ Coverage (O/Ch) | Status (O/Ch) |
+|-----------------|-----------------|------------------|-------------------|---------------|
+| `Report 1 name` | 87.5% / 35.2%   | 60% / 80%        | -0.6% / +1.0%     | ✅/✅           |
+| `Report 2 name` | 80.0% / 45.6%   | 40% / 82%        | +0.3% / -2.1%     | ✅/✅           |
+| `Report 3 name` | 76.3% / 76.4%   | 50% / 76%        | -2.5% / -1.2%     | ❌/✅           |
+
 | File Path              | Coverage | Threshold | Δ Coverage | Status |
 |------------------------|----------|-----------|------------|--------|
 | `File1.java`           | 90.1%    | 80%       | +0.3%      | ✅      |
@@ -282,8 +295,9 @@ The `minimal` sensitivity level displays only the overall coverage and coverage 
 
 > - **(O)** - Overall coverage.
 > - **(Ch)** - Coverage for changed files.
-> - **Δ Coverage** is visible when `baseline-paths` defined and data is available.
-> - Module table visible when input `modules` defined and `comment-mode` is `single`.
+> - **Δ Coverage** is visible when `baseline-paths` are defined and data is available.
+> - Module table visible when input `modules` is defined and `comment-mode` is `single`.
+> - The report table is always visible. When `modules` and `modules-thresholds` are defined, the module's thresholds are used; otherwise, the minimal thresholds are used.
 
 #### Customizing the Skip Not Changed Option and Update Comment
 

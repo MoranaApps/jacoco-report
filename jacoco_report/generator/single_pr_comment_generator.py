@@ -49,6 +49,11 @@ class SinglePRCommentGenerator(PRCommentGenerator):
             if modules_table != "":
                 body += f"\n\n{modules_table}"
 
+        if ActionInputs.get_sensitivity() in (SensitivityEnum.SUMMARY, SensitivityEnum.DETAIL):
+            reports_table = self._get_reports_table(p, f)
+            if reports_table != "":
+                body += f"\n\n{reports_table}"
+
         if ActionInputs.get_sensitivity() == SensitivityEnum.DETAIL:
             body += f"\n\n{self._get_changed_files_table(p, f)}"
 

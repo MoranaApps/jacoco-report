@@ -120,8 +120,8 @@ class MultiPRCommentGenerator(PRCommentGenerator):
     def _get_changed_files_table_for_report(
         self, p: str, f: str, key: str, evaluated_report_coverage: EvaluatedReportCoverage
     ) -> str:
-        if len(self.evaluator.evaluated_reports_coverage.keys()) == 0:
-            return "No changed file in reports."
+        # if len(self.evaluator.evaluated_reports_coverage.keys()) == 0:
+        #     return "No changed files."
 
         if not ActionInputs.get_baseline_paths():
             return self._generate_changed_files_table_without_baseline(p, f, {key: evaluated_report_coverage})
