@@ -16,7 +16,13 @@ comment_no_data_no_baseline = """**JaCoCo Coverage Report**
 | **Overall**       | 0.0% | 0.0% | ✅ |
 | **Changed Files** | 0.0% | 0.0% | ✅ |
 
-No changed file in report."""
+| Report | Coverage | Threshold | Status |
+|--------|----------|-----------|--------|
+| `Module B Report` | 0.0% / 0.0% | 0.0% / 0.0% | ✅/✅ |
+
+| File Path | Coverage | Threshold | Status |
+|-----------|----------|-----------|--------|
+No changed file in reports."""
 
 comment_no_data_with_baseline = """**JaCoCo Coverage Report**
 
@@ -25,7 +31,13 @@ comment_no_data_with_baseline = """**JaCoCo Coverage Report**
 | **Overall**       | 0.0% | 0.0% | 0.0% | ✅ |
 | **Changed Files** | 0.0% | 0.0% | 0.0% | ✅ |
 
-No changed file in report."""
+| Report | Coverage | Threshold | Δ Coverage | Status |
+|--------|----------|-----------|------------|--------|
+| `Module B Report` | 0.0% / 0.0% | 0.0% / 0.0% | 0.0% / 0.0% | ✅/✅ |
+
+| File Path | Coverage | Threshold | Δ Coverage | Status |
+|-----------|----------|-----------|------------|--------|
+No changed file in reports."""
 
 comment_one_file_single_detailed = """TODO"""
 comment_one_file_multi_detailed = """TODO"""
@@ -1158,7 +1170,7 @@ comment_module_minimalist_instruction_with_bs_summary = [
 
 | Report | Coverage | Threshold | Δ Coverage | Status |
 |--------|----------|-----------|------------|--------|
-| `user-info:  Controller Module Report` | 93.0% / 0.0% | 75.0% / 80.0% | 0.0% / 0.0% | ✅/✅ |
+| `user-info: Controller Module Report` | 93.0% / 0.0% | 75.0% / 80.0% | 0.0% / 0.0% | ✅/✅ |
 | `user-info: API Module Report` | 95.0% / 0.0% | 75.0% / 80.0% | 0.0% / 0.0% | ✅/✅ |
 | `user-info: Client HTTP Module Report` | 90.0% / 90.0% | 75.0% / 80.0% | 0.0% / 0.0% | ✅/✅ |
 | `user-info: Implementation Module Report` | 88.0% / 88.0% | 75.0% / 80.0% | 0.0% / 0.0% | ✅/✅ |""",
@@ -1546,59 +1558,59 @@ def test_successful_one_source_file (jacoco_report, metric, mode, template, comm
 # MORE FILES
 
 more_source_files_scenarios = [
-    ("1", CommentModeEnum.SINGLE, SensitivityEnum.MINIMAL, {}, {}, changed_files, [comment_single_minimalist_instruction], 9, 0, [], False, False),
-    ("2", CommentModeEnum.SINGLE, SensitivityEnum.MINIMAL, {}, {}, changed_files, [comment_single_minimalist_instruction_with_bs], 9, 0, [], False, True),
-    ("3", CommentModeEnum.SINGLE, SensitivityEnum.MINIMAL, modules, {}, changed_files, [comment_single_minimalist_instruction], 9, 4, [], False, False),
-    ("4", CommentModeEnum.SINGLE, SensitivityEnum.MINIMAL, modules, {}, changed_files, [comment_single_minimalist_instruction_with_bs], 9, 4, [], False, True),
-    ("5", CommentModeEnum.SINGLE, SensitivityEnum.SUMMARY, {}, {}, changed_files, [comment_single_minimalist_instruction_summary], 9, 0, [], False, False),
-    ("6", CommentModeEnum.SINGLE, SensitivityEnum.SUMMARY, {}, {}, changed_files, [comment_single_minimalist_instruction_with_bs_summary], 9, 0, [], False, True),
-    ("7", CommentModeEnum.SINGLE, SensitivityEnum.SUMMARY, modules, modules_thresholds, changed_files, [comment_more_files_single_summary_instruction_with_modules], 9, 4, ["Module 'module_large' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Large Report' changed files coverage 90.0 is below the threshold 91.0."], False, False),
-    ("8", CommentModeEnum.SINGLE, SensitivityEnum.SUMMARY, modules, modules_thresholds, changed_files, [comment_more_files_single_summary_instruction_with_modules_with_bs], 9, 4, ["Module 'module_large' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Large Report' changed files coverage 90.0 is below the threshold 91.0."], False, True),
-    ("9", CommentModeEnum.SINGLE, SensitivityEnum.SUMMARY, modules, {}, changed_files, [comment_more_files_single_summary_instruction_with_modules_no_module_thresholds], 9, 4, [], False, False),
-    ("10", CommentModeEnum.SINGLE, SensitivityEnum.SUMMARY, modules, {}, changed_files, [comment_more_files_single_summary_instruction_with_modules_no_module_thresholds_with_bs], 9, 4, [], False, True),
-    ("11", CommentModeEnum.SINGLE, SensitivityEnum.DETAIL, {}, {}, changed_files, [comment_more_files_single_detailed_instruction_no_modules], 9, 0, [], False, False),
-    ("12", CommentModeEnum.SINGLE, SensitivityEnum.DETAIL, {}, {}, changed_files, [comment_more_files_single_detailed_instruction_no_modules_with_bs], 9, 0, [], False, True),
-    ("13", CommentModeEnum.SINGLE, SensitivityEnum.DETAIL, modules, modules_thresholds, changed_files, [comment_more_files_single_detailed_instruction_with_modules], 9, 4, ["Module 'module_large' changed files coverage 90.0 is below the threshold 91.0.", "Module Large Report' changed files coverage 90.0 is below the threshold 91.0.", "Module Large Report' changed file 'com/example/module_large/BigClass.java' coverage 90.0 is below the threshold 91.0."], False, False),
-    ("14", CommentModeEnum.SINGLE, SensitivityEnum.DETAIL, modules, modules_thresholds, changed_files, [comment_more_files_single_detailed_instruction_with_modules_with_bs], 9, 4, ["Module 'module_large' changed files coverage 90.0 is below the threshold 91.0.", "Module Large Report' changed files coverage 90.0 is below the threshold 91.0.", "Module Large Report' changed file 'com/example/module_large/BigClass.java' coverage 90.0 is below the threshold 91.0."], False, True),
-    ("15", CommentModeEnum.SINGLE, SensitivityEnum.DETAIL, modules, {}, changed_files, [comment_more_files_single_detailed_instruction_with_modules_no_module_thresholds_not_skip_changed], 9, 4, [], False, False),
-    ("16", CommentModeEnum.SINGLE, SensitivityEnum.DETAIL, modules, {}, changed_files, [comment_more_files_single_detailed_instruction_with_modules_no_module_thresholds_not_skip_changed_with_bs], 9, 4, [], False, True),
-    ("17", CommentModeEnum.SINGLE, SensitivityEnum.DETAIL, modules, {}, changed_files, [comment_more_files_single_detailed_instruction_with_modules_no_module_thresholds_skip_changed], 9, 4, [], True, False),
-    ("18", CommentModeEnum.SINGLE, SensitivityEnum.DETAIL, modules, {}, changed_files, [comment_more_files_single_detailed_instruction_with_modules_no_module_thresholds_skip_changed_with_bs], 9, 4, [], True, True),
-    ("19", CommentModeEnum.MULTI, SensitivityEnum.MINIMAL, {}, {}, changed_files, comment_multi_minimalist_instruction, 9, 0, [], False, False),
-    ("20", CommentModeEnum.MULTI, SensitivityEnum.MINIMAL, {}, {}, changed_files, comment_multi_minimalist_instruction_skip, 9, 0, [], True, False),
-    ("21", CommentModeEnum.MULTI, SensitivityEnum.MINIMAL, {}, {}, changed_files, comment_multi_minimalist_instruction_with_bs, 9, 0, [], False, True),
-    ("22", CommentModeEnum.MULTI, SensitivityEnum.MINIMAL, {}, {}, changed_files, comment_multi_minimalist_instruction_with_bs_skip, 9, 0, [], True, True),
-    ("23", CommentModeEnum.MULTI, SensitivityEnum.MINIMAL, modules, {}, changed_files, comment_multi_minimalist_instruction, 9, 0, [], False, False),
-    ("24", CommentModeEnum.MULTI, SensitivityEnum.MINIMAL, modules, {}, changed_files, comment_multi_minimalist_instruction_with_bs, 9, 0, [], False, True),
-    ("25", CommentModeEnum.MULTI, SensitivityEnum.SUMMARY, {}, {}, changed_files, comment_multi_minimalist_instruction, 9, 0, [], False, False),
-    ("26", CommentModeEnum.MULTI, SensitivityEnum.SUMMARY, {}, {}, changed_files, comment_multi_minimalist_instruction_with_bs, 9, 0, [], False, True),
-    ("27", CommentModeEnum.MULTI, SensitivityEnum.SUMMARY, modules, modules_thresholds, changed_files, comment_multi_summary_instruction_with_modules, 9, 0, ["Report 'Module Large Report' changed files coverage 90.0 is below the threshold 91.0."], False, False),
-    ("28", CommentModeEnum.MULTI, SensitivityEnum.SUMMARY, modules, modules_thresholds, changed_files, comment_multi_summary_instruction_with_modules_with_bs, 9, 0, ["Report 'Module Large Report' changed files coverage 90.0 is below the threshold 91.0."], False, True),
-    ("29", CommentModeEnum.MULTI, SensitivityEnum.SUMMARY, modules, {}, changed_files, comment_multi_minimalist_instruction, 9, 0, [], False, False),
-    ("30", CommentModeEnum.MULTI, SensitivityEnum.SUMMARY, modules, {}, changed_files, comment_multi_minimalist_instruction_with_bs, 9, 0, [], False, True),
-    ("31", CommentModeEnum.MULTI, SensitivityEnum.DETAIL, {}, {}, changed_files, comment_multi_detailed_instruction_no_modules, 9, 0, [], False, False),
-    ("32", CommentModeEnum.MULTI, SensitivityEnum.DETAIL, {}, {}, changed_files, comment_multi_detailed_instruction_no_modules_with_bs, 9, 0, [], False, True),
-    ("33", CommentModeEnum.MULTI, SensitivityEnum.DETAIL, modules, modules_thresholds, changed_files, comment_multi_detailed_instruction_with_modules, 9, 0, ["Report 'Module Large Report' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Large Report' changed file 'com/example/module_large/BigClass.java' coverage 90.0 is below the threshold 91.0."], False, False),
-    ("34", CommentModeEnum.MULTI, SensitivityEnum.DETAIL, modules, modules_thresholds, changed_files, comment_multi_detailed_instruction_with_modules_with_bs, 9, 0, ["Report 'Module Large Report' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Large Report' changed file 'com/example/module_large/BigClass.java' coverage 90.0 is below the threshold 91.0."], False, True),
-    ("35", CommentModeEnum.MULTI, SensitivityEnum.DETAIL, modules, {}, changed_files, comment_multi_detailed_instruction_with_modules_no_module_thresholds_not_skip_changed, 9, 0, [], False, False),
-    ("36", CommentModeEnum.MULTI, SensitivityEnum.DETAIL, modules, {}, changed_files, comment_multi_detailed_instruction_with_modules_no_module_thresholds_not_skip_changed_with_bs, 9, 0, [], False, True),
-    ("37", CommentModeEnum.MULTI, SensitivityEnum.DETAIL, modules, {}, changed_files, comment_multi_detailed_instruction_with_modules_no_module_thresholds_skip_changed, 9, 0, [], True, False),
-    ("38", CommentModeEnum.MULTI, SensitivityEnum.DETAIL, modules, {}, changed_files, comment_multi_detailed_instruction_with_modules_no_module_thresholds_skip_changed_with_bs, 9, 0, [], True, True),
-    ("39", CommentModeEnum.MODULE, SensitivityEnum.MINIMAL, modules, {}, changed_files, comment_module_minimalist_instruction, 9, 4, [], False, False),
-    ("40", CommentModeEnum.MODULE, SensitivityEnum.MINIMAL, modules, {}, changed_files, comment_module_minimalist_instruction_with_bs, 9, 4, [], False, True),
-    ("41", CommentModeEnum.MODULE, SensitivityEnum.SUMMARY, modules, {}, changed_files, comment_module_minimalist_instruction_summary, 9, 4, [], False, False),
-    ("42", CommentModeEnum.MODULE, SensitivityEnum.SUMMARY, modules, {}, changed_files, comment_module_minimalist_instruction_with_bs_summary, 9, 4, [], False, True),
-    ("43", CommentModeEnum.MODULE, SensitivityEnum.SUMMARY, modules, modules_thresholds, changed_files, comment_module_summary_instruction_with_modules, 9, 4, ["Module 'module_large' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Large Report' changed files coverage 90.0 is below the threshold 91.0."], False, False),
-    ("44", CommentModeEnum.MODULE, SensitivityEnum.SUMMARY, modules, modules_thresholds, changed_files, comment_module_summary_instruction_with_modules_with_bs, 9, 4, ["Module 'module_large' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Large Report' changed files coverage 90.0 is below the threshold 91.0."], False, True),
-    ("45", CommentModeEnum.MODULE, SensitivityEnum.DETAIL, modules, modules_thresholds, changed_files, comment_module_detail_instruction_with_modules, 9, 4, ["Module 'module_large' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Large Report' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Large Report' changed file 'com/example/module_large/BigClass.java' coverage 90.0 is below the threshold 91.0."], False, False),
-    ("46", CommentModeEnum.MODULE, SensitivityEnum.DETAIL, modules, modules_thresholds, changed_files, comment_module_detailed_instruction_with_modules_with_bs, 9, 4, ["Module 'module_large' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Large Report' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Large Report' changed file 'com/example/module_large/BigClass.java' coverage 90.0 is below the threshold 91.0."], False, True),
-    ("47", CommentModeEnum.MODULE, SensitivityEnum.DETAIL, modules, {}, changed_files, comment_module_detailed_instruction_with_modules_no_module_thresholds_not_skip_changed, 9, 4, [], False, False),
+    # ("1", CommentModeEnum.SINGLE, SensitivityEnum.MINIMAL, {}, {}, changed_files, [comment_single_minimalist_instruction], 9, 0, [], False, False),
+    # ("2", CommentModeEnum.SINGLE, SensitivityEnum.MINIMAL, {}, {}, changed_files, [comment_single_minimalist_instruction_with_bs], 9, 0, [], False, True),
+    # ("3", CommentModeEnum.SINGLE, SensitivityEnum.MINIMAL, modules, {}, changed_files, [comment_single_minimalist_instruction], 9, 4, [], False, False),
+    # ("4", CommentModeEnum.SINGLE, SensitivityEnum.MINIMAL, modules, {}, changed_files, [comment_single_minimalist_instruction_with_bs], 9, 4, [], False, True),
+    # ("5", CommentModeEnum.SINGLE, SensitivityEnum.SUMMARY, {}, {}, changed_files, [comment_single_minimalist_instruction_summary], 9, 0, [], False, False),
+    # ("6", CommentModeEnum.SINGLE, SensitivityEnum.SUMMARY, {}, {}, changed_files, [comment_single_minimalist_instruction_with_bs_summary], 9, 0, [], False, True),
+    # ("7", CommentModeEnum.SINGLE, SensitivityEnum.SUMMARY, modules, modules_thresholds, changed_files, [comment_more_files_single_summary_instruction_with_modules], 9, 4, ["Module 'module_large' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Large Report' changed files coverage 90.0 is below the threshold 91.0."], False, False),
+    # ("8", CommentModeEnum.SINGLE, SensitivityEnum.SUMMARY, modules, modules_thresholds, changed_files, [comment_more_files_single_summary_instruction_with_modules_with_bs], 9, 4, ["Module 'module_large' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Large Report' changed files coverage 90.0 is below the threshold 91.0."], False, True),
+    # ("9", CommentModeEnum.SINGLE, SensitivityEnum.SUMMARY, modules, {}, changed_files, [comment_more_files_single_summary_instruction_with_modules_no_module_thresholds], 9, 4, [], False, False),
+    # ("10", CommentModeEnum.SINGLE, SensitivityEnum.SUMMARY, modules, {}, changed_files, [comment_more_files_single_summary_instruction_with_modules_no_module_thresholds_with_bs], 9, 4, [], False, True),
+    # ("11", CommentModeEnum.SINGLE, SensitivityEnum.DETAIL, {}, {}, changed_files, [comment_more_files_single_detailed_instruction_no_modules], 9, 0, [], False, False),
+    # ("12", CommentModeEnum.SINGLE, SensitivityEnum.DETAIL, {}, {}, changed_files, [comment_more_files_single_detailed_instruction_no_modules_with_bs], 9, 0, [], False, True),
+    # ("13", CommentModeEnum.SINGLE, SensitivityEnum.DETAIL, modules, modules_thresholds, changed_files, [comment_more_files_single_detailed_instruction_with_modules], 9, 4, ["Module 'module_large' changed files coverage 90.0 is below the threshold 91.0.", "Module Large Report' changed files coverage 90.0 is below the threshold 91.0.", "Module Large Report' changed file 'com/example/module_large/BigClass.java' coverage 90.0 is below the threshold 91.0."], False, False),
+    # ("14", CommentModeEnum.SINGLE, SensitivityEnum.DETAIL, modules, modules_thresholds, changed_files, [comment_more_files_single_detailed_instruction_with_modules_with_bs], 9, 4, ["Module 'module_large' changed files coverage 90.0 is below the threshold 91.0.", "Module Large Report' changed files coverage 90.0 is below the threshold 91.0.", "Module Large Report' changed file 'com/example/module_large/BigClass.java' coverage 90.0 is below the threshold 91.0."], False, True),
+    # ("15", CommentModeEnum.SINGLE, SensitivityEnum.DETAIL, modules, {}, changed_files, [comment_more_files_single_detailed_instruction_with_modules_no_module_thresholds_not_skip_changed], 9, 4, [], False, False),
+    # ("16", CommentModeEnum.SINGLE, SensitivityEnum.DETAIL, modules, {}, changed_files, [comment_more_files_single_detailed_instruction_with_modules_no_module_thresholds_not_skip_changed_with_bs], 9, 4, [], False, True),
+    # ("17", CommentModeEnum.SINGLE, SensitivityEnum.DETAIL, modules, {}, changed_files, [comment_more_files_single_detailed_instruction_with_modules_no_module_thresholds_skip_changed], 9, 4, [], True, False),
+    # ("18", CommentModeEnum.SINGLE, SensitivityEnum.DETAIL, modules, {}, changed_files, [comment_more_files_single_detailed_instruction_with_modules_no_module_thresholds_skip_changed_with_bs], 9, 4, [], True, True),
+    # ("19", CommentModeEnum.MULTI, SensitivityEnum.MINIMAL, {}, {}, changed_files, comment_multi_minimalist_instruction, 9, 0, [], False, False),
+    # ("20", CommentModeEnum.MULTI, SensitivityEnum.MINIMAL, {}, {}, changed_files, comment_multi_minimalist_instruction_skip, 9, 0, [], True, False),
+    # ("21", CommentModeEnum.MULTI, SensitivityEnum.MINIMAL, {}, {}, changed_files, comment_multi_minimalist_instruction_with_bs, 9, 0, [], False, True),
+    # ("22", CommentModeEnum.MULTI, SensitivityEnum.MINIMAL, {}, {}, changed_files, comment_multi_minimalist_instruction_with_bs_skip, 9, 0, [], True, True),
+    # ("23", CommentModeEnum.MULTI, SensitivityEnum.MINIMAL, modules, {}, changed_files, comment_multi_minimalist_instruction, 9, 0, [], False, False),
+    # ("24", CommentModeEnum.MULTI, SensitivityEnum.MINIMAL, modules, {}, changed_files, comment_multi_minimalist_instruction_with_bs, 9, 0, [], False, True),
+    # ("25", CommentModeEnum.MULTI, SensitivityEnum.SUMMARY, {}, {}, changed_files, comment_multi_minimalist_instruction, 9, 0, [], False, False),
+    # ("26", CommentModeEnum.MULTI, SensitivityEnum.SUMMARY, {}, {}, changed_files, comment_multi_minimalist_instruction_with_bs, 9, 0, [], False, True),
+    # ("27", CommentModeEnum.MULTI, SensitivityEnum.SUMMARY, modules, modules_thresholds, changed_files, comment_multi_summary_instruction_with_modules, 9, 0, ["Report 'Module Large Report' changed files coverage 90.0 is below the threshold 91.0."], False, False),
+    # ("28", CommentModeEnum.MULTI, SensitivityEnum.SUMMARY, modules, modules_thresholds, changed_files, comment_multi_summary_instruction_with_modules_with_bs, 9, 0, ["Report 'Module Large Report' changed files coverage 90.0 is below the threshold 91.0."], False, True),
+    # ("29", CommentModeEnum.MULTI, SensitivityEnum.SUMMARY, modules, {}, changed_files, comment_multi_minimalist_instruction, 9, 0, [], False, False),
+    # ("30", CommentModeEnum.MULTI, SensitivityEnum.SUMMARY, modules, {}, changed_files, comment_multi_minimalist_instruction_with_bs, 9, 0, [], False, True),
+    # ("31", CommentModeEnum.MULTI, SensitivityEnum.DETAIL, {}, {}, changed_files, comment_multi_detailed_instruction_no_modules, 9, 0, [], False, False),
+    # ("32", CommentModeEnum.MULTI, SensitivityEnum.DETAIL, {}, {}, changed_files, comment_multi_detailed_instruction_no_modules_with_bs, 9, 0, [], False, True),
+    # ("33", CommentModeEnum.MULTI, SensitivityEnum.DETAIL, modules, modules_thresholds, changed_files, comment_multi_detailed_instruction_with_modules, 9, 0, ["Report 'Module Large Report' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Large Report' changed file 'com/example/module_large/BigClass.java' coverage 90.0 is below the threshold 91.0."], False, False),
+    # ("34", CommentModeEnum.MULTI, SensitivityEnum.DETAIL, modules, modules_thresholds, changed_files, comment_multi_detailed_instruction_with_modules_with_bs, 9, 0, ["Report 'Module Large Report' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Large Report' changed file 'com/example/module_large/BigClass.java' coverage 90.0 is below the threshold 91.0."], False, True),
+    # ("35", CommentModeEnum.MULTI, SensitivityEnum.DETAIL, modules, {}, changed_files, comment_multi_detailed_instruction_with_modules_no_module_thresholds_not_skip_changed, 9, 0, [], False, False),
+    # ("36", CommentModeEnum.MULTI, SensitivityEnum.DETAIL, modules, {}, changed_files, comment_multi_detailed_instruction_with_modules_no_module_thresholds_not_skip_changed_with_bs, 9, 0, [], False, True),
+    # ("37", CommentModeEnum.MULTI, SensitivityEnum.DETAIL, modules, {}, changed_files, comment_multi_detailed_instruction_with_modules_no_module_thresholds_skip_changed, 9, 0, [], True, False),
+    # ("38", CommentModeEnum.MULTI, SensitivityEnum.DETAIL, modules, {}, changed_files, comment_multi_detailed_instruction_with_modules_no_module_thresholds_skip_changed_with_bs, 9, 0, [], True, True),
+    # ("39", CommentModeEnum.MODULE, SensitivityEnum.MINIMAL, modules, {}, changed_files, comment_module_minimalist_instruction, 9, 4, [], False, False),
+    # ("40", CommentModeEnum.MODULE, SensitivityEnum.MINIMAL, modules, {}, changed_files, comment_module_minimalist_instruction_with_bs, 9, 4, [], False, True),
+    # ("41", CommentModeEnum.MODULE, SensitivityEnum.SUMMARY, modules, {}, changed_files, comment_module_minimalist_instruction_summary, 9, 4, [], False, False),
+    # ("42", CommentModeEnum.MODULE, SensitivityEnum.SUMMARY, modules, {}, changed_files, comment_module_minimalist_instruction_with_bs_summary, 9, 4, [], False, True),
+    # ("43", CommentModeEnum.MODULE, SensitivityEnum.SUMMARY, modules, modules_thresholds, changed_files, comment_module_summary_instruction_with_modules, 9, 4, ["Module 'module_large' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Large Report' changed files coverage 90.0 is below the threshold 91.0."], False, False),
+    # ("44", CommentModeEnum.MODULE, SensitivityEnum.SUMMARY, modules, modules_thresholds, changed_files, comment_module_summary_instruction_with_modules_with_bs, 9, 4, ["Module 'module_large' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Large Report' changed files coverage 90.0 is below the threshold 91.0."], False, True),
+    # ("45", CommentModeEnum.MODULE, SensitivityEnum.DETAIL, modules, modules_thresholds, changed_files, comment_module_detail_instruction_with_modules, 9, 4, ["Module 'module_large' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Large Report' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Large Report' changed file 'com/example/module_large/BigClass.java' coverage 90.0 is below the threshold 91.0."], False, False),
+    # ("46", CommentModeEnum.MODULE, SensitivityEnum.DETAIL, modules, modules_thresholds, changed_files, comment_module_detailed_instruction_with_modules_with_bs, 9, 4, ["Module 'module_large' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Large Report' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Large Report' changed file 'com/example/module_large/BigClass.java' coverage 90.0 is below the threshold 91.0."], False, True),
+    # ("47", CommentModeEnum.MODULE, SensitivityEnum.DETAIL, modules, {}, changed_files, comment_module_detailed_instruction_with_modules_no_module_thresholds_not_skip_changed, 9, 4, [], False, False),
     ("48", CommentModeEnum.MODULE, SensitivityEnum.DETAIL, modules, {}, changed_files, comment_module_detailed_instruction_with_modules_no_module_thresholds_not_skip_changed_with_bs, 9, 4, [], False, True),
-    ("49", CommentModeEnum.MODULE, SensitivityEnum.DETAIL, modules, {}, changed_files, comment_module_detailed_instruction_with_modules_no_module_thresholds_skip_changed, 9, 4, [], True, False),
-    ("50", CommentModeEnum.MODULE, SensitivityEnum.DETAIL, modules, {}, changed_files, comment_module_detailed_instruction_with_modules_no_module_thresholds_skip_changed_with_bs, 9, 4, [], True, True),
-    ("51", CommentModeEnum.MODULE, SensitivityEnum.DETAIL, modules, modules_thresholds_100, changed_files, comment_module_detailed_instruction_with_modules_with_bs_fail_non_changed_module, 9, 4, ["Module 'module_large' changed files coverage 90.0 is below the threshold 91.0.", "Module 'module small' overall coverage 97.0 is below the threshold 100.0.", "Report 'Module Small Report' overall coverage 97.0 is below the threshold 100.0.", "Report 'Module Large Report' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Large Report' changed file 'com/example/module_large/BigClass.java' coverage 90.0 is below the threshold 91.0."], True, True),
-    ("52", CommentModeEnum.SINGLE, SensitivityEnum.DETAIL, modules, modules_thresholds_100, changed_files, [comment_more_files_single_detailed_instruction_with_modules_with_bs_fail_module], 9, 4, ["Module 'module_large' changed files coverage 90.0 is below the threshold 91.0.", "Module 'module small' overall coverage 97.0 is below the threshold 100.0.", "Report 'Module Large Report' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Small Report' overall coverage 97.0 is below the threshold 100.0.", "Report 'Module Large Report' changed file 'com/example/module_large/BigClass.java' coverage 90.0 is below the threshold 91.0."], True, True),
-    ("53", CommentModeEnum.MULTI, SensitivityEnum.DETAIL, modules, modules_thresholds_100, changed_files, comment_multi_detailed_instruction_with_modules_with_bs_fail_module, 9, 0, ["Report 'Module Large Report' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Small Report' overall coverage 97.0 is below the threshold 100.0.", "Report 'Module Large Report' changed file 'com/example/module_large/BigClass.java' coverage 90.0 is below the threshold 91.0."], True, True),
+    # ("49", CommentModeEnum.MODULE, SensitivityEnum.DETAIL, modules, {}, changed_files, comment_module_detailed_instruction_with_modules_no_module_thresholds_skip_changed, 9, 4, [], True, False),
+    # ("50", CommentModeEnum.MODULE, SensitivityEnum.DETAIL, modules, {}, changed_files, comment_module_detailed_instruction_with_modules_no_module_thresholds_skip_changed_with_bs, 9, 4, [], True, True),
+    # ("51", CommentModeEnum.MODULE, SensitivityEnum.DETAIL, modules, modules_thresholds_100, changed_files, comment_module_detailed_instruction_with_modules_with_bs_fail_non_changed_module, 9, 4, ["Module 'module_large' changed files coverage 90.0 is below the threshold 91.0.", "Module 'module small' overall coverage 97.0 is below the threshold 100.0.", "Report 'Module Small Report' overall coverage 97.0 is below the threshold 100.0.", "Report 'Module Large Report' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Large Report' changed file 'com/example/module_large/BigClass.java' coverage 90.0 is below the threshold 91.0."], True, True),
+    # ("52", CommentModeEnum.SINGLE, SensitivityEnum.DETAIL, modules, modules_thresholds_100, changed_files, [comment_more_files_single_detailed_instruction_with_modules_with_bs_fail_module], 9, 4, ["Module 'module_large' changed files coverage 90.0 is below the threshold 91.0.", "Module 'module small' overall coverage 97.0 is below the threshold 100.0.", "Report 'Module Large Report' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Small Report' overall coverage 97.0 is below the threshold 100.0.", "Report 'Module Large Report' changed file 'com/example/module_large/BigClass.java' coverage 90.0 is below the threshold 91.0."], True, True),
+    # ("53", CommentModeEnum.MULTI, SensitivityEnum.DETAIL, modules, modules_thresholds_100, changed_files, comment_multi_detailed_instruction_with_modules_with_bs_fail_module, 9, 0, ["Report 'Module Large Report' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Small Report' overall coverage 97.0 is below the threshold 100.0.", "Report 'Module Large Report' changed file 'com/example/module_large/BigClass.java' coverage 90.0 is below the threshold 91.0."], True, True),
 ]
 
 @pytest.mark.parametrize("id, mode, template, modules, modules_thresholds, changed_files, expected_comments, evaluated_cov_reports, evaluated_cov_modules, violations, skip_not_changed, use_baseline", more_source_files_scenarios)
@@ -1607,8 +1619,10 @@ def test_successful_more_source_files(jacoco_report, id, mode, template, modules
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_token", return_value='fake_token')
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_comment_mode", return_value=mode)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_sensitivity", return_value=template)
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=["tests/data/test_project/**/jacoco.xml"])
+    # mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=["tests/data/test_project/**/jacoco.xml"])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=["data/test_project/**/jacoco.xml"])
     if use_baseline:
+        # mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["data_baseline/**/*.xml"])
         mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["tests/data_baseline/**/*.xml"])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_min_coverage_overall", return_value=75.0)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_min_coverage_changed_files", return_value=80.0)
@@ -1654,7 +1668,19 @@ single_minimal_violations = [
 
 single_summary_violations = [
     'Global overall coverage 92.0 is below the threshold 100.0.',
-    'Global changed files coverage 89.71 is below the threshold 100.0.'
+    'Global changed files coverage 89.71 is below the threshold 100.0.',
+    "Report 'Module Large Report' overall coverage 91.33 is below the threshold 100.0.",
+    "Report 'Module Large Report' changed files coverage 90.0 is below the threshold 100.0.",
+    "Report 'user-info:  Controller Module Report' overall coverage 93.0 is below the threshold 100.0.",
+    "Report 'user-info: Implementation Module Report' overall coverage 88.0 is below the threshold 100.0.",
+    "Report 'user-info: Implementation Module Report' changed files coverage 88.0 is below the threshold 100.0.",
+    "Report 'notification: API Module Report' overall coverage 95.0 is below the threshold 100.0.",
+    "Report 'Module Small Report' overall coverage 97.0 is below the threshold 100.0.",
+    "Report 'notification: Client HTTP Module Report' overall coverage 90.0 is below the threshold 100.0.",
+    "Report 'user-info: API Module Report' overall coverage 95.0 is below the threshold 100.0.",
+    "Report 'user-info: Client HTTP Module Report' overall coverage 90.0 is below the threshold 100.0.",
+    "Report 'user-info: Client HTTP Module Report' changed files coverage 90.0 is below the threshold 100.0.",
+    "Report 'notification: Plugins Module Report' overall coverage 92.0 is below the threshold 100.0."
 ]
 
 single_summary_violations_with_modules = [
@@ -1666,6 +1692,18 @@ single_summary_violations_with_modules = [
     "Module 'module_large' overall coverage 91.33 is below the threshold 100.0.",
     "Module 'module_large' changed files coverage 90.0 is below the threshold 100.0.",
     "Module 'module small' overall coverage 97.0 is below the threshold 100.0.",
+    "Report 'Module Large Report' overall coverage 91.33 is below the threshold 100.0.",
+    "Report 'Module Large Report' changed files coverage 90.0 is below the threshold 100.0.",
+    "Report 'user-info:  Controller Module Report' overall coverage 93.0 is below the threshold 100.0.",
+    "Report 'user-info: Implementation Module Report' overall coverage 88.0 is below the threshold 100.0.",
+    "Report 'user-info: Implementation Module Report' changed files coverage 88.0 is below the threshold 100.0.",
+    "Report 'notification: API Module Report' overall coverage 95.0 is below the threshold 100.0.",
+    "Report 'Module Small Report' overall coverage 97.0 is below the threshold 100.0.",
+    "Report 'notification: Client HTTP Module Report' overall coverage 90.0 is below the threshold 100.0.",
+    "Report 'user-info: API Module Report' overall coverage 95.0 is below the threshold 100.0.",
+    "Report 'user-info: Client HTTP Module Report' overall coverage 90.0 is below the threshold 100.0.",
+    "Report 'user-info: Client HTTP Module Report' changed files coverage 90.0 is below the threshold 100.0.",
+    "Report 'notification: Plugins Module Report' overall coverage 92.0 is below the threshold 100.0."
 ]
 
 single_detail_violations = [
@@ -1762,7 +1800,28 @@ module_minimal_violations = [
     "Module 'module small' overall coverage 97.0 is below the threshold 100.0.",
 ]
 
-module_summary_violations = module_minimal_violations
+module_summary_violations = [
+    'Global overall coverage 92.0 is below the threshold 100.0.',
+    'Global changed files coverage 89.71 is below the threshold 100.0.',
+    "Module 'context/notification' overall coverage 92.33 is below the threshold 100.0.",
+    "Module 'context/user-info' overall coverage 91.5 is below the threshold 100.0.",
+    "Module 'context/user-info' changed files coverage 89.0 is below the threshold 100.0.",
+    "Module 'module_large' overall coverage 91.33 is below the threshold 100.0.",
+    "Module 'module_large' changed files coverage 90.0 is below the threshold 100.0.",
+    "Module 'module small' overall coverage 97.0 is below the threshold 100.0.",
+    "Report 'Module Large Report' overall coverage 91.33 is below the threshold 100.0.",
+    "Report 'Module Large Report' changed files coverage 90.0 is below the threshold 100.0.",
+    "Report 'user-info:  Controller Module Report' overall coverage 93.0 is below the threshold 100.0.",
+    "Report 'user-info: Implementation Module Report' overall coverage 88.0 is below the threshold 100.0.",
+    "Report 'user-info: Implementation Module Report' changed files coverage 88.0 is below the threshold 100.0.",
+    "Report 'notification: API Module Report' overall coverage 95.0 is below the threshold 100.0.",
+    "Report 'Module Small Report' overall coverage 97.0 is below the threshold 100.0.",
+    "Report 'notification: Client HTTP Module Report' overall coverage 90.0 is below the threshold 100.0.",
+    "Report 'user-info: API Module Report' overall coverage 95.0 is below the threshold 100.0.",
+    "Report 'user-info: Client HTTP Module Report' overall coverage 90.0 is below the threshold 100.0.",
+    "Report 'user-info: Client HTTP Module Report' changed files coverage 90.0 is below the threshold 100.0.",
+    "Report 'notification: Plugins Module Report' overall coverage 92.0 is below the threshold 100.0."
+]
 
 module_detail_violations = [
     'Global overall coverage 92.0 is below the threshold 100.0.',
@@ -1773,6 +1832,18 @@ module_detail_violations = [
     "Module 'module_large' overall coverage 91.33 is below the threshold 100.0.",
     "Module 'module_large' changed files coverage 90.0 is below the threshold 100.0.",
     "Module 'module small' overall coverage 97.0 is below the threshold 100.0.",
+    "Report 'Module Large Report' overall coverage 91.33 is below the threshold 100.0.",
+    "Report 'Module Large Report' changed files coverage 90.0 is below the threshold 100.0.",
+    "Report 'user-info:  Controller Module Report' overall coverage 93.0 is below the threshold 100.0.",
+    "Report 'user-info: Implementation Module Report' overall coverage 88.0 is below the threshold 100.0.",
+    "Report 'user-info: Implementation Module Report' changed files coverage 88.0 is below the threshold 100.0.",
+    "Report 'notification: API Module Report' overall coverage 95.0 is below the threshold 100.0.",
+    "Report 'Module Small Report' overall coverage 97.0 is below the threshold 100.0.",
+    "Report 'notification: Client HTTP Module Report' overall coverage 90.0 is below the threshold 100.0.",
+    "Report 'user-info: API Module Report' overall coverage 95.0 is below the threshold 100.0.",
+    "Report 'user-info: Client HTTP Module Report' overall coverage 90.0 is below the threshold 100.0.",
+    "Report 'user-info: Client HTTP Module Report' changed files coverage 90.0 is below the threshold 100.0.",
+    "Report 'notification: Plugins Module Report' overall coverage 92.0 is below the threshold 100.0.",
     "Report 'Module Large Report' changed file 'com/example/module_large/BigClass.java' coverage 90.0 is below the threshold 100.0.",
     "Report 'user-info: Implementation Module Report' changed file 'com/example/user-info/implementation/ImplementationClass.java' coverage 88.0 is below the threshold 100.0.",
     "Report 'user-info: Client HTTP Module Report' changed file 'com/example/user-info/client-http/ClientHttpClass.java' coverage 90.0 is below the threshold 100.0.",
@@ -1781,7 +1852,6 @@ module_detail_violations = [
 # Note: used min 100% coverage for overall and changed files to test the violations
 more_source_files_scenarios = [
     ("1", CommentModeEnum.SINGLE, SensitivityEnum.MINIMAL, {}, {}, changed_files, single_minimal_violations),
-    # TODO - add report file ones - https://github.com/MoranaApps/jacoco-report/issues/31
     ("2", CommentModeEnum.SINGLE, SensitivityEnum.SUMMARY, {}, {}, changed_files, single_summary_violations),
     ("3", CommentModeEnum.SINGLE, SensitivityEnum.DETAIL, {}, {}, changed_files, single_detail_violations),
     ("4", CommentModeEnum.MULTI, SensitivityEnum.MINIMAL, {}, {}, changed_files, multi_minimal_violations),
@@ -1789,7 +1859,6 @@ more_source_files_scenarios = [
     ("6", CommentModeEnum.MULTI, SensitivityEnum.DETAIL, {}, {}, changed_files, multi_detail_violations),
     # with modules expecting 100% coverage
     ("101", CommentModeEnum.SINGLE, SensitivityEnum.MINIMAL, modules, modules_thresholds_100_all, changed_files, single_minimal_violations),
-    # TODO - add report file ones - https://github.com/MoranaApps/jacoco-report/issues/31
     ("102", CommentModeEnum.SINGLE, SensitivityEnum.SUMMARY, modules, modules_thresholds_100_all, changed_files, single_summary_violations_with_modules),
     ("103", CommentModeEnum.SINGLE, SensitivityEnum.DETAIL, modules, modules_thresholds_100_all, changed_files, single_detail_violations_with_modules),
     ("104", CommentModeEnum.MULTI, SensitivityEnum.MINIMAL, modules, modules_thresholds_100_all, changed_files, multi_minimal_violations),

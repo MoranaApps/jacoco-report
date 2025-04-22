@@ -137,109 +137,34 @@ class ModulePRCommentGenerator(MultiPRCommentGenerator):
 
     def __get_reports_table(self, p: str, f: str, module_name: str) -> str:
         if not ActionInputs.get_baseline_paths():
-            return self.__generate_reports_table_without_baseline(p, f, module_name)
+            return self._generate_reports_table_without_baseline(p, f, module_name=module_name)
 
-        return self.__generate_reports_table_with_baseline(p, f, module_name)
+        return self._generate_reports_table_with_baseline(p, f, module_name=module_name)
 
-    def __generate_reports_table_without_baseline(self, p: str, f: str, module_name: str) -> str:
-        s = dedent(
-            """
-            | Report | Coverage | Threshold | Status |
-            |--------|----------|-----------|--------|
-        """
-        ).strip()
+    def _generate_reports_table_without_baseline__skip(self, evaluated_report: EvaluatedReportCoverage, **kwargs) -> bool:
+        module_name: str = kwargs.get("module_name")
 
-        provided_reports = 0
-        keys: list[str] = sorted(list(self.evaluator.evaluated_reports_coverage.keys()))
-        for key in keys:
-            evaluated_report = self.evaluator.evaluated_reports_coverage[key]
-            if (
-                    ActionInputs.get_skip_not_changed()
-                    and evaluated_report.name not in self.changed_modules
-                    and evaluated_report.overall_passed
-                    and evaluated_report.sum_changed_files_passed
-                    and len(evaluated_report.changed_files_coverage_reached) == 0
-            ):
-                continue
+        if (
+            super()._generate_reports_table_without_baseline__skip(evaluated_report)
+            and len(evaluated_report.changed_files_coverage_reached) == 0
+        ):
+            return True
 
-            if evaluated_report.module_name != module_name:
-                continue
+        if evaluated_report.module_name != module_name:
+            return True
 
-            provided_reports += 1
-            o_thres = ActionInputs.get_min_coverage_overall()
-            ch_thres = ActionInputs.get_min_coverage_changed_files()
+        return False
 
-            if len(ActionInputs.get_modules()) > 0 and len(ActionInputs.get_modules_thresholds()) > 0:
-                o_thres = evaluated_report.overall_coverage_threshold
-                ch_thres = evaluated_report.changed_files_threshold
+    def _generate_modules_table_with_baseline_skip(self, evaluated_report: EvaluatedReportCoverage, **kwargs) -> bool:
+        module_name: str = kwargs.get("module_name")
 
-            # pylint: disable=C0209
-            s += "\n| `{}` | {}% / {}% | {}% / {}% | {}/{} |".format(
-                evaluated_report.name,
-                evaluated_report.overall_coverage_reached,
-                evaluated_report.sum_changed_files_coverage_reached,
-                o_thres,
-                ch_thres,
-                p if evaluated_report.overall_passed else f,
-                p if evaluated_report.sum_changed_files_passed else f,
-            )
+        if (
+            super()._generate_modules_table_with_baseline_skip(evaluated_report)
+            and len(evaluated_report.changed_files_coverage_reached) == 0
+        ):
+            return True
 
-        if provided_reports == 0:
-            s += "\nNo changed file in reports."
+        if evaluated_report.module_name != module_name:
+            return True
 
-        return s
-
-    def __generate_reports_table_with_baseline(self, p: str, f: str, module_name: str) -> str:
-        s = dedent(
-            """
-            | Report | Coverage | Threshold | Δ Coverage | Status |
-            |--------|----------|-----------|------------|--------|
-        """
-        ).strip()
-
-        provided_reports = 0
-        keys: list[str] = sorted(list(self.evaluator.evaluated_reports_coverage.keys()))
-        for key in keys:
-            evaluated_report = self.evaluator.evaluated_reports_coverage[key]
-
-            if (
-                    ActionInputs.get_skip_not_changed()
-                    and evaluated_report.name not in self.changed_modules
-                    and evaluated_report.overall_passed
-                    and evaluated_report.sum_changed_files_passed
-                    and len(evaluated_report.changed_files_coverage_reached) == 0
-            ):
-                continue
-
-            if evaluated_report.module_name != module_name:
-                continue
-
-            provided_reports += 1
-            diff_o, diff_ch = self._calculate_module_diff(evaluated_report)
-
-            o_thres = ActionInputs.get_min_coverage_overall()
-            ch_thres = ActionInputs.get_min_coverage_changed_files()
-
-            if len(ActionInputs.get_modules()) > 0 and len(ActionInputs.get_modules_thresholds()) > 0:
-                o_thres = evaluated_report.overall_coverage_threshold
-                ch_thres = evaluated_report.changed_files_threshold
-
-            # pylint: disable=C0209
-            s += "\n| `{}` | {}% / {}% | {}% / {}% | {}{}% / {}{}% | {}/{} |".format(
-                evaluated_report.name,
-                evaluated_report.overall_coverage_reached,
-                evaluated_report.sum_changed_files_coverage_reached,
-                o_thres,
-                ch_thres,
-                "+" if diff_o > 0.001 else "",
-                round(diff_o, 2),
-                "+" if diff_ch > 0.001 else "",
-                round(diff_ch, 2),
-                p if evaluated_report.overall_passed else f,
-                p if evaluated_report.sum_changed_files_passed else f,
-            )
-
-        if provided_reports == 0:
-            s += "\nNo changed file in reports."
-
-        return s
+        return False

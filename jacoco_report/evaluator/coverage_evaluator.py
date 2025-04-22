@@ -210,7 +210,7 @@ class CoverageEvaluator:
             case (CommentModeEnum.SINGLE, SensitivityEnum.MINIMAL, _):
                 return
             case (CommentModeEnum.SINGLE, SensitivityEnum.SUMMARY, False):
-                return
+                self.violations.extend(report_violations)
             case (CommentModeEnum.SINGLE, SensitivityEnum.SUMMARY, True):
                 self.violations.extend(module_violations)
                 self.violations.extend(report_violations)

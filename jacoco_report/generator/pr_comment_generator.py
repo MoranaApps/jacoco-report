@@ -148,7 +148,17 @@ class PRCommentGenerator:
 
         return self._generate_reports_table_with_baseline(p, f)
 
-    def _generate_reports_table_without_baseline(self, p: str, f: str) -> str:
+    def _generate_reports_table_without_baseline__skip(self, evaluated_report: EvaluatedReportCoverage, **kwargs) -> bool:
+        if (
+                ActionInputs.get_skip_not_changed()
+                and evaluated_report.name not in self.changed_modules
+                and evaluated_report.overall_passed
+                and evaluated_report.sum_changed_files_passed
+        ):
+            return True
+        return False
+
+    def _generate_reports_table_without_baseline(self, p: str, f: str, **kwargs) -> str:
         s = dedent(
             """
             | Report | Coverage | Threshold | Status |
@@ -160,12 +170,7 @@ class PRCommentGenerator:
         keys: list[str] = sorted(list(self.evaluator.evaluated_reports_coverage.keys()))
         for key in keys:
             evaluated_report = self.evaluator.evaluated_reports_coverage[key]
-            if (
-                ActionInputs.get_skip_not_changed()
-                and evaluated_report.name not in self.changed_modules
-                and evaluated_report.overall_passed
-                and evaluated_report.sum_changed_files_passed
-            ):
+            if self._generate_reports_table_without_baseline__skip(evaluated_report, **kwargs):
                 continue
 
             provided_reports += 1
@@ -192,7 +197,7 @@ class PRCommentGenerator:
 
         return s
 
-    def _generate_reports_table_with_baseline(self, p: str, f: str) -> str:
+    def _generate_reports_table_with_baseline(self, p: str, f: str, **kwargs) -> str:
         s = dedent(
             """
             | Report | Coverage | Threshold | Δ Coverage | Status |
@@ -205,12 +210,7 @@ class PRCommentGenerator:
         for key in keys:
             evaluated_report = self.evaluator.evaluated_reports_coverage[key]
 
-            if (
-                ActionInputs.get_skip_not_changed()
-                and evaluated_report.name not in self.changed_modules
-                and evaluated_report.overall_passed
-                and evaluated_report.sum_changed_files_passed
-            ):
+            if self._generate_reports_table_without_baseline__skip(evaluated_report, **kwargs):
                 continue
 
             provided_reports += 1
@@ -243,7 +243,7 @@ class PRCommentGenerator:
 
         return s
 
-    def _generate_modules_table_without_baseline(self, p: str, f: str) -> str:
+    def _generate_modules_table_without_baseline(self, p: str, f: str, **kwargs) -> str:
         s = dedent(
             """
             | Module | Coverage (O/Ch) | Threshold (O/Ch) | Status (O/Ch) |
@@ -253,12 +253,7 @@ class PRCommentGenerator:
 
         provided_modules = 0
         for evaluated_coverage_module in self.evaluator.evaluated_modules_coverage.values():
-            if (
-                ActionInputs.get_skip_not_changed()
-                and evaluated_coverage_module.name not in self.changed_modules
-                and evaluated_coverage_module.overall_passed
-                and evaluated_coverage_module.sum_changed_files_passed
-            ):
+            if self._generate_modules_table_with_baseline_skip(evaluated_coverage_module, **kwargs):
                 continue
 
             provided_modules += 1
@@ -279,7 +274,17 @@ class PRCommentGenerator:
 
         return s
 
-    def _generate_modules_table_with_baseline(self, p: str, f: str) -> str:
+    def _generate_modules_table_with_baseline_skip(self, evaluated_report: EvaluatedReportCoverage, **kwargs) -> bool:
+        if (
+                ActionInputs.get_skip_not_changed()
+                and evaluated_report.name not in self.changed_modules
+                and evaluated_report.overall_passed
+                and evaluated_report.sum_changed_files_passed
+        ):
+            return True
+        return False
+
+    def _generate_modules_table_with_baseline(self, p: str, f: str, **kwargs) -> str:
         s = dedent(
             """
             | Module | Coverage (O/Ch) | Threshold (O/Ch) | Δ Coverage (O/Ch) | Status (O/Ch) |
@@ -290,12 +295,7 @@ class PRCommentGenerator:
         provided_modules = 0
 
         for evaluated_coverage_module in self.evaluator.evaluated_modules_coverage.values():
-            if (
-                ActionInputs.get_skip_not_changed()
-                and evaluated_coverage_module.name not in self.changed_modules
-                and evaluated_coverage_module.overall_passed
-                and evaluated_coverage_module.sum_changed_files_passed
-            ):
+            if self._generate_modules_table_with_baseline_skip(evaluated_coverage_module, **kwargs):
                 continue
 
             provided_modules += 1
@@ -382,7 +382,6 @@ class PRCommentGenerator:
         if len(lines) > 0:
             lines.sort()
             s += "".join(lines)
-            return s
         else:
             s += "\nNo changed file in reports."
 
@@ -437,7 +436,6 @@ class PRCommentGenerator:
         if len(lines) > 0:
             lines.sort()
             s += "".join(lines)
-            return s
         else:
             s += "\nNo changed file in reports."
 
