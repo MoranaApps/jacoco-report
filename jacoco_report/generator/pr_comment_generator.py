@@ -29,14 +29,14 @@ class PRCommentGenerator:
         evaluator: CoverageEvaluator,
         bs_evaluator: CoverageEvaluator,
         pr_number: int,
-        changed_modules: Optional[list[str]] = None,
+        changed_modules: Optional[set[str]] = None,
     ):
         self.gh: GitHub = gh
         self.evaluator: CoverageEvaluator = evaluator
         self.bs_evaluator: CoverageEvaluator = bs_evaluator
         self.pr_number: int = pr_number
         self.github_repository: str = ActionInputs.get_repository()
-        self.changed_modules: list[str] = changed_modules or []
+        self.changed_modules: set[str] = changed_modules or set()
 
     def generate(self):
         """
@@ -149,7 +149,7 @@ class PRCommentGenerator:
         return self._generate_reports_table_with_baseline(p, f)
 
     # pylint: disable=unused-argument
-    def _generate_reports_table_without_baseline__skip(
+    def _generate_reports_table__skip(
         self, evaluated_report: EvaluatedReportCoverage, **kwargs
     ) -> bool:
         if (
@@ -157,6 +157,7 @@ class PRCommentGenerator:
             and evaluated_report.name not in self.changed_modules
             and evaluated_report.overall_passed
             and evaluated_report.sum_changed_files_passed
+            and len(evaluated_report.changed_files_coverage_reached) == 0
         ):
             return True
         return False
@@ -173,7 +174,7 @@ class PRCommentGenerator:
         keys: list[str] = sorted(list(self.evaluator.evaluated_reports_coverage.keys()))
         for key in keys:
             evaluated_report = self.evaluator.evaluated_reports_coverage[key]
-            if self._generate_reports_table_without_baseline__skip(evaluated_report, **kwargs):
+            if self._generate_reports_table__skip(evaluated_report, **kwargs):
                 continue
 
             provided_reports += 1
@@ -213,7 +214,7 @@ class PRCommentGenerator:
         for key in keys:
             evaluated_report = self.evaluator.evaluated_reports_coverage[key]
 
-            if self._generate_reports_table_without_baseline__skip(evaluated_report, **kwargs):
+            if self._generate_reports_table__skip(evaluated_report, **kwargs):
                 continue
 
             provided_reports += 1
@@ -256,7 +257,7 @@ class PRCommentGenerator:
 
         provided_modules = 0
         for evaluated_coverage_module in self.evaluator.evaluated_modules_coverage.values():
-            if self._generate_modules_table_with_baseline_skip(evaluated_coverage_module, **kwargs):
+            if self._generate_modules_table__skip(evaluated_coverage_module, **kwargs):
                 continue
 
             provided_modules += 1
@@ -278,12 +279,13 @@ class PRCommentGenerator:
         return s
 
     # pylint: disable=unused-argument
-    def _generate_modules_table_with_baseline_skip(self, evaluated_report: EvaluatedReportCoverage, **kwargs) -> bool:
+    def _generate_modules_table__skip(self, evaluated_report: EvaluatedReportCoverage, **kwargs) -> bool:
         if (
             ActionInputs.get_skip_not_changed()
             and evaluated_report.name not in self.changed_modules
             and evaluated_report.overall_passed
             and evaluated_report.sum_changed_files_passed
+            and len(evaluated_report.changed_files_coverage_reached) == 0
         ):
             return True
         return False
@@ -299,7 +301,7 @@ class PRCommentGenerator:
         provided_modules = 0
 
         for evaluated_coverage_module in self.evaluator.evaluated_modules_coverage.values():
-            if self._generate_modules_table_with_baseline_skip(evaluated_coverage_module, **kwargs):
+            if self._generate_modules_table__skip(evaluated_coverage_module, **kwargs):
                 continue
 
             provided_modules += 1

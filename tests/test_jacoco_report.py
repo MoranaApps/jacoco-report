@@ -379,6 +379,8 @@ comment_more_files_single_detailed_instruction_with_modules_with_bs_fail_module 
 |--------|----------|-----------|------------|--------|
 | `Module Large Report` | 91.33% / 90.0% | 20.0% / 91.0% | -4.17% / -5.0% | ✅/❌ |
 | `Module Small Report` | 97.0% / 0.0% | 100.0% / 37.0% | 0.0% / 0.0% | ❌/✅ |
+| `user-info: Client HTTP Module Report` | 90.0% / 90.0% | 21.0% / 59.0% | +80.0% / +80.0% | ✅/✅ |
+| `user-info: Implementation Module Report` | 88.0% / 88.0% | 21.0% / 59.0% | +8.0% / +8.0% | ✅/✅ |
 
 | File Path | Coverage | Threshold | Δ Coverage | Status |
 |-----------|----------|-----------|------------|--------|
@@ -464,7 +466,9 @@ comment_more_files_single_detailed_instruction_with_modules_no_module_thresholds
 
 | Report | Coverage (O/Ch) | Threshold (O/Ch) | Status (O/Ch) |
 |--------|----------|-----------|--------|
-No changed file in reports.
+| `Module Large Report` | 91.33% / 90.0% | 75.0% / 80.0% | ✅/✅ |
+| `user-info: Client HTTP Module Report` | 90.0% / 90.0% | 75.0% / 80.0% | ✅/✅ |
+| `user-info: Implementation Module Report` | 88.0% / 88.0% | 75.0% / 80.0% | ✅/✅ |
 
 | File Path | Coverage | Threshold | Status |
 |-----------|----------|-----------|--------|
@@ -486,7 +490,9 @@ comment_more_files_single_detailed_instruction_with_modules_no_module_thresholds
 
 | Report | Coverage (O/Ch) | Threshold (O/Ch) | Δ Coverage (O/Ch) | Status (O/Ch) |
 |--------|----------|-----------|------------|--------|
-No changed file in reports.
+| `Module Large Report` | 91.33% / 90.0% | 75.0% / 80.0% | -4.17% / -5.0% | ✅/✅ |
+| `user-info: Client HTTP Module Report` | 90.0% / 90.0% | 75.0% / 80.0% | +80.0% / +80.0% | ✅/✅ |
+| `user-info: Implementation Module Report` | 88.0% / 88.0% | 75.0% / 80.0% | +8.0% / +8.0% | ✅/✅ |
 
 | File Path | Coverage | Threshold | Δ Coverage | Status |
 |-----------|----------|-----------|------------|--------|
