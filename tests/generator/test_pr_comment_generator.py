@@ -53,7 +53,7 @@ def test_get_modules_table_with_baseline_with_modules(pr_comment_generator, mock
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["baseline.xml"])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_modules", return_value={"test", "test2"})
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_not_changed", return_value=False)
-    mocker.patch("jacoco_report.generator.pr_comment_generator.PRCommentGenerator._calculate_module_diff", return_value=(1.1, 2.0))
+    mocker.patch("jacoco_report.generator.pr_comment_generator.PRCommentGenerator._calculate_baseline_module_diffs", return_value=(1.1, 2.0))
 
     pr_comment_generator.evaluator._modules["test"] = Module("test", "path",85.2, 80.0)
 
@@ -71,7 +71,7 @@ def test_generate_modules_table_with_baseline(pr_comment_generator, mocker):
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["baseline.xml"])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_modules", return_value={"test", "test2"})
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_not_changed", return_value=True)
-    mocker.patch("jacoco_report.generator.pr_comment_generator.PRCommentGenerator._calculate_module_diff", return_value=(1.1, 2.0))
+    mocker.patch("jacoco_report.generator.pr_comment_generator.PRCommentGenerator._calculate_baseline_module_diffs", return_value=(1.1, 2.0))
 
     pr_comment_generator.evaluator._modules["test"] = Module("test", "path",85.2, 80.0)
 
@@ -107,7 +107,7 @@ def test_calculate_module_diff(pr_comment_generator, mocker):
     evaluated_coverage_module.sum_changed_files_coverage_reached = 85.0
 
     # Calculate the differences
-    diff_o, diff_ch = pr_comment_generator._calculate_module_diff(evaluated_coverage_module)
+    diff_o, diff_ch = pr_comment_generator._calculate_baseline_module_diffs(evaluated_coverage_module)
 
     # Assert the differences are calculated correctly
     assert diff_o == 10.0
@@ -125,7 +125,7 @@ def test_calculate_module_diff_no_module_in_baseline(pr_comment_generator, mocke
     evaluated_coverage_module.sum_changed_files_coverage_reached = 85.0
 
     # Calculate the differences
-    diff_o, diff_ch = pr_comment_generator._calculate_module_diff(evaluated_coverage_module)
+    diff_o, diff_ch = pr_comment_generator._calculate_baseline_module_diffs(evaluated_coverage_module)
 
     # Assert the differences are zero since the module is not in the baseline
     assert diff_o == 0.0

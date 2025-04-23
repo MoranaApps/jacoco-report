@@ -148,12 +148,15 @@ class PRCommentGenerator:
 
         return self._generate_reports_table_with_baseline(p, f)
 
-    def _generate_reports_table_without_baseline__skip(self, evaluated_report: EvaluatedReportCoverage, **kwargs) -> bool:
+    # pylint: disable=unused-argument
+    def _generate_reports_table_without_baseline__skip(
+        self, evaluated_report: EvaluatedReportCoverage, **kwargs
+    ) -> bool:
         if (
-                ActionInputs.get_skip_not_changed()
-                and evaluated_report.name not in self.changed_modules
-                and evaluated_report.overall_passed
-                and evaluated_report.sum_changed_files_passed
+            ActionInputs.get_skip_not_changed()
+            and evaluated_report.name not in self.changed_modules
+            and evaluated_report.overall_passed
+            and evaluated_report.sum_changed_files_passed
         ):
             return True
         return False
@@ -161,7 +164,7 @@ class PRCommentGenerator:
     def _generate_reports_table_without_baseline(self, p: str, f: str, **kwargs) -> str:
         s = dedent(
             """
-            | Report | Coverage | Threshold | Status |
+            | Report | Coverage (O/Ch) | Threshold (O/Ch) | Status (O/Ch) |
             |--------|----------|-----------|--------|
         """
         ).strip()
@@ -200,7 +203,7 @@ class PRCommentGenerator:
     def _generate_reports_table_with_baseline(self, p: str, f: str, **kwargs) -> str:
         s = dedent(
             """
-            | Report | Coverage | Threshold | Δ Coverage | Status |
+            | Report | Coverage (O/Ch) | Threshold (O/Ch) | Δ Coverage (O/Ch) | Status (O/Ch) |
             |--------|----------|-----------|------------|--------|
         """
         ).strip()
@@ -214,7 +217,7 @@ class PRCommentGenerator:
                 continue
 
             provided_reports += 1
-            diff_o, diff_ch = self._calculate_module_diff(evaluated_report)
+            diff_o, diff_ch = self._calculate_baseline_report_diffs(evaluated_report)
 
             o_thres = ActionInputs.get_min_coverage_overall()
             ch_thres = ActionInputs.get_min_coverage_changed_files()
@@ -274,12 +277,13 @@ class PRCommentGenerator:
 
         return s
 
+    # pylint: disable=unused-argument
     def _generate_modules_table_with_baseline_skip(self, evaluated_report: EvaluatedReportCoverage, **kwargs) -> bool:
         if (
-                ActionInputs.get_skip_not_changed()
-                and evaluated_report.name not in self.changed_modules
-                and evaluated_report.overall_passed
-                and evaluated_report.sum_changed_files_passed
+            ActionInputs.get_skip_not_changed()
+            and evaluated_report.name not in self.changed_modules
+            and evaluated_report.overall_passed
+            and evaluated_report.sum_changed_files_passed
         ):
             return True
         return False
@@ -299,7 +303,7 @@ class PRCommentGenerator:
                 continue
 
             provided_modules += 1
-            diff_o, diff_ch = self._calculate_module_diff(evaluated_coverage_module)
+            diff_o, diff_ch = self._calculate_baseline_module_diffs(evaluated_coverage_module)
 
             # pylint: disable=C0209
             s += "\n| `{}` | {}% / {}% | {}% / {}% | {}{}% / {}{}% | {}/{} |".format(
@@ -321,19 +325,32 @@ class PRCommentGenerator:
 
         return s
 
-    def _calculate_module_diff(self, evaluated_coverage_module) -> tuple[float, float]:
-        if evaluated_coverage_module.name not in self.bs_evaluator.evaluated_modules_coverage.keys():
+    def _calculate_baseline_module_diffs(self, evaluated_coverage: EvaluatedReportCoverage) -> tuple[float, float]:
+        if evaluated_coverage.name not in self.bs_evaluator.evaluated_modules_coverage.keys():
             return 0.0, 0.0
 
         diff_o = (
-            evaluated_coverage_module.overall_coverage_reached
-            - self.bs_evaluator.evaluated_modules_coverage[evaluated_coverage_module.name].overall_coverage_reached
+            evaluated_coverage.overall_coverage_reached
+            - self.bs_evaluator.evaluated_modules_coverage[evaluated_coverage.name].overall_coverage_reached
         )
         diff_ch = (
-            evaluated_coverage_module.sum_changed_files_coverage_reached
-            - self.bs_evaluator.evaluated_modules_coverage[
-                evaluated_coverage_module.name
-            ].sum_changed_files_coverage_reached
+            evaluated_coverage.sum_changed_files_coverage_reached
+            - self.bs_evaluator.evaluated_modules_coverage[evaluated_coverage.name].sum_changed_files_coverage_reached
+        )
+
+        return diff_o, diff_ch
+
+    def _calculate_baseline_report_diffs(self, evaluated_coverage: EvaluatedReportCoverage) -> tuple[float, float]:
+        if evaluated_coverage.name not in self.bs_evaluator.evaluated_reports_coverage.keys():
+            return 0.0, 0.0
+
+        diff_o = (
+            evaluated_coverage.overall_coverage_reached
+            - self.bs_evaluator.evaluated_reports_coverage[evaluated_coverage.name].overall_coverage_reached
+        )
+        diff_ch = (
+            evaluated_coverage.sum_changed_files_coverage_reached
+            - self.bs_evaluator.evaluated_reports_coverage[evaluated_coverage.name].sum_changed_files_coverage_reached
         )
 
         return diff_o, diff_ch
