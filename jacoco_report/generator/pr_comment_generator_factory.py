@@ -26,7 +26,7 @@ class PRCommentGeneratorFactory:
         evaluator: CoverageEvaluator,
         bs_evaluator: CoverageEvaluator,
         pr_number: int,
-        changed_modules: Optional[list[str]] = None,
+        changed_modules: Optional[set[str]] = None,
     ):
         """
         The method that returns the PR Comment Generator based on the generator type.

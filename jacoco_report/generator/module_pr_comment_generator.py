@@ -141,15 +141,10 @@ class ModulePRCommentGenerator(MultiPRCommentGenerator):
 
         return self._generate_reports_table_with_baseline(p, f, module_name=module_name)
 
-    def _generate_reports_table_without_baseline__skip(
-        self, evaluated_report: EvaluatedReportCoverage, **kwargs
-    ) -> bool:
+    def _generate_reports_table__skip(self, evaluated_report: EvaluatedReportCoverage, **kwargs) -> bool:
         module_name: str = str(kwargs.get("module_name"))
 
-        if (
-            super()._generate_reports_table_without_baseline__skip(evaluated_report)
-            and len(evaluated_report.changed_files_coverage_reached) == 0
-        ):
+        if super()._generate_reports_table__skip(evaluated_report):
             return True
 
         if evaluated_report.module_name != module_name:
@@ -157,13 +152,10 @@ class ModulePRCommentGenerator(MultiPRCommentGenerator):
 
         return False
 
-    def _generate_modules_table_with_baseline_skip(self, evaluated_report: EvaluatedReportCoverage, **kwargs) -> bool:
+    def _generate_modules_table__skip(self, evaluated_report: EvaluatedReportCoverage, **kwargs) -> bool:
         module_name: str = str(kwargs.get("module_name"))
 
-        if (
-            super()._generate_modules_table_with_baseline_skip(evaluated_report)
-            and len(evaluated_report.changed_files_coverage_reached) == 0
-        ):
+        if super()._generate_modules_table__skip(evaluated_report):
             return True
 
         if evaluated_report.module_name != module_name:
