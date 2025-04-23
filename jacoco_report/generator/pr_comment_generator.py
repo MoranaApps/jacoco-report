@@ -149,9 +149,7 @@ class PRCommentGenerator:
         return self._generate_reports_table_with_baseline(p, f)
 
     # pylint: disable=unused-argument
-    def _generate_reports_table__skip(
-        self, evaluated_report: EvaluatedReportCoverage, **kwargs
-    ) -> bool:
+    def _generate_reports_table__skip(self, evaluated_report: EvaluatedReportCoverage, **kwargs) -> bool:
         if (
             ActionInputs.get_skip_not_changed()
             and evaluated_report.name not in self.changed_modules

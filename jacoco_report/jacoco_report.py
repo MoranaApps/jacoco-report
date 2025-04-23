@@ -75,13 +75,13 @@ class JaCoCoReport:
         # analyse received xml report files
         logger.info("Analyzing JaCoCo (xml) reports.")
         report_files_coverage: list[ReportFileCoverage] = []
-        changed_modules: list[str] = []
+        changed_modules: set[str] = set()
         parser = JaCoCoReportParser(all_changed_files_in_pr, modules)  # type: ignore[arg-type]
         for report_path in input_report_paths_to_analyse:
             report_files_coverage.append(rfc := parser.parse(report_path))
 
             if ActionInputs.get_skip_not_changed() and rfc.module_name is not None and rfc.changed_files_coverage != {}:
-                changed_modules.append(rfc.module_name)  # note module with changed files
+                changed_modules.add(rfc.module_name)  # note module with changed files
 
         # get baseline files for comparison
         logger.info("Scanning for JaCoCo (xml) baseline reports.")

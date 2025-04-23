@@ -141,9 +141,7 @@ class ModulePRCommentGenerator(MultiPRCommentGenerator):
 
         return self._generate_reports_table_with_baseline(p, f, module_name=module_name)
 
-    def _generate_reports_table__skip(
-        self, evaluated_report: EvaluatedReportCoverage, **kwargs
-    ) -> bool:
+    def _generate_reports_table__skip(self, evaluated_report: EvaluatedReportCoverage, **kwargs) -> bool:
         module_name: str = str(kwargs.get("module_name"))
 
         if super()._generate_reports_table__skip(evaluated_report):
