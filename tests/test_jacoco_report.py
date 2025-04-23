@@ -1170,7 +1170,7 @@ comment_module_minimalist_instruction_with_bs_summary = [
 
 | Report | Coverage | Threshold | Δ Coverage | Status |
 |--------|----------|-----------|------------|--------|
-| `user-info: Controller Module Report` | 93.0% / 0.0% | 75.0% / 80.0% | 0.0% / 0.0% | ✅/✅ |
+| `user-info:  Controller Module Report` | 93.0% / 0.0% | 75.0% / 80.0% | 0.0% / 0.0% | ✅/✅ |
 | `user-info: API Module Report` | 95.0% / 0.0% | 75.0% / 80.0% | 0.0% / 0.0% | ✅/✅ |
 | `user-info: Client HTTP Module Report` | 90.0% / 90.0% | 75.0% / 80.0% | 0.0% / 0.0% | ✅/✅ |
 | `user-info: Implementation Module Report` | 88.0% / 88.0% | 75.0% / 80.0% | 0.0% / 0.0% | ✅/✅ |""",
@@ -1651,11 +1651,11 @@ def test_successful_more_source_files(jacoco_report, id, mode, template, modules
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_token", return_value='fake_token')
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_comment_mode", return_value=mode)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_sensitivity", return_value=template)
-    # mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=["tests/data/test_project/**/jacoco.xml"])
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=["data/test_project/**/jacoco.xml"])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=["tests/data/test_project/**/jacoco.xml"])
+    # mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=["data/test_project/**/jacoco.xml"])
     if use_baseline:
-        mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["data_baseline/**/*.xml"])
-        # mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["tests/data_baseline/**/*.xml"])
+        # mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["data_baseline/**/*.xml"])
+        mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["tests/data_baseline/**/*.xml"])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_min_coverage_overall", return_value=75.0)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_min_coverage_changed_files", return_value=80.0)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_modules", return_value=modules)
