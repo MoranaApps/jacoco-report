@@ -37,6 +37,11 @@ class ModulePRCommentGenerator(MultiPRCommentGenerator):
 
             # Hint: no module table makes sense for set of reports in one module
 
+            if ActionInputs.get_sensitivity() in (SensitivityEnum.SUMMARY, SensitivityEnum.DETAIL):
+                reports_table = self.__get_reports_table(p, f, evaluated_module_coverage.name)
+                if reports_table != "":
+                    body += f"\n\n{reports_table}"
+
             changed_lines: list[str] = []
             if ActionInputs.get_sensitivity() == SensitivityEnum.DETAIL:
                 # get changed lines from all reports in module=
@@ -44,10 +49,7 @@ class ModulePRCommentGenerator(MultiPRCommentGenerator):
                     if key == evaluated_report_coverage.module_name:
                         changed_lines.extend(self._get_changed_lines(p, f, evaluated_report_coverage))
 
-                if len(changed_lines) > 0:
-                    body += f"\n\n{self._get_changed_files_table_for_report_from_changed_lines(changed_lines)}"
-                else:
-                    body += "\n\nNo changed file in reports."
+                body += f"\n\n{self._get_changed_files_table_for_report_from_changed_lines(changed_lines)}"
 
             if (
                 ActionInputs.get_skip_not_changed()
@@ -128,6 +130,43 @@ class ModulePRCommentGenerator(MultiPRCommentGenerator):
         if len(changed_lines) > 0:
             changed_lines.sort()
             s += "".join(changed_lines)
-            return s
+        else:
+            s += "\nNo changed file in reports."
 
-        return ""
+        return s
+
+    def __get_reports_table(self, p: str, f: str, module_name: str) -> str:
+        if not ActionInputs.get_baseline_paths():
+            return self._generate_reports_table_without_baseline(p, f, module_name=module_name)
+
+        return self._generate_reports_table_with_baseline(p, f, module_name=module_name)
+
+    def _generate_reports_table_without_baseline__skip(
+        self, evaluated_report: EvaluatedReportCoverage, **kwargs
+    ) -> bool:
+        module_name: str = str(kwargs.get("module_name"))
+
+        if (
+            super()._generate_reports_table_without_baseline__skip(evaluated_report)
+            and len(evaluated_report.changed_files_coverage_reached) == 0
+        ):
+            return True
+
+        if evaluated_report.module_name != module_name:
+            return True
+
+        return False
+
+    def _generate_modules_table_with_baseline_skip(self, evaluated_report: EvaluatedReportCoverage, **kwargs) -> bool:
+        module_name: str = str(kwargs.get("module_name"))
+
+        if (
+            super()._generate_modules_table_with_baseline_skip(evaluated_report)
+            and len(evaluated_report.changed_files_coverage_reached) == 0
+        ):
+            return True
+
+        if evaluated_report.module_name != module_name:
+            return True
+
+        return False

@@ -210,11 +210,10 @@ class CoverageEvaluator:
             case (CommentModeEnum.SINGLE, SensitivityEnum.MINIMAL, _):
                 return
             case (CommentModeEnum.SINGLE, SensitivityEnum.SUMMARY, False):
-                return
+                self.violations.extend(report_violations)
             case (CommentModeEnum.SINGLE, SensitivityEnum.SUMMARY, True):
-                # TODO - add support in https://github.com/MoranaApps/jacoco-report/issues/31
-                # self.violations.extend(report_violations)
                 self.violations.extend(module_violations)
+                self.violations.extend(report_violations)
             case (CommentModeEnum.SINGLE, SensitivityEnum.DETAIL, False):
                 self.violations.extend(report_violations)
                 self.violations.extend(changed_files_violations)
@@ -233,8 +232,10 @@ class CoverageEvaluator:
                 self.violations.extend(module_violations)
             case (CommentModeEnum.MODULE, SensitivityEnum.SUMMARY, True):
                 self.violations.extend(module_violations)
+                self.violations.extend(report_violations)
             case (CommentModeEnum.MODULE, SensitivityEnum.DETAIL, True):
                 self.violations.extend(module_violations)
+                self.violations.extend(report_violations)
                 self.violations.extend(changed_files_violations)
 
     def _evaluate_module(self, evaluated_coverage: EvaluatedReportCoverage) -> EvaluatedReportCoverage:

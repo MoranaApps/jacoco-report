@@ -57,4 +57,4 @@ def test_no_changed_files_in_reports(mocker):
     result = generator._get_changed_files_table_for_report("✓", "✗", "key", EvaluatedReportCoverage())
 
     # Verify the result
-    assert result == "No changed file in reports."
+    assert result == "| File Path | Coverage | Threshold | Status |\n|-----------|----------|-----------|--------|\nNo changed file in reports."
