@@ -27,7 +27,7 @@ class MultiPRCommentGenerator(PRCommentGenerator):
         logger.info("Generating %s pr comments...", format(len(jacoco_comments)))
 
         # Get all gh_comments on the pull request
-        gh_comments = self.gh.get_pr_comments(self.pr_number)
+        gh_comments = self.gh.get_comments(self.pr_number)
 
         # Check for existing comment with the same title
         for title, body in jacoco_comments.items():
@@ -40,18 +40,20 @@ class MultiPRCommentGenerator(PRCommentGenerator):
                     skipped_comment = body is None
                     break
 
-            if existing_comment and ActionInputs.get_update_comment():
-                # Update the existing comment
-                self.gh.update_pr_comment(existing_comment["id"], body)
+            if existing_comment and not skipped_comment and ActionInputs.get_update_comment():
+                # comment already exists on the PR & comment skip rules not met & update is enabled
+                self.gh.update_comment(existing_comment["id"], body)
                 logger.info("Updated comment with title: '%s'", title)
-            elif skipped_comment:
-                # delete the comment
+            elif existing_comment and skipped_comment:
+                # comment already exists on the PR & comment skip rules met
                 self.gh.delete_pr_comment(existing_comment["id"])
                 logger.info("Deleted comment with title: '%s'", title)
-            else:
-                # create a comment on pull request
-                self.gh.add_pr_comment(self.pr_number, body)
+            elif not existing_comment and body:
+                # comment does not exist on the PR & comment skip rules not met
+                self.gh.add_comment(self.pr_number, body)
                 logger.info("Added comment with title: '%s'", title)
+            # else:
+            # comment does not exist on the PR & comment skip rules met => do nothing
 
     def _get_comments_content(self) -> dict[str, Optional[str]]:
         comments: dict[str, Optional[str]] = {}
