@@ -6,19 +6,31 @@ on:
   pull_request:
 
 jobs:
-  analysis:
+  set-matrix:
     runs-on: ubuntu-latest
-    name: Pylint Analysis
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - id: set-matrix
+        run: |
+          echo "matrix={\"python-version\": [\"3.12\", \"3.13\"]}" >> $GITHUB_OUTPUT
+
+  analysis:
+    needs: set-matrix
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: ${{fromJson(needs.set-matrix.outputs.matrix)}}
+    name: Pylint Analysis - (Python ${{ matrix.python-version }})
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4.1.5
+        uses: actions/checkout@v4.2.2
         with:
           persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@v5.1.0
+        uses: actions/setup-python@v5.6.0
         with:
-          python-version: '3.12'
+          python-version: ${{ matrix.python-version }}
           cache: 'pip'
 
       - name: Install dependencies
@@ -41,18 +53,19 @@ jobs:
           fi
 
   code-format-check:
+    needs: set-matrix
     runs-on: ubuntu-latest
-    name: Black Format Check
+    name: Black Format Check - (Python ${{ matrix.python-version }})
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4.1.5
+        uses: actions/checkout@v4.2.2
         with:
           persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@v5.1.0
+        uses: actions/setup-python@v5.6.0
         with:
-          python-version: '3.12'
+          python-version: ${{ matrix.python-version }}
           cache: 'pip'
 
       - name: Install dependencies
@@ -65,19 +78,22 @@ jobs:
           black --check $(git ls-files '*.py')
 
   python-tests:
+    needs: set-matrix
     runs-on: ubuntu-latest
-    name: Python Tests
+    strategy:
+      matrix: ${{fromJson(needs.set-matrix.outputs.matrix)}}
+    name: Python Tests - (Python ${{ matrix.python-version }})
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4.1.5
+        uses: actions/checkout@v4.2.2
         with:
           fetch-depth: 0
           persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@v5.1.0
+        uses: actions/setup-python@v5.6.0
         with:
-          python-version: '3.12'
+          python-version: ${{ matrix.python-version }}
           cache: 'pip'
 
       - name: Install dependencies
@@ -88,18 +104,21 @@ jobs:
         run: pytest --cov=. -v tests/ --cov-fail-under=80
 
   mypy-check:
+    needs: set-matrix
     runs-on: ubuntu-latest
-    name: Mypy Type Check
+    strategy:
+      matrix: ${{fromJson(needs.set-matrix.outputs.matrix)}}
+    name: Mypy Type Check - (Python ${{ matrix.python-version }})
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4.1.5
+        uses: actions/checkout@v4.2.2
         with:
           persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@v5.1.0
+        uses: actions/setup-python@v5.6.0
         with:
-          python-version: '3.11'
+          python-version: ${{ matrix.python-version }}
           cache: 'pip'
 
       - name: Install dependencies

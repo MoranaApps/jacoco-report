@@ -5,6 +5,7 @@ This module is responsible for generating PR comments for a single module.
 import hashlib
 import os
 from textwrap import dedent
+from typing import Optional
 
 from jacoco_report.action_inputs import ActionInputs
 from jacoco_report.generator.multi_pr_comment_generator import MultiPRCommentGenerator
@@ -18,8 +19,8 @@ class ModulePRCommentGenerator(MultiPRCommentGenerator):
     A class that represents the Module PR Comment Generator.
     """
 
-    def _get_comments_content(self) -> dict[str, str]:
-        comments: dict[str, str] = {}
+    def _get_comments_content(self) -> dict[str, Optional[str]]:
+        comments: dict[str, Optional[str]] = {}
         p = ActionInputs.get_pass_symbol()
         f = ActionInputs.get_fail_symbol()
 
@@ -51,17 +52,28 @@ class ModulePRCommentGenerator(MultiPRCommentGenerator):
 
                 body += f"\n\n{self._get_changed_files_table_for_report_from_changed_lines(changed_lines)}"
 
+            inner_reports_passed = self._check_inner_reports_passed(evaluated_module_coverage)
+
             if (
                 ActionInputs.get_skip_not_changed()
                 and len(changed_lines) == 0
                 and evaluated_module_coverage.overall_passed
                 and evaluated_module_coverage.sum_changed_files_passed
+                and inner_reports_passed
             ):
+                comments[title] = None
                 continue
 
             comments[title] = body
 
         return comments
+
+    def _check_inner_reports_passed(self, module: EvaluatedReportCoverage) -> bool:
+        for evaluated_report_coverage in self.evaluator.evaluated_reports_coverage.values():
+            if module.name == evaluated_report_coverage.module_name:
+                if not evaluated_report_coverage.overall_passed:
+                    return False
+        return True
 
     def _get_changed_lines(self, p: str, f: str, evaluated_report_coverage: EvaluatedReportCoverage) -> list[str]:
         changed_lines: list[str] = []
@@ -131,7 +143,7 @@ class ModulePRCommentGenerator(MultiPRCommentGenerator):
             changed_lines.sort()
             s += "".join(changed_lines)
         else:
-            s += "\nNo changed file in reports."
+            s += "\n\nNo changed file in reports."
 
         return s
 

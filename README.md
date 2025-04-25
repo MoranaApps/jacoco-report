@@ -1,4 +1,4 @@
-![GitHub tag (v1)](https://img.shields.io/github/v/tag/MoranaApps/jacoco-report?label=latest%20v1&style=flat-square&color=blue)
+![GitHub tag (v1)](https://img.shields.io/github/v/tag/MoranaApps/jacoco-report?label=latest%20v1&style=flat-square&color=blue) ![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/MoranaApps/jacoco-report?utm_source=oss&utm_medium=github&utm_campaign=MoranaApps%2Fjacoco-report&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)
 
 # Jacoco Report GitHub Action
 

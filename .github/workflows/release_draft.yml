@@ -17,14 +17,14 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - uses: actions/setup-python@v5.1.1
+      - uses: actions/setup-python@v5.6.0
         with:
           python-version: '3.12'
           cache: 'pip'
 
       - name: Check format of received tag
         id: check-version-tag
-        uses: AbsaOSS/version-tag-check@v0.1.0
+        uses: AbsaOSS/version-tag-check@v0.3.0
         env:
           GITHUB_TOKEN: ${{ secrets.TOKEN }}
         with:
@@ -78,7 +78,7 @@ jobs:
           tag-name: ${{ github.event.inputs.tag-name }}
 
       - name: Create Draft Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.TOKEN }}
         with:
