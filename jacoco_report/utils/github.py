@@ -134,6 +134,9 @@ class GitHub:
             elif method == "PATCH":
                 response = self.__session.patch(url, params=params, json=data)  # type: ignore[union-attr]
                 response.raise_for_status()
+            elif method == "DELETE":
+                response = self.__session.delete(url, params=params, json=data)  # type: ignore[union-attr]
+                response.raise_for_status()
             else:
                 logger.error("Unsupported HTTP method: %s.", method)
 
@@ -273,3 +276,28 @@ class GitHub:
 
         logger.error("Unexpected response format when updating comment: %s", response)
         return False
+
+    def delete_pr_comment(self, comment_id) -> bool:
+        """
+        Deletes a comment from the pull request.
+
+        Parameters:
+            comment_id (int): The ID of the comment.
+
+        Returns:
+            bool: True if the comment was deleted successfully, False otherwise.
+        """
+        repo = os.getenv("GITHUB_REPOSITORY")
+
+        # GitHub API endpoint for deleting a comment
+        api_url = f"{self.__gh_url}/repos/{repo}/issues/comments/{comment_id}"
+        logger.debug("GitHub - Delete Comment URL: %s", api_url)
+
+        response = self._send_request("DELETE", api_url)
+
+        if response is None or response.status_code != 204:
+            logger.error("Failed to delete the comment with ID %d.", comment_id)
+            return False
+
+        logger.info("Successfully deleted the comment with ID %d.", comment_id)
+        return True

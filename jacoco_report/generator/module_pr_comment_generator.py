@@ -5,6 +5,7 @@ This module is responsible for generating PR comments for a single module.
 import hashlib
 import os
 from textwrap import dedent
+from typing import Optional
 
 from jacoco_report.action_inputs import ActionInputs
 from jacoco_report.generator.multi_pr_comment_generator import MultiPRCommentGenerator
@@ -18,8 +19,8 @@ class ModulePRCommentGenerator(MultiPRCommentGenerator):
     A class that represents the Module PR Comment Generator.
     """
 
-    def _get_comments_content(self) -> dict[str, str]:
-        comments: dict[str, str] = {}
+    def _get_comments_content(self) -> dict[str, Optional[str]]:
+        comments: dict[str, Optional[str]] = {}
         p = ActionInputs.get_pass_symbol()
         f = ActionInputs.get_fail_symbol()
 
@@ -60,6 +61,7 @@ class ModulePRCommentGenerator(MultiPRCommentGenerator):
                 and evaluated_module_coverage.sum_changed_files_passed
                 and inner_reports_passed
             ):
+                comments[title] = None
                 continue
 
             comments[title] = body
