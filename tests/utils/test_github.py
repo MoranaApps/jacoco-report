@@ -141,7 +141,7 @@ def test_add_comment(mocker):
     mock_send_req = mocker.patch.object(GitHub, "_send_request", return_value=mock_response)
     github = GitHub("fake_token")
 
-    github.add_comment(1, "Test comment")
+    github.add_pr_comment(1, "Test comment")
 
     mock_send_req.assert_called_once_with("POST", "https://api.github.com/repos/fake_repo/issues/1/comments", data={"body": "Test comment"})
 
@@ -151,7 +151,7 @@ def test_add_comment_failed_request(mocker):
     mock_send_req = mocker.patch.object(GitHub, "_send_request", return_value=None)
     github = GitHub("fake_token")
 
-    github.add_comment(1, "Test comment")
+    github.add_pr_comment(1, "Test comment")
 
     mock_send_req.assert_called_once_with("POST", "https://api.github.com/repos/fake_repo/issues/1/comments", data={"body": "Test comment"})
 
@@ -165,7 +165,7 @@ def test_get_comments(mocker):
     mock_send_req = mocker.patch.object(GitHub, "_send_request", return_value=mock_response)
     github = GitHub("fake_token")
 
-    comments = github.get_comments(1)
+    comments = github.get_pr_comments(1)
 
     mock_send_req.assert_called_once_with("GET", "https://api.github.com/repos/fake_repo/issues/1/comments")
     assert comments == [{"body": "comment1"}, {"body": "comment2"}]
@@ -179,7 +179,7 @@ def test_get_comments_unexpected_format(mocker):
     mock_send_req = mocker.patch.object(GitHub, "_send_request", return_value=mock_response)
     github = GitHub("fake_token")
 
-    comments = github.get_comments(1)
+    comments = github.get_pr_comments(1)
 
     assert comments == []
     mock_send_req.assert_called_once_with("GET", "https://api.github.com/repos/fake_repo/issues/1/comments")
@@ -198,7 +198,7 @@ def test_update_comment_success(mocker):
     mock_send_req = mocker.patch.object(GitHub, "_send_request", return_value=mock_response)
     github = GitHub("fake_token")
 
-    result = github.update_comment(1, "Updated comment")
+    result = github.update_pr_comment(1, "Updated comment")
 
     mock_send_req.assert_called_once_with("PATCH", "https://api.github.com/repos/fake_repo/issues/comments/1", data={"body": "Updated comment"})
     assert result is True
@@ -208,7 +208,7 @@ def test_update_comment_failed_request(mocker):
     mock_send_req = mocker.patch.object(GitHub, "_send_request", return_value=None)
     github = GitHub("fake_token")
 
-    result = github.update_comment(1, "Updated comment")
+    result = github.update_pr_comment(1, "Updated comment")
 
     mock_send_req.assert_called_once_with("PATCH", "https://api.github.com/repos/fake_repo/issues/comments/1", data={"body": "Updated comment"})
     assert result is False
@@ -220,7 +220,7 @@ def test_update_comment_unexpected_response_format(mocker):
     mock_send_req = mocker.patch.object(GitHub, "_send_request", return_value=mock_response)
     github = GitHub("fake_token")
 
-    result = github.update_comment(1, "Updated comment")
+    result = github.update_pr_comment(1, "Updated comment")
 
     mock_send_req.assert_called_once_with("PATCH", "https://api.github.com/repos/fake_repo/issues/comments/1", data={"body": "Updated comment"})
     assert result is False

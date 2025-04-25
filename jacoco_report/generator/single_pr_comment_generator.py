@@ -20,7 +20,7 @@ class SinglePRCommentGenerator(PRCommentGenerator):
         title, pr_body = self._get_comment_content()
 
         # Get all comments on the pull request
-        comments = self.gh.get_comments(self.pr_number)
+        comments = self.gh.get_pr_comments(self.pr_number)
 
         # Check for existing comment with the same title
         existing_comment = None
@@ -31,10 +31,10 @@ class SinglePRCommentGenerator(PRCommentGenerator):
 
         if existing_comment and ActionInputs.get_update_comment():
             # Update the existing comment
-            self.gh.update_comment(existing_comment["id"], pr_body)
+            self.gh.update_pr_comment(existing_comment["id"], pr_body)
         else:
             # create a comment on pull request
-            self.gh.add_comment(self.pr_number, pr_body)
+            self.gh.add_pr_comment(self.pr_number, pr_body)
 
     def _get_comment_content(self) -> tuple[str, str]:
         title = body = f"**{ActionInputs.get_title()}**"

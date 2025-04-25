@@ -134,6 +134,9 @@ class GitHub:
             elif method == "PATCH":
                 response = self.__session.patch(url, params=params, json=data)  # type: ignore[union-attr]
                 response.raise_for_status()
+            elif method == "DELETE":
+                response = self.__session.delete(url, params=params, json=data)  # type: ignore[union-attr]
+                response.raise_for_status()
             else:
                 logger.error("Unsupported HTTP method: %s.", method)
 
@@ -185,7 +188,7 @@ class GitHub:
         logger.error("This event is not a pull request.")
         return None
 
-    def add_comment(self, pr_number: int, body: str) -> bool:
+    def add_pr_comment(self, pr_number: int, body: str) -> bool:
         """
         Adds a comment to the pull request.
 
@@ -199,7 +202,7 @@ class GitHub:
         repo = os.getenv("GITHUB_REPOSITORY")
 
         # GitHub API endpoint for PR comments
-        api_url = f"{self.__gh_url}/repos/{repo}/issues/{pr_number}/comments"
+        api_url = f"{self.__gh_url}/repos/{repo}/pulls/{pr_number}/comments"
         logger.debug("GitHub - URL: %s", api_url)
 
         # Prepare the comment data
@@ -213,7 +216,7 @@ class GitHub:
         logger.info("Comment added to the PR.")
         return True
 
-    def get_comments(self, pr_number: int) -> list:
+    def get_pr_comments(self, pr_number: int) -> list:
         """
         Retrieves all comments from the pull request.
 
@@ -226,7 +229,7 @@ class GitHub:
         repo = os.getenv("GITHUB_REPOSITORY")
 
         # GitHub API endpoint for PR comments
-        api_url = f"{self.__gh_url}/repos/{repo}/issues/{pr_number}/comments"
+        api_url = f"{self.__gh_url}/repos/{repo}/pulls/{pr_number}/comments"
         logger.debug("GitHub - URL: %s", api_url)
 
         response = self._send_request("GET", api_url)
@@ -242,7 +245,7 @@ class GitHub:
         logger.info("Retrieved %d comments from the PR.", len(res))
         return res
 
-    def update_comment(self, comment_id, pr_body) -> bool:
+    def update_pr_comment(self, comment_id, pr_body) -> bool:
         """
         Updates an existing comment on the pull request.
 
@@ -256,7 +259,7 @@ class GitHub:
         repo = os.getenv("GITHUB_REPOSITORY")
 
         # GitHub API endpoint for updating a comment
-        api_url = f"{self.__gh_url}/repos/{repo}/issues/comments/{comment_id}"
+        api_url = f"{self.__gh_url}/repos/{repo}/pulls/comments/{comment_id}"
         logger.debug("GitHub - Update Comment URL: %s", api_url)
 
         payload = {"body": pr_body}
@@ -273,3 +276,28 @@ class GitHub:
 
         logger.error("Unexpected response format when updating comment: %s", response)
         return False
+
+    def delete_pr_comment(self, comment_id) -> bool:
+        """
+        Deletes a comment from the pull request.
+
+        Parameters:
+            comment_id (int): The ID of the comment.
+
+        Returns:
+            bool: True if the comment was deleted successfully, False otherwise.
+        """
+        repo = os.getenv("GITHUB_REPOSITORY")
+
+        # GitHub API endpoint for deleting a comment
+        api_url = f"{self.__gh_url}/repos/{repo}/pulls/comments/{comment_id}"
+        logger.debug("GitHub - Delete Comment URL: %s", api_url)
+
+        response = self._send_request("DELETE", api_url)
+
+        if response is None:
+            logger.error("Failed to delete the comment with ID %d.", comment_id)
+            return False
+
+        logger.info("Successfully deleted the comment with ID %d.", comment_id)
+        return True

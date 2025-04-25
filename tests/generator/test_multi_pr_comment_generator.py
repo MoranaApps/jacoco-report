@@ -10,7 +10,7 @@ def test_existing_comment_detection(mocker):
 
     # Create a mock GitHub instance
     mock_gh = mocker.Mock(spec=GitHub)
-    mock_gh.get_comments.return_value = [
+    mock_gh.get_pr_comments.return_value = [
         {"id": 1, "body": "Report Title for module-a"},
         {"id": 2, "body": "Another comment"}
     ]
@@ -30,8 +30,8 @@ def test_existing_comment_detection(mocker):
     generator.generate()
 
     # Verify that the existing comment was detected and update_comment was called
-    mock_gh.update_comment.assert_called_once_with(1, "Comment body")
-    mock_gh.add_comment.assert_not_called()
+    mock_gh.update_pr_comment.assert_called_once_with(1, "Comment body")
+    mock_gh.add_pr_comment.assert_not_called()
 
 def test_no_changed_files_in_reports(mocker):
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=True)

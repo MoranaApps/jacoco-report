@@ -23,45 +23,53 @@ class MultiPRCommentGenerator(PRCommentGenerator):
         """
         The method that generates the comment for each report file.
         """
-        jacoco_comments: dict[str, str] = self._get_comments_content()
+        jacoco_comments: dict[str, Optional[str]] = self._get_comments_content()
         logger.info("Generating %s pr comments...", format(len(jacoco_comments)))
 
         # Get all gh_comments on the pull request
-        gh_comments = self.gh.get_comments(self.pr_number)
+        gh_comments = self.gh.get_pr_comments(self.pr_number)
 
         # Check for existing comment with the same title
         for title, body in jacoco_comments.items():
             existing_comment = None
+            skipped_comment: bool = False
             for gh_comment in gh_comments:
                 if gh_comment["body"].startswith(title):  # Detects if it starts with the title
                     logger.info("Found existing comment with title: '%s'", title)
                     existing_comment = gh_comment
+                    skipped_comment = body is None
                     break
 
             if existing_comment and ActionInputs.get_update_comment():
                 # Update the existing comment
-                self.gh.update_comment(existing_comment["id"], body)
+                self.gh.update_pr_comment(existing_comment["id"], body)
                 logger.info("Updated comment with title: '%s'", title)
+            elif skipped_comment:
+                # delete the comment
+                self.gh.delete_pr_comment(existing_comment["id"])
+                logger.info("Deleted comment with title: '%s'", title)
             else:
                 # create a comment on pull request
-                self.gh.add_comment(self.pr_number, body)
+                self.gh.add_pr_comment(self.pr_number, body)
                 logger.info("Added comment with title: '%s'", title)
 
-    def _get_comments_content(self) -> dict[str, str]:
-        comments: dict[str, str] = {}
+    def _get_comments_content(self) -> dict[str, Optional[str]]:
+        comments: dict[str, Optional[str]] = {}
         p = ActionInputs.get_pass_symbol()
         f = ActionInputs.get_fail_symbol()
 
         for key, evaluated_coverage_report in self.evaluator.evaluated_reports_coverage.items():
+            title = body = f"**{ActionInputs.get_title(evaluated_coverage_report.name)}**"
+
             if (
                 ActionInputs.get_skip_not_changed()
                 and len(evaluated_coverage_report.changed_files_passed) == 0
                 and evaluated_coverage_report.overall_passed
                 and evaluated_coverage_report.sum_changed_files_passed
             ):
+                comments[title] = None
                 continue
 
-            title = body = f"**{ActionInputs.get_title(evaluated_coverage_report.name)}**"
             baseline_evaluated_coverage_report = (
                 self.bs_evaluator.evaluated_reports_coverage[key]
                 if key in self.bs_evaluator.evaluated_reports_coverage.keys()
