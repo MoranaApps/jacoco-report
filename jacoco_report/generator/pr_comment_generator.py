@@ -195,7 +195,7 @@ class PRCommentGenerator:
             )
 
         if provided_reports == 0:
-            s += "\nNo changed file in reports."
+            s += "\n\nNo changed file in reports."
 
         return s
 
@@ -241,7 +241,7 @@ class PRCommentGenerator:
             )
 
         if provided_reports == 0:
-            s += "\nNo changed file in reports."
+            s += "\n\nNo changed file in reports."
 
         return s
 
@@ -272,7 +272,7 @@ class PRCommentGenerator:
             )
 
         if provided_modules == 0:
-            s += "\nNo changed file in reports."
+            s += "\n\nNo changed file in reports."
 
         return s
 
@@ -321,7 +321,7 @@ class PRCommentGenerator:
             )
 
         if provided_modules == 0:
-            s += "\nNo changed file in reports."
+            s += "\n\nNo changed file in reports."
 
         return s
 
@@ -400,7 +400,7 @@ class PRCommentGenerator:
             lines.sort()
             s += "".join(lines)
         else:
-            s += "\nNo changed file in reports."
+            s += "\n\nNo changed file in reports."
 
         return s
 
@@ -454,6 +454,6 @@ class PRCommentGenerator:
             lines.sort()
             s += "".join(lines)
         else:
-            s += "\nNo changed file in reports."
+            s += "\n\nNo changed file in reports."
 
         return s

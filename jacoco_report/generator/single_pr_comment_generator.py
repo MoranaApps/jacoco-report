@@ -89,7 +89,7 @@ class SinglePRCommentGenerator(PRCommentGenerator):
 
     def _get_changed_files_table(self, p, f) -> str:
         if len(self.evaluator.evaluated_reports_coverage.keys()) == 0:
-            return "No changed file in reports."
+            return "\nNo changed file in reports."
 
         if not ActionInputs.get_baseline_paths():
             return self._generate_changed_files_table_without_baseline(p, f)

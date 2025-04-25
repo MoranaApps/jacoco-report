@@ -131,7 +131,7 @@ class ModulePRCommentGenerator(MultiPRCommentGenerator):
             changed_lines.sort()
             s += "".join(changed_lines)
         else:
-            s += "\nNo changed file in reports."
+            s += "\n\nNo changed file in reports."
 
         return s
 
