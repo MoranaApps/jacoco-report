@@ -1,14 +1,25 @@
 {
-  "extends": ["config:base"],
+  "extends": [
+    "config:recommended"
+  ],
   "packageRules": [
     {
-      "matchManagers": ["pip_requirements"],
+      "matchManagers": [
+        "pip_requirements"
+      ],
       "groupName": "Python Dependencies",
       "groupSlug": "python-deps",
-      "updateTypes": ["minor", "patch"],
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
       "automerge": true
     }
   ],
-  "labels": ["auto-update"],
-  "schedule": ["at any time"]
+  "labels": [
+    "auto-update"
+  ],
+  "schedule": [
+    "at any time"
+  ]
 }
