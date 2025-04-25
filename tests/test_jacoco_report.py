@@ -1063,6 +1063,53 @@ comment_module_detailed_instruction_with_modules_with_bs_fail_non_changed_module
 No changed file in reports.""",
 ]
 
+comment_module_detailed_instruction_with_modules_with_bs_fail_non_changed_module_fail_report = [
+"""**Module: context/user-info**
+
+| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |
+|-------------------|-----|-----|-----|----|
+| **Overall**       | 91.5% | 89.0% | +22.0% | ✅ |
+| **Changed Files** | 0.0% | 59.0% | 0.0% | ✅ |
+
+| Report | Coverage (O/Ch) | Threshold (O/Ch) | Δ Coverage (O/Ch) | Status (O/Ch) |
+|--------|----------|-----------|------------|--------|
+| `user-info: Implementation Module Report` | 88.0% / 0.0% | 89.0% / 59.0% | +8.0% / 0.0% | ❌/✅ |
+
+| File Path | Coverage | Threshold | Δ Coverage | Status |
+|-----------|----------|-----------|------------|--------|
+
+No changed file in reports.""",
+"""**Module: module_large**
+
+| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |
+|-------------------|-----|-----|-----|----|
+| **Overall**       | 91.33% | 20.0% | -4.17% | ✅ |
+| **Changed Files** | 90.0% | 91.0% | -5.0% | ❌ |
+
+| Report | Coverage (O/Ch) | Threshold (O/Ch) | Δ Coverage (O/Ch) | Status (O/Ch) |
+|--------|----------|-----------|------------|--------|
+| `Module Large Report` | 91.33% / 90.0% | 20.0% / 91.0% | -4.17% / -5.0% | ✅/❌ |
+
+| File Path | Coverage | Threshold | Δ Coverage | Status |
+|-----------|----------|-----------|------------|--------|
+| [BigClass.java](https://github.com/MoranaApps/jacoco-report/pull/35/files#diff-ead3b50565c5dda5dc7e32be690e80a71f6e317d66aaa386b5942b484476832d) | 90.0% | 91.0% | -5.0% | ❌ |""",
+"""**Module: module small**
+
+| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |
+|-------------------|-----|-----|-----|----|
+| **Overall**       | 97.0% | 100.0% | +97.0% | ❌ |
+| **Changed Files** | 0.0% | 37.0% | 0.0% | ✅ |
+
+| Report | Coverage (O/Ch) | Threshold (O/Ch) | Δ Coverage (O/Ch) | Status (O/Ch) |
+|--------|----------|-----------|------------|--------|
+| `Module Small Report` | 97.0% / 0.0% | 100.0% / 37.0% | 0.0% / 0.0% | ❌/✅ |
+
+| File Path | Coverage | Threshold | Δ Coverage | Status |
+|-----------|----------|-----------|------------|--------|
+
+No changed file in reports.""",
+]
+
 comment_module_minimalist_instruction = [
 """**Module: context/notification**
 
@@ -1480,6 +1527,10 @@ changed_files = [
     'com/example/module_large/BigClass.java',
 ]
 
+changed_files_large_only = [
+    'com/example/module_large/BigClass.java',
+]
+
 modules = {
     "context/notification": 'test_project/context/notification',
     "context/user-info": 'test_project/context/user-info',
@@ -1497,6 +1548,13 @@ modules_thresholds = {
 modules_thresholds_100 = {
     "context/notification": (22.0, 60.0),
     "context/user-info": (21.0, 59.0),
+    "module_large": (20.0, 91.0),
+    "module small": (100.0, 37.0),
+}
+
+modules_thresholds_89 = {
+    "context/notification": (22.0, 60.0),
+    "context/user-info": (89.0, 59.0),
     "module_large": (20.0, 91.0),
     "module small": (100.0, 37.0),
 }
@@ -1665,6 +1723,7 @@ more_source_files_scenarios = [
     ("51", CommentModeEnum.MODULE, SensitivityEnum.DETAIL, modules, modules_thresholds_100, changed_files, comment_module_detailed_instruction_with_modules_with_bs_fail_non_changed_module, 9, 4, ["Module 'module_large' changed files coverage 90.0 is below the threshold 91.0.", "Module 'module small' overall coverage 97.0 is below the threshold 100.0.", "Report 'Module Small Report' overall coverage 97.0 is below the threshold 100.0.", "Report 'Module Large Report' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Large Report' changed file 'com/example/module_large/BigClass.java' coverage 90.0 is below the threshold 91.0."], True, True),
     ("52", CommentModeEnum.SINGLE, SensitivityEnum.DETAIL, modules, modules_thresholds_100, changed_files, [comment_more_files_single_detailed_instruction_with_modules_with_bs_fail_module], 9, 4, ["Module 'module_large' changed files coverage 90.0 is below the threshold 91.0.", "Module 'module small' overall coverage 97.0 is below the threshold 100.0.", "Report 'Module Large Report' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Small Report' overall coverage 97.0 is below the threshold 100.0.", "Report 'Module Large Report' changed file 'com/example/module_large/BigClass.java' coverage 90.0 is below the threshold 91.0."], True, True),
     ("53", CommentModeEnum.MULTI, SensitivityEnum.DETAIL, modules, modules_thresholds_100, changed_files, comment_multi_detailed_instruction_with_modules_with_bs_fail_module, 9, 0, ["Report 'Module Large Report' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Small Report' overall coverage 97.0 is below the threshold 100.0.", "Report 'Module Large Report' changed file 'com/example/module_large/BigClass.java' coverage 90.0 is below the threshold 91.0."], True, True),
+    ("54", CommentModeEnum.MODULE, SensitivityEnum.DETAIL, modules, modules_thresholds_89, changed_files_large_only, comment_module_detailed_instruction_with_modules_with_bs_fail_non_changed_module_fail_report, 9, 4, ["Module 'module_large' changed files coverage 90.0 is below the threshold 91.0.", "Module 'module small' overall coverage 97.0 is below the threshold 100.0.", "Report 'Module Small Report' overall coverage 97.0 is below the threshold 100.0.", "Report 'Module Large Report' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Large Report' changed file 'com/example/module_large/BigClass.java' coverage 90.0 is below the threshold 91.0.", "Report 'user-info: Implementation Module Report' overall coverage 88.0 is below the threshold 89.0."], True, True),
 ]
 
 @pytest.mark.parametrize("id, mode, template, modules, modules_thresholds, changed_files, expected_comments, evaluated_cov_reports, evaluated_cov_modules, violations, skip_not_changed, use_baseline", more_source_files_scenarios)
@@ -1690,6 +1749,7 @@ def test_successful_more_source_files(jacoco_report, id, mode, template, modules
     mock_add_comment = mocker.patch('jacoco_report.utils.github.GitHub.add_comment', return_value=None)
 
     jacoco_report.run()
+    print(f"violations: {jacoco_report.violations}")
 
     if mode == CommentModeEnum.SINGLE:
         mock_add_comment.assert_called_once_with(35, expected_comments[0])
