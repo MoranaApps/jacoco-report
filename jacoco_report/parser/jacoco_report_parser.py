@@ -5,7 +5,6 @@ A module for parsing JaCoCo XML reports and creating CoverageReport instances.
 import logging
 import os
 import xml.etree.ElementTree as ET
-from typing import Optional
 
 from jacoco_report.model.counter import Counter
 from jacoco_report.model.coverage import Coverage
@@ -190,7 +189,7 @@ class JaCoCoReportParser:
 
         return changed_files_stats
 
-    def _detect_module_name(self, report_path: str) -> Optional[str]:
+    def _detect_module_name(self, report_path: str) -> str:
         """
         Detects the module name from the report path.
 
@@ -198,7 +197,7 @@ class JaCoCoReportParser:
             report_path: The path to the JaCoCo XML report.
 
         Returns:
-            The module name.
+            The module name. If report path does not match any module, returns 'Unknown'.
         """
         logger.debug("Detecting module name from report path.")
 
@@ -206,5 +205,5 @@ class JaCoCoReportParser:
             if f"/{module.root_path}/" in report_path:
                 return module_name
 
-        logger.error("No module name detected for module path: %s", report_path)
-        return None
+        logger.error("No module name detected for module path: %s. Using 'Unknown' module name.", report_path)
+        return "Unknown"
