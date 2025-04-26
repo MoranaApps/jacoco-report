@@ -101,7 +101,7 @@ class CoverageEvaluator:
             # save the evaluated report
             self.evaluated_reports_coverage[report.name] = self._evaluate_report(report, evaluated_coverage_report)
 
-            if "Unknown" in report.module_name:
+            if report.module_name in "Unknown":
                 is_unknown_module_present = True
 
         # evaluation of all modules (module == group of reports under module root path)

@@ -2036,7 +2036,6 @@ def test_successful_more_source_files(jacoco_report, id, mode, template, modules
         assert mock_add_comment.call_count == len(expected_comments)
 
         for expected_comment in expected_comments:
-            print(f"Asserting expected comment: {expected_comment}")
             mock_add_comment.assert_any_call(35, expected_comment)
 
     # Parse the JSON strings
