@@ -2025,13 +2025,10 @@ def test_successful_more_source_files(jacoco_report, id, mode, template, modules
     mock_add_comment = mocker.patch('jacoco_report.utils.github.GitHub.add_comment', return_value=None)
 
     jacoco_report.run()
-    # print(f"violations: {jacoco_report.violations}")
 
     if mode == CommentModeEnum.SINGLE:
         mock_add_comment.assert_called_once_with(35, expected_comments[0])
     else:
-        # print(mock_add_comment.call_args_list)
-
         # Check the count of calls
         assert mock_add_comment.call_count == len(expected_comments)
 
