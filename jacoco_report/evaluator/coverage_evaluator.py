@@ -55,6 +55,7 @@ class CoverageEvaluator:
         # violations
         self.violations: list[str] = []
 
+    # pylint: disable=too-many-locals
     def evaluate(self) -> None:
         """
         Evaluates the coverage of the all reports.
@@ -70,6 +71,7 @@ class CoverageEvaluator:
         changed_file_counter = 0
 
         # evaluation of all report files (report == input xml file)
+        is_unknown_module_present = False
         for report in self._report_files_coverage:
             evaluated_coverage_report: EvaluatedReportCoverage = EvaluatedReportCoverage(
                 report.name, report.module_name
@@ -99,12 +101,20 @@ class CoverageEvaluator:
             # save the evaluated report
             self.evaluated_reports_coverage[report.name] = self._evaluate_report(report, evaluated_coverage_report)
 
+            if "Unknown" in report.module_name:
+                is_unknown_module_present = True
+
         # evaluation of all modules (module == group of reports under module root path)
         if (
             ActionInputs.get_comment_mode() in (CommentModeEnum.SINGLE, CommentModeEnum.MODULE)
             and ActionInputs.get_modules() != {}
         ):
-            for module_name in ActionInputs.get_modules().keys():  # type: ignore[union-attr]
+            modules: list[str] = list(ActionInputs.get_modules().keys())  # type: ignore[union-attr]
+
+            if is_unknown_module_present:
+                modules.append("Unknown")
+
+            for module_name in modules:  # type: ignore[union-attr]
                 evaluated_coverage_module: EvaluatedReportCoverage = EvaluatedReportCoverage(module_name)
 
                 # get the numbers from all module's reports counters (raw weights)
