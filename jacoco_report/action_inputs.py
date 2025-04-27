@@ -413,10 +413,6 @@ class ActionInputs:
         elif len(paths) == 0:
             errors.append("'paths' must be a non-empty list of strings.")
 
-        exclude_paths = ActionInputs.get_exclude_paths(raw=True)
-        # if not isinstance(exclude_paths, str):
-        #     errors.append("'exclude-paths' must be a list of strings or not defined.")
-
         min_coverage_overall = ActionInputs.get_min_coverage_overall()
         if not isinstance(min_coverage_overall, float) or min_coverage_overall < 0 or min_coverage_overall > 100:
             errors.append("'min-coverage-overall' must be a float between 0 and 100.")
@@ -490,10 +486,6 @@ class ActionInputs:
         if not isinstance(skip_not_changed, bool):
             errors.append("'skip-not-changed' must be a boolean.")
 
-        baseline_paths = ActionInputs.get_baseline_paths(raw=True)
-        # if not isinstance(baseline_paths, str):
-        #     errors.append("'baseline-paths' must be a list of strings or not defined.")
-
         update_comment = ActionInputs.get_update_comment()
         if not isinstance(update_comment, bool):
             errors.append("'update-comment' must be a boolean.")
@@ -514,29 +506,38 @@ class ActionInputs:
         if not isinstance(debug, bool):
             errors.append("'debug' must be a boolean.")
 
+        # pylint: disable=W1203
+        logger.info(
+            "[CONFIGURATION] Received input values:\n"
+            f"Paths: {ActionInputs.get_paths()}\n"
+            f"Exclude paths: {ActionInputs.get_exclude_paths()}\n"
+            f"Baseline paths: {ActionInputs.get_baseline_paths()}\n"
+            "\n"
+            f"Minimum coverage overall: {ActionInputs.get_min_coverage_overall()}\n"
+            f"Minimum coverage changed files: {ActionInputs.get_min_coverage_changed_files()}\n"
+            "\n"
+            f"Modules: {ActionInputs.get_modules()}\n"
+            f"Modules thresholds: {ActionInputs.get_modules_thresholds()}\n"
+            "\n"
+            f"Metric: {ActionInputs.get_metric()}\n"
+            f"Sensitivity: {ActionInputs.get_sensitivity()}\n"
+            f"Title: {ActionInputs.get_title()}\n"
+            f"Comment mode: {ActionInputs.get_comment_mode()}\n"
+            "\n"
+            f"Skip not changed: {ActionInputs.get_skip_not_changed()}\n"
+            f"Update comment: {ActionInputs.get_update_comment()}\n"
+            f"Fail on threshold: {ActionInputs.get_fail_on_threshold()}\n"
+            f"Debug logging enabled: {ActionInputs.get_debug()}"
+            "\n"
+            f"Pass symbol: {ActionInputs.get_pass_symbol()}\n"
+            f"Fail symbol: {ActionInputs.get_fail_symbol()}\n"
+        )
+
         # Log errors if any
         if errors:
             for error in errors:
                 logger.error(error)
             sys.exit(1)
-
-        logger.debug("Paths: %s", paths)
-        logger.debug("Exclude paths: %s", exclude_paths)
-        logger.debug("Minimum coverage overall: %s", min_coverage_overall)
-        logger.debug("Minimum coverage changed files: %s", min_coverage_changed_files)
-        logger.debug("Title: %s", ActionInputs.get_title())
-        logger.debug("Metric: %s", metric)
-        logger.debug("Sensitivity: %s", sensitivity)
-        logger.debug("Comment mode: %s", comment_mode)
-        logger.debug("Modules: %s", modules)
-        logger.debug("Modules thresholds: %s", modules_thresholds)
-        logger.debug("Skip not changed: %s", skip_not_changed)
-        logger.debug("Baseline paths: %s", baseline_paths)
-        logger.debug("Update comment: %s", update_comment)
-        logger.debug("Pass symbol: %s", pass_symbol)
-        logger.debug("Fail symbol: %s", fail_symbol)
-        logger.debug("Fail on threshold: %s", fail_on_threshold)
-        logger.debug("Debug logging: %s", debug)
 
         logger.info("Action inputs validated successfully.")
 
