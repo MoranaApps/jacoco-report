@@ -2140,8 +2140,6 @@ single_detail_violations_with_modules = [
 ]
 
 multi_detail_violations = [
-    'Global overall coverage 92.0 is below the threshold 100.0.',
-    'Global changed files coverage 89.71 is below the threshold 100.0.',
     "Report 'Module Large Report' overall coverage 91.33 is below the threshold 100.0.",
     "Report 'Module Large Report' changed files coverage 90.0 is below the threshold 100.0.",
     "Report 'Module Large Report' changed file 'com/example/module_large/BigClass.java' coverage 90.0 is below the threshold 100.0.",
@@ -2160,8 +2158,6 @@ multi_detail_violations = [
 ]
 
 multi_minimal_violations = [
-    'Global overall coverage 92.0 is below the threshold 100.0.',
-    'Global changed files coverage 89.71 is below the threshold 100.0.',
     "Report 'Module Large Report' overall coverage 91.33 is below the threshold 100.0.",
     "Report 'Module Large Report' changed files coverage 90.0 is below the threshold 100.0.",
     "Report 'user-info:  Controller Module Report' overall coverage 93.0 is below the threshold 100.0.",
@@ -2177,8 +2173,6 @@ multi_minimal_violations = [
 ]
 
 module_minimal_violations = [
-    'Global overall coverage 92.0 is below the threshold 100.0.',
-    'Global changed files coverage 89.71 is below the threshold 100.0.',
     "Module 'context/notification' overall coverage 92.33 is below the threshold 100.0.",
     "Module 'context/user-info' overall coverage 91.5 is below the threshold 100.0.",
     "Module 'context/user-info' changed files coverage 89.0 is below the threshold 100.0.",
@@ -2188,8 +2182,6 @@ module_minimal_violations = [
 ]
 
 module_summary_violations = [
-    'Global overall coverage 92.0 is below the threshold 100.0.',
-    'Global changed files coverage 89.71 is below the threshold 100.0.',
     "Module 'context/notification' overall coverage 92.33 is below the threshold 100.0.",
     "Module 'context/user-info' overall coverage 91.5 is below the threshold 100.0.",
     "Module 'context/user-info' changed files coverage 89.0 is below the threshold 100.0.",
@@ -2211,8 +2203,6 @@ module_summary_violations = [
 ]
 
 module_detail_violations = [
-    'Global overall coverage 92.0 is below the threshold 100.0.',
-    'Global changed files coverage 89.71 is below the threshold 100.0.',
     "Module 'context/notification' overall coverage 92.33 is below the threshold 100.0.",
     "Module 'context/user-info' overall coverage 91.5 is below the threshold 100.0.",
     "Module 'context/user-info' changed files coverage 89.0 is below the threshold 100.0.",
