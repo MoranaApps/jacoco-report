@@ -1,3 +1,3 @@
-{Release Notes}
+{PR Summary}
 
 Closes #issue_number
