@@ -18,6 +18,10 @@ inputs:
     description: 'Minimum coverage percentage for changed files.'
     required: false
     default: '0.0'
+  min-coverage-per-changed-file:
+    description: 'Minimum coverage percentage for each changed file.'
+    required: false
+    default: '0.0'
   title:
     description: 'Title of the PR comment.'
     required: false
@@ -142,6 +146,7 @@ runs:
 
         echo "INPUT_MIN_COVERAGE_OVERALL=${{ inputs.min-coverage-overall }}" >> $GITHUB_ENV
         echo "INPUT_MIN_COVERAGE_CHANGED_FILES=${{ inputs.min-coverage-changed-files }}" >> $GITHUB_ENV
+        echo "INPUT_MIN_COVERAGE_PER_CHANGED_FILE=${{ inputs.min-coverage-per-changed-file }}" >> $GITHUB_ENV
         echo "INPUT_TITLE=${{ inputs.title }}" >> $GITHUB_ENV
         echo "INPUT_PR_NUMBER=${{ inputs.pr-number }}" >> $GITHUB_ENV
         echo "INPUT_METRIC=${{ inputs.metric }}" >> $GITHUB_ENV
@@ -176,6 +181,7 @@ runs:
         INPUT_EXCLUDE_PATHS: ${{ env.INPUT_EXCLUDE_PATHS }}
         INPUT_MIN_COVERAGE_OVERALL: ${{ env.INPUT_MIN_COVERAGE_OVERALL }}
         INPUT_MIN_COVERAGE_CHANGED_FILES: ${{ env.INPUT_MIN_COVERAGE_CHANGED_FILES }}
+        INPUT_MIN_COVERAGE_PER_CHANGED_FILE: ${{ env.INPUT_MIN_COVERAGE_PER_CHANGED_FILE }}
         INPUT_TITLE: ${{ env.INPUT_TITLE }}
         INPUT_PR_NUMBER: ${{ env.INPUT_PR_NUMBER }}
         INPUT_METRIC: ${{ env.INPUT_METRIC }}

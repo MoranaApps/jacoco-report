@@ -391,7 +391,7 @@ class PRCommentGenerator:
                 line = "\n| {} | {}% | {}% | {} |".format(
                     f"[{filename}]({file_as_link_to_diff})",
                     evaluated_reports_coverage[ecr_key].changed_files_coverage_reached[file_key],
-                    evaluated_reports_coverage[ecr_key].changed_files_threshold,
+                    evaluated_reports_coverage[ecr_key].per_changed_file_threshold,
                     (p if evaluated_reports_coverage[ecr_key].changed_files_passed[file_key] else f),
                 )
                 lines.append(line)
@@ -443,7 +443,7 @@ class PRCommentGenerator:
                 line = "\n| {} | {}% | {}% | {}{}% | {} |".format(
                     f"[{filename}]({file_as_link_to_diff})",
                     evaluated_reports_coverage[ecr_key].changed_files_coverage_reached[file_key],
-                    evaluated_reports_coverage[ecr_key].changed_files_threshold,
+                    evaluated_reports_coverage[ecr_key].per_changed_file_threshold,
                     "+" if diff > 0.001 else "",
                     round(diff, 2),
                     (p if evaluated_reports_coverage[ecr_key].changed_files_passed[file_key] else f),

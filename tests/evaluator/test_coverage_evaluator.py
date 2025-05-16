@@ -49,7 +49,8 @@ def evaluator(sample_report_file_coverage):
     return CoverageEvaluator(
         report_files_coverage=[sample_report_file_coverage],
         global_min_coverage_overall=50.0,
-        global_min_coverage_changed_files=50.0
+        global_min_coverage_changed_files=50.0,
+        global_min_coverage_changed_per_file=50.0
     )
 
 def test_evaluate_overall_coverage(evaluator):
@@ -264,18 +265,20 @@ def test_evaluate_module_with_patched_thresholds(mocker):
         path="sample_report.xml",
         name="Sample Report Name",
         overall_coverage=overall_coverage,
-        changed_files_coverage=changed_files_coverage
+        changed_files_coverage=changed_files_coverage,
+
     )
 
     # Create an instance of CoverageEvaluator
     evaluator = CoverageEvaluator(
         report_files_coverage=[report_file_coverage],
         global_min_coverage_overall=50.0,
-        global_min_coverage_changed_files=50.0
+        global_min_coverage_changed_files=50.0,
+        global_min_coverage_changed_per_file=50.0
     )
 
     # Patch the _set_thresholds method
-    mocker.patch.object(evaluator, '_set_thresholds', return_value=(50.0, 50.0))
+    mocker.patch.object(evaluator, '_set_thresholds', return_value=(50.0, 50.0, 50.0))
 
     # Create an evaluated coverage module with no coverage
     evaluated_coverage_module = EvaluatedReportCoverage("module-a")

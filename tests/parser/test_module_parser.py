@@ -9,8 +9,8 @@ def test_parse():
         "module2": "path/to/module2"
     }
     modules_thresholds = {
-        "module1": (75.0, 80.0),
-        "module2": (85.0, 90.0)
+        "module1": (75.0, 80.0, 80.0),
+        "module2": (85.0, 90.0, 80.0)
     }
 
     parsed_modules = ModuleParser.parse(modules, modules_thresholds)
@@ -20,10 +20,12 @@ def test_parse():
     assert parsed_modules["module1"].name == "module1"
     assert parsed_modules["module1"].min_coverage_overall == 75.0
     assert parsed_modules["module1"].min_coverage_changed_files == 80.0
+    assert parsed_modules["module1"].min_coverage_per_changed_file == 80.0
     assert isinstance(parsed_modules["module2"], Module)
     assert parsed_modules["module2"].name == "module2"
     assert parsed_modules["module2"].min_coverage_overall == 85.0
     assert parsed_modules["module2"].min_coverage_changed_files == 90.0
+    assert parsed_modules["module2"].min_coverage_per_changed_file == 80.0
 
 
 def test_parse_missing_thresholds(mocker):
@@ -32,11 +34,12 @@ def test_parse_missing_thresholds(mocker):
         "module2": "path/to/module2"
     }
     modules_thresholds = {
-        "module1": (75.0, 80.0)
+        "module1": (75.0, 80.0, 80.0)
     }
 
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_min_coverage_overall", return_value=50.0)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_min_coverage_changed_files", return_value=60.0)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_min_coverage_per_changed_file", return_value=60.0)
 
     parsed_modules = ModuleParser.parse(modules, modules_thresholds)
 
@@ -45,7 +48,9 @@ def test_parse_missing_thresholds(mocker):
     assert parsed_modules["module1"].name == "module1"
     assert parsed_modules["module1"].min_coverage_overall == 75.0
     assert parsed_modules["module1"].min_coverage_changed_files == 80.0
+    assert parsed_modules["module1"].min_coverage_per_changed_file == 80.0
     assert isinstance(parsed_modules["module2"], Module)
     assert parsed_modules["module2"].name == "module2"
     assert parsed_modules["module2"].min_coverage_overall == 50.0
     assert parsed_modules["module2"].min_coverage_changed_files == 60.0
+    assert parsed_modules["module2"].min_coverage_per_changed_file == 60.0
