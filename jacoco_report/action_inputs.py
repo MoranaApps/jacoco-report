@@ -213,7 +213,9 @@ class ActionInputs:
 
                 overall = float(parts[0]) if len(parts[0]) > 0 else ActionInputs.get_min_coverage_overall()
                 changed = float(parts[1]) if len(parts[1]) > 0 else ActionInputs.get_min_coverage_changed_files()
-                changed_per_file = float(parts[2]) if len(parts[2]) > 0 else ActionInputs.get_min_coverage_per_changed_file()
+                changed_per_file = (
+                    float(parts[2]) if len(parts[2]) > 0 else ActionInputs.get_min_coverage_per_changed_file()
+                )
                 result[f_name] = (overall, changed, changed_per_file)
             return result
 
@@ -355,7 +357,8 @@ class ActionInputs:
         # Check if the module threshold is the format containing '*'
         if module_threshold_parts[1].count("*") != 2:
             return [
-                f"'module-threshold':'{module_threshold_parts[1]}' must contain two '*' to split overall, changed files and changed per file threshold."
+                f"'module-threshold':'{module_threshold_parts[1]}' must contain two '*' to split overall, "
+                f"changed files and changed per file threshold."
             ]
 
         errors = []
@@ -488,9 +491,7 @@ class ActionInputs:
         ):  # type: ignore[union-attr]
             errors.append("'comment-mode' is 'module' but 'modules' is not defined.")
 
-        modules_thresholds: dict[str, tuple[Optional[float], Optional[float]]] | str = (
-            ActionInputs.get_modules_thresholds(raw=True)
-        )
+        modules_thresholds: dict[str, tuple[float, float, float]] | str = ActionInputs.get_modules_thresholds(raw=True)
         if not isinstance(modules_thresholds, str):
             errors.append("'modules-thresholds' must be a string or not defined.")
         else:

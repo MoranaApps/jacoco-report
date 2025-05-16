@@ -28,10 +28,14 @@ class ModuleParser:
         module_dict = {}
 
         for name, path in modules.items():
-            overall, changed, changed_per_file = modules_thresholds.get(name, (
-                ActionInputs.get_min_coverage_overall(),
-                ActionInputs.get_min_coverage_changed_files(),
-                ActionInputs.get_min_coverage_per_changed_file(),))
+            overall, changed, changed_per_file = modules_thresholds.get(
+                name,
+                (
+                    ActionInputs.get_min_coverage_overall(),
+                    ActionInputs.get_min_coverage_changed_files(),
+                    ActionInputs.get_min_coverage_per_changed_file(),
+                ),
+            )
             module_dict[name] = Module(name, path, overall, changed, changed_per_file)
 
         return module_dict
