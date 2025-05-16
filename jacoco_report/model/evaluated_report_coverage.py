@@ -31,6 +31,8 @@ class EvaluatedReportCoverage:
         self.changed_files_threshold: float = 0.0
         self.changed_files_coverage_reached: dict[str, float] = {}
 
+        self.per_changed_file_threshold: float = 0.0
+
     def to_dict(self) -> dict:
         """Convert object to dictionary for JSON serialization"""
         return {
@@ -48,4 +50,5 @@ class EvaluatedReportCoverage:
             "changed_files_passed": self.changed_files_passed,
             "changed_files_threshold": self.changed_files_threshold,
             "changed_files_coverage_reached": self.changed_files_coverage_reached,
+            "per_changed_file_threshold": self.per_changed_file_threshold,
         }

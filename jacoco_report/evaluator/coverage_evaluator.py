@@ -24,11 +24,13 @@ class CoverageEvaluator:
     to check if they pass the thresholds.
     """
 
+    # pylint: disable=too-many-arguments
     def __init__(
         self,
         report_files_coverage: list[ReportFileCoverage],
         global_min_coverage_overall: float,
         global_min_coverage_changed_files: float,
+        global_min_coverage_changed_per_file: float,
         modules: Optional[dict[str, Module]] = None,
     ):
         # input data stats
@@ -37,6 +39,7 @@ class CoverageEvaluator:
         # thresholds
         self._global_min_coverage_overall: float = global_min_coverage_overall
         self._global_min_coverage_changed_files: float = global_min_coverage_changed_files
+        self._global_min_coverage_changed_per_file = global_min_coverage_changed_per_file
         self._modules: dict[str, Module] = modules if modules is not None else {}
 
         # *** output data for the comment(s) ***
@@ -211,7 +214,7 @@ class CoverageEvaluator:
                     changed_files_violations.append(
                         f"Report '{report_path}' changed file '{key}' coverage "
                         f"{evaluated_coverage_report.changed_files_coverage_reached[key]} is below the threshold "
-                        f"{evaluated_coverage_report.changed_files_threshold}."
+                        f"{evaluated_coverage_report.per_changed_file_threshold}."
                     )
 
         # Add all violations to the list depending on the sensitivity and comment mode
@@ -265,9 +268,12 @@ class CoverageEvaluator:
             EvaluatedReportCoverage: The evaluated coverage of the module
         """
         # get the thresholds for the module
-        overall_threshold, changed_files_threshold = self._set_thresholds(evaluated_coverage.name)
+        overall_threshold, changed_files_threshold, changed_per_file_threshold = self._set_thresholds(
+            evaluated_coverage.name
+        )
         evaluated_coverage.overall_coverage_threshold = overall_threshold
         evaluated_coverage.changed_files_threshold = changed_files_threshold
+        evaluated_coverage.per_changed_file_threshold = changed_per_file_threshold
 
         if evaluated_coverage.overall_coverage.covered == 0 and evaluated_coverage.overall_coverage.missed == 0:
             evaluated_coverage.overall_coverage_reached = 0.0
@@ -303,9 +309,12 @@ class CoverageEvaluator:
             EvaluatedReportCoverage: The evaluated coverage of the report
         """
         # get the thresholds for the report
-        overall_threshold, changed_files_threshold = self._set_thresholds(report_coverage.module_name)
+        overall_threshold, changed_files_threshold, changed_per_file_threshold = self._set_thresholds(
+            report_coverage.module_name
+        )
         evaluated_coverage_report.overall_coverage_threshold = overall_threshold
         evaluated_coverage_report.changed_files_threshold = changed_files_threshold
+        evaluated_coverage_report.per_changed_file_threshold = changed_per_file_threshold
 
         if (
             evaluated_coverage_report.overall_coverage.covered == 0
@@ -335,12 +344,13 @@ class CoverageEvaluator:
             # evaluate the changed files
             for key, changed_file_coverage in report_coverage.changed_files_coverage.items():
                 evaluated_coverage_report.changed_files_passed[key] = (
-                    changed_file_coverage.get_coverage_by_metric(ActionInputs.get_metric()) >= changed_files_threshold
+                    changed_file_coverage.get_coverage_by_metric(ActionInputs.get_metric())
+                    >= changed_per_file_threshold
                 )
 
         return evaluated_coverage_report
 
-    def _set_thresholds(self, module_name: str) -> tuple[float, float]:
+    def _set_thresholds(self, module_name: str) -> tuple[float, float, float]:
         """
         Sets the coverage thresholds for the report.
         """
@@ -355,8 +365,14 @@ class CoverageEvaluator:
                 if self._modules[module_name].min_coverage_changed_files is not None
                 else self._global_min_coverage_changed_files
             )
+            changed_per_file_threshold = (
+                self._modules[module_name].min_coverage_per_changed_file
+                if self._modules[module_name].min_coverage_per_changed_file is not None
+                else self._global_min_coverage_changed_per_file
+            )
         else:
             overall_threshold = self._global_min_coverage_overall
             changed_files_threshold = self._global_min_coverage_changed_files
+            changed_per_file_threshold = self._global_min_coverage_changed_per_file
 
-        return overall_threshold, changed_files_threshold
+        return overall_threshold, changed_files_threshold, changed_per_file_threshold

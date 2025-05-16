@@ -17,6 +17,7 @@ def test_evaluator(mocker):
         report_files_coverage=[],
         global_min_coverage_overall=80.0,
         global_min_coverage_changed_files=80.0,
+        global_min_coverage_changed_per_file=80.0,
         modules={},
     )
     ce.total_coverage_overall = 85.2
@@ -55,7 +56,7 @@ def test_get_modules_table_with_baseline_with_modules(pr_comment_generator, mock
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_not_changed", return_value=False)
     mocker.patch("jacoco_report.generator.pr_comment_generator.PRCommentGenerator._calculate_baseline_module_diffs", return_value=(1.1, 2.0))
 
-    pr_comment_generator.evaluator._modules["test"] = Module("test", "path",85.2, 80.0)
+    pr_comment_generator.evaluator._modules["test"] = Module("test", "path",85.2, 80.0, 80.0)
 
     pr_comment_generator.evaluator.evaluated_modules_coverage["test"] = EvaluatedReportCoverage()
     pr_comment_generator.evaluator.evaluated_modules_coverage["test"].name = "test"
@@ -73,7 +74,7 @@ def test_generate_modules_table_with_baseline(pr_comment_generator, mocker):
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_not_changed", return_value=True)
     mocker.patch("jacoco_report.generator.pr_comment_generator.PRCommentGenerator._calculate_baseline_module_diffs", return_value=(1.1, 2.0))
 
-    pr_comment_generator.evaluator._modules["test"] = Module("test", "path",85.2, 80.0)
+    pr_comment_generator.evaluator._modules["test"] = Module("test", "path",85.2, 80.0, 80.0)
 
     pr_comment_generator.evaluator.evaluated_modules_coverage["test"] = EvaluatedReportCoverage()
     pr_comment_generator.evaluator.evaluated_modules_coverage["test"].name = "test"
@@ -168,7 +169,7 @@ def test_generate_changed_files_table_with_baseline(pr_comment_generator, mocker
     # Assert the table content
     expected_table = """| File Path | Coverage | Threshold | Δ Coverage | Status |
 |-----------|----------|-----------|------------|--------|
-| [file1.java](https://github.com/fake_repo/pull/1/files#diff-fakehash) | 80.0% | 75.0% | +10.0% | ✅ |"""
+| [file1.java](https://github.com/fake_repo/pull/1/files#diff-fakehash) | 80.0% | 0.0% | +10.0% | ✅ |"""
     assert table == expected_table
 
 def test_generate_changed_files_table_with_baseline_no_evaluated_report_coverage(pr_comment_generator, mocker):
@@ -208,7 +209,7 @@ def test_generate_changed_files_table_with_baseline_no_evaluated_report_coverage
     # Assert the table content
     expected_table = """| File Path | Coverage | Threshold | Δ Coverage | Status |
 |-----------|----------|-----------|------------|--------|
-| [file1.java](https://github.com/fake_repo/pull/1/files#diff-fakehash) | 80.0% | 75.0% | 0.0% | ✅ |"""
+| [file1.java](https://github.com/fake_repo/pull/1/files#diff-fakehash) | 80.0% | 0.0% | 0.0% | ✅ |"""
     assert table == expected_table
 
 def test_generate_changed_files_table_with_baseline_no_changed_file(pr_comment_generator, mocker):
@@ -248,5 +249,5 @@ def test_generate_changed_files_table_with_baseline_no_changed_file(pr_comment_g
     # Assert the table content
     expected_table = """| File Path | Coverage | Threshold | Δ Coverage | Status |
 |-----------|----------|-----------|------------|--------|
-| [file1.java](https://github.com/fake_repo/pull/1/files#diff-fakehash) | 80.0% | 75.0% | 0.0% | ✅ |"""
+| [file1.java](https://github.com/fake_repo/pull/1/files#diff-fakehash) | 80.0% | 0.0% | 0.0% | ✅ |"""
     assert table == expected_table

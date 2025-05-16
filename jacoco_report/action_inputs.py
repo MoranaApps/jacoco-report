@@ -88,6 +88,13 @@ class ActionInputs:
         return float(get_action_input(MIN_COVERAGE_CHANGED_FILES, "0.0"))
 
     @staticmethod
+    def get_min_coverage_per_changed_file() -> float:
+        """
+        Get the minimum coverage per changed file from the action inputs.
+        """
+        return float(get_action_input("min-coverage-per-changed-file", "0.0"))
+
+    @staticmethod
     def get_title(report_name: Optional[str] = None) -> str:
         """
         Get the title from the action inputs.
@@ -179,21 +186,21 @@ class ActionInputs:
         return d
 
     @staticmethod
-    def get_modules_thresholds(raw: bool = False) -> dict[str, tuple[Optional[float], Optional[float]]] | str:
+    def get_modules_thresholds(raw: bool = False) -> dict[str, tuple[float, float, float]] | str:
         """
         Get the modules thresholds from the action inputs.
         """
 
-        def parse_module_thresholds(received: str) -> dict[str, tuple[Optional[float], Optional[float]]]:
+        def parse_module_thresholds(received: str) -> dict[str, tuple[float, float, float]]:
             if len(received) == 0:
                 return {}
 
-            result = dict[str, tuple[Optional[float], Optional[float]]]()
+            result = dict[str, tuple[float, float, float]]()
             split_by: str = "," if "," in received else "\n"
             mts: list[str] = received.split(split_by)
             for mt in mts:
                 # detect presence of '#' char - user commented out the line
-                if "#" in mt:
+                if "#" in mt.lstrip():
                     continue
 
                 # format string, clean up, ...
@@ -203,9 +210,13 @@ class ActionInputs:
                 f_name = name.strip()
                 f_values = values.strip()
                 parts = f_values.split("*")
-                overall = float(parts[0]) if len(parts[0]) > 0 else None
-                changed = float(parts[1]) if len(parts[1]) > 1 else None
-                result[f_name] = (overall, changed)
+
+                overall = float(parts[0]) if len(parts[0]) > 0 else ActionInputs.get_min_coverage_overall()
+                changed = float(parts[1]) if len(parts[1]) > 0 else ActionInputs.get_min_coverage_changed_files()
+                changed_per_file = (
+                    float(parts[2]) if len(parts[2]) > 0 else ActionInputs.get_min_coverage_per_changed_file()
+                )
+                result[f_name] = (overall, changed, changed_per_file)
             return result
 
         raw_input = get_action_input(MODULES_THRESHOLDS, "").strip()
@@ -344,10 +355,10 @@ class ActionInputs:
             return [f"Module threshold with 'name':'{module_threshold_parts[0]}' must have a non-empty threshold."]
 
         # Check if the module threshold is the format containing '*'
-        if "*" not in module_threshold_parts[1]:
+        if module_threshold_parts[1].count("*") != 2:
             return [
-                f"'module_threshold':'{module_threshold_parts[1]}' must contain '*' to split overall "
-                f"and changed files threshold."
+                f"'module-threshold':'{module_threshold_parts[1]}' must contain two '*' to split overall, "
+                f"changed files and changed per file threshold."
             ]
 
         errors = []
@@ -355,21 +366,33 @@ class ActionInputs:
         # Overall
         values = module_threshold_parts[1].split("*")
         if len(values[0]) == 0:
+            # if the value is empty, it means that the user wants to use the default value
             pass
         else:
             try:
                 float(values[0])
             except ValueError:
-                errors.append(f"'module_threshold' overall value '{values[0]}' must be a float or None.")
+                errors.append(f"'module-threshold' overall value '{values[0]}' must be a float or None.")
 
         # Changed
         if len(values[1]) == 0:
+            # if the value is empty, it means that the user wants to use the default value
             pass
         else:
             try:
                 float(values[1])
             except ValueError:
-                errors.append(f"'module_threshold' changed files value '{values[1]}' must be a float or None.")
+                errors.append(f"'module-threshold' changed files value '{values[1]}' must be a float or None.")
+
+        # Changed per file
+        if len(values[2]) == 0:
+            # if the value is empty, it means that the user wants to use the default value
+            pass
+        else:
+            try:
+                float(values[2])
+            except ValueError:
+                errors.append(f"'module-threshold' changed per file value '{values[2]}' must be a float or None.")
 
         return errors
 
@@ -425,6 +448,14 @@ class ActionInputs:
         ):
             errors.append("'min-coverage-changed-files' must be a float between 0 and 100.")
 
+        min_coverage_per_changed_file = ActionInputs.get_min_coverage_per_changed_file()
+        if (
+            not isinstance(min_coverage_per_changed_file, float)
+            or min_coverage_per_changed_file < 0
+            or min_coverage_per_changed_file > 100
+        ):
+            errors.append("'min-coverage-per-changed-file' must be a float between 0 and 100.")
+
         metric = ActionInputs.get_metric()
         if not isinstance(metric, str) or metric not in MetricTypeEnum:
             errors.append(
@@ -463,9 +494,7 @@ class ActionInputs:
         ):  # type: ignore[union-attr]
             errors.append("'comment-mode' is 'module' but 'modules' is not defined.")
 
-        modules_thresholds: dict[str, tuple[Optional[float], Optional[float]]] | str = (
-            ActionInputs.get_modules_thresholds(raw=True)
-        )
+        modules_thresholds: dict[str, tuple[float, float, float]] | str = ActionInputs.get_modules_thresholds(raw=True)
         if not isinstance(modules_thresholds, str):
             errors.append("'modules-thresholds' must be a string or not defined.")
         else:
@@ -515,6 +544,7 @@ class ActionInputs:
             "\n"
             f"Minimum coverage overall: {ActionInputs.get_min_coverage_overall()}\n"
             f"Minimum coverage changed files: {ActionInputs.get_min_coverage_changed_files()}\n"
+            f"Minimum coverage per changed file: {ActionInputs.get_min_coverage_per_changed_file()}\n"
             "\n"
             f"Modules: {ActionInputs.get_modules()}\n"
             f"Modules thresholds: {ActionInputs.get_modules_thresholds()}\n"

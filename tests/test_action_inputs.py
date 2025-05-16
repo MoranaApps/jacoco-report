@@ -12,12 +12,13 @@ success_case = {
     "get_exclude_paths": "path1,path2",
     "get_min_coverage_overall": 80.0,
     "get_min_coverage_changed_files": 70.0,
+    "get_min_coverage_per_changed_file": 25.0,
     "get_title": "Custom Title",
     "get_metric": "instruction",
     "get_sensitivity": "detail",
     "get_comment_mode": "single",
     "get_modules": "module-a:context/module_a,module-b:module_b",
-    "get_modules_thresholds": "module-a:80*,module-b:*70",
+    "get_modules_thresholds": "module-a:80**,module-b:*70*",
     "get_skip_not_changed": True,
     "get_update_comment": True,
     "get_pass_symbol": "**Passed**",
@@ -42,6 +43,10 @@ failure_cases = [
     ("get_min_coverage_changed_files", True, "'min-coverage-changed-files' must be a float between 0 and 100."),
     ("get_min_coverage_changed_files", -1, "'min-coverage-changed-files' must be a float between 0 and 100."),
     ("get_min_coverage_changed_files", 100, "'min-coverage-changed-files' must be a float between 0 and 100."),
+    ("get_min_coverage_per_changed_file", "x", "'min-coverage-per-changed-file' must be a float between 0 and 100."),
+    ("get_min_coverage_per_changed_file", True, "'min-coverage-per-changed-file' must be a float between 0 and 100."),
+    ("get_min_coverage_per_changed_file", -1, "'min-coverage-per-changed-file' must be a float between 0 and 100."),
+    ("get_min_coverage_per_changed_file", 100, "'min-coverage-per-changed-file' must be a float between 0 and 100."),
     ("get_metric", "", "'metric' must be a string from these options: 'instruction', 'line', 'branch', 'complexity', 'method', 'class'."),
     ("get_metric", 1, "'metric' must be a string from these options: 'instruction', 'line', 'branch', 'complexity', 'method', 'class'."),
     ("get_sensitivity", "", "'sensitivity' must be a string from these options: 'minimal', 'summary', 'detail'."),
@@ -59,14 +64,17 @@ failure_cases = [
     ("get_modules_thresholds", 1, "'modules-thresholds' must be a string or not defined."),
     ("get_modules_thresholds", "ab", "'modules-thresholds' must be a list of strings in format 'module:overall*changed'."),
     ("get_modules_thresholds", "abcd", "'modules-thresholds' must be a list of strings in format 'module:overall*changed'."),
-    ("get_modules_thresholds", "module-a: 80*,", "'module-threshold' must be a non-empty string."),
-    ("get_modules_thresholds", "module-a:80*,module-b", "'module-threshold':'module-b' must be in the format 'module:threshold'."),
-    ("get_modules_thresholds", "module-a:80*,:80.0*", "Module threshold with value:'80.0*' must have a non-empty name."),
-    ("get_modules_thresholds", "module-a:80*,module-b:", "Module threshold with 'name':'module-b' must have a non-empty threshold."),
-    ("get_modules_thresholds", "module-a:80*,module-b:80", "'module_threshold':'80' must contain '*' to split overall and changed files threshold."),
-    ("get_modules_thresholds", "module-a:80*,module-b:True*", "'module_threshold' overall value 'True' must be a float or None."),
-    ("get_modules_thresholds", "module-a:80*,module-b:*True", "'module_threshold' changed files value 'True' must be a float or None."),
-    ("get_modules_thresholds", "module-a:80*,module-b:*80:9", "'module-threshold':'module-b:*80:9' must be in the format 'module:threshold'."),
+    ("get_modules_thresholds", "module-a: 80**,", "'module-threshold' must be a non-empty string."),
+    ("get_modules_thresholds", "module-a: 80*", "'module-threshold':'80*' must contain two '*' to split overall, changed files and changed per file threshold."),
+    ("get_modules_thresholds", "module-a:80**,module-b", "'module-threshold':'module-b' must be in the format 'module:threshold'."),
+    ("get_modules_thresholds", "module-a:80**,:80.0**", "Module threshold with value:'80.0**' must have a non-empty name."),
+    ("get_modules_thresholds", "module-a:80**,module-b:", "Module threshold with 'name':'module-b' must have a non-empty threshold."),
+    ("get_modules_thresholds", "module-a:80**,module-b:80", "'module-threshold':'80' must contain two '*' to split overall, changed files and changed per file threshold."),
+    ("get_modules_thresholds", "module-a:80**,module-b:True**", "'module-threshold' overall value 'True' must be a float or None."),
+    ("get_modules_thresholds", "module-a:80**,module-b:*True*", "'module-threshold' changed files value 'True' must be a float or None."),
+    ("get_modules_thresholds", "module-a:80**,module-b:**True", "'module-threshold' changed per file value 'True' must be a float or None."),
+    ("get_modules_thresholds", "module-a:80**,module-b:*80*:9", "'module-threshold':'module-b:*80*:9' must be in the format 'module:threshold'."),
+    ("get_modules_thresholds", "module-a:80**,module-b:*80*:9", "'module-threshold':'module-b:*80*:9' must be in the format 'module:threshold'."),
     ("get_skip_not_changed", "", "'skip-not-changed' must be a boolean."),
     ("get_skip_not_changed", 1, "'skip-not-changed' must be a boolean."),
     ("get_update_comment", "", "'update-comment' must be a boolean."),
@@ -195,6 +203,12 @@ def test_get_min_coverage_changed_files(mocker):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="0")
     assert 0.0 == ActionInputs.get_min_coverage_changed_files()
 
+
+def test_get_min_coverage_per_changed_file(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="0")
+    assert 0.0 == ActionInputs.get_min_coverage_per_changed_file()
+
+
 failure_cases = [
     ("", CommentModeEnum.SINGLE, None, "JaCoCo Coverage Report"),
     ("", CommentModeEnum.SINGLE, "Report Name", "JaCoCo Coverage Report"),
@@ -254,23 +268,32 @@ def test_get_modules_raw(mocker):
 
 
 def test_get_modules_thresholds_no_spaces(mocker):
-    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="module-a:80*,module-b:*70")
-    assert {"module-a": (80.0, None), "module-b": (None, 70.0)} == ActionInputs.get_modules_thresholds()
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_min_coverage_overall", return_value=0.0)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_min_coverage_changed_files", return_value=0.0)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_min_coverage_per_changed_file", return_value=0.0)
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="module-a:80**,module-b:*70*")
+    assert {"module-a": (80.0, 0.0, 0.0), "module-b": (0.0, 70.0, 0.0)} == ActionInputs.get_modules_thresholds()
 
 
 def test_get_modules_thresholds_with_spaces(mocker):
-    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="module-a: 80*,module-b: *70")
-    assert {"module-a": (80.0, None), "module-b": (None, 70.0)} == ActionInputs.get_modules_thresholds()
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_min_coverage_overall", return_value=0.0)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_min_coverage_changed_files", return_value=0.0)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_min_coverage_per_changed_file", return_value=0.0)
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="module-a: 80**,module-b: *70*")
+    assert {"module-a": (80.0, 0.0, 0.0), "module-b": (0.0, 70.0, 0.0)} == ActionInputs.get_modules_thresholds()
 
 
 def test_get_modules_thresholds_with_commented_line(mocker):
-    input_data = """module-a: 80*
-    module-b: *70
-    #module-c: 90*
-    # module-d: *100
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_min_coverage_overall", return_value=0.0)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_min_coverage_changed_files", return_value=0.0)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_min_coverage_per_changed_file", return_value=0.0)
+    input_data = """module-a: 80**
+    module-b: *70*
+    #module-c: 90**
+    # module-d: *100*
     """
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value=input_data)
-    assert {"module-a": (80.0, None), "module-b": (None, 70.0)} == ActionInputs.get_modules_thresholds()
+    assert {"module-a": (80.0, 0.0, 0.0), "module-b": (0.0, 70.0, 0.0)} == ActionInputs.get_modules_thresholds()
 
 
 def test_get_modules_thresholds_raw(mocker):

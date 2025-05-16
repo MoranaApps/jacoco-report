@@ -103,6 +103,7 @@ class JaCoCoReport:
             report_files_coverage=report_files_coverage,
             global_min_coverage_overall=ActionInputs.get_min_coverage_overall(),
             global_min_coverage_changed_files=ActionInputs.get_min_coverage_changed_files(),
+            global_min_coverage_changed_per_file=ActionInputs.get_min_coverage_per_changed_file(),
             modules=modules,
         )
         evaluator.evaluate()
@@ -111,6 +112,7 @@ class JaCoCoReport:
             report_files_coverage=bs_report_files_coverage,
             global_min_coverage_overall=ActionInputs.get_min_coverage_overall(),
             global_min_coverage_changed_files=ActionInputs.get_min_coverage_changed_files(),
+            global_min_coverage_changed_per_file=ActionInputs.get_min_coverage_per_changed_file(),
             modules=modules,
         )
 

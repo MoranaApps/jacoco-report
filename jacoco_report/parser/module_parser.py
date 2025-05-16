@@ -13,14 +13,14 @@ class ModuleParser:
     """
 
     @staticmethod
-    def parse(modules: dict[str, str], modules_thresholds: dict[str, tuple[float, float]]) -> dict[str, Module]:
+    def parse(modules: dict[str, str], modules_thresholds: dict[str, tuple[float, float, float]]) -> dict[str, Module]:
         """
         Parse the module information from the action inputs.
         If no threshold is provided for a module, the default threshold is used.
 
         Parameters:
             modules (dict[str, str]): The module names and their paths.
-            modules_thresholds (dict[str, (float, float)]): The module names and their thresholds.
+            modules_thresholds (dict[str, (float, float, float)]): The module names and their thresholds.
 
         Returns:
             dict[str, Module]: The module names and their Module objects.
@@ -28,12 +28,14 @@ class ModuleParser:
         module_dict = {}
 
         for name, path in modules.items():
-            overall, changed = modules_thresholds.get(name, (None, None))
-            module_dict[name] = Module(
+            overall, changed, changed_per_file = modules_thresholds.get(
                 name,
-                path,
-                overall if overall is not None else ActionInputs.get_min_coverage_overall(),
-                changed if changed is not None else ActionInputs.get_min_coverage_changed_files(),
+                (
+                    ActionInputs.get_min_coverage_overall(),
+                    ActionInputs.get_min_coverage_changed_files(),
+                    ActionInputs.get_min_coverage_per_changed_file(),
+                ),
             )
+            module_dict[name] = Module(name, path, overall, changed, changed_per_file)
 
         return module_dict

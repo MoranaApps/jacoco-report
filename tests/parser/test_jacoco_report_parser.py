@@ -39,7 +39,7 @@ def parser():
 
 @pytest.fixture
 def parser_with_modules():
-    module: Module = Module("module_a", "path/to/module_a", 50, 50)
+    module: Module = Module("module_a", "path/to/module_a", 50, 50, 50)
     modules = {
         "module_a": module,
     }
