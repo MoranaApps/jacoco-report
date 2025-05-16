@@ -20,7 +20,7 @@ class ModuleParser:
 
         Parameters:
             modules (dict[str, str]): The module names and their paths.
-            modules_thresholds (dict[str, (float, float)]): The module names and their thresholds.
+            modules_thresholds (dict[str, (float, float, float)]): The module names and their thresholds.
 
         Returns:
             dict[str, Module]: The module names and their Module objects.

@@ -366,6 +366,7 @@ class ActionInputs:
         # Overall
         values = module_threshold_parts[1].split("*")
         if len(values[0]) == 0:
+            # if the value is empty, it means that the user wants to use the default value
             pass
         else:
             try:
@@ -375,6 +376,7 @@ class ActionInputs:
 
         # Changed
         if len(values[1]) == 0:
+            # if the value is empty, it means that the user wants to use the default value
             pass
         else:
             try:
@@ -384,6 +386,7 @@ class ActionInputs:
 
         # Changed per file
         if len(values[2]) == 0:
+            # if the value is empty, it means that the user wants to use the default value
             pass
         else:
             try:
