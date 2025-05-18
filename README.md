@@ -95,7 +95,7 @@ threshold.
   
 ### Examples
 
-- [Customising the Exclude Paths](#customising-paths-the-exclude-paths)
+- [Customising the Exclude Paths](#customising-paths-and-exclude-paths)
 - [Customizing the Global Coverage Thresholds](#customizing-the-global-coverage-thresholds)
 - [Customizing the PR Number](#customizing-the-pr-number)
 - [Customizing the Report Title and Sensitivity](#customizing-the-report-title-and-sensitivity)
@@ -108,7 +108,7 @@ threshold.
 - [Customizing the Symbols and Metric Type](#customizing-the-symbols-and-metric-type)
 - [Customizing the Debug Mode](#customizing-the-verbose-mode)
 
-#### Customising Paths the Exclude Paths
+#### Customising Paths and Exclude Paths
 
 The `paths` input allows you to specify the paths to the JaCoCo XML files that should be included in the code coverage
 analysis.
