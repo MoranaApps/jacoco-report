@@ -91,7 +91,7 @@ The following outputs are set by the JaCoCo GitHub Action:
 
 ### Examples:
 
-- [Customising the Exclude Paths](#customising-the-exclude-paths)
+- [Customising the Exclude Paths](#customising-paths-the-exclude-paths)
 - [Customizing the Global Coverage Thresholds](#customizing-the-global-coverage-thresholds)
 - [Customizing the PR Number](#customizing-the-pr-number)
 - [Customizing the Report Title and Sensitivity](#customizing-the-report-title-and-sensitivity)
@@ -99,11 +99,10 @@ The following outputs are set by the JaCoCo GitHub Action:
   - [Minimal Sensitivity](#minimal-sensitivity)
   - [Summary Sensitivity](#summary-sensitivity)
   - [Detailed Sensitivity](#detailed-sensitivity)
-  - [Detailed Sensitivity - Multi and Module Mode](#detailed-sensitivity---multi-and-module-mode)
 - [Customizing the Skip Not Changed Option and Update Comment](#customizing-the-skip-not-changed-option-and-update-comment)
 - [Customizing the Baseline Paths](#customizing-the-baseline-paths)
 - [Customizing the Symbols and Metric Type](#customizing-the-symbols-and-metric-type)
-- [Customizing the Debug Mode](#customizing-the-debug-mode)
+- [Customizing the Debug Mode](#customizing-the-verbose-mode)
 
 #### Customising Paths the Exclude Paths
 
