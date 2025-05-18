@@ -1,11 +1,12 @@
-![GitHub tag (v1)](https://img.shields.io/github/v/tag/MoranaApps/jacoco-report?label=latest%20v1&style=flat-square&color=blue) ![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/MoranaApps/jacoco-report?utm_source=oss&utm_medium=github&utm_campaign=MoranaApps%2Fjacoco-report&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)
+![GitHub tag (v1)](https://img.shields.io/github/v/tag/MoranaApps/jacoco-report?label=latest%20v1&style=flat-square&color=blue)
+![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/MoranaApps/jacoco-report?utm_source=oss&utm_medium=github&utm_campaign=MoranaApps%2Fjacoco-report&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)
 
 # Jacoco Report GitHub Action
 
 - [Usage](#usage)
   - [Action Inputs](#action-inputs)
   - [Outputs](#outputs)
-  - [Examples](#examples)
+  - [Examples](#examles)
 - [Developer](#developer)
 - [License](#license)
 - [Donate](#donate)
@@ -13,6 +14,7 @@
 Automates the publication of JaCoCo coverage reports directly as comments in pull requests.
 
 Requirements
+
 - **GitHub Token**: A GitHub token with permission to fetch repository data such as Issues and Pull Requests.
 - **Python 3.12+**: Ensure you have Python 3.12 installed on your system.
 
@@ -81,6 +83,7 @@ jobs:
 #### Outputs
 
 The following outputs are set by the JaCoCo GitHub Action:
+
 - `coverage-overall`: The overall code coverage percentage.
 - `coverage-changed-files`: The code coverage percentage for the changed files.
 - `coverage-overall-passed`: A boolean indicating if the overall code coverage meets the minimum threshold.
@@ -107,6 +110,7 @@ The following outputs are set by the JaCoCo GitHub Action:
 #### Customising Paths the Exclude Paths
 
 The `paths` input allows you to specify the paths to the JaCoCo XML files that should be included in the code coverage analysis.
+
 - You can use wildcard glob patterns to match multiple files:
   - `**/*.xml` will match all XML files in the repository.
 - You can specify final list of paths separated by commas.
@@ -132,6 +136,7 @@ The `exclude-paths` input allows you to specify files or directories that should
 #### Customizing the Global Coverage Thresholds
 
 You can use these inputs to define minimum required code coverage levels for your pull requests:
+
 - `min-coverage-overall`: Minimum coverage required across **all files** in the project.
 - `min-coverage-changed-files`: Minimum **average coverage** required across changed files. The exact set of files depends on the selected **change scope mode**:
   - `single`: All changed files in the pull request.
@@ -169,15 +174,18 @@ The `pr-number` input allows you to specify the number of the pull request. If n
 #### Customizing the Report Title and Sensitivity
 
 The `title` input lets you specify a `custom title` for the JaCoCo coverage report comment.
+
 - `single`: `{custom title}`
 - `multi`: `{custom title}{report name}`
 - `module`: `{custom title}{report name}`
 > **Hint:** `{report name}` is required to produce unique titles for each report.
 
 The `sensitivity` input allows you to choose between a `minimal,` `summary` or `detail` sensitivity levels. This setting control:
+
 - `minimal`: Only the overall coverage and changed files coverage are displayed.
 - `summary`: The overall coverage, changed files coverage, and module coverage are displayed.
 - `detail`: The overall coverage, changed files coverage, module coverage, and file coverage are displayed.
+
 With increased sensitivity and more detailed comments, the number of detectable violations increases, too.
 
 
@@ -194,6 +202,7 @@ With increased sensitivity and more detailed comments, the number of detectable 
 #### Customizing the Comment Mode and Modules
 
 The `comment-mode` input controls how the comments are organized:
+
 - `single`: One comment for the entire report.
 - `multi`: Multiple comments, one for each xml file.
 - `module`: Individual comments for each module and its xml files.
@@ -224,7 +233,9 @@ The `modules-thresholds` input allows you to set custom coverage thresholds for 
 ```    
 
 ##### Minimal Sensitivity
-The `minimal` sensitivity level displays only the overall coverage and coverage for changed files. 
+
+The `minimal` sensitivity level displays only the overall coverage and coverage for changed files.
+
 - When the `comment-mode` is set to `single`, one comment is added to the pull request representing the overall and changed files coverage for all detected report files.
 - When the `comment-mode` is set to `multi`, multiple comments are added to the pull request, one for each detected report file.
 - When the `comment-mode` is set to `module`, individual comments are added to the pull request for each module and its detected report files.
@@ -239,6 +250,7 @@ The `minimal` sensitivity level displays only the overall coverage and coverage 
 > Δ Coverage is visible when `baseline-paths` defined and data is available.
 
 ##### Summary Sensitivity
+
 - When the `comment-mode` is set to `single`, one comment is added to the pull request representing the overall and changed files coverage for all detected report files.
 - When the `comment-mode` is set to `multi`, multiple comments are added to the pull request, one for each detected report file.
   - The module table is not visible in the `multi` mode as there is no module information available.
@@ -271,6 +283,7 @@ The `minimal` sensitivity level displays only the overall coverage and coverage 
 > - The report table is always visible. When `modules` and `modules-thresholds` are defined, the module's thresholds are used; otherwise, the minimal thresholds are used.
 
 ##### Detailed Sensitivity
+
 - When the `comment-mode` is set to `single`, one comment is added to the pull request representing the overall and changed files coverage for all detected report files.
 - When the `comment-mode` is set to `multi`, multiple comments are added to the pull request, one for each detected report file.
   - The module table is not visible in the `multi` mode as there is no module information available.

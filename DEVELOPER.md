@@ -27,6 +27,7 @@ pip install -r requirements.txt
 ```
 
 ---
+
 ## Run Scripts Locally
 
 If you need to run the scripts locally, follow these steps:
@@ -34,10 +35,13 @@ If you need to run the scripts locally, follow these steps:
 ### Create the Shell Script
 
 Create the shell file in the root directory. We will use `run_script.sh`.
+
 ```shell
 touch run_script.sh
 ```
+
 Add the shebang line at the top of the sh script file.
+
 ```
 #!/bin/sh
 
@@ -85,6 +89,7 @@ python3 main.py
 ### Make the Script Executable
 
 From the terminal that is in the root of this project, make the script executable:
+
 ```shell
 chmod +x run_script.sh
 ```
@@ -96,6 +101,7 @@ chmod +x run_script.sh
 ```
 
 ---
+
 ## Run Pylint Check Locally
 
 This project uses [Pylint](https://pypi.org/project/pylint/) tool for static code analysis.
@@ -123,6 +129,7 @@ This command will also install a Pylint tool, since it is listed in the project 
 ### Run Pylint
 
 Run Pylint on all files that are currently tracked by Git in the project.
+
 ```shell
 pylint $(git ls-files '*.py')
 ```
@@ -130,6 +137,7 @@ pylint $(git ls-files '*.py')
 To run Pylint on a specific file, follow the pattern `pylint <path_to_file>/<name_of_file>.py`.
 
 Example:
+
 ```shell
 pylint jacoco_report/jacoco_report.py
 ``` 
@@ -137,6 +145,7 @@ pylint jacoco_report/jacoco_report.py
 ### Expected Output
 
 This is the console expected output example after running the tool:
+
 ```
 ************* Module main
 main.py:30:0: C0116: Missing function or method docstring (missing-function-docstring)
@@ -146,6 +155,7 @@ Your code has been rated at 9.41/10 (previous run: 8.82/10, +0.59)
 ```
 
 ---
+
 ## Run Black Tool Locally
 
 This project uses the [Black](https://github.com/psf/black) tool for code formatting.
@@ -173,6 +183,7 @@ This command will also install a Black tool, since it is listed in the project r
 ### Run Black
 
 Run Black on all files that are currently tracked by Git in the project.
+
 ```shell
 black $(git ls-files '*.py')
 ```
@@ -180,6 +191,7 @@ black $(git ls-files '*.py')
 To run Black on a specific file, follow the pattern `black <path_to_file>/<name_of_file>.py`.
 
 Example:
+
 ```shell
 black jacoco_report/jacoco_report.py
 ``` 
@@ -187,15 +199,18 @@ black jacoco_report/jacoco_report.py
 ### Expected Output
 
 This is the console expected output example after running the tool:
+
 ```
 All done! ✨ 🍰 ✨
 1 file reformatted.
 ```
 
 ---
+
 ## Run Unit Test
 
 Unit tests are written using Pytest framework. To run alle the tests, use the following command:
+
 ```shell
 pytest tests/
 ```
@@ -203,17 +218,21 @@ pytest tests/
 You can modify the directory to control the level of detail or granularity as per your needs.
 
 To run specific test, write the command following the pattern below:
+
 ```shell
 pytest tests/utils/test_utils.py::test_make_issue_key
 ```
 
 ---
+
 ## Code Coverage
 
 This project uses [pytest-cov](https://pypi.org/project/pytest-cov/) plugin to generate test coverage reports.
-The objective of the project is to achieve a minimal score of 80 %. We do exclude the `tests/` file from the coverage report.
+The objective of the project is to achieve a minimal score of 80 %. We do exclude the `tests/` file from the coverage 
+report.
 
 To generate the coverage report, run the following command:
+
 ```shell
 pytest --cov=. tests/ --cov-fail-under=80 --cov-report=html -vv
 ```
@@ -225,11 +244,14 @@ open htmlcov/index.html
 ```
 
 ---
+
 ## Releasing
 
-This project uses GitHub Actions for deployment draft creation. The deployment process is semi-automated by a workflow defined in `.github/workflows/release_draft.yml`.
+This project uses GitHub Actions for deployment draft creation. The deployment process is semi-automated by a workflow 
+defined in `.github/workflows/release_draft.yml`.
 
 - **Trigger the workflow**: The `release_draft.yml` workflow is triggered on workflow_dispatch.
 - **Create a new draft release**: The workflow creates a new draft release in the repository.
-- **Finalize the release draft**: Edit the draft release to add a title, description, and any other necessary details related to GitHub Action.
+- **Finalize the release draft**: Edit the draft release to add a title, description, and any other necessary details 
+related to GitHub Action.
 - **Publish the release**: Once the draft is ready, publish the release to make it available to the public.
