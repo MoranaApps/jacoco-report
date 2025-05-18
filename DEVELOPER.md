@@ -209,7 +209,7 @@ All done! ✨ 🍰 ✨
 
 ## Run Unit Test
 
-Unit tests are written using Pytest framework. To run alle the tests, use the following command:
+Unit tests are written using Pytest framework. To run all the tests, use the following command:
 
 ```shell
 pytest tests/
@@ -217,7 +217,7 @@ pytest tests/
 
 You can modify the directory to control the level of detail or granularity as per your needs.
 
-To run specific test, write the command following the pattern below:
+To run a specific test, write the command following the pattern below:
 
 ```shell
 pytest tests/utils/test_utils.py::test_make_issue_key

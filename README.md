@@ -95,7 +95,7 @@ threshold.
   
 ### Examples
 
-- [Customising the Exclude Paths](#customising-paths-and-exclude-paths)
+- [Customizing the Exclude Paths](#customizing-paths-and-exclude-paths)
 - [Customizing the Global Coverage Thresholds](#customizing-the-global-coverage-thresholds)
 - [Customizing the PR Number](#customizing-the-pr-number)
 - [Customizing the Report Title and Sensitivity](#customizing-the-report-title-and-sensitivity)
@@ -106,9 +106,9 @@ threshold.
 - [Customizing the Skip Not Changed Option and Update Comment](#customizing-the-skip-not-changed-option-and-update-comment)
 - [Customizing the Baseline Paths](#customizing-the-baseline-paths)
 - [Customizing the Symbols and Metric Type](#customizing-the-symbols-and-metric-type)
-- [Customizing the Debug Mode](#customizing-the-verbose-mode)
+- [Customizing the Debug Mode](#customizing-the-debug-mode)
 
-#### Customising Paths and Exclude Paths
+#### Customizing Paths and Exclude Paths
 
 The `paths` input allows you to specify the paths to the JaCoCo XML files that should be included in the code coverage
 analysis.
@@ -396,9 +396,9 @@ pull request comments.
     fail-symbol: '❗'         # Custom symbol for failing checks
 ```
 
-#### Customizing the Verbose Mode
+#### Customizing the Debug Mode
 
-The `verbose` input enables detailed logging for debugging. This is automatically enabled in debug mode
+The `debug` input enables detailed logging for debugging. This is automatically enabled in debug mode
 (`ACTIONS_RUNNER_DEBUG=true`).
 
 ```yaml
@@ -407,7 +407,7 @@ The `verbose` input enables detailed logging for debugging. This is automaticall
   with:
     token: '${{ secrets.TOKEN }}'
     paths: **/jacoco/**/*.xml
-    verbose: true  # Enable detailed logging
+    debug: true  # Enable detailed logging
 ```
 
 ## Developer
