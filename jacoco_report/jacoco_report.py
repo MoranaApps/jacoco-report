@@ -80,7 +80,7 @@ class JaCoCoReport:
         for report_path in input_report_paths_to_analyse:
             report_files_coverage.append(rfc := parser.parse(report_path))
 
-            if ActionInputs.get_skip_not_changed() and rfc.module_name is not None and rfc.changed_files_coverage != {}:
+            if ActionInputs.get_skip_unchanged() and rfc.module_name is not None and rfc.changed_files_coverage != {}:
                 changed_modules.add(rfc.module_name)  # note module with changed files
 
         # get baseline files for comparison

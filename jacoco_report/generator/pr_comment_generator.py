@@ -151,7 +151,7 @@ class PRCommentGenerator:
     # pylint: disable=unused-argument
     def _generate_reports_table__skip(self, evaluated_report: EvaluatedReportCoverage, **kwargs) -> bool:
         if (
-            ActionInputs.get_skip_not_changed()
+            ActionInputs.get_skip_unchanged()
             and evaluated_report.name not in self.changed_modules
             and evaluated_report.overall_passed
             and evaluated_report.sum_changed_files_passed
@@ -279,7 +279,7 @@ class PRCommentGenerator:
     # pylint: disable=unused-argument
     def _generate_modules_table__skip(self, evaluated_report: EvaluatedReportCoverage, **kwargs) -> bool:
         if (
-            ActionInputs.get_skip_not_changed()
+            ActionInputs.get_skip_unchanged()
             and evaluated_report.name not in self.changed_modules
             and evaluated_report.overall_passed
             and evaluated_report.sum_changed_files_passed

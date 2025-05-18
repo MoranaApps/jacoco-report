@@ -49,7 +49,7 @@ inputs:
     description: 'Identify the modules and their thresholds.'
     required: false
     default: ''
-  skip-not-changed:
+  skip-unchanged:
     description: 'Reduce module table and comments to ones with changed files in PR.'
     required: false
     default: 'false'
@@ -160,7 +160,7 @@ runs:
         echo "${{ inputs.modules-thresholds }}" >> $GITHUB_ENV
         echo "EOF" >> $GITHUB_ENV
     
-        echo "INPUT_SKIP_NOT_CHANGED=${{ inputs.skip-not-changed }}" >> $GITHUB_ENV
+        echo "INPUT_SKIP_UNCHANGED=${{ inputs.skip-unchanged }}" >> $GITHUB_ENV
         
         echo "INPUT_BASELINE_PATHS<<EOF" >> $GITHUB_ENV
         echo "${{ inputs.baseline-paths }}" >> $GITHUB_ENV

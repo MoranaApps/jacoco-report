@@ -2002,8 +2002,8 @@ more_source_files_scenarios = [
     ("63", CommentModeEnum.MODULE, SensitivityEnum.DETAIL, modules_partial_definition_3_reports, modules_thresholds_100_partial_definition_3_reports, changed_files, comment_module_detailed_instruction_with_modules_with_bs_partial_modules_report_3, 9, 3, ["Module 'module small' overall coverage 97.0 is below the threshold 100.0.", "Report 'Module Small Report' overall coverage 97.0 is below the threshold 100.0."], True, True),
 ]
 
-@pytest.mark.parametrize("id, mode, template, modules, modules_thresholds, changed_files, expected_comments, evaluated_cov_reports, evaluated_cov_modules, violations, skip_not_changed, use_baseline", more_source_files_scenarios)
-def test_successful_more_source_files(jacoco_report, id, mode, template, modules, modules_thresholds, changed_files, expected_comments, evaluated_cov_reports, evaluated_cov_modules, violations, skip_not_changed, use_baseline, mocker):
+@pytest.mark.parametrize("id, mode, template, modules, modules_thresholds, changed_files, expected_comments, evaluated_cov_reports, evaluated_cov_modules, violations, skip_unchanged, use_baseline", more_source_files_scenarios)
+def test_successful_more_source_files(jacoco_report, id, mode, template, modules, modules_thresholds, changed_files, expected_comments, evaluated_cov_reports, evaluated_cov_modules, violations, skip_unchanged, use_baseline, mocker):
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value='pull_request')
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_token", return_value='fake_token')
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_comment_mode", return_value=mode)
@@ -2019,7 +2019,7 @@ def test_successful_more_source_files(jacoco_report, id, mode, template, modules
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_modules", return_value=modules)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_modules_thresholds", return_value=modules_thresholds)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_repository", return_value="MoranaApps/jacoco-report")
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_not_changed", return_value=skip_not_changed)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_unchanged", return_value=skip_unchanged)
     mocker.patch("jacoco_report.utils.github.GitHub.get_pr_number", return_value=35)
     mocker.patch("jacoco_report.utils.github.GitHub.get_pr_changed_files", return_value=changed_files)
 
@@ -2259,7 +2259,7 @@ def test_violations(jacoco_report, id, mode, template, modules, modules_threshol
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_modules", return_value=modules)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_modules_thresholds", return_value=modules_thresholds)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_repository", return_value="MoranaApps/jacoco-report")
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_not_changed", return_value=True)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_unchanged", return_value=True)
     mocker.patch("jacoco_report.utils.github.GitHub.get_pr_number", return_value=35)
     mocker.patch("jacoco_report.utils.github.GitHub.get_pr_changed_files", return_value=changed_files)
 

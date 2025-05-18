@@ -55,7 +55,7 @@ class ModulePRCommentGenerator(MultiPRCommentGenerator):
             inner_reports_passed = self._check_inner_reports_passed(evaluated_module_coverage)
 
             if (
-                ActionInputs.get_skip_not_changed()
+                ActionInputs.get_skip_unchanged()
                 and len(changed_lines) == 0
                 and evaluated_module_coverage.overall_passed
                 and evaluated_module_coverage.sum_changed_files_passed

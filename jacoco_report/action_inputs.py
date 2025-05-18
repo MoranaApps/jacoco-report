@@ -18,7 +18,7 @@ from jacoco_report.utils.constants import (
     COMMENT_MODE,
     MODULES,
     MODULES_THRESHOLDS,
-    SKIP_NOT_CHANGED,
+    SKIP_UNCHANGED,
     UPDATE_COMMENT,
     PASS_SYMBOL,
     FAIL_SYMBOL,
@@ -231,11 +231,11 @@ class ActionInputs:
         return parse_module_thresholds(raw_input)
 
     @staticmethod
-    def get_skip_not_changed() -> bool:
+    def get_skip_unchanged() -> bool:
         """
-        Get the skip not changed from the action inputs.
+        Get the skip unchanged from the action inputs.
         """
-        return get_action_input(SKIP_NOT_CHANGED, "false") == "true"
+        return get_action_input(SKIP_UNCHANGED, "false") == "true"
 
     @staticmethod
     def get_update_comment() -> bool:
@@ -511,9 +511,9 @@ class ActionInputs:
                 for module_threshold in f_modules_thresholds:
                     errors.extend(ActionInputs.validate_module_threshold(module_threshold))
 
-        skip_not_changed = ActionInputs.get_skip_not_changed()
-        if not isinstance(skip_not_changed, bool):
-            errors.append("'skip-not-changed' must be a boolean.")
+        skip_unchanged = ActionInputs.get_skip_unchanged()
+        if not isinstance(skip_unchanged, bool):
+            errors.append("'skip-unchanged' must be a boolean.")
 
         update_comment = ActionInputs.get_update_comment()
         if not isinstance(update_comment, bool):
@@ -554,7 +554,7 @@ class ActionInputs:
             f"Title: {ActionInputs.get_title()}\n"
             f"Comment mode: {ActionInputs.get_comment_mode()}\n"
             "\n"
-            f"Skip not changed: {ActionInputs.get_skip_not_changed()}\n"
+            f"Skip unchanged: {ActionInputs.get_skip_unchanged()}\n"
             f"Update comment: {ActionInputs.get_update_comment()}\n"
             f"Fail on threshold: {ActionInputs.get_fail_on_threshold()}\n"
             f"Debug logging enabled: {ActionInputs.get_debug()}"

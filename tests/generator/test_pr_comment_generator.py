@@ -53,7 +53,7 @@ def test_get_modules_table(pr_comment_generator):
 def test_get_modules_table_with_baseline_with_modules(pr_comment_generator, mocker):
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["baseline.xml"])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_modules", return_value={"test", "test2"})
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_not_changed", return_value=False)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_unchanged", return_value=False)
     mocker.patch("jacoco_report.generator.pr_comment_generator.PRCommentGenerator._calculate_baseline_module_diffs", return_value=(1.1, 2.0))
 
     pr_comment_generator.evaluator._modules["test"] = Module("test", "path",85.2, 80.0, 80.0)
@@ -71,7 +71,7 @@ def test_get_modules_table_with_baseline_with_modules(pr_comment_generator, mock
 def test_generate_modules_table_with_baseline(pr_comment_generator, mocker):
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["baseline.xml"])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_modules", return_value={"test", "test2"})
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_not_changed", return_value=True)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_unchanged", return_value=True)
     mocker.patch("jacoco_report.generator.pr_comment_generator.PRCommentGenerator._calculate_baseline_module_diffs", return_value=(1.1, 2.0))
 
     pr_comment_generator.evaluator._modules["test"] = Module("test", "path",85.2, 80.0, 80.0)
@@ -136,7 +136,7 @@ def test_generate_changed_files_table_with_baseline(pr_comment_generator, mocker
     # Mock the necessary methods and attributes
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["baseline.xml"])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_modules", return_value={"test", "test2"})
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_not_changed", return_value=False)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_unchanged", return_value=False)
     mocker.patch("hashlib.sha256", return_value=mocker.Mock(hexdigest=lambda: "fakehash"))
 
     pr_comment_generator.github_repository = "fake_repo"
@@ -176,7 +176,7 @@ def test_generate_changed_files_table_with_baseline_no_evaluated_report_coverage
     # Mock the necessary methods and attributes
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["baseline.xml"])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_modules", return_value={"test", "test2"})
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_not_changed", return_value=False)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_unchanged", return_value=False)
     mocker.patch("hashlib.sha256", return_value=mocker.Mock(hexdigest=lambda: "fakehash"))
 
     pr_comment_generator.github_repository = "fake_repo"
@@ -216,7 +216,7 @@ def test_generate_changed_files_table_with_baseline_no_changed_file(pr_comment_g
     # Mock the necessary methods and attributes
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["baseline.xml"])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_modules", return_value={"test", "test2"})
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_not_changed", return_value=False)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_unchanged", return_value=False)
     mocker.patch("hashlib.sha256", return_value=mocker.Mock(hexdigest=lambda: "fakehash"))
 
     pr_comment_generator.github_repository = "fake_repo"
