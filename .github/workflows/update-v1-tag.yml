@@ -5,7 +5,7 @@ on:
     types: [published]
 
 jobs:
-  update-v1:
+  update-v2-tag:
     permissions:
       contents: write
     runs-on: ubuntu-latest
