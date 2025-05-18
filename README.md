@@ -56,27 +56,27 @@ jobs:
 
 ### Action Inputs
 
-| Name                            | Description                                                                                                                                                                                                             | Required                        | Default                                                                                                   | 
-|---------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------|-----------------------------------------------------------------------------------------------------------|
-| `paths`                         | Comma-separated paths to the generated Jacoco XML files. Supports wildcard glob patterns.                                                                                                                               | **Yes**                         |                                                                                                           |
-| `exclude-paths`                 | Comma-separated paths to exclude from coverage analysis. Supports glob patterns.                                                                                                                                        | No                              | ''                                                                                                        |
-| `min-coverage-overall`          | Minimum **overall code coverage** percentage required to pass the check.                                                                                                                                                | No                              | 0                                                                                                         |
-| `min-coverage-changed-files`    | Minimum **average code coverage** required across changed files, depending on the selected `comment-mode`.                                                                                                              | No                              | 0                                                                                                         |
-| `min-coverage-per-changed-file` | Minimum **code coverage** percentage required for each changed file **individually**.                                                                                                                                       | No                              | 0                                                                                                         |
+| Name                            | Description                                                                                                                                                                                                             | Required                        | Default                                                                                               |
+|---------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------|-------------------------------------------------------------------------------------------------------|
+| `paths`                         | Comma-separated paths to the generated Jacoco XML files. Supports wildcard glob patterns.                                                                                                                               | **Yes**                         |                                                                                                       |
+| `exclude-paths`                 | Comma-separated paths to exclude from coverage analysis. Supports glob patterns.                                                                                                                                        | No                              | ''                                                                                                    |
+| `min-coverage-overall`          | Minimum **overall code coverage** percentage required to pass the check.                                                                                                                                                | No                              | 0                                                                                                     |
+| `min-coverage-changed-files`    | Minimum **average code coverage** required across changed files, depending on the selected `comment-mode`.                                                                                                              | No                              | 0                                                                                                     |
+| `min-coverage-per-changed-file` | Minimum **code coverage** percentage required for each changed file **individually**.                                                                                                                                       | No                              | 0                                                                                                     |
 | `title`                         | Title for the coverage report comment added to the Pull Request.                                                                                                                                                        | No                              | single: `JaCoCo Coverage Report` <br> multi: `Report: {report name}` <br> module: `Module: {module name}` |
-| `pr-number`                     | Number of the pull request. If not provided, the action will attempt to determine <br> the PR number from the GitHub context.                                                                                           | No                              | ''                                                                                                        |
-| `metric`                        | A metric to use for coverage calculation (`instruction`, `line`, `branch`, `complexity`, `method`, `class`).                                                                                                            | No                              | `instruction`                                                                                             | 
-| `sensitivity`                   | Control the sensitivity of the coverage evaluation to the thresholds (`minimal,` `summary,` or `detail`).                                                                                                               | No                              | `detailed`                                                                                                | 
-| `comment-mode`                  | Mode of the comment (`single` for one comment, `multi` for comments per jacoco.xml file, <br> `module` for comment per each module).                                                                                    | No                              | `single`                                                                                                  |
-| `modules`                       | List of modules and their unique paths (e.g., `management: context/management`).<br>Required when `comment-mode` set to `module`. <br> Optional when `comment-mode` set to `single`.                                    | If `comment-mode` is `module`   | ``                                                                                                        |
-| `modules-thresholds`            | List of modules and their coverage thresholds (e.g., `core: 80`). Optional when `comment-mode` set to `module`.                                                                                                         | No                              | ``                                                                                                        |
-| `skip-not-changed`              | If enabled (true), filters JaCoCo-related comments to show only relevant changes.<br>It removes unchanged lines from the modules table and skips comments for unmodified modules and reports, <br> reducing noise in PRs. | No                              | false                                                                                                     |
-| `baseline-paths`                | Paths to baseline coverage reports for comparison. Supports wildcard glob patterns.<br>Paths have to be valid for modules if used.                                                                                      | No                              | ''                                                                                                        |
-| `update-comment`                | If enabled (true), ensures the action updates an existing comment with the latest coverage <br> data instead of creating a new comment. Prevents comment clutter in pull requests.                                      | No                              | true                                                                                                      |
-| `pass-symbol`                   | Symbol displayed next to passing checks in the pull request comments (e.g., ✅, **Passed**).                                                                                                                             | No                              | ✅                                                                                                         |
-| `fail-symbol`                   | Symbol displayed next to failing checks in the pull request comments (e.g., ❌, **Failed**).                                                                                                                             | No                              | ❌                                                                                                         |
-| `fail-on-threshold`             | If enabled (true), fails the GitHub action if a threshold is not reached.                                                                                                                                               | No                              | true                                                                                                      |
-| `debug`                         | Enables detail logging for debugging purposes. Automatically activated if the GitHub <br> workflow is run in debug mode (ACTIONS_RUNNER_DEBUG=true).                                                                    | No                              | false                                                                                                     |
+| `pr-number`                     | Number of the pull request. If not provided, the action will attempt to determine <br> the PR number from the GitHub context.                                                                                           | No                              | ''                                                                                                    |
+| `metric`                        | A metric to use for coverage calculation (`instruction`, `line`, `branch`, `complexity`, `method`, `class`).                                                                                                            | No                              | `instruction`                                                                                         |
+| `sensitivity`                   | Control the sensitivity of the coverage evaluation to the thresholds (`minimal,` `summary,` or `detail`).                                                                                                               | No                              | `detailed`                                                                                            |
+| `comment-mode`                  | Mode of the comment (`single` for one comment, `multi` for comments per jacoco.xml file, <br> `module` for comment per each module).                                                                                    | No                              | `single`                                                                                              |
+| `modules`                       | List of modules and their unique paths (e.g., `management: context/management`).<br>Required when `comment-mode` set to `module`. <br> Optional when `comment-mode` set to `single`.                                    | If `comment-mode` is `module`   | ''                                                                                                      |
+| `modules-thresholds`            | List of modules and their coverage thresholds (e.g., `core: 80`). Optional when `comment-mode` set to `module`.                                                                                                         | No                              | ''                                                                                                      |
+| `skip-not-changed`              | If enabled (true), filters JaCoCo-related comments to show only relevant changes.<br>It removes unchanged lines from the modules table and skips comments for unmodified modules and reports, <br> reducing noise in PRs. | No                              | false                                                                                                 |
+| `baseline-paths`                | Paths to baseline coverage reports for comparison. Supports wildcard glob patterns.<br>Paths have to be valid for modules if used.                                                                                      | No                              | ''                                                                                                    |
+| `update-comment`                | If enabled (true), ensures the action updates an existing comment with the latest coverage <br> data instead of creating a new comment. Prevents comment clutter in pull requests.                                      | No                              | true                                                                                                  |
+| `pass-symbol`                   | Symbol displayed next to passing checks in the pull request comments (e.g., ✅, **Passed**).                                                                                                                             | No                              | ✅                                                                                                     |
+| `fail-symbol`                   | Symbol displayed next to failing checks in the pull request comments (e.g., ❌, **Failed**).                                                                                                                             | No                              | ❌                                                                                                     |
+| `fail-on-threshold`             | If enabled (true), fails the GitHub action if a threshold is not reached.                                                                                                                                               | No                              | true                                                                                                  |
+| `debug`                         | Enables detail logging for debugging purposes. Automatically activated if the GitHub <br> workflow is run in debug mode (ACTIONS_RUNNER_DEBUG=true).                                                                    | No                              | false                                                                                                 |
 
 > Hint: default values have been defined to provide maximal possible information in the comment.
 
@@ -92,8 +92,8 @@ threshold.
 - `reports-coverage`: A JSON string containing the evaluated coverage reports.
 - `modules-coverage`: A JSON string containing the evaluated coverage modules.
 - `violations`: A list of violations encountered during the coverage evaluation.
-
-### Examples:
+  
+### Examples
 
 - [Customising the Exclude Paths](#customising-paths-the-exclude-paths)
 - [Customizing the Global Coverage Thresholds](#customizing-the-global-coverage-thresholds)
@@ -118,7 +118,7 @@ analysis.
 - You can specify final list of paths separated by commas.
 
 The `exclude-paths` input allows you to specify files or directories that should be excluded from the code coverage
-analysis. 
+analysis.
 
 ```yaml
 - name: Publish JaCoCo Report
@@ -134,7 +134,6 @@ analysis.
       **/legacy/**,                     # Exclude legacy files in all directories
       module-c/target/**/excluded/**    # Exclude specific paths in module-c
 ```
-
 
 #### Customizing the Global Coverage Thresholds
 
@@ -184,6 +183,7 @@ The `title` input lets you specify a `custom title` for the JaCoCo coverage repo
 - `single`: `{custom title}`
 - `multi`: `{custom title}{report name}`
 - `module`: `{custom title}{report name}`
+
 > **Hint:** `{report name}` is required to produce unique titles for each report.
 
 The `sensitivity` input allows you to choose between a `minimal,` `summary` or `detail` sensitivity levels. This
@@ -194,7 +194,6 @@ setting control:
 - `detail`: The overall coverage, changed files coverage, module coverage, and file coverage are displayed.
 
 With increased sensitivity and more detailed comments, the number of detectable violations increases, too.
-
 
 ```yaml
 - name: Publish JaCoCo Report
@@ -238,7 +237,7 @@ The `modules-thresholds` input allows you to set custom coverage thresholds for 
       utils:*70.0*               # Custom threshold for utils module only for changed files
       module-a:80.0*70.0*        # Custom thresholds for common module for overall and changed files
       module c:80.0*70.0*25.0    # Custom thresholds for common module for overall, changed files and per changed file
-```    
+```
 
 ##### Minimal Sensitivity
 
