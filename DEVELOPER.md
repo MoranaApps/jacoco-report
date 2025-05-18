@@ -209,7 +209,7 @@ All done! ✨ 🍰 ✨
 
 ## Run Unit Test
 
-Unit tests are written using Pytest framework. To run all the tests, use the following command:
+Unit tests are written using the Pytest framework. To run all the tests, use the following command:
 
 ```shell
 pytest tests/
