@@ -303,12 +303,12 @@ def test_get_modules_thresholds_raw(mocker):
 
 def test_get_skip_unchanged_true(mocker):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="true")
-    assert True == ActionInputs.get_skip_unchanged()
+    assert ActionInputs.get_skip_unchanged()
 
 
 def test_get_skip_unchanged_false(mocker):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="false")
-    assert False == ActionInputs.get_skip_unchanged()
+    assert not ActionInputs.get_skip_unchanged()
 
 
 def test_get_update_comment_true(mocker):
