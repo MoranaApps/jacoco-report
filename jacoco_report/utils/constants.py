@@ -20,7 +20,7 @@ COMMENT_MODE = "comment-mode"
 MODULES = "modules"
 MODULES_THRESHOLDS = "modules-thresholds"
 
-SKIP_NOT_CHANGED = "skip-not-changed"
+SKIP_UNCHANGED = "skip-unchanged"
 UPDATE_COMMENT = "update-comment"
 PASS_SYMBOL = "pass-symbol"
 FAIL_SYMBOL = "fail-symbol"

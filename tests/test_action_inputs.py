@@ -19,7 +19,7 @@ success_case = {
     "get_comment_mode": "single",
     "get_modules": "module-a:context/module_a,module-b:module_b",
     "get_modules_thresholds": "module-a:80**,module-b:*70*",
-    "get_skip_not_changed": True,
+    "get_skip_unchanged": True,
     "get_update_comment": True,
     "get_pass_symbol": "**Passed**",
     "get_fail_symbol": "❗",
@@ -75,8 +75,8 @@ failure_cases = [
     ("get_modules_thresholds", "module-a:80**,module-b:**True", "'module-threshold' changed per file value 'True' must be a float or None."),
     ("get_modules_thresholds", "module-a:80**,module-b:*80*:9", "'module-threshold':'module-b:*80*:9' must be in the format 'module:threshold'."),
     ("get_modules_thresholds", "module-a:80**,module-b:*80*:9", "'module-threshold':'module-b:*80*:9' must be in the format 'module:threshold'."),
-    ("get_skip_not_changed", "", "'skip-not-changed' must be a boolean."),
-    ("get_skip_not_changed", 1, "'skip-not-changed' must be a boolean."),
+    ("get_skip_unchanged", "", "'skip-unchanged' must be a boolean."),
+    ("get_skip_unchanged", 1, "'skip-unchanged' must be a boolean."),
     ("get_update_comment", "", "'update-comment' must be a boolean."),
     ("get_update_comment", 1, "'update-comment' must be a boolean."),
     ("get_pass_symbol", "", "'pass-symbol' must be a non-empty string and have a length from 1."),
@@ -301,14 +301,14 @@ def test_get_modules_thresholds_raw(mocker):
     assert "module-a:80*,module-b:  *70" == ActionInputs.get_modules_thresholds(raw=True)
 
 
-def test_get_skip_not_changed_true(mocker):
+def test_get_skip_unchanged_true(mocker):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="true")
-    assert True == ActionInputs.get_skip_not_changed()
+    assert True == ActionInputs.get_skip_unchanged()
 
 
-def test_get_skip_not_changed_false(mocker):
+def test_get_skip_unchanged_false(mocker):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="false")
-    assert False == ActionInputs.get_skip_not_changed()
+    assert False == ActionInputs.get_skip_unchanged()
 
 
 def test_get_update_comment_true(mocker):

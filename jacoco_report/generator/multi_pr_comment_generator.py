@@ -64,7 +64,7 @@ class MultiPRCommentGenerator(PRCommentGenerator):
             title = body = f"**{ActionInputs.get_title(evaluated_coverage_report.name)}**"
 
             if (
-                ActionInputs.get_skip_not_changed()
+                ActionInputs.get_skip_unchanged()
                 and len(evaluated_coverage_report.changed_files_passed) == 0
                 and evaluated_coverage_report.overall_passed
                 and evaluated_coverage_report.sum_changed_files_passed

@@ -37,7 +37,7 @@ def test_no_changed_files_in_reports(mocker):
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=True)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_title", return_value="Report Title")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=None)
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_not_changed", return_value=False)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_unchanged", return_value=False)
 
     # Create a mock GitHub instance
     mock_gh = mocker.Mock(spec=GitHub)

@@ -70,7 +70,7 @@ jobs:
 | `comment-mode`                  | Mode of the comment (`single` for one comment, `multi` for comments per jacoco.xml file, <br> `module` for comment per each module).                                                                                    | No                              | `single`                                                                                              |
 | `modules`                       | List of modules and their unique paths (e.g., `management: context/management`).<br>Required when `comment-mode` set to `module`. <br> Optional when `comment-mode` set to `single`.                                    | If `comment-mode` is `module`   | ''                                                                                                      |
 | `modules-thresholds`            | List of modules and their coverage thresholds (e.g., `core: 80`). Optional when `comment-mode` set to `module`.                                                                                                         | No                              | ''                                                                                                      |
-| `skip-not-changed`              | If enabled (true), filters JaCoCo-related comments to show only relevant changes.<br>It removes unchanged lines from the modules table and skips comments for unmodified modules and reports, <br> reducing noise in PRs. | No                              | false                                                                                                 |
+| `skip-unchanged`                | If enabled (true), filters JaCoCo-related comments to show only relevant changes.<br>It removes unchanged lines from the modules table and skips comments for unmodified modules and reports, <br> reducing noise in PRs. | No                              | false                                                                                                 |
 | `baseline-paths`                | Paths to baseline coverage reports for comparison. Supports wildcard glob patterns.<br>Paths have to be valid for modules if used.                                                                                      | No                              | ''                                                                                                    |
 | `update-comment`                | If enabled (true), ensures the action updates an existing comment with the latest coverage <br> data instead of creating a new comment. Prevents comment clutter in pull requests.                                      | No                              | true                                                                                                  |
 | `pass-symbol`                   | Symbol displayed next to passing checks in the pull request comments (e.g., ✅, **Passed**).                                                                                                                             | No                              | ✅                                                                                                     |
@@ -103,7 +103,7 @@ threshold.
   - [Minimal Sensitivity](#minimal-sensitivity)
   - [Summary Sensitivity](#summary-sensitivity)
   - [Detailed Sensitivity](#detailed-sensitivity)
-- [Customizing the Skip Not Changed Option and Update Comment](#customizing-the-skip-not-changed-option-and-update-comment)
+- [Customizing the Skip Unchanged Option and Update Comment](#customizing-the-skip-unchanged-option-and-update-comment)
 - [Customizing the Baseline Paths](#customizing-the-baseline-paths)
 - [Customizing the Symbols and Metric Type](#customizing-the-symbols-and-metric-type)
 - [Customizing the Debug Mode](#customizing-the-debug-mode)
@@ -341,9 +341,9 @@ coverage.
 > - The report table is always visible. When `modules` and `modules-thresholds` are defined, the module's thresholds
 > are used; otherwise, the minimal thresholds are used.
 
-#### Customizing the Skip Not Changed Option and Update Comment
+#### Customizing the Skip Unchanged Option and Update Comment
 
-The `skip-not-changed` input, when set to true, optimizes JaCoCo-related comments by focusing only on relevant changes
+The `skip-unchanged` input, when set to true, optimizes JaCoCo-related comments by focusing only on relevant changes
 in the pull request. It removes unchanged lines from the modules table and reduces the number of generated comments by
 skipping entire modules and reports with no modified files.
 
@@ -357,7 +357,7 @@ The comment is identified by the title.
   with:
     token: '${{ secrets.TOKEN }}'
     paths: **/jacoco/**/*.xml
-    skip-not-changed: true  # Skip commenting for unchanged files
+    skip-unchanged: true  # Skip commenting for unchanged files
     update-comment: true  # Update the existing comment with the latest coverage data
 ```
 
