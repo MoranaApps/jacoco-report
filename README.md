@@ -6,7 +6,7 @@
 - [Usage](#usage)
   - [Action Inputs](#action-inputs)
   - [Outputs](#outputs)
-  - [Examples](#examles)
+  - [Examples](#examples)
 - [Developer](#developer)
 - [License](#license)
 - [Donate](#donate)
@@ -87,7 +87,8 @@ The following outputs are set by the JaCoCo GitHub Action:
 - `coverage-overall`: The overall code coverage percentage.
 - `coverage-changed-files`: The code coverage percentage for the changed files.
 - `coverage-overall-passed`: A boolean indicating if the overall code coverage meets the minimum threshold.
-- `coverage-changed-files-passed`: A boolean indicating if the code coverage for the changed files meets the minimum threshold.
+- `coverage-changed-files-passed`: A boolean indicating if the code coverage for the changed files meets the minimum
+threshold.
 - `reports-coverage`: A JSON string containing the evaluated coverage reports.
 - `modules-coverage`: A JSON string containing the evaluated coverage modules.
 - `violations`: A list of violations encountered during the coverage evaluation.
@@ -109,13 +110,15 @@ The following outputs are set by the JaCoCo GitHub Action:
 
 #### Customising Paths the Exclude Paths
 
-The `paths` input allows you to specify the paths to the JaCoCo XML files that should be included in the code coverage analysis.
+The `paths` input allows you to specify the paths to the JaCoCo XML files that should be included in the code coverage
+analysis.
 
 - You can use wildcard glob patterns to match multiple files:
   - `**/*.xml` will match all XML files in the repository.
 - You can specify final list of paths separated by commas.
 
-The `exclude-paths` input allows you to specify files or directories that should be excluded from the code coverage analysis. 
+The `exclude-paths` input allows you to specify files or directories that should be excluded from the code coverage
+analysis. 
 
 ```yaml
 - name: Publish JaCoCo Report
@@ -138,11 +141,13 @@ The `exclude-paths` input allows you to specify files or directories that should
 You can use these inputs to define minimum required code coverage levels for your pull requests:
 
 - `min-coverage-overall`: Minimum coverage required across **all files** in the project.
-- `min-coverage-changed-files`: Minimum **average coverage** required across changed files. The exact set of files depends on the selected **change scope mode**:
+- `min-coverage-changed-files`: Minimum **average coverage** required across changed files. The exact set of files
+depends on the selected **change scope mode**:
   - `single`: All changed files in the pull request.
   - `multi`: All changed files in each report.
   - `module`: All changed files in each module.
-- `min-coverage-per-changed-file`: Minimum coverage required for each individual changed file. If any file falls below this value, the check will fail.
+- `min-coverage-per-changed-file`: Minimum coverage required for each individual changed file. If any file falls below
+- this value, the check will fail.
 
 These thresholds help you maintain consistent test quality as your codebase evolves.
 
@@ -160,7 +165,8 @@ These thresholds help you maintain consistent test quality as your codebase evol
 
 #### Customizing the PR Number
 
-The `pr-number` input allows you to specify the number of the pull request. If not provided, the action will attempt to determine the PR number from the GitHub context.
+The `pr-number` input allows you to specify the number of the pull request. If not provided, the action will attempt
+to determine the PR number from the GitHub context.
 
 ```yaml
 - name: Publish JaCoCo Report
@@ -180,7 +186,8 @@ The `title` input lets you specify a `custom title` for the JaCoCo coverage repo
 - `module`: `{custom title}{report name}`
 > **Hint:** `{report name}` is required to produce unique titles for each report.
 
-The `sensitivity` input allows you to choose between a `minimal,` `summary` or `detail` sensitivity levels. This setting control:
+The `sensitivity` input allows you to choose between a `minimal,` `summary` or `detail` sensitivity levels. This
+setting control:
 
 - `minimal`: Only the overall coverage and changed files coverage are displayed.
 - `summary`: The overall coverage, changed files coverage, and module coverage are displayed.
@@ -210,7 +217,8 @@ The `comment-mode` input controls how the comments are organized:
 The `modules` input specifies a list of modules and their unique paths. Required when `comment-mode` is set to `module`.
 **Hint:** When using baseline fature keep in mind that the module path should be same for baseline and current report.
 
-The `modules-thresholds` input allows you to set custom coverage thresholds for each module. Optional when `comment-mode` is set to `module`. Missing thresholds values will use the global thresholds.
+The `modules-thresholds` input allows you to set custom coverage thresholds for each module. Optional when
+`comment-mode` is set to `module`. Missing thresholds values will use the global thresholds.
 
 ```yaml
 - name: Publish JaCoCo Report
@@ -236,9 +244,12 @@ The `modules-thresholds` input allows you to set custom coverage thresholds for 
 
 The `minimal` sensitivity level displays only the overall coverage and coverage for changed files.
 
-- When the `comment-mode` is set to `single`, one comment is added to the pull request representing the overall and changed files coverage for all detected report files.
-- When the `comment-mode` is set to `multi`, multiple comments are added to the pull request, one for each detected report file.
-- When the `comment-mode` is set to `module`, individual comments are added to the pull request for each module and its detected report files.
+- When the `comment-mode` is set to `single`, one comment is added to the pull request representing the overall and
+changed files coverage for all detected report files.
+- When the `comment-mode` is set to `multi`, multiple comments are added to the pull request, one for each detected
+report file.
+- When the `comment-mode` is set to `module`, individual comments are added to the pull request for each module and its
+detected report files.
 
 ###### JaCoCo Coverage Report
 
@@ -251,11 +262,15 @@ The `minimal` sensitivity level displays only the overall coverage and coverage 
 
 ##### Summary Sensitivity
 
-- When the `comment-mode` is set to `single`, one comment is added to the pull request representing the overall and changed files coverage for all detected report files.
-- When the `comment-mode` is set to `multi`, multiple comments are added to the pull request, one for each detected report file.
+- When the `comment-mode` is set to `single`, one comment is added to the pull request representing the overall and
+changed files coverage for all detected report files.
+- When the `comment-mode` is set to `multi`, multiple comments are added to the pull request, one for each detected
+report file.
   - The module table is not visible in the `multi` mode as there is no module information available.
-- When the `comment-mode` is set to `module`, individual comments are added to the pull request for each module and its detected report files.
-  - The module table is not visible in the `module` mode as the overall and changed files coverage represent the module coverage.
+- When the `comment-mode` is set to `module`, individual comments are added to the pull request for each module and its
+detected report files.
+  - The module table is not visible in the `module` mode as the overall and changed files coverage represent the module
+coverage.
 
 ###### JaCoCo Coverage Report
 
@@ -280,15 +295,20 @@ The `minimal` sensitivity level displays only the overall coverage and coverage 
 > - **(Ch)** - Coverage for changed files.
 > - **Δ Coverage** is visible when `baseline-paths` are defined and data is available.
 > - Module table visible when input `modules` is defined and `comment-mode` is `single`.
-> - The report table is always visible. When `modules` and `modules-thresholds` are defined, the module's thresholds are used; otherwise, the minimal thresholds are used.
+> - The report table is always visible. When `modules` and `modules-thresholds` are defined, the module's thresholds
+> are used; otherwise, the minimal thresholds are used.
 
 ##### Detailed Sensitivity
 
-- When the `comment-mode` is set to `single`, one comment is added to the pull request representing the overall and changed files coverage for all detected report files.
-- When the `comment-mode` is set to `multi`, multiple comments are added to the pull request, one for each detected report file.
+- When the `comment-mode` is set to `single`, one comment is added to the pull request representing the overall and
+changed files coverage for all detected report files.
+- When the `comment-mode` is set to `multi`, multiple comments are added to the pull request, one for each detected
+report file.
   - The module table is not visible in the `multi` mode as there is no module information available.
-- When the `comment-mode` is set to `module`, individual comments are added to the pull request for each module and its detected report files.
-  - The module table is not visible in the `module` mode as the overall and changed files coverage represent the module coverage.
+- When the `comment-mode` is set to `module`, individual comments are added to the pull request for each module and its
+detected report files.
+  - The module table is not visible in the `module` mode as the overall and changed files coverage represent the module
+coverage.
 
 ###### JaCoCo Coverage Report
 
@@ -319,13 +339,17 @@ The `minimal` sensitivity level displays only the overall coverage and coverage 
 > - **(Ch)** - Coverage for changed files.
 > - **Δ Coverage** is visible when `baseline-paths` are defined and data is available.
 > - Module table visible when input `modules` is defined and `comment-mode` is `single`.
-> - The report table is always visible. When `modules` and `modules-thresholds` are defined, the module's thresholds are used; otherwise, the minimal thresholds are used.
+> - The report table is always visible. When `modules` and `modules-thresholds` are defined, the module's thresholds
+> are used; otherwise, the minimal thresholds are used.
 
 #### Customizing the Skip Not Changed Option and Update Comment
 
-The `skip-not-changed` input, when set to true, optimizes JaCoCo-related comments by focusing only on relevant changes in the pull request. It removes unchanged lines from the modules table and reduces the number of generated comments by skipping entire modules and reports with no modified files.
+The `skip-not-changed` input, when set to true, optimizes JaCoCo-related comments by focusing only on relevant changes
+in the pull request. It removes unchanged lines from the modules table and reduces the number of generated comments by
+skipping entire modules and reports with no modified files.
 
-The `update-comment` input, when set to true, updates an existing comment with the latest coverage data instead of creating a new comment.
+The `update-comment` input, when set to true, updates an existing comment with the latest coverage data instead of
+creating a new comment.
 The comment is identified by the title.
 
 ```yaml
@@ -340,9 +364,11 @@ The comment is identified by the title.
 
 #### Customizing the Baseline Paths
 
-The `baseline-paths` input allows you to define paths to baseline coverage reports. This enables comparing the pull request coverage with an established baseline, such as the main branch.
+The `baseline-paths` input allows you to define paths to baseline coverage reports. This enables comparing the pull
+request coverage with an established baseline, such as the main branch.
 
-**Required**: Each report has defined unique report name (report title). The report name is used to match the baseline report with the current report.
+**Required**: Each report has defined unique report name (report title). The report name is used to match the baseline
+report with the current report.
 
 ```yaml
 - name: Publish JaCoCo Report
@@ -357,7 +383,8 @@ The `baseline-paths` input allows you to define paths to baseline coverage repor
 
 #### Customizing the Symbols and Metric Type
 
-The `pass-symbol` and `fail-symbol` inputs allow you to define custom symbols for passing and failing checks in the pull request comments.
+The `pass-symbol` and `fail-symbol` inputs allow you to define custom symbols for passing and failing checks in the
+pull request comments.
 
 ```yaml
 - name: Publish JaCoCo Report
@@ -372,7 +399,8 @@ The `pass-symbol` and `fail-symbol` inputs allow you to define custom symbols fo
 
 #### Customizing the Verbose Mode
 
-The `verbose` input enables detailed logging for debugging. This is automatically enabled in debug mode (`ACTIONS_RUNNER_DEBUG=true`).
+The `verbose` input enables detailed logging for debugging. This is automatically enabled in debug mode
+(`ACTIONS_RUNNER_DEBUG=true`).
 
 ```yaml
 - name: Publish JaCoCo Report
@@ -395,7 +423,8 @@ Follow the [DEVELOPER.md](DEVELOPER.md) guide to setup the development environme
 
 If you find this project useful or interesting, consider supporting it!
 
-Your donation helps me keep building, maintaining and improving this tool — every bit of support matters and is deeply appreciated.
+Your donation helps me keep building, maintaining and improving this tool — every bit of support matters and is deeply
+appreciated.
 
 - [Buy me a coffee on Ko-fi](https://ko-fi.com/mirpo)
 

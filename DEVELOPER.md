@@ -42,7 +42,7 @@ touch run_script.sh
 
 Add the shebang line at the top of the sh script file.
 
-```
+```bash
 #!/bin/sh
 
 # Essential environment variables for GitHub Action functionality
@@ -140,13 +140,13 @@ Example:
 
 ```shell
 pylint jacoco_report/jacoco_report.py
-``` 
+```
 
 ### Expected Output
 
 This is the console expected output example after running the tool:
 
-```
+```shell
 ************* Module main
 main.py:30:0: C0116: Missing function or method docstring (missing-function-docstring)
 
@@ -194,13 +194,13 @@ Example:
 
 ```shell
 black jacoco_report/jacoco_report.py
-``` 
+```
 
 ### Expected Output
 
 This is the console expected output example after running the tool:
 
-```
+```shell
 All done! ✨ 🍰 ✨
 1 file reformatted.
 ```
@@ -228,7 +228,7 @@ pytest tests/utils/test_utils.py::test_make_issue_key
 ## Code Coverage
 
 This project uses [pytest-cov](https://pypi.org/project/pytest-cov/) plugin to generate test coverage reports.
-The objective of the project is to achieve a minimal score of 80 %. We do exclude the `tests/` file from the coverage 
+The objective of the project is to achieve a minimal score of 80 %. We do exclude the `tests/` file from the coverage
 report.
 
 To generate the coverage report, run the following command:
@@ -247,11 +247,11 @@ open htmlcov/index.html
 
 ## Releasing
 
-This project uses GitHub Actions for deployment draft creation. The deployment process is semi-automated by a workflow 
+This project uses GitHub Actions for deployment draft creation. The deployment process is semi-automated by a workflow
 defined in `.github/workflows/release_draft.yml`.
 
 - **Trigger the workflow**: The `release_draft.yml` workflow is triggered on workflow_dispatch.
 - **Create a new draft release**: The workflow creates a new draft release in the repository.
-- **Finalize the release draft**: Edit the draft release to add a title, description, and any other necessary details 
+- **Finalize the release draft**: Edit the draft release to add a title, description, and any other necessary details
 related to GitHub Action.
 - **Publish the release**: Once the draft is ready, publish the release to make it available to the public.
