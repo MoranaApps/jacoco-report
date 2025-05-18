@@ -1,0 +1,22 @@
+name: Markdown Lint
+
+on:
+  pull_request:
+    paths:
+      - '**/*.md'
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    name: Markdown Lint
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Lint changelog file
+        uses: docker://avtodev/markdown-lint:v1.5.0
+        with:
+          config: './lint.changelog.yml'
+          args: '**/*.md'
