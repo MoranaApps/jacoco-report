@@ -46,7 +46,7 @@ class MultiPRCommentGenerator(PRCommentGenerator):
                 logger.info("Updated comment with title: '%s'", title)
             elif existing_comment and skipped_comment:
                 # comment already exists on the PR & comment skip rules met
-                self.gh.delete_pr_comment(existing_comment["id"])
+                self.gh.delete_comment(existing_comment["id"])
                 logger.info("Deleted comment with title: '%s'", title)
             elif not existing_comment and body:
                 # comment does not exist on the PR & comment skip rules not met
@@ -63,12 +63,7 @@ class MultiPRCommentGenerator(PRCommentGenerator):
         for key, evaluated_coverage_report in self.evaluator.evaluated_reports_coverage.items():
             title = body = f"**{ActionInputs.get_title(evaluated_coverage_report.name)}**"
 
-            if (
-                ActionInputs.get_skip_unchanged()
-                and len(evaluated_coverage_report.changed_files_passed) == 0
-                and evaluated_coverage_report.overall_passed
-                and evaluated_coverage_report.sum_changed_files_passed
-            ):
+            if ActionInputs.get_skip_unchanged() and len(evaluated_coverage_report.changed_files_passed) == 0:
                 comments[title] = None
                 continue
 

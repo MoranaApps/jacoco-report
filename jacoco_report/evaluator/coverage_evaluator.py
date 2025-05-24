@@ -167,13 +167,23 @@ class CoverageEvaluator:
         Global violations are only reported when comment mode is set to SINGLE.
         Module and report-level violations are added based on sensitivity and comment mode settings.
         """
+        skip_unchanged_with_none_changed_files = ActionInputs.get_skip_unchanged() and self.changed_files_count() == 0
+
         # global - usable only for `single` comment-mode
-        if not self.total_coverage_overall_passed and ActionInputs.get_comment_mode() == CommentModeEnum.SINGLE:
+        if (
+            not self.total_coverage_overall_passed
+            and ActionInputs.get_comment_mode() == CommentModeEnum.SINGLE
+            and not skip_unchanged_with_none_changed_files
+        ):
             self.violations.append(
                 f"Global overall coverage {self.total_coverage_overall} is below the threshold "
                 f"{self._global_min_coverage_overall}."
             )
-        if not self.total_coverage_changed_files_passed and ActionInputs.get_comment_mode() == CommentModeEnum.SINGLE:
+        if (
+            not self.total_coverage_changed_files_passed
+            and ActionInputs.get_comment_mode() == CommentModeEnum.SINGLE
+            and not skip_unchanged_with_none_changed_files
+        ):
             self.violations.append(
                 f"Global changed files coverage {self.total_coverage_changed_files} is below the threshold "
                 f"{self._global_min_coverage_changed_files}."
@@ -182,6 +192,9 @@ class CoverageEvaluator:
         # module violations
         module_violations: list[str] = []
         for module_name, evaluated_coverage_module in self.evaluated_modules_coverage.items():
+            if ActionInputs.get_skip_unchanged() and len(evaluated_coverage_module.changed_files_coverage_reached) == 0:
+                continue
+
             if not evaluated_coverage_module.overall_passed:
                 module_violations.append(
                     f"Module '{module_name}' overall coverage {evaluated_coverage_module.overall_coverage_reached} "
@@ -198,6 +211,9 @@ class CoverageEvaluator:
         changed_files_violations: list[str] = []
 
         for report_path, evaluated_coverage_report in self.evaluated_reports_coverage.items():
+            if ActionInputs.get_skip_unchanged() and len(evaluated_coverage_report.changed_files_coverage_reached) == 0:
+                continue
+
             if not evaluated_coverage_report.overall_passed:
                 report_violations.append(
                     f"Report '{report_path}' overall coverage {evaluated_coverage_report.overall_coverage_reached} "
@@ -334,8 +350,10 @@ class CoverageEvaluator:
             evaluated_coverage_report.sum_changed_files_coverage_reached = 0.0
             evaluated_coverage_report.sum_changed_files_passed = True
         else:
-            evaluated_coverage_report.sum_changed_files_coverage_reached = sum(
-                evaluated_coverage_report.changed_files_coverage_reached.values()
+            evaluated_coverage_report.sum_changed_files_coverage_reached = round(
+                sum(evaluated_coverage_report.changed_files_coverage_reached.values())
+                / len(evaluated_coverage_report.changed_files_coverage_reached.values()),
+                2,
             )
             evaluated_coverage_report.sum_changed_files_passed = (
                 evaluated_coverage_report.sum_changed_files_coverage_reached >= changed_files_threshold
@@ -376,3 +394,16 @@ class CoverageEvaluator:
             changed_per_file_threshold = self._global_min_coverage_changed_per_file
 
         return overall_threshold, changed_files_threshold, changed_per_file_threshold
+
+    def changed_files_count(self) -> int:
+        """
+        Returns the number of changed files in the reports.
+        """
+        return next(
+            (
+                len(report.changed_files_coverage)
+                for report in self._report_files_coverage
+                if report.changed_files_coverage
+            ),
+            0,
+        )

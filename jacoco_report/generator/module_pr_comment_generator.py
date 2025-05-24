@@ -52,28 +52,13 @@ class ModulePRCommentGenerator(MultiPRCommentGenerator):
 
                 body += f"\n\n{self._get_changed_files_table_for_report_from_changed_lines(changed_lines)}"
 
-            inner_reports_passed = self._check_inner_reports_passed(evaluated_module_coverage)
-
-            if (
-                ActionInputs.get_skip_unchanged()
-                and len(changed_lines) == 0
-                and evaluated_module_coverage.overall_passed
-                and evaluated_module_coverage.sum_changed_files_passed
-                and inner_reports_passed
-            ):
+            if ActionInputs.get_skip_unchanged() and len(changed_lines) == 0:
                 comments[title] = None
                 continue
 
             comments[title] = body
 
         return comments
-
-    def _check_inner_reports_passed(self, module: EvaluatedReportCoverage) -> bool:
-        for evaluated_report_coverage in self.evaluator.evaluated_reports_coverage.values():
-            if module.name == evaluated_report_coverage.module_name:
-                if not evaluated_report_coverage.overall_passed:
-                    return False
-        return True
 
     def _get_changed_lines(self, p: str, f: str, evaluated_report_coverage: EvaluatedReportCoverage) -> list[str]:
         changed_lines: list[str] = []
@@ -157,17 +142,6 @@ class ModulePRCommentGenerator(MultiPRCommentGenerator):
         module_name: str = str(kwargs.get("module_name"))
 
         if super()._generate_reports_table__skip(evaluated_report):
-            return True
-
-        if evaluated_report.module_name != module_name:
-            return True
-
-        return False
-
-    def _generate_modules_table__skip(self, evaluated_report: EvaluatedReportCoverage, **kwargs) -> bool:
-        module_name: str = str(kwargs.get("module_name"))
-
-        if super()._generate_modules_table__skip(evaluated_report):
             return True
 
         if evaluated_report.module_name != module_name:

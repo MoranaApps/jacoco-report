@@ -87,4 +87,4 @@ def test__comment_for_delete_detection(mocker):
     # Verify that the existing comment was detected and update_comment was called
     mock_gh.update_comment.assert_not_called()
     mock_gh.add_comment.assert_not_called()
-    mock_gh.delete_pr_comment.assert_called_once_with(1)
+    mock_gh.delete_comment.assert_called_once_with(1)

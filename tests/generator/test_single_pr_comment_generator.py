@@ -41,13 +41,26 @@ def test_generate_creates_comment(single_pr_comment_generator, mocker):
     mock_add_comment.assert_called_once_with(1, "Test Body")
 
 def test_generate_updates_comment(single_pr_comment_generator, mocker):
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_unchanged", return_value="false")
     mocker.patch.object(single_pr_comment_generator, "_get_comment_content", return_value=("Title", "Test Body"))
     mocker.patch.object(single_pr_comment_generator.gh, "get_comments", return_value=[{"id": 1, "body": "Title"}])
+    mocker.patch.object(single_pr_comment_generator.evaluator, "changed_files_count", return_value=1)
     mock_update_comment = mocker.patch.object(single_pr_comment_generator.gh, "update_comment")
 
     single_pr_comment_generator.generate()
 
     mock_update_comment.assert_called_once_with(1, "Test Body")
+
+def test_generate_deletes_comment(single_pr_comment_generator, mocker):
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_unchanged", return_value="false")
+    mocker.patch.object(single_pr_comment_generator, "_get_comment_content", return_value=("Title", "Test Body"))
+    mocker.patch.object(single_pr_comment_generator.gh, "get_comments", return_value=[{"id": 1, "body": "Title"}])
+    mocker.patch.object(single_pr_comment_generator.evaluator, "changed_files_count", return_value=0)
+    mock_delete_comment = mocker.patch.object(single_pr_comment_generator.gh, "delete_comment")
+
+    single_pr_comment_generator.generate()
+
+    mock_delete_comment.assert_called_once_with(1)
 
 def test_get_comment_content_minimalist(single_pr_comment_generator, mocker):
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_title", return_value="Test Title")

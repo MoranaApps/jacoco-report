@@ -153,8 +153,6 @@ class PRCommentGenerator:
         if (
             ActionInputs.get_skip_unchanged()
             and evaluated_report.name not in self.changed_modules
-            and evaluated_report.overall_passed
-            and evaluated_report.sum_changed_files_passed
             and len(evaluated_report.changed_files_coverage_reached) == 0
         ):
             return True
@@ -281,8 +279,6 @@ class PRCommentGenerator:
         if (
             ActionInputs.get_skip_unchanged()
             and evaluated_report.name not in self.changed_modules
-            and evaluated_report.overall_passed
-            and evaluated_report.sum_changed_files_passed
             and len(evaluated_report.changed_files_coverage_reached) == 0
         ):
             return True
