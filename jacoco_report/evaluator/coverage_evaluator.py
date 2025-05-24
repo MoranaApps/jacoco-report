@@ -355,6 +355,7 @@ class CoverageEvaluator:
                 / len(evaluated_coverage_report.changed_files_coverage_reached.values()),
                 2,
             )
+
             evaluated_coverage_report.sum_changed_files_passed = (
                 evaluated_coverage_report.sum_changed_files_coverage_reached >= changed_files_threshold
             )
@@ -397,13 +398,6 @@ class CoverageEvaluator:
 
     def changed_files_count(self) -> int:
         """
-        Returns the number of changed files in the reports.
+        Returns the total number of changed files across all reports.
         """
-        return next(
-            (
-                len(report.changed_files_coverage)
-                for report in self._report_files_coverage
-                if report.changed_files_coverage
-            ),
-            0,
-        )
+        return sum(len(report.changed_files_coverage) for report in self._report_files_coverage)
