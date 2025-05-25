@@ -18,7 +18,7 @@ from jacoco_report.utils.github import GitHub
 logger = logging.getLogger(__name__)
 
 
-# pylint: disable=too-few-public-methods
+# pylint: disable=too-few-public-methods,too-many-instance-attributes
 class JaCoCoReport:
     """
     A class representing the JaCoCo Report.

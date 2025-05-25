@@ -265,7 +265,7 @@ class ActionInputs:
         Supports:
           - "true": fail on all thresholds
           - "false": do not fail
-          - Comma-separated ot newline-separated of supported thresholds: overall, changed-files-average, per-changed-file
+          - Comma or newline separated of supported thresholds: overall, changed-files-average, per-changed-file
         """
         value = get_action_input(FAIL_ON_THRESHOLD, "true").strip().lower()
 
@@ -282,8 +282,9 @@ class ActionInputs:
         # Split on newlines and commas
         raw_items: list[str] = [v.strip() for line in value.splitlines() for v in line.split(",") if v.strip()]
 
-        # Check for unknown items
-        invalid_items = [item for item in raw_items if item not in FailOnThresholdEnum._value2member_map_]
+        # Check for validity of the items
+        valid_values = {e.value for e in FailOnThresholdEnum}
+        invalid_items = [item for item in raw_items if item not in valid_values]
         if invalid_items:
             raise ValueError(f"Unsupported threshold levels: {', '.join(invalid_items)}")
 

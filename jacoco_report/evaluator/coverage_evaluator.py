@@ -164,6 +164,7 @@ class CoverageEvaluator:
         # review for violations
         self._review_violations()
 
+    # pylint: disable=too-many-statements
     def _review_violations(self) -> None:
         """
         Reviews the coverage evaluation results and appends violations to the violations list.
