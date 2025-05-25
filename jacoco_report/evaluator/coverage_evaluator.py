@@ -186,7 +186,7 @@ class CoverageEvaluator:
                     f"Global changed files coverage {self.total_coverage_changed_files} is below the threshold "
                     f"{self._global_min_coverage_changed_files}."
                 )
-                self.reached_threshold_overall = False
+                self.reached_threshold_changed_files_average = False
 
         # module violations
         module_violations: list[str] = []

@@ -2075,8 +2075,8 @@ def test_successful_more_source_files(jacoco_report, id, mode, template, modules
 
     jacoco_report.run()
 
-    for item in mock_add_comment.call_args_list:
-        print(item)
+    # for item in mock_add_comment.call_args_list:
+    #     print(item)
 
     if mode == CommentModeEnum.SINGLE:
         assert mock_add_comment.call_count == len(expected_comments)
@@ -2323,8 +2323,8 @@ def test_violations(jacoco_report, id, mode, template, modules, modules_threshol
 
     jacoco_report.run()
 
-    for comment in mock_add_comment.call_args_list:
-        print(f"\ncomment: \n{comment[0][1]}")
+    # for comment in mock_add_comment.call_args_list:
+    #     print(f"\ncomment: \n{comment[0][1]}")
 
     # print(f"Violations: \n")
     # for violation in jacoco_report.violations:
