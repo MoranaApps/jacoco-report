@@ -1,7 +1,7 @@
 import pytest
 
 from jacoco_report.action_inputs import ActionInputs
-from jacoco_report.utils.enums import CommentModeEnum, SensitivityEnum, MetricTypeEnum
+from jacoco_report.utils.enums import CommentModeEnum, SensitivityEnum, MetricTypeEnum, FailOnThresholdEnum
 from jacoco_report.utils.github import GitHub
 
 # Data-driven test cases
@@ -83,7 +83,6 @@ failure_cases = [
     ("get_pass_symbol", 1, "'pass-symbol' must be a non-empty string and have a length from 1."),
     ("get_fail_symbol", "", "'fail-symbol' must be a non-empty string and have a length from 1."),
     ("get_fail_symbol", 1, "'fail-symbol' must be a non-empty string and have a length from 1."),
-    ("get_fail_on_threshold", "", "'fail-on-threshold' must be a boolean."),
     ("get_debug", "", "'debug' must be a boolean."),
 ]
 
@@ -333,12 +332,32 @@ def test_get_fail_symbol(mocker):
 
 def test_get_fail_on_threshold_true(mocker):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="true")
-    assert True == ActionInputs.get_fail_on_threshold()
+    expected = [FailOnThresholdEnum.OVERALL, FailOnThresholdEnum.CHANGED_FILES_AVERAGE, FailOnThresholdEnum.PER_CHANGED_FILE]
+    assert expected == ActionInputs.get_fail_on_threshold()
 
 
 def test_get_fail_on_threshold_false(mocker):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="false")
-    assert False == ActionInputs.get_fail_on_threshold()
+    assert [] == ActionInputs.get_fail_on_threshold()
+
+
+def test_get_fail_on_threshold_overall(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="overall")
+    assert [FailOnThresholdEnum.OVERALL] == ActionInputs.get_fail_on_threshold()
+
+
+def test_get_fail_on_threshold_overall_changed_average(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="overall\nchanged-files-average")
+    assert [FailOnThresholdEnum.OVERALL, FailOnThresholdEnum.CHANGED_FILES_AVERAGE] == ActionInputs.get_fail_on_threshold()
+
+
+def test_get_fail_on_threshold_invalid_format(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="not supported")
+
+    with pytest.raises(ValueError) as exc_info:
+        ActionInputs.get_fail_on_threshold()
+
+    assert "Unsupported threshold levels: not supported" in str(exc_info.value)
 
 
 def test_get_debug_true(mocker):
