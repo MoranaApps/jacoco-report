@@ -57,6 +57,9 @@ class CoverageEvaluator:
 
         # violations
         self.violations: list[str] = []
+        self.reached_threshold_overall: bool = True
+        self.reached_threshold_changed_files_average: bool = True
+        self.reached_threshold_per_change_file: bool = True
 
     # pylint: disable=too-many-locals
     def evaluate(self) -> None:
@@ -179,6 +182,7 @@ class CoverageEvaluator:
                 f"Global overall coverage {self.total_coverage_overall} is below the threshold "
                 f"{self._global_min_coverage_overall}."
             )
+            self.reached_threshold_overall = False
         if (
             not self.total_coverage_changed_files_passed
             and ActionInputs.get_comment_mode() == CommentModeEnum.SINGLE
@@ -188,6 +192,7 @@ class CoverageEvaluator:
                 f"Global changed files coverage {self.total_coverage_changed_files} is below the threshold "
                 f"{self._global_min_coverage_changed_files}."
             )
+            self.reached_threshold_overall = False
 
         # module violations
         module_violations: list[str] = []
@@ -200,12 +205,14 @@ class CoverageEvaluator:
                     f"Module '{module_name}' overall coverage {evaluated_coverage_module.overall_coverage_reached} "
                     f"is below the threshold {evaluated_coverage_module.overall_coverage_threshold}."
                 )
+                self.reached_threshold_overall = False
             if not evaluated_coverage_module.sum_changed_files_passed:
                 module_violations.append(
                     f"Module '{module_name}' changed files coverage "
                     f"{evaluated_coverage_module.sum_changed_files_coverage_reached} is below the threshold "
                     f"{evaluated_coverage_module.changed_files_threshold}."
                 )
+                self.reached_threshold_changed_files_average = False
 
         report_violations: list[str] = []
         changed_files_violations: list[str] = []
@@ -219,12 +226,14 @@ class CoverageEvaluator:
                     f"Report '{report_path}' overall coverage {evaluated_coverage_report.overall_coverage_reached} "
                     f"is below the threshold {evaluated_coverage_report.overall_coverage_threshold}."
                 )
+                self.reached_threshold_overall = False
             if not evaluated_coverage_report.sum_changed_files_passed:
                 report_violations.append(
                     f"Report '{report_path}' changed files coverage "
                     f"{evaluated_coverage_report.sum_changed_files_coverage_reached} is below the threshold "
                     f"{evaluated_coverage_report.changed_files_threshold}."
                 )
+                self.reached_threshold_changed_files_average = False
             for key, passed in evaluated_coverage_report.changed_files_passed.items():
                 if not passed:
                     changed_files_violations.append(
@@ -232,6 +241,7 @@ class CoverageEvaluator:
                         f"{evaluated_coverage_report.changed_files_coverage_reached[key]} is below the threshold "
                         f"{evaluated_coverage_report.per_changed_file_threshold}."
                     )
+                    self.reached_threshold_per_change_file = False
 
         # Add all violations to the list depending on the sensitivity and comment mode
         modules_defined: bool = len(ActionInputs.get_modules().keys()) > 0  # type: ignore[union-attr]

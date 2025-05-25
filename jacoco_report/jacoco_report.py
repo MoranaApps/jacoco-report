@@ -35,6 +35,10 @@ class JaCoCoReport:
         self.evaluated_coverage_modules: str = ""
         self.violations: list[str] = []
 
+        self.reached_threshold_overall = True
+        self.reached_threshold_changed_files_average = True
+        self.reached_threshold_per_change_file = True
+
     # pylint: disable=too-many-locals, too-many-branches, too-many-statements
     def run(self) -> None:
         """
@@ -131,6 +135,9 @@ class JaCoCoReport:
         self.evaluated_coverage_modules = json.dumps(evaluated_coverage_modules, indent=4)
 
         self.violations = evaluator.violations
+        self.reached_threshold_overall = evaluator.reached_threshold_overall
+        self.reached_threshold_changed_files_average = evaluator.reached_threshold_changed_files_average
+        self.reached_threshold_per_change_file = evaluator.reached_threshold_per_change_file
 
         # generate the comment(s)
         logger.info("Generating PR comment(s).")
