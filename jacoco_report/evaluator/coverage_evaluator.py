@@ -167,13 +167,13 @@ class CoverageEvaluator:
         Global violations are only reported when comment mode is set to SINGLE.
         Module and report-level violations are added based on sensitivity and comment mode settings.
         """
-        dont_skip = not ActionInputs.get_skip_unchanged() and self.changed_files_count() > 0
+        skip_unchanged_with_none_changed_files = ActionInputs.get_skip_unchanged() and self.changed_files_count() == 0
 
         # global - usable only for `single` comment-mode
         if (
             not self.total_coverage_overall_passed
             and ActionInputs.get_comment_mode() == CommentModeEnum.SINGLE
-            and not dont_skip
+            and not skip_unchanged_with_none_changed_files
         ):
             self.violations.append(
                 f"Global overall coverage {self.total_coverage_overall} is below the threshold "
@@ -182,7 +182,7 @@ class CoverageEvaluator:
         if (
             not self.total_coverage_changed_files_passed
             and ActionInputs.get_comment_mode() == CommentModeEnum.SINGLE
-            and not dont_skip
+            and not skip_unchanged_with_none_changed_files
         ):
             self.violations.append(
                 f"Global changed files coverage {self.total_coverage_changed_files} is below the threshold "
