@@ -1,7 +1,7 @@
 import pytest
 
 from jacoco_report.action_inputs import ActionInputs
-from jacoco_report.utils.enums import CommentModeEnum
+from jacoco_report.utils.enums import CommentModeEnum, SensitivityEnum, MetricTypeEnum
 from jacoco_report.utils.github import GitHub
 
 # Data-driven test cases
@@ -209,7 +209,7 @@ def test_get_min_coverage_per_changed_file(mocker):
     assert 0.0 == ActionInputs.get_min_coverage_per_changed_file()
 
 
-failure_cases = [
+failure_cases_modes = [
     ("", CommentModeEnum.SINGLE, None, "JaCoCo Coverage Report"),
     ("", CommentModeEnum.SINGLE, "Report Name", "JaCoCo Coverage Report"),
     ("", CommentModeEnum.MULTI, None, "Report: Unknown Report Name"),
@@ -224,7 +224,7 @@ failure_cases = [
     ("Custom title ", CommentModeEnum.MODULE, "Report Name", "Custom title Report Name"),
 ]
 
-@pytest.mark.parametrize("input_title, comment_mode, report_name, expected_title", failure_cases)
+@pytest.mark.parametrize("input_title, comment_mode, report_name, expected_title", failure_cases_modes)
 def test_get_title(input_title, comment_mode, report_name, expected_title, mocker):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value=input_title)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_comment_mode", return_value=comment_mode)
@@ -400,3 +400,36 @@ def test_get_metric(mocker):
 def test_get_event_name(mocker):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="push")
     assert ActionInputs.get_event_name() == "push"
+
+
+failure_cases_defaults = [
+    # ("get_token", ""),    There are no defaults for token, it must be provided.
+    # ("get_paths", ""),    There are no defaults for paths, it must be provided.
+    ("get_exclude_paths", []),
+    ("get_title", "JaCoCo Coverage Report"),
+    ("get_metric", MetricTypeEnum.INSTRUCTION),
+    ("get_sensitivity", SensitivityEnum.DETAIL),
+    ("get_comment_mode", CommentModeEnum.SINGLE),
+    ("get_modules", {}),
+    ("get_modules_thresholds", {}),
+    ("get_skip_unchanged", False),
+    ("get_update_comment", True),
+    ("get_pass_symbol", "✅"),
+    ("get_fail_symbol", "❌"),
+    ("get_fail_on_threshold", True),
+    ("get_debug", False),
+    ("get_min_coverage_overall", 0.0),
+    ("get_min_coverage_changed_files", 0.0),
+    ("get_min_coverage_per_changed_file", 0.0),
+]
+
+@pytest.mark.parametrize("method, expected_value", failure_cases_defaults)
+def test_validate_inputs_default(method, expected_value, mocker):
+    case = success_case.copy()
+    case.pop(method)
+    patchers = apply_mocks(case, mocker)
+    try:
+        ActionInputs.validate_inputs()
+        assert getattr(ActionInputs, method)() == expected_value
+    finally:
+        stop_mocks(patchers)

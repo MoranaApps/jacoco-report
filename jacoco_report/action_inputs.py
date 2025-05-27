@@ -78,21 +78,21 @@ class ActionInputs:
         """
         Get the minimum coverage overall from the action inputs.
         """
-        return float(get_action_input(MIN_COVERAGE_OVERALL, "0.0"))
+        return float(get_action_input(MIN_COVERAGE_OVERALL, "0.0") or "0.0")
 
     @staticmethod
     def get_min_coverage_changed_files() -> float:
         """
         Get the minimum coverage changed files from the action inputs.
         """
-        return float(get_action_input(MIN_COVERAGE_CHANGED_FILES, "0.0"))
+        return float(get_action_input(MIN_COVERAGE_CHANGED_FILES, "0.0") or "0.0")
 
     @staticmethod
     def get_min_coverage_per_changed_file() -> float:
         """
         Get the minimum coverage per changed file from the action inputs.
         """
-        return float(get_action_input("min-coverage-per-changed-file", "0.0"))
+        return float(get_action_input("min-coverage-per-changed-file", "0.0") or "0.0")
 
     @staticmethod
     def get_title(report_name: Optional[str] = None) -> str:
