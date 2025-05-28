@@ -103,8 +103,8 @@ class MultiPRCommentGenerator(PRCommentGenerator):
                 evaluated_report.overall_coverage_reached,
                 evaluated_report.overall_passed,
                 evaluated_report.overall_coverage_threshold,
-                evaluated_report.sum_changed_files_coverage_reached,
-                evaluated_report.sum_changed_files_passed,
+                evaluated_report.avg_changed_files_coverage_reached,
+                evaluated_report.avg_changed_files_passed,
                 evaluated_report.changed_files_threshold,
             )
 
@@ -115,11 +115,11 @@ class MultiPRCommentGenerator(PRCommentGenerator):
             evaluated_report.overall_coverage_reached,
             evaluated_report.overall_passed,
             evaluated_report.overall_coverage_threshold,
-            evaluated_report.sum_changed_files_coverage_reached,
-            evaluated_report.sum_changed_files_passed,
+            evaluated_report.avg_changed_files_coverage_reached,
+            evaluated_report.avg_changed_files_passed,
             evaluated_report.changed_files_threshold,
             bs_evaluated_report.overall_coverage_reached if bs_evaluated_report else 0.0,
-            bs_evaluated_report.sum_changed_files_coverage_reached if bs_evaluated_report else 0.0,
+            bs_evaluated_report.avg_changed_files_coverage_reached if bs_evaluated_report else 0.0,
         )
 
     def _get_changed_files_table_for_report(

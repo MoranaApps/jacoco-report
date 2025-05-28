@@ -185,11 +185,11 @@ class PRCommentGenerator:
             s += "\n| `{}` | {}% / {}% | {}% / {}% | {}/{} |".format(
                 evaluated_report.name,
                 evaluated_report.overall_coverage_reached,
-                evaluated_report.sum_changed_files_coverage_reached,
+                evaluated_report.avg_changed_files_coverage_reached,
                 o_thres,
                 ch_thres,
                 p if evaluated_report.overall_passed else f,
-                p if evaluated_report.sum_changed_files_passed else f,
+                p if evaluated_report.avg_changed_files_passed else f,
             )
 
         if provided_reports == 0:
@@ -227,7 +227,7 @@ class PRCommentGenerator:
             s += "\n| `{}` | {}% / {}% | {}% / {}% | {}{}% / {}{}% | {}/{} |".format(
                 evaluated_report.name,
                 evaluated_report.overall_coverage_reached,
-                evaluated_report.sum_changed_files_coverage_reached,
+                evaluated_report.avg_changed_files_coverage_reached,
                 o_thres,
                 ch_thres,
                 "+" if diff_o > 0.001 else "",
@@ -235,7 +235,7 @@ class PRCommentGenerator:
                 "+" if diff_ch > 0.001 else "",
                 round(diff_ch, 2),
                 p if evaluated_report.overall_passed else f,
-                p if evaluated_report.sum_changed_files_passed else f,
+                p if evaluated_report.avg_changed_files_passed else f,
             )
 
         if provided_reports == 0:
@@ -262,11 +262,11 @@ class PRCommentGenerator:
             s += "\n| `{}` | {}% / {}% | {}% / {}% | {}/{} |".format(
                 evaluated_coverage_module.name,
                 evaluated_coverage_module.overall_coverage_reached,
-                evaluated_coverage_module.sum_changed_files_coverage_reached,
+                evaluated_coverage_module.avg_changed_files_coverage_reached,
                 evaluated_coverage_module.overall_coverage_threshold,
                 evaluated_coverage_module.changed_files_threshold,
                 p if evaluated_coverage_module.overall_passed else f,
-                p if evaluated_coverage_module.sum_changed_files_passed else f,
+                p if evaluated_coverage_module.avg_changed_files_passed else f,
             )
 
         if provided_modules == 0:
@@ -305,7 +305,7 @@ class PRCommentGenerator:
             s += "\n| `{}` | {}% / {}% | {}% / {}% | {}{}% / {}{}% | {}/{} |".format(
                 evaluated_coverage_module.name,
                 evaluated_coverage_module.overall_coverage_reached,
-                evaluated_coverage_module.sum_changed_files_coverage_reached,
+                evaluated_coverage_module.avg_changed_files_coverage_reached,
                 evaluated_coverage_module.overall_coverage_threshold,
                 evaluated_coverage_module.changed_files_threshold,
                 "+" if diff_o > 0.001 else "",
@@ -313,7 +313,7 @@ class PRCommentGenerator:
                 "+" if diff_ch > 0.001 else "",
                 round(diff_ch, 2),
                 p if evaluated_coverage_module.overall_passed else f,
-                p if evaluated_coverage_module.sum_changed_files_passed else f,
+                p if evaluated_coverage_module.avg_changed_files_passed else f,
             )
 
         if provided_modules == 0:
@@ -330,8 +330,8 @@ class PRCommentGenerator:
             - self.bs_evaluator.evaluated_modules_coverage[evaluated_coverage.name].overall_coverage_reached
         )
         diff_ch = (
-            evaluated_coverage.sum_changed_files_coverage_reached
-            - self.bs_evaluator.evaluated_modules_coverage[evaluated_coverage.name].sum_changed_files_coverage_reached
+            evaluated_coverage.avg_changed_files_coverage_reached
+            - self.bs_evaluator.evaluated_modules_coverage[evaluated_coverage.name].avg_changed_files_coverage_reached
         )
 
         return diff_o, diff_ch
@@ -345,8 +345,8 @@ class PRCommentGenerator:
             - self.bs_evaluator.evaluated_reports_coverage[evaluated_coverage.name].overall_coverage_reached
         )
         diff_ch = (
-            evaluated_coverage.sum_changed_files_coverage_reached
-            - self.bs_evaluator.evaluated_reports_coverage[evaluated_coverage.name].sum_changed_files_coverage_reached
+            evaluated_coverage.avg_changed_files_coverage_reached
+            - self.bs_evaluator.evaluated_reports_coverage[evaluated_coverage.name].avg_changed_files_coverage_reached
         )
 
         return diff_o, diff_ch

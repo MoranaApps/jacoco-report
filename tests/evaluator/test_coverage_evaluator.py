@@ -170,8 +170,8 @@ def test_review_violations_module_changed_files_coverage_below_threshold(evaluat
     module_evaluated_coverage.overall_passed = True
     module_evaluated_coverage.overall_coverage_threshold = 50.0
 
-    module_evaluated_coverage.sum_changed_files_passed = False
-    module_evaluated_coverage.sum_changed_files_coverage_reached = 40.0
+    module_evaluated_coverage.avg_changed_files_passed = False
+    module_evaluated_coverage.avg_changed_files_coverage_reached = 40.0
     module_evaluated_coverage.changed_files_threshold = 50.0
 
     evaluator.evaluated_modules_coverage = {
@@ -221,8 +221,8 @@ def test_review_violations_report_changed_files_coverage_below_threshold(evaluat
     report_evaluated_coverage.overall_coverage_reached = 60.0
     report_evaluated_coverage.overall_coverage_threshold = 50.0
 
-    report_evaluated_coverage.sum_changed_files_passed = False
-    report_evaluated_coverage.sum_changed_files_coverage_reached = 40.0
+    report_evaluated_coverage.avg_changed_files_passed = False
+    report_evaluated_coverage.avg_changed_files_coverage_reached = 40.0
     report_evaluated_coverage.changed_files_threshold = 50.0
 
     report_evaluated_coverage.changed_files_coverage_reached = {

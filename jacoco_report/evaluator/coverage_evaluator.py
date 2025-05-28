@@ -94,11 +94,11 @@ class CoverageEvaluator:
                 evaluated_coverage_report.changed_files_coverage_reached[key] = (
                     changed_file_coverage.get_coverage_by_metric(m)
                 )
-                evaluated_coverage_report.sum_changed_files_coverage.append(mi, co)
+                evaluated_coverage_report.avg_changed_files_coverage.append(mi, co)
 
             # count reached values from raw weights - changed files
-            evaluated_coverage_report.sum_changed_files_coverage_reached = (
-                evaluated_coverage_report.sum_changed_files_coverage.coverage()
+            evaluated_coverage_report.avg_changed_files_coverage_reached = (
+                evaluated_coverage_report.avg_changed_files_coverage.coverage()
             )
 
             # save the evaluated report
@@ -124,8 +124,8 @@ class CoverageEvaluator:
                 for evaluated_report_coverage in self.evaluated_reports_coverage.values():
                     if evaluated_report_coverage.module_name == module_name:
                         evaluated_coverage_module.overall_coverage.append(evaluated_report_coverage.overall_coverage)
-                        evaluated_coverage_module.sum_changed_files_coverage.append(
-                            evaluated_report_coverage.sum_changed_files_coverage
+                        evaluated_coverage_module.avg_changed_files_coverage.append(
+                            evaluated_report_coverage.avg_changed_files_coverage
                         )
 
                         evaluated_coverage_module.changed_files_passed.update(
@@ -139,8 +139,8 @@ class CoverageEvaluator:
                 evaluated_coverage_module.overall_coverage_reached = (
                     evaluated_coverage_module.overall_coverage.coverage()
                 )
-                evaluated_coverage_module.sum_changed_files_coverage_reached = (
-                    evaluated_coverage_module.sum_changed_files_coverage.coverage()
+                evaluated_coverage_module.avg_changed_files_coverage_reached = (
+                    evaluated_coverage_module.avg_changed_files_coverage.coverage()
                 )
 
                 # save the evaluated module
@@ -161,6 +161,7 @@ class CoverageEvaluator:
         # review for violations
         self._review_violations()
 
+    # pylint: disable=too-many-branches
     def _review_violations(self) -> None:
         """
         Reviews the coverage evaluation results and appends violations to the violations list.
@@ -170,24 +171,17 @@ class CoverageEvaluator:
         skip_unchanged_with_none_changed_files = ActionInputs.get_skip_unchanged() and self.changed_files_count() == 0
 
         # global - usable only for `single` comment-mode
-        if (
-            not self.total_coverage_overall_passed
-            and ActionInputs.get_comment_mode() == CommentModeEnum.SINGLE
-            and not skip_unchanged_with_none_changed_files
-        ):
-            self.violations.append(
-                f"Global overall coverage {self.total_coverage_overall} is below the threshold "
-                f"{self._global_min_coverage_overall}."
-            )
-        if (
-            not self.total_coverage_changed_files_passed
-            and ActionInputs.get_comment_mode() == CommentModeEnum.SINGLE
-            and not skip_unchanged_with_none_changed_files
-        ):
-            self.violations.append(
-                f"Global changed files coverage {self.total_coverage_changed_files} is below the threshold "
-                f"{self._global_min_coverage_changed_files}."
-            )
+        if ActionInputs.get_comment_mode() == CommentModeEnum.SINGLE and not skip_unchanged_with_none_changed_files:
+            if not self.total_coverage_overall_passed:
+                self.violations.append(
+                    f"Global overall coverage {self.total_coverage_overall} is below the threshold "
+                    f"{self._global_min_coverage_overall}."
+                )
+            if not self.total_coverage_changed_files_passed:
+                self.violations.append(
+                    f"Global changed files coverage {self.total_coverage_changed_files} is below the threshold "
+                    f"{self._global_min_coverage_changed_files}."
+                )
 
         # module violations
         module_violations: list[str] = []
@@ -200,10 +194,10 @@ class CoverageEvaluator:
                     f"Module '{module_name}' overall coverage {evaluated_coverage_module.overall_coverage_reached} "
                     f"is below the threshold {evaluated_coverage_module.overall_coverage_threshold}."
                 )
-            if not evaluated_coverage_module.sum_changed_files_passed:
+            if not evaluated_coverage_module.avg_changed_files_passed:
                 module_violations.append(
                     f"Module '{module_name}' changed files coverage "
-                    f"{evaluated_coverage_module.sum_changed_files_coverage_reached} is below the threshold "
+                    f"{evaluated_coverage_module.avg_changed_files_coverage_reached} is below the threshold "
                     f"{evaluated_coverage_module.changed_files_threshold}."
                 )
 
@@ -219,10 +213,10 @@ class CoverageEvaluator:
                     f"Report '{report_path}' overall coverage {evaluated_coverage_report.overall_coverage_reached} "
                     f"is below the threshold {evaluated_coverage_report.overall_coverage_threshold}."
                 )
-            if not evaluated_coverage_report.sum_changed_files_passed:
+            if not evaluated_coverage_report.avg_changed_files_passed:
                 report_violations.append(
                     f"Report '{report_path}' changed files coverage "
-                    f"{evaluated_coverage_report.sum_changed_files_coverage_reached} is below the threshold "
+                    f"{evaluated_coverage_report.avg_changed_files_coverage_reached} is below the threshold "
                     f"{evaluated_coverage_report.changed_files_threshold}."
                 )
             for key, passed in evaluated_coverage_report.changed_files_passed.items():
@@ -298,14 +292,14 @@ class CoverageEvaluator:
             evaluated_coverage.overall_passed = evaluated_coverage.overall_coverage_reached >= overall_threshold
 
         if (
-            evaluated_coverage.sum_changed_files_coverage.covered == 0
-            and evaluated_coverage.sum_changed_files_coverage.missed == 0
+            evaluated_coverage.avg_changed_files_coverage.covered == 0
+            and evaluated_coverage.avg_changed_files_coverage.missed == 0
         ):
-            evaluated_coverage.sum_changed_files_coverage_reached = 0.0
-            evaluated_coverage.sum_changed_files_passed = True
+            evaluated_coverage.avg_changed_files_coverage_reached = 0.0
+            evaluated_coverage.avg_changed_files_passed = True
         else:
-            evaluated_coverage.sum_changed_files_passed = (
-                evaluated_coverage.sum_changed_files_coverage_reached >= changed_files_threshold
+            evaluated_coverage.avg_changed_files_passed = (
+                evaluated_coverage.avg_changed_files_coverage_reached >= changed_files_threshold
             )
 
         return evaluated_coverage
@@ -344,20 +338,20 @@ class CoverageEvaluator:
             )
 
         if (
-            evaluated_coverage_report.sum_changed_files_coverage.covered == 0
-            and evaluated_coverage_report.sum_changed_files_coverage.missed == 0
+            evaluated_coverage_report.avg_changed_files_coverage.covered == 0
+            and evaluated_coverage_report.avg_changed_files_coverage.missed == 0
         ):
-            evaluated_coverage_report.sum_changed_files_coverage_reached = 0.0
-            evaluated_coverage_report.sum_changed_files_passed = True
+            evaluated_coverage_report.avg_changed_files_coverage_reached = 0.0
+            evaluated_coverage_report.avg_changed_files_passed = True
         else:
-            evaluated_coverage_report.sum_changed_files_coverage_reached = round(
+            evaluated_coverage_report.avg_changed_files_coverage_reached = round(
                 sum(evaluated_coverage_report.changed_files_coverage_reached.values())
                 / len(evaluated_coverage_report.changed_files_coverage_reached.values()),
                 2,
             )
 
-            evaluated_coverage_report.sum_changed_files_passed = (
-                evaluated_coverage_report.sum_changed_files_coverage_reached >= changed_files_threshold
+            evaluated_coverage_report.avg_changed_files_passed = (
+                evaluated_coverage_report.avg_changed_files_coverage_reached >= changed_files_threshold
             )
 
             # evaluate the changed files
