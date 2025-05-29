@@ -1887,11 +1887,12 @@ def test_run_no_jacoco_xml_files(jacoco_report, caplog, mocker):
     mocker.patch("jacoco_report.jacoco_report.JaCoCoReport._scan_jacoco_xml_files", return_value=[])
     mock_add_comment = mocker.patch('jacoco_report.utils.github.GitHub.add_comment', return_value=None)
 
-    with caplog.at_level(logging.WARNING):
+    with caplog.at_level(logging.ERROR):
         jacoco_report.run()
         assert jacoco_report.total_overall_coverage == 0.0
         assert jacoco_report.total_changed_files_coverage == 0.0
-        assert "No JaCoCo xml file found. No comment will be generated." in caplog.text
+        assert "No input JaCoCo xml file found. No comment will be generated." in caplog.text
+        assert jacoco_report.violations[0] == "No input JaCoCo xml file found."
         mock_add_comment.assert_not_called()
 
 def test_run_successful_empty_no_baseline(jacoco_report, mocker):
