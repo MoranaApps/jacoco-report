@@ -435,7 +435,7 @@ failure_cases_defaults = [
     ("get_update_comment", True),
     ("get_pass_symbol", "✅"),
     ("get_fail_symbol", "❌"),
-    ("get_fail_on_threshold", True),
+    ("get_fail_on_threshold", [FailOnThresholdEnum.OVERALL, FailOnThresholdEnum.CHANGED_FILES_AVERAGE, FailOnThresholdEnum.PER_CHANGED_FILE]),
     ("get_debug", False),
     ("get_min_coverage_overall", 0.0),
     ("get_min_coverage_changed_files", 0.0),
