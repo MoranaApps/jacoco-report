@@ -338,17 +338,17 @@ def test_get_fail_on_threshold_true(mocker):
 
 def test_get_fail_on_threshold_false(mocker):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="false")
-    assert [] == ActionInputs.get_fail_on_threshold()
+    assert ActionInputs.get_fail_on_threshold() == []
 
 
 def test_get_fail_on_threshold_overall(mocker):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="overall")
-    assert [FailOnThresholdEnum.OVERALL] == ActionInputs.get_fail_on_threshold()
+    assert ActionInputs.get_fail_on_threshold() == [FailOnThresholdEnum.OVERALL]
 
 
 def test_get_fail_on_threshold_overall_changed_average(mocker):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="overall\nchanged-files-average")
-    assert [FailOnThresholdEnum.OVERALL, FailOnThresholdEnum.CHANGED_FILES_AVERAGE] == ActionInputs.get_fail_on_threshold()
+    assert ActionInputs.get_fail_on_threshold() == [FailOnThresholdEnum.OVERALL, FailOnThresholdEnum.CHANGED_FILES_AVERAGE]
 
 
 def test_get_fail_on_threshold_invalid_format(mocker):
