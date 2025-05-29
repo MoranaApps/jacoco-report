@@ -5,6 +5,7 @@ A module for parsing JaCoCo XML reports and creating CoverageReport instances.
 import logging
 import os
 import xml.etree.ElementTree as ET
+from typing import Optional
 
 from jacoco_report.model.counter import Counter
 from jacoco_report.model.coverage import Coverage
@@ -36,15 +37,16 @@ class JaCoCoReportParser:
             A CoverageReport instance.
         """
         logger.debug("Parsing JaCoCo XML report: %s", report_path)
-        tree: ET.ElementTree = ET.parse(report_path)
-        root: ET.Element = tree.getroot()
+        # pylint: disable=unsubscriptable-object
+        tree: ET.ElementTree[ET.Element] = ET.parse(report_path)
+        root: Optional[ET.Element] = tree.getroot()
 
         # check name attribute exists
-        if "name" not in root.attrib:
+        if root is not None and "name" not in root.attrib:
             logger.error("Failed to find name attribute in JaCoCo report: %s", {report_path})
             name = report_path
         else:
-            name = root.attrib["name"]
+            name = root.attrib["name"] if root is not None else report_path
 
         # Extract overall stats and changed files stats from the XML
         overall_stats: Coverage = self._extract_overall_stats(root)
@@ -58,7 +60,7 @@ class JaCoCoReportParser:
 
         return ReportFileCoverage(report_path, name, overall_stats, changed_files_stats, module_name)
 
-    def _extract_overall_stats(self, root: ET.Element) -> Coverage:
+    def _extract_overall_stats(self, root: Optional[ET.Element]) -> Coverage:
         """
         Extracts overall coverage statistics from the XML root.
 
@@ -69,6 +71,18 @@ class JaCoCoReportParser:
             A dictionary containing the overall coverage statistics
         """
         logger.debug("Extracting overall coverage statistics from JaCoCo report.")
+
+        if root is None:
+            logger.error("Root element is None. Cannot extract overall stats.")
+            return Coverage(
+                instruction=Counter(missed=0, covered=0),
+                branch=Counter(missed=0, covered=0),
+                line=Counter(missed=0, covered=0),
+                complexity=Counter(missed=0, covered=0),
+                method=Counter(missed=0, covered=0),
+                clazz=Counter(missed=0, covered=0),
+            )
+
         instruction: Counter = Counter(
             missed=self.__get_int(root, "INSTRUCTION", "missed"),
             covered=self.__get_int(root, "INSTRUCTION", "covered"),
@@ -112,7 +126,7 @@ class JaCoCoReportParser:
             logger.error("Failed to parse %s counter from JaCoCo report.", counter_type)
             return 0
 
-    def _extract_changed_files_stats(self, root: ET.Element) -> dict:
+    def _extract_changed_files_stats(self, root: Optional[ET.Element]) -> dict[str, FileCoverage]:
         """
         Extracts changed files coverage statistics from the XML root.
 
@@ -133,7 +147,11 @@ class JaCoCoReportParser:
             return paths
 
         logger.debug("Extracting changed files coverage statistics from JaCoCo report.")
-        changed_files_stats = {}
+        changed_files_stats = dict[str, FileCoverage]()
+
+        if root is None:
+            logger.error("Root element is None. Cannot extract changed files stats.")
+            return changed_files_stats
 
         for pck in root.findall("package"):
             logger.debug("Package: %s", pck.attrib["name"])
