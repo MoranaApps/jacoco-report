@@ -99,13 +99,13 @@ def test_calculate_module_diff(pr_comment_generator, mocker):
         "module-a": EvaluatedReportCoverage("module-a")
     }
     mock_baseline_evaluator.evaluated_modules_coverage["module-a"].overall_coverage_reached = 70.0
-    mock_baseline_evaluator.evaluated_modules_coverage["module-a"].sum_changed_files_coverage_reached = 75.0
+    mock_baseline_evaluator.evaluated_modules_coverage["module-a"].avg_changed_files_coverage_reached = 75.0
     pr_comment_generator.bs_evaluator = mock_baseline_evaluator
 
     # Create an evaluated coverage module with different values
     evaluated_coverage_module = EvaluatedReportCoverage("module-a")
     evaluated_coverage_module.overall_coverage_reached = 80.0
-    evaluated_coverage_module.sum_changed_files_coverage_reached = 85.0
+    evaluated_coverage_module.avg_changed_files_coverage_reached = 85.0
 
     # Calculate the differences
     diff_o, diff_ch = pr_comment_generator._calculate_baseline_module_diffs(evaluated_coverage_module)
@@ -123,7 +123,7 @@ def test_calculate_module_diff_no_module_in_baseline(pr_comment_generator, mocke
     # Create an evaluated coverage module
     evaluated_coverage_module = EvaluatedReportCoverage("module-a")
     evaluated_coverage_module.overall_coverage_reached = 80.0
-    evaluated_coverage_module.sum_changed_files_coverage_reached = 85.0
+    evaluated_coverage_module.avg_changed_files_coverage_reached = 85.0
 
     # Calculate the differences
     diff_o, diff_ch = pr_comment_generator._calculate_baseline_module_diffs(evaluated_coverage_module)

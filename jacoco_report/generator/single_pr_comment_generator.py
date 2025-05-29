@@ -2,9 +2,13 @@
 A module that contains the SinglePRCommentGenerator class.
 """
 
+import logging
+
 from jacoco_report.action_inputs import ActionInputs
 from jacoco_report.generator.pr_comment_generator import PRCommentGenerator
 from jacoco_report.utils.enums import SensitivityEnum
+
+logger = logging.getLogger(__name__)
 
 
 # pylint: disable=too-few-public-methods
@@ -25,14 +29,21 @@ class SinglePRCommentGenerator(PRCommentGenerator):
         # Check for existing comment with the same title
         existing_comment = None
         for comment in comments:
-            if comment["body"].startswith(title):  # Detects if it starts with the title
+            if len(title) > 0 and comment["body"].startswith(title):  # Detects if it starts with the title
                 existing_comment = comment
                 break
 
-        if existing_comment and ActionInputs.get_update_comment():
+        if existing_comment and ActionInputs.get_update_comment() and self.evaluator.changed_files_count() > 0:
             # Update the existing comment
             self.gh.update_comment(existing_comment["id"], pr_body)
+        elif existing_comment and ActionInputs.get_update_comment() and self.evaluator.changed_files_count() == 0:
+            # Delete the existing comment
+            self.gh.delete_comment(existing_comment["id"])
         else:
+            if ActionInputs.get_skip_unchanged() and self.evaluator.changed_files_count() == 0:
+                logger.info("No changed files in PR. Skipping comment generation.")
+                return
+
             # create a comment on pull request
             self.gh.add_comment(self.pr_number, pr_body)
 

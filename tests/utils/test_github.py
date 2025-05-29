@@ -248,7 +248,7 @@ def test_delete_pr_comment_success(mocker, github):
     mock_response.status_code = 204  # HTTP 204 No Content
     mocker.patch.object(github, "_send_request", return_value=mock_response)
 
-    result = github.delete_pr_comment(123)
+    result = github.delete_comment(123)
 
     github._send_request.assert_called_once_with("DELETE", "https://api.github.com/repos/fake_repo/issues/comments/123")
     assert result is True
@@ -256,7 +256,7 @@ def test_delete_pr_comment_success(mocker, github):
 def test_delete_pr_comment_failed_request(mocker, github):
     mocker.patch.object(github, "_send_request", return_value=None)
 
-    result = github.delete_pr_comment(123)
+    result = github.delete_comment(123)
 
     github._send_request.assert_called_once_with("DELETE", "https://api.github.com/repos/fake_repo/issues/comments/123")
     assert result is False
@@ -266,7 +266,7 @@ def test_delete_pr_comment_unexpected_response(mocker, github):
     mock_response.status_code = 400  # HTTP 400 Bad Request
     mocker.patch.object(github, "_send_request", return_value=mock_response)
 
-    result = github.delete_pr_comment(123)
+    result = github.delete_comment(123)
 
     github._send_request.assert_called_once_with("DELETE", "https://api.github.com/repos/fake_repo/issues/comments/123")
     assert result is False

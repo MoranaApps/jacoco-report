@@ -277,7 +277,7 @@ class GitHub:
         logger.error("Unexpected response format when updating comment: %s", response)
         return False
 
-    def delete_pr_comment(self, comment_id) -> bool:
+    def delete_comment(self, comment_id) -> bool:
         """
         Deletes a comment from the pull request.
 

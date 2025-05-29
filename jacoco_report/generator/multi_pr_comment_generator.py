@@ -46,7 +46,7 @@ class MultiPRCommentGenerator(PRCommentGenerator):
                 logger.info("Updated comment with title: '%s'", title)
             elif existing_comment and skipped_comment:
                 # comment already exists on the PR & comment skip rules met
-                self.gh.delete_pr_comment(existing_comment["id"])
+                self.gh.delete_comment(existing_comment["id"])
                 logger.info("Deleted comment with title: '%s'", title)
             elif not existing_comment and body:
                 # comment does not exist on the PR & comment skip rules not met
@@ -63,12 +63,7 @@ class MultiPRCommentGenerator(PRCommentGenerator):
         for key, evaluated_coverage_report in self.evaluator.evaluated_reports_coverage.items():
             title = body = f"**{ActionInputs.get_title(evaluated_coverage_report.name)}**"
 
-            if (
-                ActionInputs.get_skip_unchanged()
-                and len(evaluated_coverage_report.changed_files_passed) == 0
-                and evaluated_coverage_report.overall_passed
-                and evaluated_coverage_report.sum_changed_files_passed
-            ):
+            if ActionInputs.get_skip_unchanged() and len(evaluated_coverage_report.changed_files_passed) == 0:
                 comments[title] = None
                 continue
 
@@ -108,8 +103,8 @@ class MultiPRCommentGenerator(PRCommentGenerator):
                 evaluated_report.overall_coverage_reached,
                 evaluated_report.overall_passed,
                 evaluated_report.overall_coverage_threshold,
-                evaluated_report.sum_changed_files_coverage_reached,
-                evaluated_report.sum_changed_files_passed,
+                evaluated_report.avg_changed_files_coverage_reached,
+                evaluated_report.avg_changed_files_passed,
                 evaluated_report.changed_files_threshold,
             )
 
@@ -120,11 +115,11 @@ class MultiPRCommentGenerator(PRCommentGenerator):
             evaluated_report.overall_coverage_reached,
             evaluated_report.overall_passed,
             evaluated_report.overall_coverage_threshold,
-            evaluated_report.sum_changed_files_coverage_reached,
-            evaluated_report.sum_changed_files_passed,
+            evaluated_report.avg_changed_files_coverage_reached,
+            evaluated_report.avg_changed_files_passed,
             evaluated_report.changed_files_threshold,
             bs_evaluated_report.overall_coverage_reached if bs_evaluated_report else 0.0,
-            bs_evaluated_report.sum_changed_files_coverage_reached if bs_evaluated_report else 0.0,
+            bs_evaluated_report.avg_changed_files_coverage_reached if bs_evaluated_report else 0.0,
         )
 
     def _get_changed_files_table_for_report(
