@@ -64,7 +64,6 @@ failure_cases = [
     ("get_modules_thresholds", 1, "'modules-thresholds' must be a string or not defined."),
     ("get_modules_thresholds", "ab", "'modules-thresholds' must be a list of strings in format 'module:overall*changed'."),
     ("get_modules_thresholds", "abcd", "'modules-thresholds' must be a list of strings in format 'module:overall*changed'."),
-    ("get_modules_thresholds", "module-a: 80**,", "'module-threshold' must be a non-empty string."),
     ("get_modules_thresholds", "module-a: 80*", "'module-threshold':'80*' must contain two '*' to split overall, changed files and changed per file threshold."),
     ("get_modules_thresholds", "module-a:80**,module-b", "'module-threshold':'module-b' must be in the format 'module:threshold'."),
     ("get_modules_thresholds", "module-a:80**,:80.0**", "Module threshold with value:'80.0**' must have a non-empty name."),
@@ -145,7 +144,7 @@ def test_get_paths(mocker):
 def test_get_paths_with_comment(mocker):
     data = f"""
     test/path1
-    test/path2
+    test/path2      # another comment
     # test/path3    
     """
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value=data)
@@ -178,7 +177,7 @@ def test_get_exclude_paths(mocker):
 def test_get_exclude_paths_with_comment(mocker):
     data = f"""
     test/path1
-    test/path2
+    test/path2      # another comment
     #test/path3    
     """
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value=data)
@@ -256,7 +255,7 @@ def test_get_modules_with_commented_line(mocker):
     input_data = """module-a: context/module_a
     # module-b: module_b
     # module-c: context/module_c
-    module-d: context/module_d
+    module-d: context/module_d      # another comment
     """
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value=input_data)
     assert {"module-a": "context/module_a", "module-d": "context/module_d"} == ActionInputs.get_modules()
@@ -291,9 +290,10 @@ def test_get_modules_thresholds_with_commented_line(mocker):
     module-b: *70*
     #module-c: 90**
     # module-d: *100*
+    module-e: *100*     # another comment 
     """
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value=input_data)
-    assert {"module-a": (80.0, 0.0, 0.0), "module-b": (0.0, 70.0, 0.0)} == ActionInputs.get_modules_thresholds()
+    assert {"module-a": (80.0, 0.0, 0.0), "module-b": (0.0, 70.0, 0.0), "module-e": (0.0, 100.0, 0.0)} == ActionInputs.get_modules_thresholds()
 
 
 def test_get_modules_thresholds_raw(mocker):
@@ -363,7 +363,7 @@ def test_get_baseline_paths(mocker):
 def test_get_baseline_paths_with_comment(mocker):
     data = f"""
     test/path1
-    test/path2
+    test/path2      # another comment
     #test/path3
     """
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value=data)
