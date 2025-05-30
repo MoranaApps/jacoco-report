@@ -65,7 +65,8 @@ class JaCoCoReport:
 
         # skip when not jacoco xml files found
         if len(input_report_paths_to_analyse) == 0:
-            logger.warning("No JaCoCo xml file found. No comment will be generated.")
+            logger.error("No input JaCoCo xml file found. No comment will be generated.")
+            self.violations.append("No input JaCoCo xml file found.")
             return
 
         # get changed files in PR

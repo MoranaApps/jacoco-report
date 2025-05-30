@@ -172,15 +172,12 @@ class ActionInputs:
 
         if len(mods) > 0:
             for mod in mods.split(split_by):
-                # detect presence of '#' char - user commented out the line
-                if "#" in mod:
+                cleaned_mod = ActionInputs.__clean_from_comment(mod)
+                if len(cleaned_mod) == 0:
                     continue
 
-                # format string, clean up, ...
-                formatted_mod = mod.strip()
-
                 # create a dictionary record from formatted string
-                key, value = formatted_mod.split(":")
+                key, value = cleaned_mod.split(":")
                 d[key] = value.strip()
 
         return d
@@ -199,14 +196,13 @@ class ActionInputs:
             split_by: str = "," if "," in received else "\n"
             mts: list[str] = received.split(split_by)
             for mt in mts:
-                # detect presence of '#' char - user commented out the line
-                if "#" in mt.lstrip():
+                # format string, clean up, ...
+                cleaned_mt = ActionInputs.__clean_from_comment(mt)
+
+                if len(cleaned_mt) == 0:
                     continue
 
-                # format string, clean up, ...
-                formatted_mt = mt.strip()
-
-                name, values = formatted_mt.split(":")
+                name, values = cleaned_mt.split(":")
                 f_name = name.strip()
                 f_values = values.strip()
                 parts = f_values.split("*")
@@ -362,10 +358,6 @@ class ActionInputs:
         Returns:
             list: A list of errors if any.
         """
-        # Check if the input is a non-empty string
-        if not input_module_threshold:
-            return ["'module-threshold' must be a non-empty string."]
-
         # Check if the module is in the format 'module:threshold'
         if ":" not in input_module_threshold or input_module_threshold.count(":") > 1:
             return [f"'module-threshold':'{input_module_threshold}' must be in the format 'module:threshold'."]
@@ -534,7 +526,9 @@ class ActionInputs:
                 split_by: str = "," if "," in modules_thresholds else "\n"  # type: ignore[no-redef]
                 f_modules_thresholds = modules_thresholds.split(split_by)
                 for module_threshold in f_modules_thresholds:
-                    errors.extend(ActionInputs.validate_module_threshold(module_threshold))
+                    cleaned_module_threshold = ActionInputs.__clean_from_comment(module_threshold)
+                    if len(cleaned_module_threshold) > 0:
+                        errors.extend(ActionInputs.validate_module_threshold(cleaned_module_threshold))
 
         skip_unchanged = ActionInputs.get_skip_unchanged()
         if not isinstance(skip_unchanged, bool):
@@ -624,13 +618,24 @@ class ActionInputs:
 
         res: list[str] = []
         for path in paths.splitlines():
-            # detect presence of '#' char - user commented out the line
-            if path.strip().startswith("#"):
+            cleaned_path = ActionInputs.__clean_from_comment(path)
+            if len(cleaned_path) == 0:
                 continue
-
-            # format string, clean up, ...
-            formatted_path = path.strip()
-            if len(formatted_path) > 0:
-                res.append(formatted_path.strip())
+            else:
+                res.append(cleaned_path)
 
         return res
+
+    @staticmethod
+    def __clean_from_comment(input_string: str) -> str:
+        """
+        Clean the input string from comments.
+        Examples:
+            "path/to/file # this is a comment" -> "path/to/file"
+            "# this is a comment" -> ""
+            "   # this is a comment" -> ""
+            "   path/to/file # this is a comment" -> "path/to/file"
+        """
+        if "#" in input_string:
+            return input_string.split("#")[0].strip()
+        return input_string.strip()
