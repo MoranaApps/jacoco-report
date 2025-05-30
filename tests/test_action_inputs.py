@@ -293,7 +293,7 @@ def test_get_modules_thresholds_with_commented_line(mocker):
     module-e: *100*     # another comment 
     """
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value=input_data)
-    assert {"module-a": (80.0, 0.0, 0.0), "module-b": (0.0, 70.0, 0.0), "module-e": (0.0, 100.0, 0.0)} == ActionInputs.get_modules_thresholds()
+    assert ActionInputs.get_modules_thresholds() == {"module-a": (80.0, 0.0, 0.0), "module-b": (0.0, 70.0, 0.0), "module-e": (0.0, 100.0, 0.0)}
 
 
 def test_get_modules_thresholds_raw(mocker):
