@@ -7,6 +7,7 @@ import sys
 
 from jacoco_report.action_inputs import ActionInputs
 from jacoco_report.jacoco_report import JaCoCoReport
+from jacoco_report.utils.enums import FailOnThresholdEnum
 from jacoco_report.utils.gh_action import set_action_output, set_action_failed, set_action_output_text
 from jacoco_report.utils.logging_config import setup_logging
 
@@ -49,7 +50,19 @@ def run() -> None:
 
     if len(jr.violations) > 0:
         logger.error("JaCoCo Report GitHub Action - failed.")
-        set_action_failed(messages=jr.violations, fail=ActionInputs.get_fail_on_threshold())
+
+        thresholds = ActionInputs.get_fail_on_threshold()
+
+        # Map enum values to the corresponding evaluation flags
+        threshold_checks = {
+            FailOnThresholdEnum.OVERALL: jr.reached_threshold_overall,
+            FailOnThresholdEnum.CHANGED_FILES_AVERAGE: jr.reached_threshold_changed_files_average,
+            FailOnThresholdEnum.PER_CHANGED_FILE: jr.reached_threshold_per_change_file,
+        }
+
+        # Fail if any configured threshold was not reached
+        fail = any(not passed for threshold, passed in threshold_checks.items() if threshold in thresholds)
+        set_action_failed(messages=jr.violations, fail=fail)
     else:
         logger.info("JaCoCo Report GitHub Action - success.")
         sys.exit(0)

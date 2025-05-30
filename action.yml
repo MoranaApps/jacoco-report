@@ -69,7 +69,9 @@ inputs:
     required: false
     default: '❌'
   fail-on-threshold:
-    description: 'Fail the action on threshold failure.'
+    description: >
+      Fail the action on threshold breach.
+      Defaults to `true` (fail on overall, changed-files-average, and per-changed-file).
     required: false
     default: 'true'
   debug:
