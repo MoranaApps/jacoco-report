@@ -270,9 +270,9 @@ class ActionInputs:
 
         if value == "true":
             return [
-                FailOnThresholdEnum.OVERALL,
-                FailOnThresholdEnum.CHANGED_FILES_AVERAGE,
-                FailOnThresholdEnum.PER_CHANGED_FILE,
+                FailOnThresholdEnum.OVERALL.value,
+                FailOnThresholdEnum.CHANGED_FILES_AVERAGE.value,
+                FailOnThresholdEnum.PER_CHANGED_FILE.value,
             ]
 
         # Split on newlines and commas
@@ -284,7 +284,7 @@ class ActionInputs:
         if invalid_items:
             raise ValueError(f"Unsupported threshold levels: {', '.join(invalid_items)}")
 
-        return [FailOnThresholdEnum(item) for item in raw_items]
+        return [FailOnThresholdEnum(item).value for item in raw_items]
 
     @staticmethod
     def get_debug() -> bool:
