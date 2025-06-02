@@ -2103,8 +2103,8 @@ def test_successful_more_source_files(jacoco_report, id, mode, template, modules
 
     jacoco_report.run()
 
-    for item in mock_add_comment.call_args_list:
-        print(item)
+    # for item in mock_add_comment.call_args_list:
+    #     print(item)
 
     if mode == CommentModeEnum.SINGLE:
         assert mock_add_comment.call_count == len(expected_comments)
@@ -2117,10 +2117,7 @@ def test_successful_more_source_files(jacoco_report, id, mode, template, modules
 
         if len(expected_comments):
             for expected_comment in expected_comments:
-                print(f"Testing comment: {expected_comment}")
-                test = expected_comment
                 mock_add_comment.assert_any_call(35, expected_comment)
-                print(f"Passed comment: {expected_comment}")
 
     # Parse the JSON strings
     dict_evaluated_coverage_reports: dict = json.loads(jacoco_report.evaluated_coverage_reports)
