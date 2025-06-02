@@ -993,9 +993,36 @@ comment_multi_detailed_instruction_with_modules_with_bs_partial_modules_3 = [
 ]
 
 comment_multi_detailed_instruction_with_modules_report_1 = [
-    """**Report: user-info: Implementation Module Report**\n\n| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |\n|-------------------|-----|-----|-----|----|\n| **Overall**       | 88.0% | 21.0% | +8.0% | ✅ |\n| **Changed Files** | 88.0% | 59.0% | +8.0% | ✅ |\n\n| File Path | Coverage | Threshold | Δ Coverage | Status |\n|-----------|----------|-----------|------------|--------|\n| [ImplementationClass.java](https://github.com/MoranaApps/jacoco-report/pull/35/files#diff-7a267b2f062048b58eaf9c03df9857a0b95e8425451a7a68e18508a2ccb0d316) | 88.0% | 55.0% | +8.0% | ✅ |""",
-    """**Report: Module Large Report**\n\n| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |\n|-------------------|-----|-----|-----|----|\n| **Overall**       | 91.33% | 75.0% | -4.17% | ✅ |\n| **Changed Files** | 90.0% | 80.0% | -5.0% | ✅ |\n\n| File Path | Coverage | Threshold | Δ Coverage | Status |\n|-----------|----------|-----------|------------|--------|\n| [BigClass.java](https://github.com/MoranaApps/jacoco-report/pull/35/files#diff-ead3b50565c5dda5dc7e32be690e80a71f6e317d66aaa386b5942b484476832d) | 90.0% | 65.0% | -5.0% | ✅ |""",
-    """**Report: user-info: Client HTTP Module Report**\n\n| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |\n|-------------------|-----|-----|-----|----|\n| **Overall**       | 90.0% | 21.0% | +80.0% | ✅ |\n| **Changed Files** | 90.0% | 59.0% | +80.0% | ✅ |\n\n| File Path | Coverage | Threshold | Δ Coverage | Status |\n|-----------|----------|-----------|------------|--------|\n| [ClientHttpClass.java](https://github.com/MoranaApps/jacoco-report/pull/35/files#diff-233a8df372c1ee3631d77bd1afb2eb2c5729cdb125b277a3b0eb51a4933b888a) | 90.0% | 55.0% | +80.0% | ✅ |""",
+"""**Report: user-info: Implementation Module Report**
+
+| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |
+|-------------------|-----|-----|-----|----|
+| **Overall**       | 88.0% | 21.0% | +8.0% | ✅ |
+| **Changed Files** | 88.0% | 59.0% | +8.0% | ✅ |
+
+| File Path | Coverage | Threshold | Δ Coverage | Status |
+|-----------|----------|-----------|------------|--------|
+| [ImplementationClass.java](https://github.com/MoranaApps/jacoco-report/pull/35/files#diff-7a267b2f062048b58eaf9c03df9857a0b95e8425451a7a68e18508a2ccb0d316) | 88.0% | 55.0% | +8.0% | ✅ |""",
+"""**Report: Module Large Report**
+
+| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |
+|-------------------|-----|-----|-----|----|
+| **Overall**       | 91.33% | 75.0% | -4.17% | ✅ |
+| **Changed Files** | 90.0% | 80.0% | -5.0% | ✅ |
+
+| File Path | Coverage | Threshold | Δ Coverage | Status |
+|-----------|----------|-----------|------------|--------|
+| [BigClass.java](https://github.com/MoranaApps/jacoco-report/pull/35/files#diff-ead3b50565c5dda5dc7e32be690e80a71f6e317d66aaa386b5942b484476832d) | 90.0% | 65.0% | -5.0% | ✅ |""",
+"""**Report: user-info: Client HTTP Module Report**
+
+| Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |
+|-------------------|-----|-----|-----|----|
+| **Overall**       | 90.0% | 21.0% | +80.0% | ✅ |
+| **Changed Files** | 90.0% | 59.0% | +80.0% | ✅ |
+
+| File Path | Coverage | Threshold | Δ Coverage | Status |
+|-----------|----------|-----------|------------|--------|
+| [ClientHttpClass.java](https://github.com/MoranaApps/jacoco-report/pull/35/files#diff-233a8df372c1ee3631d77bd1afb2eb2c5729cdb125b277a3b0eb51a4933b888a) | 90.0% | 55.0% | +80.0% | ✅ |""",
 ]
 
 comment_multi_detailed_instruction_with_modules_no_module_thresholds_not_skip_changed = [
@@ -2076,8 +2103,8 @@ def test_successful_more_source_files(jacoco_report, id, mode, template, modules
 
     jacoco_report.run()
 
-    for item in mock_add_comment.call_args_list:
-        print(item)
+    # for item in mock_add_comment.call_args_list:
+    #     print(item)
 
     if mode == CommentModeEnum.SINGLE:
         assert mock_add_comment.call_count == len(expected_comments)
@@ -2324,8 +2351,8 @@ def test_violations(jacoco_report, id, mode, template, modules, modules_threshol
 
     jacoco_report.run()
 
-    for comment in mock_add_comment.call_args_list:
-        print(f"\ncomment: \n{comment[0][1]}")
+    # for comment in mock_add_comment.call_args_list:
+    #     print(f"\ncomment: \n{comment[0][1]}")
 
     # print(f"Violations: \n")
     # for violation in jacoco_report.violations:

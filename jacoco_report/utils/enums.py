@@ -36,3 +36,13 @@ class MetricTypeEnum(StrEnum):
     COMPLEXITY = "complexity"
     METHOD = "method"
     CLASS = "class"
+
+
+class FailOnThresholdEnum(StrEnum):
+    """
+    A class representing the fail on threshold enum.
+    """
+
+    OVERALL = "overall"
+    CHANGED_FILES_AVERAGE = "changed-files-average"
+    PER_CHANGED_FILE = "per-changed-file"

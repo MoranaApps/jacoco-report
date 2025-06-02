@@ -28,7 +28,7 @@ from jacoco_report.utils.constants import (
     PR_NUMBER,
 )
 
-from jacoco_report.utils.enums import SensitivityEnum, CommentModeEnum, MetricTypeEnum
+from jacoco_report.utils.enums import SensitivityEnum, CommentModeEnum, MetricTypeEnum, FailOnThresholdEnum
 from jacoco_report.utils.gh_action import get_action_input
 from jacoco_report.utils.github import GitHub
 
@@ -255,11 +255,36 @@ class ActionInputs:
         return get_action_input(FAIL_SYMBOL, "❌")
 
     @staticmethod
-    def get_fail_on_threshold() -> bool:
+    def get_fail_on_threshold() -> list[str]:
         """
-        Get the fail on threshold from the action inputs.
+        Get the threshold levels that should trigger a failure.
+        Supports:
+          - "true": fail on all thresholds
+          - "false": do not fail
+          - Comma or newline separated of supported thresholds: overall, changed-files-average, per-changed-file
         """
-        return get_action_input(FAIL_ON_THRESHOLD, "true") == "true"
+        value = get_action_input(FAIL_ON_THRESHOLD, "true").strip().lower()
+
+        if value == "false":
+            return []
+
+        if value == "true":
+            return [
+                FailOnThresholdEnum.OVERALL.value,
+                FailOnThresholdEnum.CHANGED_FILES_AVERAGE.value,
+                FailOnThresholdEnum.PER_CHANGED_FILE.value,
+            ]
+
+        # Split on newlines and commas
+        raw_items: list[str] = [v.strip() for line in value.splitlines() for v in line.split(",") if v.strip()]
+
+        # Check for validity of the items
+        valid_values = {e.value for e in FailOnThresholdEnum}
+        invalid_items = [item for item in raw_items if item not in valid_values]
+        if invalid_items:
+            raise ValueError(f"Unsupported threshold levels: {', '.join(invalid_items)}")
+
+        return [FailOnThresholdEnum(item).value for item in raw_items]
 
     @staticmethod
     def get_debug() -> bool:
@@ -521,9 +546,10 @@ class ActionInputs:
         if not isinstance(fail_symbol, str) or not fail_symbol.strip() or len(fail_symbol) < 1:
             errors.append("'fail-symbol' must be a non-empty string and have a length from 1.")
 
-        fail_on_threshold = ActionInputs.get_fail_on_threshold()
-        if not isinstance(fail_on_threshold, bool):
-            errors.append("'fail-on-threshold' must be a boolean.")
+        try:
+            fail_on_threshold = ActionInputs.get_fail_on_threshold()
+        except ValueError as e:
+            errors.append(str(e))
 
         debug = ActionInputs.get_debug()
         if not isinstance(debug, bool):
@@ -550,7 +576,7 @@ class ActionInputs:
             "\n"
             f"Skip unchanged: {ActionInputs.get_skip_unchanged()}\n"
             f"Update comment: {ActionInputs.get_update_comment()}\n"
-            f"Fail on threshold: {ActionInputs.get_fail_on_threshold()}\n"
+            f"Fail on threshold: {fail_on_threshold if fail_on_threshold else []}\n"
             f"Debug logging enabled: {ActionInputs.get_debug()}"
             "\n"
             f"Pass symbol: {ActionInputs.get_pass_symbol()}\n"

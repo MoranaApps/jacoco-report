@@ -28,3 +28,8 @@ FAIL_ON_THRESHOLD = "fail-on-threshold"
 DEBUG = "debug"
 
 BASELINE_PATHS = "baseline-paths"
+
+# fail-on-threshold values
+OVERALL = "overall"
+CHANGED_FILES_AVERAGE = "changed-files-average"
+PER_CHANGED_FILES = "per-changed-file"
