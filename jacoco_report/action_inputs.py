@@ -546,7 +546,6 @@ class ActionInputs:
         if not isinstance(fail_symbol, str) or not fail_symbol.strip() or len(fail_symbol) < 1:
             errors.append("'fail-symbol' must be a non-empty string and have a length from 1.")
 
-        fail_on_threshold = None
         try:
             fail_on_threshold = ActionInputs.get_fail_on_threshold()
         except ValueError as e:
@@ -577,7 +576,7 @@ class ActionInputs:
             "\n"
             f"Skip unchanged: {ActionInputs.get_skip_unchanged()}\n"
             f"Update comment: {ActionInputs.get_update_comment()}\n"
-            f"Fail on threshold: {fail_on_threshold}\n"
+            f"Fail on threshold: {fail_on_threshold if fail_on_threshold else []}\n"
             f"Debug logging enabled: {ActionInputs.get_debug()}"
             "\n"
             f"Pass symbol: {ActionInputs.get_pass_symbol()}\n"
