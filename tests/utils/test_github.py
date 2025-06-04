@@ -182,8 +182,37 @@ def test_get_comments(mocker):
 
     comments = github.get_comments(1)
 
-    mock_send_req.assert_called_once_with("GET", "https://api.github.com/repos/fake_repo/issues/1/comments")
+    mock_send_req.assert_called_once_with("GET", "https://api.github.com/repos/fake_repo/issues/1/comments?per_page=100&page=1")
     assert comments == [{"body": "comment1"}, {"body": "comment2"}]
+
+
+def test_get_comments_pagination(mocker):
+    # Arrange
+    comments_page_1 = [{"id": i, "body": f"comment {i}"} for i in range(100)]
+    comments_page_2 = [{"id": 100, "body": "comment 100"}]
+
+    mock_response_1 = mocker.Mock()
+    mock_response_1.json.return_value = comments_page_1
+    mock_response_2 = mocker.Mock()
+    mock_response_2.json.return_value = comments_page_2
+
+    mocker.patch(
+        "jacoco_report.utils.github.GitHub._send_request",
+        side_effect=[mock_response_1, mock_response_2]
+    )
+
+    mocker.patch("os.getenv", return_value="owner/repo")
+
+    from jacoco_report.utils.github import GitHub
+    gh = GitHub("token")
+
+    # Act
+    all_comments = gh.get_comments(pr_number=1, per_page=100)
+
+    # Assert
+    assert len(all_comments) == 101
+    assert all_comments[0]["id"] == 0
+    assert all_comments[-1]["id"] == 100
 
 
 def test_get_comments_unexpected_format(mocker):
@@ -197,11 +226,11 @@ def test_get_comments_unexpected_format(mocker):
     comments = github.get_comments(1)
 
     assert comments == []
-    mock_send_req.assert_called_once_with("GET", "https://api.github.com/repos/fake_repo/issues/1/comments")
+    mock_send_req.assert_called_once_with("GET", "https://api.github.com/repos/fake_repo/issues/1/comments?per_page=100&page=1")
 
     mock_logger.error.assert_called_once()
     call_args = mock_logger.error.call_args
-    assert call_args[0][0] == "Unexpected response format when retrieving PR comments: %s"
+    assert call_args[0][0] == "Unexpected response format (page %d): %s"
 
 
 # update_comment
