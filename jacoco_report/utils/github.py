@@ -216,34 +216,47 @@ class GitHub:
         logger.info("Comment added to the PR.")
         return True
 
-    def get_comments(self, pr_number: int) -> list:
+    def get_comments(self, pr_number: int, per_page: int = 100) -> list:
         """
         Retrieves all comments from the pull request.
 
         Parameters:
             pr_number (int): The PR number.
+            per_page (int): The number of comments to retrieve per page.
 
         Returns:
             list: A list of comments from the PR.
         """
         repo = os.getenv("GITHUB_REPOSITORY")
+        all_comments = []
+        page = 1
 
-        # GitHub API endpoint for PR comments
-        api_url = f"{self.__gh_url}/repos/{repo}/issues/{pr_number}/comments"
-        logger.debug("GitHub - URL: %s", api_url)
+        while True:
 
-        response = self._send_request("GET", api_url)
-        if response is None:
-            logger.error("Failed to get PR comments.")
-            return []
+            # GitHub API endpoint for PR comments
+            api_url = f"{self.__gh_url}/repos/{repo}/issues/{pr_number}/comments" f"?per_page={per_page}&page={page}"
+            logger.debug("GitHub - URL (page %d): %s", page, api_url)
 
-        res: list = response.json()
-        if not isinstance(res, list):
-            logger.error("Unexpected response format when retrieving PR comments: %s", response)
-            return []
+            response = self._send_request("GET", api_url)
+            if response is None:
+                logger.error("Failed to get PR comments.")
+                break
 
-        logger.info("Retrieved %d comments from the PR.", len(res))
-        return res
+            comments = response.json()
+            if not isinstance(comments, list):
+                logger.error("Unexpected response format (page %d): %s", page, response)
+                break
+
+            logger.info("Retrieved %d comments from page %d.", len(comments), page)
+            all_comments.extend(comments)
+
+            if len(comments) < per_page:
+                # No more pages
+                break
+            page += 1
+
+        logger.info("Retrieved %d comments from the PR.", len(all_comments))
+        return all_comments
 
     def update_comment(self, comment_id, pr_body) -> bool:
         """
