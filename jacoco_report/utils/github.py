@@ -234,10 +234,7 @@ class GitHub:
         while True:
 
             # GitHub API endpoint for PR comments
-            api_url = (
-                f"{self.__gh_url}/repos/{repo}/issues/{pr_number}/comments"
-                f"?per_page={per_page}&page={page}"
-            )
+            api_url = f"{self.__gh_url}/repos/{repo}/issues/{pr_number}/comments" f"?per_page={per_page}&page={page}"
             logger.debug("GitHub - URL (page %d): %s", page, api_url)
 
             response = self._send_request("GET", api_url)
