@@ -12,7 +12,7 @@ success_case = {
     "get_exclude_paths": "path1,path2",
     "get_global_thresholds": "0.0*0.0*0.0",
     "get_global_overall_threshold": 80.0,
-    "get_global_avg_changed_files_threshold": 70.0,
+    "get_global_changed_files_average_threshold": 70.0,
     "get_global_changed_file_threshold": 25.0,
     "get_title": "Custom Title",
     "get_metric": "instruction",
@@ -36,15 +36,15 @@ failure_cases = [
     ("get_paths", None, "'paths' must be defined."),
     ("get_paths", 1, "'paths' must be a list of strings."),
     ("get_paths", "", "'paths' must be a non-empty list of strings."),
-    ("get_global_thresholds", "x", "'global-thresholds' must be in the format 'overall*avg_changed_files*changed_file'. Where overall is the minimum coverage overall, avg_changed_files is the minimum average coverage of changed files and changed_file is the minimum coverage per changed file."),
+    ("get_global_thresholds", "x", "'global-thresholds' must be in the format 'overall*changed_files_average*changed_file'. Where overall is the minimum coverage overall, changed_files_average is the minimum average coverage of changed files and changed_file is the minimum coverage per changed file."),
     ("get_global_thresholds", "x*0*0", "'global-thresholds' overall value must be a float between 0 and 100."),
-    ("get_global_thresholds", "0*x*0", "'global-thresholds' avg_changed_files files value must be a float between 0 and 100."),
+    ("get_global_thresholds", "0*x*0", "'global-thresholds' changed_files_average files value must be a float between 0 and 100."),
     ("get_global_thresholds", "0*0*x", "'global-thresholds' changed-file value must be a float between 0 and 100."),
     ("get_global_thresholds", "-1*0*0", "'global-thresholds' overall value must be a float between 0 and 100."),
-    ("get_global_thresholds", "0*-1*0", "'global-thresholds' avg_changed_files files value must be a float between 0 and 100."),
+    ("get_global_thresholds", "0*-1*0", "'global-thresholds' changed_files_average files value must be a float between 0 and 100."),
     ("get_global_thresholds", "0*0*-1", "'global-thresholds' changed-file value must be a float between 0 and 100."),
     ("get_global_thresholds", "101*0*0", "'global-thresholds' overall value must be a float between 0 and 100."),
-    ("get_global_thresholds", "0*101*0", "'global-thresholds' avg_changed_files files value must be a float between 0 and 100."),
+    ("get_global_thresholds", "0*101*0", "'global-thresholds' changed_files_average files value must be a float between 0 and 100."),
     ("get_global_thresholds", "0*0*101", "'global-thresholds' changed-file value must be a float between 0 and 100."),
     ("get_global_thresholds", True, "'global-thresholds' must be a string or not defined."),
     ("get_metric", "", "'metric' must be a string from these options: 'instruction', 'line', 'branch', 'complexity', 'method', 'class'."),
@@ -197,9 +197,9 @@ def test_get_global_overall_threshold(mocker):
     assert 0.0 == ActionInputs.get_global_overall_threshold()
 
 
-def test_get_global_avg_changed_files_threshold(mocker):
+def test_get_global_changed_files_average_threshold(mocker):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="0")
-    assert 0.0 == ActionInputs.get_global_avg_changed_files_threshold()
+    assert 0.0 == ActionInputs.get_global_changed_files_average_threshold()
 
 
 def test_get_global_changed_file_threshold(mocker):
@@ -267,7 +267,7 @@ def test_get_modules_raw(mocker):
 
 def test_get_modules_thresholds_no_spaces(mocker):
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_threshold", return_value=0.0)
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_avg_changed_files_threshold", return_value=0.0)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_files_average_threshold", return_value=0.0)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_file_threshold", return_value=0.0)
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="module-a:80**,module-b:*70*")
     assert {"module-a": (80.0, 0.0, 0.0), "module-b": (0.0, 70.0, 0.0)} == ActionInputs.get_modules_thresholds()
@@ -275,7 +275,7 @@ def test_get_modules_thresholds_no_spaces(mocker):
 
 def test_get_modules_thresholds_with_spaces(mocker):
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_threshold", return_value=0.0)
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_avg_changed_files_threshold", return_value=0.0)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_files_average_threshold", return_value=0.0)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_file_threshold", return_value=0.0)
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="module-a: 80**,module-b: *70*")
     assert {"module-a": (80.0, 0.0, 0.0), "module-b": (0.0, 70.0, 0.0)} == ActionInputs.get_modules_thresholds()
@@ -283,7 +283,7 @@ def test_get_modules_thresholds_with_spaces(mocker):
 
 def test_get_modules_thresholds_with_commented_line(mocker):
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_threshold", return_value=0.0)
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_avg_changed_files_threshold", return_value=0.0)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_files_average_threshold", return_value=0.0)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_file_threshold", return_value=0.0)
     input_data = """module-a: 80**
     module-b: *70*
@@ -439,7 +439,7 @@ failure_cases_defaults = [
     ("get_debug", False),
     ("get_global_thresholds", (0.0, 0.0, 0.0)),
     ("get_global_overall_threshold", 0.0),
-    ("get_global_avg_changed_files_threshold", 0.0),
+    ("get_global_changed_files_average_threshold", 0.0),
     ("get_global_changed_file_threshold", 0.0),
 ]
 
@@ -448,7 +448,7 @@ def test_validate_inputs_default(method, expected_value, mocker):
     case = success_case.copy()
     case.pop(method)
 
-    if method in ("get_global_overall_threshold", "get_global_avg_changed_files_threshold", "get_global_changed_file_threshold"):
+    if method in ("get_global_overall_threshold", "get_global_changed_files_average_threshold", "get_global_changed_file_threshold"):
         case["get_global_thresholds"] = (0.0, 0.0, 0.0)
 
     patchers = apply_mocks(case, mocker)

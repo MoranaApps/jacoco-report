@@ -107,7 +107,7 @@ class JaCoCoReport:
         evaluator: CoverageEvaluator = CoverageEvaluator(
             report_files_coverage=report_files_coverage,
             global_min_coverage_overall=ActionInputs.get_global_overall_threshold(),
-            global_min_coverage_changed_files=ActionInputs.get_global_avg_changed_files_threshold(),
+            global_min_coverage_changed_files=ActionInputs.get_global_changed_files_average_threshold(),
             global_min_coverage_changed_per_file=ActionInputs.get_global_changed_file_threshold(),
             modules=modules,
         )
@@ -116,7 +116,7 @@ class JaCoCoReport:
         bs_evaluator: CoverageEvaluator = CoverageEvaluator(
             report_files_coverage=bs_report_files_coverage,
             global_min_coverage_overall=ActionInputs.get_global_overall_threshold(),
-            global_min_coverage_changed_files=ActionInputs.get_global_avg_changed_files_threshold(),
+            global_min_coverage_changed_files=ActionInputs.get_global_changed_files_average_threshold(),
             global_min_coverage_changed_per_file=ActionInputs.get_global_changed_file_threshold(),
             modules=modules,
         )

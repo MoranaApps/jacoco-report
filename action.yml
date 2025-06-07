@@ -11,7 +11,7 @@ inputs:
     description: 'Paths to exclude from JaCoCo reports.'
     required: false
   global-thresholds:
-    description: 'Define global coverage thresholds: overall*avg-changed-files*changed-file.'
+    description: 'Define global coverage thresholds: overall*changed-files-average*changed-file.'
     required: false
     default: '0*0*0'
   title:

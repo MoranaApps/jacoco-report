@@ -81,7 +81,7 @@ class SinglePRCommentGenerator(PRCommentGenerator):
                 ActionInputs.get_global_overall_threshold(),
                 self.evaluator.total_coverage_changed_files,
                 self.evaluator.total_coverage_changed_files_passed,
-                ActionInputs.get_global_avg_changed_files_threshold(),
+                ActionInputs.get_global_changed_files_average_threshold(),
             )
 
         return self._get_basic_table_with_baseline(
@@ -93,7 +93,7 @@ class SinglePRCommentGenerator(PRCommentGenerator):
             ActionInputs.get_global_overall_threshold(),
             self.evaluator.total_coverage_changed_files,
             self.evaluator.total_coverage_changed_files_passed,
-            ActionInputs.get_global_avg_changed_files_threshold(),
+            ActionInputs.get_global_changed_files_average_threshold(),
             self.bs_evaluator.total_coverage_overall,
             self.bs_evaluator.total_coverage_changed_files,
         )

@@ -32,7 +32,7 @@ class ModuleParser:
                 name,
                 (
                     ActionInputs.get_global_overall_threshold(),
-                    ActionInputs.get_global_avg_changed_files_threshold(),
+                    ActionInputs.get_global_changed_files_average_threshold(),
                     ActionInputs.get_global_changed_file_threshold(),
                 ),
             )
