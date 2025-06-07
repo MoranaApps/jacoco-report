@@ -194,17 +194,17 @@ def test_get_exclude_paths_raw(mocker):
 
 def test_get_min_coverage_overall(mocker):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="0")
-    assert 0.0 == ActionInputs.get_min_coverage_overall()
+    assert 0.0 == ActionInputs.get_global_overall_threshold()
 
 
 def test_get_min_coverage_changed_files(mocker):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="0")
-    assert 0.0 == ActionInputs.get_min_coverage_changed_files()
+    assert 0.0 == ActionInputs.get_global_avg_changed_files_threshold()
 
 
 def test_get_min_coverage_per_changed_file(mocker):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="0")
-    assert 0.0 == ActionInputs.get_min_coverage_per_changed_file()
+    assert 0.0 == ActionInputs.get_global_changed_file_threshold()
 
 
 failure_cases_modes = [

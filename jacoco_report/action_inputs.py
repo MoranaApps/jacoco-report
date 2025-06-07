@@ -75,6 +75,13 @@ class ActionInputs:
     @staticmethod
     def get_global_thresholds(raw: bool = False) -> tuple[float, float, float] | str:
         """Return the global coverage thresholds as a tuple."""
+        def safe_float(value: str, label: str) -> float:
+            try:
+                return float(value) if value else 0.0
+            except ValueError:
+                print(f"Warning: Cannot convert '{label}' part ('{value}') to float. Defaulting to 0.0.")
+                return 0.0
+
         raw_value = get_action_input(GLOBAL_THRESHOLDS, "0*0*0").strip()
 
         if raw:
@@ -85,32 +92,32 @@ class ActionInputs:
         if "*" not in cleaned:
             cleaned = "0*0*0"
 
-        parts = cleaned.split("*")
-        while len(parts) < 3:
-            parts.append("")
+        if cleaned.count("*") == 1:
+            cleaned += "*0"
 
-        overall = float(parts[0]) if parts[0] else 0.0
-        changed = float(parts[1]) if parts[1] else 0.0
-        per_file = float(parts[2]) if parts[2] else 0.0
+        parts = cleaned.split("*")
+        overall = safe_float(parts[0], "overall")
+        changed = safe_float(parts[1], "changed files average")
+        per_file = safe_float(parts[2], "changed file")
 
         return overall, changed, per_file
 
     @staticmethod
-    def get_min_coverage_overall() -> float:
+    def get_global_overall_threshold() -> float:
         """
         Get the minimum coverage overall from the action inputs.
         """
         return ActionInputs.get_global_thresholds()[0]
 
     @staticmethod
-    def get_min_coverage_changed_files() -> float:
+    def get_global_avg_changed_files_threshold() -> float:
         """
-        Get the minimum coverage changed files from the action inputs.
+        Get the minimum average coverage changed files from the action inputs.
         """
         return ActionInputs.get_global_thresholds()[1]
 
     @staticmethod
-    def get_min_coverage_per_changed_file() -> float:
+    def get_global_changed_file_threshold() -> float:
         """
         Get the minimum coverage per changed file from the action inputs.
         """
@@ -229,10 +236,10 @@ class ActionInputs:
                 f_values = values.strip()
                 parts = f_values.split("*")
 
-                overall = float(parts[0]) if len(parts[0]) > 0 else ActionInputs.get_min_coverage_overall()
-                changed = float(parts[1]) if len(parts[1]) > 0 else ActionInputs.get_min_coverage_changed_files()
+                overall = float(parts[0]) if len(parts[0]) > 0 else ActionInputs.get_global_overall_threshold()
+                changed = float(parts[1]) if len(parts[1]) > 0 else ActionInputs.get_global_avg_changed_files_threshold()
                 changed_per_file = (
-                    float(parts[2]) if len(parts[2]) > 0 else ActionInputs.get_min_coverage_per_changed_file()
+                    float(parts[2]) if len(parts[2]) > 0 else ActionInputs.get_global_changed_file_threshold()
                 )
                 result[f_name] = (overall, changed, changed_per_file)
             return result

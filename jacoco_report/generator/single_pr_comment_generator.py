@@ -78,10 +78,10 @@ class SinglePRCommentGenerator(PRCommentGenerator):
                 ActionInputs.get_metric(),
                 self.evaluator.total_coverage_overall,
                 self.evaluator.total_coverage_overall_passed,
-                ActionInputs.get_min_coverage_overall(),
+                ActionInputs.get_global_overall_threshold(),
                 self.evaluator.total_coverage_changed_files,
                 self.evaluator.total_coverage_changed_files_passed,
-                ActionInputs.get_min_coverage_changed_files(),
+                ActionInputs.get_global_avg_changed_files_threshold(),
             )
 
         return self._get_basic_table_with_baseline(
@@ -90,10 +90,10 @@ class SinglePRCommentGenerator(PRCommentGenerator):
             ActionInputs.get_metric(),
             self.evaluator.total_coverage_overall,
             self.evaluator.total_coverage_overall_passed,
-            ActionInputs.get_min_coverage_overall(),
+            ActionInputs.get_global_overall_threshold(),
             self.evaluator.total_coverage_changed_files,
             self.evaluator.total_coverage_changed_files_passed,
-            ActionInputs.get_min_coverage_changed_files(),
+            ActionInputs.get_global_avg_changed_files_threshold(),
             self.bs_evaluator.total_coverage_overall,
             self.bs_evaluator.total_coverage_changed_files,
         )
