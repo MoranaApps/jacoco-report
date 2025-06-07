@@ -8,8 +8,7 @@ TOKEN = "token"
 PATHS = "paths"
 EXCLUDE_PATHS = "exclude-paths"
 
-MIN_COVERAGE_OVERALL = "min-coverage-overall"
-MIN_COVERAGE_CHANGED_FILES = "min-coverage-changed-files"
+GLOBAL_THRESHOLDS = "global-thresholds"
 
 TITLE = "title"
 PR_NUMBER = "pr-number"

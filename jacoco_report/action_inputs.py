@@ -11,8 +11,7 @@ from jacoco_report.utils.constants import (
     TOKEN,
     PATHS,
     EXCLUDE_PATHS,
-    MIN_COVERAGE_OVERALL,
-    MIN_COVERAGE_CHANGED_FILES,
+    GLOBAL_THRESHOLDS,
     TITLE,
     SENSITIVITY,
     COMMENT_MODE,
@@ -74,25 +73,48 @@ class ActionInputs:
         return ActionInputs.__parse_paths(exclude_paths)
 
     @staticmethod
+    def get_global_thresholds(raw: bool = False) -> tuple[float, float, float] | str:
+        """Return the global coverage thresholds as a tuple."""
+        raw_value = get_action_input(GLOBAL_THRESHOLDS, "0*0*0").strip()
+
+        if raw:
+            return raw_value
+
+        cleaned = ActionInputs.__clean_from_comment(raw_value)
+
+        if "*" not in cleaned:
+            cleaned = "0*0*0"
+
+        parts = cleaned.split("*")
+        while len(parts) < 3:
+            parts.append("")
+
+        overall = float(parts[0]) if parts[0] else 0.0
+        changed = float(parts[1]) if parts[1] else 0.0
+        per_file = float(parts[2]) if parts[2] else 0.0
+
+        return overall, changed, per_file
+
+    @staticmethod
     def get_min_coverage_overall() -> float:
         """
         Get the minimum coverage overall from the action inputs.
         """
-        return float(get_action_input(MIN_COVERAGE_OVERALL, "0.0") or "0.0")
+        return ActionInputs.get_global_thresholds()[0]
 
     @staticmethod
     def get_min_coverage_changed_files() -> float:
         """
         Get the minimum coverage changed files from the action inputs.
         """
-        return float(get_action_input(MIN_COVERAGE_CHANGED_FILES, "0.0") or "0.0")
+        return ActionInputs.get_global_thresholds()[1]
 
     @staticmethod
     def get_min_coverage_per_changed_file() -> float:
         """
         Get the minimum coverage per changed file from the action inputs.
         """
-        return float(get_action_input("min-coverage-per-changed-file", "0.0") or "0.0")
+        return ActionInputs.get_global_thresholds()[2]
 
     @staticmethod
     def get_title(report_name: Optional[str] = None) -> str:
@@ -453,25 +475,13 @@ class ActionInputs:
         elif len(paths) == 0:
             errors.append("'paths' must be a non-empty list of strings.")
 
-        min_coverage_overall = ActionInputs.get_min_coverage_overall()
-        if not isinstance(min_coverage_overall, float) or min_coverage_overall < 0 or min_coverage_overall > 100:
-            errors.append("'min-coverage-overall' must be a float between 0 and 100.")
-
-        min_coverage_changed_files = ActionInputs.get_min_coverage_changed_files()
-        if (
-            not isinstance(min_coverage_changed_files, float)
-            or min_coverage_changed_files < 0
-            or min_coverage_changed_files > 100
-        ):
-            errors.append("'min-coverage-changed-files' must be a float between 0 and 100.")
-
-        min_coverage_per_changed_file = ActionInputs.get_min_coverage_per_changed_file()
-        if (
-            not isinstance(min_coverage_per_changed_file, float)
-            or min_coverage_per_changed_file < 0
-            or min_coverage_per_changed_file > 100
-        ):
-            errors.append("'min-coverage-per-changed-file' must be a float between 0 and 100.")
+        overall, changed, per_file = ActionInputs.get_global_thresholds()
+        if not isinstance(overall, float) or overall < 0 or overall >= 100:
+            errors.append("'global-thresholds' overall value must be a float between 0 and 100.")
+        if not isinstance(changed, float) or changed < 0 or changed >= 100:
+            errors.append("'global-thresholds' changed files value must be a float between 0 and 100.")
+        if not isinstance(per_file, float) or per_file < 0 or per_file >= 100:
+            errors.append("'global-thresholds' per-changed-file value must be a float between 0 and 100.")
 
         metric = ActionInputs.get_metric()
         if not isinstance(metric, str) or metric not in MetricTypeEnum:
@@ -562,9 +572,7 @@ class ActionInputs:
             f"Exclude paths: {ActionInputs.get_exclude_paths()}\n"
             f"Baseline paths: {ActionInputs.get_baseline_paths()}\n"
             "\n"
-            f"Minimum coverage overall: {ActionInputs.get_min_coverage_overall()}\n"
-            f"Minimum coverage changed files: {ActionInputs.get_min_coverage_changed_files()}\n"
-            f"Minimum coverage per changed file: {ActionInputs.get_min_coverage_per_changed_file()}\n"
+            f"Global thresholds: {ActionInputs.get_global_thresholds()}\n"
             "\n"
             f"Modules: {ActionInputs.get_modules()}\n"
             f"Modules thresholds: {ActionInputs.get_modules_thresholds()}\n"
