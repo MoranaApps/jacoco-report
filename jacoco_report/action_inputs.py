@@ -94,8 +94,10 @@ class ActionInputs:
             cleaned = "0.0*0.0*0.0"
 
         if cleaned.count("*") == 1:
-            logger.warning("'global-thresholds' input is not formatted correctly. "
-                             "Adding default value for changed file threshold.")
+            logger.warning(
+                "'global-thresholds' input is not formatted correctly. "
+                "Adding default value for changed file threshold."
+            )
             cleaned += "*0.0"
 
         parts = cleaned.split("*")
@@ -110,21 +112,33 @@ class ActionInputs:
         """
         Get the minimum coverage overall from the action inputs.
         """
-        return ActionInputs.get_global_thresholds()[0]
+        thresholds = ActionInputs.get_global_thresholds()
+        if isinstance(thresholds, str):
+            logger.error("Global thresholds input is not formatted correctly. Returning default value 0.0.")
+            return 0.0
+        return thresholds[0]
 
     @staticmethod
     def get_global_avg_changed_files_threshold() -> float:
         """
         Get the minimum average coverage changed files from the action inputs.
         """
-        return ActionInputs.get_global_thresholds()[1]
+        thresholds = ActionInputs.get_global_thresholds()
+        if isinstance(thresholds, str):
+            logger.error("Global thresholds input is not formatted correctly. Returning default value 0.0.")
+            return 0.0
+        return thresholds[1]
 
     @staticmethod
     def get_global_changed_file_threshold() -> float:
         """
         Get the minimum coverage per changed file from the action inputs.
         """
-        return ActionInputs.get_global_thresholds()[2]
+        thresholds = ActionInputs.get_global_thresholds()
+        if isinstance(thresholds, str):
+            logger.error("Global thresholds input is not formatted correctly. Returning default value 0.0.")
+            return 0.0
+        return thresholds[2]
 
     @staticmethod
     def get_title(report_name: Optional[str] = None) -> str:
@@ -471,6 +485,7 @@ class ActionInputs:
         """
         Validates the inputs provided for the GH action.
         """
+
         def is_float(value: str) -> bool:
             try:
                 float(value)
@@ -659,8 +674,8 @@ class ActionInputs:
             cleaned_path = ActionInputs.__clean_from_comment(path)
             if len(cleaned_path) == 0:
                 continue
-            else:
-                res.append(cleaned_path)
+
+            res.append(cleaned_path)
 
         return res
 
