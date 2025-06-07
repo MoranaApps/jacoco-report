@@ -54,8 +54,7 @@ tests/data_baseline/**/*.xml
 
 export INPUT_TITLE="Code Coverage Report"
 
-export INPUT_MIN_COVERAGE_OVERALL="80"
-export INPUT_MIN_COVERAGE_CHANGED_FILES="80"
+export INPUT_GLOBAL_THRESHOLDS="80*80*80"
 
 export INPUT_PR_NUMBER="1"                  # Required to add the PR number to receive the comments
 
