@@ -37,9 +37,9 @@ def test_parse_missing_thresholds(mocker):
         "module1": (75.0, 80.0, 80.0)
     }
 
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_min_coverage_overall", return_value=50.0)
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_min_coverage_changed_files", return_value=60.0)
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_min_coverage_per_changed_file", return_value=60.0)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_threshold", return_value=50.0)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_avg_changed_files_threshold", return_value=60.0)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_file_threshold", return_value=60.0)
 
     parsed_modules = ModuleParser.parse(modules, modules_thresholds)
 

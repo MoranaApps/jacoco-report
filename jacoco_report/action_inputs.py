@@ -75,6 +75,7 @@ class ActionInputs:
     @staticmethod
     def get_global_thresholds(raw: bool = False) -> tuple[float, float, float] | str:
         """Return the global coverage thresholds as a tuple."""
+
         def safe_float(value: str, label: str) -> float:
             try:
                 return float(value) if value else 0.0
@@ -82,18 +83,20 @@ class ActionInputs:
                 print(f"Warning: Cannot convert '{label}' part ('{value}') to float. Defaulting to 0.0.")
                 return 0.0
 
-        raw_value = get_action_input(GLOBAL_THRESHOLDS, "0*0*0").strip()
-
-        if raw:
-            return raw_value
-
+        raw_value = get_action_input(GLOBAL_THRESHOLDS, "0.0*0.0*0.0").strip()
         cleaned = ActionInputs.__clean_from_comment(raw_value)
 
+        if raw:
+            return cleaned
+
         if "*" not in cleaned:
-            cleaned = "0*0*0"
+            logger.warning("'global-thresholds' input is not formatted correctly. ")
+            cleaned = "0.0*0.0*0.0"
 
         if cleaned.count("*") == 1:
-            cleaned += "*0"
+            logger.warning("'global-thresholds' input is not formatted correctly. "
+                             "Adding default value for changed file threshold.")
+            cleaned += "*0.0"
 
         parts = cleaned.split("*")
         overall = safe_float(parts[0], "overall")
@@ -237,7 +240,9 @@ class ActionInputs:
                 parts = f_values.split("*")
 
                 overall = float(parts[0]) if len(parts[0]) > 0 else ActionInputs.get_global_overall_threshold()
-                changed = float(parts[1]) if len(parts[1]) > 0 else ActionInputs.get_global_avg_changed_files_threshold()
+                changed = (
+                    float(parts[1]) if len(parts[1]) > 0 else ActionInputs.get_global_avg_changed_files_threshold()
+                )
                 changed_per_file = (
                     float(parts[2]) if len(parts[2]) > 0 else ActionInputs.get_global_changed_file_threshold()
                 )
@@ -466,6 +471,13 @@ class ActionInputs:
         """
         Validates the inputs provided for the GH action.
         """
+        def is_float(value: str) -> bool:
+            try:
+                float(value)
+                return True
+            except (ValueError, TypeError):
+                return False
+
         errors = []
 
         token = ActionInputs.get_token()
@@ -482,13 +494,23 @@ class ActionInputs:
         elif len(paths) == 0:
             errors.append("'paths' must be a non-empty list of strings.")
 
-        overall, changed, per_file = ActionInputs.get_global_thresholds()
-        if not isinstance(overall, float) or overall < 0 or overall >= 100:
-            errors.append("'global-thresholds' overall value must be a float between 0 and 100.")
-        if not isinstance(changed, float) or changed < 0 or changed >= 100:
-            errors.append("'global-thresholds' changed files value must be a float between 0 and 100.")
-        if not isinstance(per_file, float) or per_file < 0 or per_file >= 100:
-            errors.append("'global-thresholds' per-changed-file value must be a float between 0 and 100.")
+        global_thresholds = ActionInputs.get_global_thresholds(raw=True)
+        if not isinstance(global_thresholds, str):
+            errors.append("'global-thresholds' must be a string or not defined.")
+        elif "*" not in global_thresholds:
+            errors.append(
+                "'global-thresholds' must be in the format 'overall*avg_changed_files*changed_file'. "
+                "Where overall is the minimum coverage overall, avg_changed_files is the minimum average coverage "
+                "of changed files and changed_file is the minimum coverage per changed file."
+            )
+        else:
+            parts = global_thresholds.split("*")
+            if not is_float(parts[0]) or float(parts[0]) < 0 or float(parts[0]) >= 100:
+                errors.append("'global-thresholds' overall value must be a float between 0 and 100.")
+            if not is_float(parts[1]) or float(parts[1]) < 0 or float(parts[1]) >= 100:
+                errors.append("'global-thresholds' avg_changed_files files value must be a float between 0 and 100.")
+            if not is_float(parts[2]) or float(parts[2]) < 0 or float(parts[2]) >= 100:
+                errors.append("'global-thresholds' changed-file value must be a float between 0 and 100.")
 
         metric = ActionInputs.get_metric()
         if not isinstance(metric, str) or metric not in MetricTypeEnum:
@@ -579,7 +601,9 @@ class ActionInputs:
             f"Exclude paths: {ActionInputs.get_exclude_paths()}\n"
             f"Baseline paths: {ActionInputs.get_baseline_paths()}\n"
             "\n"
-            f"Global thresholds: {ActionInputs.get_global_thresholds()}\n"
+            f"Global thresholds: overall={ActionInputs.get_global_overall_threshold()}, "
+            f"avg_changed_files={ActionInputs.get_global_avg_changed_files_threshold()}, "
+            f"changed_file={ActionInputs.get_global_changed_file_threshold()}\n"
             "\n"
             f"Modules: {ActionInputs.get_modules()}\n"
             f"Modules thresholds: {ActionInputs.get_modules_thresholds()}\n"
