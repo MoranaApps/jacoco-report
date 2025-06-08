@@ -24,7 +24,8 @@ from jacoco_report.utils.constants import (
     FAIL_ON_THRESHOLD,
     DEBUG,
     METRIC,
-    PR_NUMBER, DEFAULT_GLOBAL_THRESHOLDS,
+    PR_NUMBER,
+    DEFAULT_GLOBAL_THRESHOLDS,
 )
 
 from jacoco_report.utils.enums import SensitivityEnum, CommentModeEnum, MetricTypeEnum, FailOnThresholdEnum
@@ -80,7 +81,8 @@ class ActionInputs:
             try:
                 return float(value) if value else 0.0
             except ValueError:
-                logger.error(f"Warning: Cannot convert '{label}' part ('{value}') to float. Defaulting to 0.0.")
+                logger.error("Warning: Cannot convert '%s' part ('%s') to float. Defaulting to 0.0.",
+                             label, value)
                 return 0.0
 
         raw_value = get_action_input(GLOBAL_THRESHOLDS, DEFAULT_GLOBAL_THRESHOLDS).strip()
@@ -112,7 +114,10 @@ class ActionInputs:
         """Helper method to extract a specific component from global thresholds."""
         thresholds = ActionInputs.get_global_thresholds()
         if isinstance(thresholds, str):
-            logger.error(f"Global thresholds input is not formatted correctly. Returning default value 0.0 for {component_name}.")
+            logger.error(
+                "Global thresholds input is not formatted correctly. Returning default value 0.0 for %s.",
+                component_name
+            )
             return 0.0
         return thresholds[index]
 
