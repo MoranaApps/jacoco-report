@@ -81,8 +81,7 @@ class ActionInputs:
             try:
                 return float(value) if value else 0.0
             except ValueError:
-                logger.error("Warning: Cannot convert '%s' part ('%s') to float. Defaulting to 0.0.",
-                             label, value)
+                logger.error("Warning: Cannot convert '%s' part ('%s') to float. Defaulting to 0.0.", label, value)
                 return 0.0
 
         raw_value = get_action_input(GLOBAL_THRESHOLDS, DEFAULT_GLOBAL_THRESHOLDS).strip()
@@ -116,7 +115,7 @@ class ActionInputs:
         if isinstance(thresholds, str):
             logger.error(
                 "Global thresholds input is not formatted correctly. Returning default value 0.0 for %s.",
-                component_name
+                component_name,
             )
             return 0.0
         return thresholds[index]
