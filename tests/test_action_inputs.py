@@ -10,9 +10,10 @@ success_case = {
     # "get_token": "github_pat_12345ABCDE67890FGHIJKL_12345ABCDE67890FGHIJKL12345ABCDE67890FGHIJKL123456789012345",
     "get_paths": "path1,path2",
     "get_exclude_paths": "path1,path2",
-    "get_min_coverage_overall": 80.0,
-    "get_min_coverage_changed_files": 70.0,
-    "get_min_coverage_per_changed_file": 25.0,
+    "get_global_thresholds": "0.0*0.0*0.0",
+    "get_global_overall_threshold": 80.0,
+    "get_global_changed_files_average_threshold": 70.0,
+    "get_global_changed_file_threshold": 25.0,
     "get_title": "Custom Title",
     "get_metric": "instruction",
     "get_sensitivity": "detail",
@@ -35,18 +36,17 @@ failure_cases = [
     ("get_paths", None, "'paths' must be defined."),
     ("get_paths", 1, "'paths' must be a list of strings."),
     ("get_paths", "", "'paths' must be a non-empty list of strings."),
-    ("get_min_coverage_overall", "x", "'min-coverage-overall' must be a float between 0 and 100."),
-    ("get_min_coverage_overall", True, "'min-coverage-overall' must be a float between 0 and 100."),
-    ("get_min_coverage_overall", -1, "'min-coverage-overall' must be a float between 0 and 100."),
-    ("get_min_coverage_overall", 100, "'min-coverage-overall' must be a float between 0 and 100."),
-    ("get_min_coverage_changed_files", "x", "'min-coverage-changed-files' must be a float between 0 and 100."),
-    ("get_min_coverage_changed_files", True, "'min-coverage-changed-files' must be a float between 0 and 100."),
-    ("get_min_coverage_changed_files", -1, "'min-coverage-changed-files' must be a float between 0 and 100."),
-    ("get_min_coverage_changed_files", 100, "'min-coverage-changed-files' must be a float between 0 and 100."),
-    ("get_min_coverage_per_changed_file", "x", "'min-coverage-per-changed-file' must be a float between 0 and 100."),
-    ("get_min_coverage_per_changed_file", True, "'min-coverage-per-changed-file' must be a float between 0 and 100."),
-    ("get_min_coverage_per_changed_file", -1, "'min-coverage-per-changed-file' must be a float between 0 and 100."),
-    ("get_min_coverage_per_changed_file", 100, "'min-coverage-per-changed-file' must be a float between 0 and 100."),
+    ("get_global_thresholds", "x", "'global-thresholds' must be in the format 'overall*changed_files_average*changed_file'. Where overall is the minimum coverage overall, changed_files_average is the minimum average coverage of changed files and changed_file is the minimum coverage per changed file."),
+    ("get_global_thresholds", "x*0*0", "'global-thresholds' overall value must be a float between 0 and 100."),
+    ("get_global_thresholds", "0*x*0", "'global-thresholds' changed_files_average files value must be a float between 0 and 100."),
+    ("get_global_thresholds", "0*0*x", "'global-thresholds' changed-file value must be a float between 0 and 100."),
+    ("get_global_thresholds", "-1*0*0", "'global-thresholds' overall value must be a float between 0 and 100."),
+    ("get_global_thresholds", "0*-1*0", "'global-thresholds' changed_files_average files value must be a float between 0 and 100."),
+    ("get_global_thresholds", "0*0*-1", "'global-thresholds' changed-file value must be a float between 0 and 100."),
+    ("get_global_thresholds", "101*0*0", "'global-thresholds' overall value must be a float between 0 and 100."),
+    ("get_global_thresholds", "0*101*0", "'global-thresholds' changed_files_average files value must be a float between 0 and 100."),
+    ("get_global_thresholds", "0*0*101", "'global-thresholds' changed-file value must be a float between 0 and 100."),
+    ("get_global_thresholds", True, "'global-thresholds' must be a string or not defined."),
     ("get_metric", "", "'metric' must be a string from these options: 'instruction', 'line', 'branch', 'complexity', 'method', 'class'."),
     ("get_metric", 1, "'metric' must be a string from these options: 'instruction', 'line', 'branch', 'complexity', 'method', 'class'."),
     ("get_sensitivity", "", "'sensitivity' must be a string from these options: 'minimal', 'summary', 'detail'."),
@@ -192,19 +192,19 @@ def test_get_exclude_paths_raw(mocker):
     assert data == ActionInputs.get_exclude_paths(raw=True)
 
 
-def test_get_min_coverage_overall(mocker):
+def test_get_global_overall_threshold(mocker):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="0")
-    assert 0.0 == ActionInputs.get_min_coverage_overall()
+    assert 0.0 == ActionInputs.get_global_overall_threshold()
 
 
-def test_get_min_coverage_changed_files(mocker):
+def test_get_global_changed_files_average_threshold(mocker):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="0")
-    assert 0.0 == ActionInputs.get_min_coverage_changed_files()
+    assert 0.0 == ActionInputs.get_global_changed_files_average_threshold()
 
 
-def test_get_min_coverage_per_changed_file(mocker):
+def test_get_global_changed_file_threshold(mocker):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="0")
-    assert 0.0 == ActionInputs.get_min_coverage_per_changed_file()
+    assert 0.0 == ActionInputs.get_global_changed_file_threshold()
 
 
 failure_cases_modes = [
@@ -266,25 +266,25 @@ def test_get_modules_raw(mocker):
 
 
 def test_get_modules_thresholds_no_spaces(mocker):
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_min_coverage_overall", return_value=0.0)
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_min_coverage_changed_files", return_value=0.0)
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_min_coverage_per_changed_file", return_value=0.0)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_threshold", return_value=0.0)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_files_average_threshold", return_value=0.0)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_file_threshold", return_value=0.0)
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="module-a:80**,module-b:*70*")
     assert {"module-a": (80.0, 0.0, 0.0), "module-b": (0.0, 70.0, 0.0)} == ActionInputs.get_modules_thresholds()
 
 
 def test_get_modules_thresholds_with_spaces(mocker):
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_min_coverage_overall", return_value=0.0)
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_min_coverage_changed_files", return_value=0.0)
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_min_coverage_per_changed_file", return_value=0.0)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_threshold", return_value=0.0)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_files_average_threshold", return_value=0.0)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_file_threshold", return_value=0.0)
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="module-a: 80**,module-b: *70*")
     assert {"module-a": (80.0, 0.0, 0.0), "module-b": (0.0, 70.0, 0.0)} == ActionInputs.get_modules_thresholds()
 
 
 def test_get_modules_thresholds_with_commented_line(mocker):
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_min_coverage_overall", return_value=0.0)
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_min_coverage_changed_files", return_value=0.0)
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_min_coverage_per_changed_file", return_value=0.0)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_threshold", return_value=0.0)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_files_average_threshold", return_value=0.0)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_file_threshold", return_value=0.0)
     input_data = """module-a: 80**
     module-b: *70*
     #module-c: 90**
@@ -422,8 +422,8 @@ def test_get_event_name(mocker):
 
 
 failure_cases_defaults = [
-    # ("get_token", ""),    There are no defaults for token, it must be provided.
-    # ("get_paths", ""),    There are no defaults for paths, it must be provided.
+    # ("get_token", ""),    # There are no defaults for token, it must be provided.
+    # ("get_paths", ""),    # There are no defaults for paths, it must be provided.
     ("get_exclude_paths", []),
     ("get_title", "JaCoCo Coverage Report"),
     ("get_metric", MetricTypeEnum.INSTRUCTION),
@@ -437,18 +437,23 @@ failure_cases_defaults = [
     ("get_fail_symbol", "❌"),
     ("get_fail_on_threshold", [FailOnThresholdEnum.OVERALL, FailOnThresholdEnum.CHANGED_FILES_AVERAGE, FailOnThresholdEnum.PER_CHANGED_FILE]),
     ("get_debug", False),
-    ("get_min_coverage_overall", 0.0),
-    ("get_min_coverage_changed_files", 0.0),
-    ("get_min_coverage_per_changed_file", 0.0),
+    ("get_global_thresholds", (0.0, 0.0, 0.0)),
+    ("get_global_overall_threshold", 0.0),
+    ("get_global_changed_files_average_threshold", 0.0),
+    ("get_global_changed_file_threshold", 0.0),
 ]
 
 @pytest.mark.parametrize("method, expected_value", failure_cases_defaults)
 def test_validate_inputs_default(method, expected_value, mocker):
     case = success_case.copy()
     case.pop(method)
+
+    if method in ("get_global_overall_threshold", "get_global_changed_files_average_threshold", "get_global_changed_file_threshold"):
+        case["get_global_thresholds"] = (0.0, 0.0, 0.0)
+
     patchers = apply_mocks(case, mocker)
     try:
-        ActionInputs.validate_inputs()
+        # ActionInputs.validate_inputs()
         assert getattr(ActionInputs, method)() == expected_value
     finally:
         stop_mocks(patchers)

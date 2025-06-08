@@ -174,8 +174,8 @@ class PRCommentGenerator:
                 continue
 
             provided_reports += 1
-            o_thres = ActionInputs.get_min_coverage_overall()
-            ch_thres = ActionInputs.get_min_coverage_changed_files()
+            o_thres = ActionInputs.get_global_overall_threshold()
+            ch_thres = ActionInputs.get_global_changed_files_average_threshold()
 
             if len(ActionInputs.get_modules()) > 0 and len(ActionInputs.get_modules_thresholds()) > 0:
                 o_thres = evaluated_report.overall_coverage_threshold
@@ -216,8 +216,8 @@ class PRCommentGenerator:
             provided_reports += 1
             diff_o, diff_ch = self._calculate_baseline_report_diffs(evaluated_report)
 
-            o_thres = ActionInputs.get_min_coverage_overall()
-            ch_thres = ActionInputs.get_min_coverage_changed_files()
+            o_thres = ActionInputs.get_global_overall_threshold()
+            ch_thres = ActionInputs.get_global_changed_files_average_threshold()
 
             if len(ActionInputs.get_modules()) > 0 and len(ActionInputs.get_modules_thresholds()) > 0:
                 o_thres = evaluated_report.overall_coverage_threshold

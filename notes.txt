@@ -1,0 +1,25 @@
+- TODO - nutna migracni doc mezi v2 a v3
+
+- Feature
+    - Comments in PRs should have more metadata
+    - Enhance the log to include thresholds and reached values
+
+
+
+- README & Doc improvements
+    - Improve README.md
+    - Document transitions among modes
+    - Modules threshold format is not explained
+
+
+
+- Technical Debt
+    - Refactoring - remove maximum of pylint ignores
+
+
+
+LATER
+- proc nejde GITHUB_TOKEN u me v repo
+    - prazdny vstup - ma padat - selhalo neco?
+    - udelat extra validation chedk a zkusit pouzit token v ramci call
+      404 spatny token

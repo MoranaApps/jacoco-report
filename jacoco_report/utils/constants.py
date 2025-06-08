@@ -8,8 +8,8 @@ TOKEN = "token"
 PATHS = "paths"
 EXCLUDE_PATHS = "exclude-paths"
 
-MIN_COVERAGE_OVERALL = "min-coverage-overall"
-MIN_COVERAGE_CHANGED_FILES = "min-coverage-changed-files"
+GLOBAL_THRESHOLDS = "global-thresholds"
+DEFAULT_GLOBAL_THRESHOLDS = "0.0*0.0*0.0"
 
 TITLE = "title"
 PR_NUMBER = "pr-number"
@@ -32,4 +32,4 @@ BASELINE_PATHS = "baseline-paths"
 # fail-on-threshold values
 OVERALL = "overall"
 CHANGED_FILES_AVERAGE = "changed-files-average"
-PER_CHANGED_FILES = "per-changed-file"
+CHANGED_FILE = "changed-file"

@@ -31,9 +31,9 @@ class ModuleParser:
             overall, changed, changed_per_file = modules_thresholds.get(
                 name,
                 (
-                    ActionInputs.get_min_coverage_overall(),
-                    ActionInputs.get_min_coverage_changed_files(),
-                    ActionInputs.get_min_coverage_per_changed_file(),
+                    ActionInputs.get_global_overall_threshold(),
+                    ActionInputs.get_global_changed_files_average_threshold(),
+                    ActionInputs.get_global_changed_file_threshold(),
                 ),
             )
             module_dict[name] = Module(name, path, overall, changed, changed_per_file)
