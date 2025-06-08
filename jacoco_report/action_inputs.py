@@ -133,14 +133,14 @@ class ActionInputs:
         """
         Get the minimum average coverage changed files from the action inputs.
         """
-        return ActionInputs._get_global_threshold_component(0, "changed files average threshold")
+        return ActionInputs._get_global_threshold_component(1, "changed files average threshold")
 
     @staticmethod
     def get_global_changed_file_threshold() -> float:
         """
         Get the minimum coverage per changed file from the action inputs.
         """
-        return ActionInputs._get_global_threshold_component(0, "changed file threshold")
+        return ActionInputs._get_global_threshold_component(2, "changed file threshold")
 
     @staticmethod
     def get_title(report_name: Optional[str] = None) -> str:
