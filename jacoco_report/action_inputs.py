@@ -24,7 +24,7 @@ from jacoco_report.utils.constants import (
     FAIL_ON_THRESHOLD,
     DEBUG,
     METRIC,
-    PR_NUMBER,
+    PR_NUMBER, DEFAULT_GLOBAL_THRESHOLDS,
 )
 
 from jacoco_report.utils.enums import SensitivityEnum, CommentModeEnum, MetricTypeEnum, FailOnThresholdEnum
@@ -80,10 +80,10 @@ class ActionInputs:
             try:
                 return float(value) if value else 0.0
             except ValueError:
-                print(f"Warning: Cannot convert '{label}' part ('{value}') to float. Defaulting to 0.0.")
+                logger.error(f"Warning: Cannot convert '{label}' part ('{value}') to float. Defaulting to 0.0.")
                 return 0.0
 
-        raw_value = get_action_input(GLOBAL_THRESHOLDS, "0.0*0.0*0.0").strip()
+        raw_value = get_action_input(GLOBAL_THRESHOLDS, DEFAULT_GLOBAL_THRESHOLDS).strip()
         cleaned = ActionInputs.__clean_from_comment(raw_value)
 
         if raw:
@@ -91,7 +91,7 @@ class ActionInputs:
 
         if "*" not in cleaned:
             logger.warning("'global-thresholds' input is not formatted correctly. ")
-            cleaned = "0.0*0.0*0.0"
+            cleaned = DEFAULT_GLOBAL_THRESHOLDS
 
         if cleaned.count("*") == 1:
             logger.warning(
@@ -108,37 +108,34 @@ class ActionInputs:
         return overall, changed, per_file
 
     @staticmethod
+    def _get_global_threshold_component(index: int, component_name: str) -> float:
+        """Helper method to extract a specific component from global thresholds."""
+        thresholds = ActionInputs.get_global_thresholds()
+        if isinstance(thresholds, str):
+            logger.error(f"Global thresholds input is not formatted correctly. Returning default value 0.0 for {component_name}.")
+            return 0.0
+        return thresholds[index]
+
+    @staticmethod
     def get_global_overall_threshold() -> float:
         """
         Get the minimum coverage overall from the action inputs.
         """
-        thresholds = ActionInputs.get_global_thresholds()
-        if isinstance(thresholds, str):
-            logger.error("Global thresholds input is not formatted correctly. Returning default value 0.0.")
-            return 0.0
-        return thresholds[0]
+        return ActionInputs._get_global_threshold_component(0, "overall threshold")
 
     @staticmethod
     def get_global_changed_files_average_threshold() -> float:
         """
         Get the minimum average coverage changed files from the action inputs.
         """
-        thresholds = ActionInputs.get_global_thresholds()
-        if isinstance(thresholds, str):
-            logger.error("Global thresholds input is not formatted correctly. Returning default value 0.0.")
-            return 0.0
-        return thresholds[1]
+        return ActionInputs._get_global_threshold_component(0, "changed files average threshold")
 
     @staticmethod
     def get_global_changed_file_threshold() -> float:
         """
         Get the minimum coverage per changed file from the action inputs.
         """
-        thresholds = ActionInputs.get_global_thresholds()
-        if isinstance(thresholds, str):
-            logger.error("Global thresholds input is not formatted correctly. Returning default value 0.0.")
-            return 0.0
-        return thresholds[2]
+        return ActionInputs._get_global_threshold_component(0, "changed file threshold")
 
     @staticmethod
     def get_title(report_name: Optional[str] = None) -> str:
@@ -519,6 +516,12 @@ class ActionInputs:
                 "of changed files and changed_file is the minimum coverage per changed file."
             )
         else:
+            if global_thresholds.count("*") == 1:
+                logger.warning(
+                    "'global-thresholds' should be in the format 'overall*changed_files_average*changed_file'. "
+                    "Adding default value for changed file threshold."
+                )
+                global_thresholds += "*0.0"
             parts = global_thresholds.split("*")
             if not is_float(parts[0]) or float(parts[0]) < 0 or float(parts[0]) >= 100:
                 errors.append("'global-thresholds' overall value must be a float between 0 and 100.")

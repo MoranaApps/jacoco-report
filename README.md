@@ -137,9 +137,11 @@ analysis.
 
 The `global-thresholds` input allows you to define global coverage thresholds for the overall, average changed files,
 and each changed file coverage. This input is a string in the format:
+
 - `overall*average-changed-files*changed-file`
 
 Where:
+
 - `overall`: Minimum overall coverage percentage required.
 - `average-changed-files`: Minimum average coverage percentage required for changed files.
 - `changed-file`: Minimum coverage percentage required for each individual changed file.
@@ -150,8 +152,8 @@ Where:
   with:
     token: '${{ secrets.TOKEN }}'
     paths: **/jacoco/**/*.xml
-    global-thresholds: 80*70*60  # Require at least 80% overall coverage, 70% average coverage for changed files, and 60% for each changed file
-    
+    global-thresholds: 80*70*60  # Min coverage: 80% overall, 70% changed avg, 60% per file
+
     fail-on-threshold: true  # Fail the GitHub action if any of the thresholds is not reached
 ```
 

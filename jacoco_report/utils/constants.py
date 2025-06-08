@@ -9,6 +9,7 @@ PATHS = "paths"
 EXCLUDE_PATHS = "exclude-paths"
 
 GLOBAL_THRESHOLDS = "global-thresholds"
+DEFAULT_GLOBAL_THRESHOLDS = "0.0*0.0*0.0"
 
 TITLE = "title"
 PR_NUMBER = "pr-number"
