@@ -1,5 +1,6 @@
 import pytest
 
+from jacoco_report.jacoco_report import JaCoCoReport
 from jacoco_report.utils.github import GitHub
 
 
@@ -9,7 +10,13 @@ def mock_logging_setup(mocker):
     mock_log_config = mocker.patch("logging.basicConfig")
     yield mock_log_config
 
+
 @pytest.fixture
 def github(mocker):
     mocker.patch("os.getenv", return_value="fake_repo")
     return GitHub("fake_token")
+
+
+@pytest.fixture
+def jacoco_report():
+    return JaCoCoReport()

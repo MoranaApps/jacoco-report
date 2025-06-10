@@ -11,7 +11,6 @@ from jacoco_report.model.counter import Counter
 from jacoco_report.model.report_file_coverage import ReportFileCoverage
 from jacoco_report.model.evaluated_report_coverage import EvaluatedReportCoverage
 from jacoco_report.model.module import Module
-from jacoco_report.utils.enums import SensitivityEnum, CommentModeEnum
 
 logger = logging.getLogger(__name__)
 
@@ -111,10 +110,7 @@ class CoverageEvaluator:
                 is_unknown_module_present = True
 
         # evaluation of all modules (module == group of reports under module root path)
-        if (
-            ActionInputs.get_comment_mode() in (CommentModeEnum.SINGLE, CommentModeEnum.MODULE)
-            and ActionInputs.get_modules() != {}
-        ):
+        if ActionInputs.get_modules() != {}:
             modules: list[str] = list(ActionInputs.get_modules().keys())  # type: ignore[union-attr]
 
             if is_unknown_module_present:
@@ -174,7 +170,7 @@ class CoverageEvaluator:
         skip_unchanged_with_none_changed_files = ActionInputs.get_skip_unchanged() and self.changed_files_count() == 0
 
         # global - usable only for `single` comment-mode
-        if ActionInputs.get_comment_mode() == CommentModeEnum.SINGLE and not skip_unchanged_with_none_changed_files:
+        if not skip_unchanged_with_none_changed_files:
             if not self.total_coverage_overall_passed:
                 self.violations.append(
                     f"Global overall coverage {self.total_coverage_overall} is below the threshold "
@@ -238,43 +234,8 @@ class CoverageEvaluator:
                     self.reached_threshold_per_change_file = False
 
         # Add all violations to the list depending on the sensitivity and comment mode
-        modules_defined: bool = len(ActionInputs.get_modules().keys()) > 0  # type: ignore[union-attr]
-        combination: tuple[str, str, bool] = (
-            ActionInputs.get_comment_mode(),
-            ActionInputs.get_sensitivity(),
-            modules_defined,
-        )
-        match combination:
-            case (CommentModeEnum.SINGLE, SensitivityEnum.MINIMAL, _):
-                return
-            case (CommentModeEnum.SINGLE, SensitivityEnum.SUMMARY, False):
-                self.violations.extend(report_violations)
-            case (CommentModeEnum.SINGLE, SensitivityEnum.SUMMARY, True):
-                self.violations.extend(module_violations)
-                self.violations.extend(report_violations)
-            case (CommentModeEnum.SINGLE, SensitivityEnum.DETAIL, False):
-                self.violations.extend(report_violations)
-                self.violations.extend(changed_files_violations)
-            case (CommentModeEnum.SINGLE, SensitivityEnum.DETAIL, True):
-                self.violations.extend(module_violations)
-                self.violations.extend(report_violations)
-                self.violations.extend(changed_files_violations)
-            case (CommentModeEnum.MULTI, SensitivityEnum.MINIMAL, _):
-                self.violations.extend(report_violations)
-            case (CommentModeEnum.MULTI, SensitivityEnum.SUMMARY, _):
-                self.violations.extend(report_violations)
-            case (CommentModeEnum.MULTI, SensitivityEnum.DETAIL, _):
-                self.violations.extend(report_violations)
-                self.violations.extend(changed_files_violations)
-            case (CommentModeEnum.MODULE, SensitivityEnum.MINIMAL, True):
-                self.violations.extend(module_violations)
-            case (CommentModeEnum.MODULE, SensitivityEnum.SUMMARY, True):
-                self.violations.extend(module_violations)
-                self.violations.extend(report_violations)
-            case (CommentModeEnum.MODULE, SensitivityEnum.DETAIL, True):
-                self.violations.extend(module_violations)
-                self.violations.extend(report_violations)
-                self.violations.extend(changed_files_violations)
+        self.violations.extend(report_violations)
+        self.violations.extend(changed_files_violations)
 
     def _evaluate_module(self, evaluated_coverage: EvaluatedReportCoverage) -> EvaluatedReportCoverage:
         """

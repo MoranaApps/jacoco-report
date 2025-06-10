@@ -13,8 +13,7 @@ from jacoco_report.utils.constants import (
     EXCLUDE_PATHS,
     GLOBAL_THRESHOLDS,
     TITLE,
-    SENSITIVITY,
-    COMMENT_MODE,
+    COMMENT_LEVEL,
     MODULES,
     MODULES_THRESHOLDS,
     SKIP_UNCHANGED,
@@ -28,7 +27,7 @@ from jacoco_report.utils.constants import (
     DEFAULT_GLOBAL_THRESHOLDS,
 )
 
-from jacoco_report.utils.enums import SensitivityEnum, CommentModeEnum, MetricTypeEnum, FailOnThresholdEnum
+from jacoco_report.utils.enums import CommentLevelEnum, MetricTypeEnum, FailOnThresholdEnum
 from jacoco_report.utils.gh_action import get_action_input
 from jacoco_report.utils.github import GitHub
 
@@ -142,27 +141,15 @@ class ActionInputs:
         return ActionInputs._get_global_threshold_component(2, "changed file threshold")
 
     @staticmethod
-    def get_title(report_name: Optional[str] = None) -> str:
+    def get_title() -> str:
         """
         Get the title from the action inputs.
         """
         title = get_action_input(TITLE, "")
         if len(title) > 0:
-            match ActionInputs.get_comment_mode():
-                case CommentModeEnum.MULTI:
-                    return title + (report_name if report_name else "Unknown Report Name")
-                case CommentModeEnum.MODULE:
-                    return title + (report_name if report_name else "Unknown Report Name")
-                case _:
-                    return title
+            return title
 
-        match ActionInputs.get_comment_mode():
-            case CommentModeEnum.MULTI:
-                return "Report: " + (report_name if report_name else "Unknown Report Name")
-            case CommentModeEnum.MODULE:
-                return "Module: " + (report_name if report_name else "Unknown Report Name")
-            case _:
-                return "JaCoCo Coverage Report"
+        return "JaCoCo Coverage Report"
 
     @staticmethod
     def get_pr_number(gh: GitHub) -> Optional[int]:
@@ -188,18 +175,11 @@ class ActionInputs:
         return get_action_input(METRIC, MetricTypeEnum.INSTRUCTION)
 
     @staticmethod
-    def get_sensitivity() -> str:
+    def get_comment_level() -> str:
         """
-        Get the sensitivity from the action inputs.
+        Get the comment level from the action inputs.
         """
-        return get_action_input(SENSITIVITY, SensitivityEnum.DETAIL)
-
-    @staticmethod
-    def get_comment_mode() -> str:
-        """
-        Get the comment mode from the action inputs.
-        """
-        return get_action_input(COMMENT_MODE, CommentModeEnum.SINGLE)
+        return get_action_input(COMMENT_LEVEL, CommentLevelEnum.FULL)
 
     @staticmethod
     def get_modules(raw: bool = False) -> dict[str, str] | str:
@@ -543,13 +523,9 @@ class ActionInputs:
                 "'line', 'branch', 'complexity', 'method', 'class'."
             )
 
-        sensitivity = ActionInputs.get_sensitivity()
-        if not isinstance(sensitivity, str) or sensitivity not in SensitivityEnum:
-            errors.append("'sensitivity' must be a string from these options: 'minimal', 'summary', 'detail'.")
-
-        comment_mode = ActionInputs.get_comment_mode()
-        if not isinstance(comment_mode, str) or comment_mode not in CommentModeEnum:
-            errors.append("'comment-mode' must be a string from these options: 'single', 'multi', 'module'.")
+        comment_level = ActionInputs.get_comment_level()
+        if not isinstance(comment_level, str) or comment_level not in CommentLevelEnum:
+            errors.append("'comment-level' must be a string from these options: 'minimal', 'full'.")
 
         modules: dict[str, str] | str = ActionInputs.get_modules(raw=True)
         if not isinstance(modules, str):
@@ -568,30 +544,32 @@ class ActionInputs:
                 for module in f_modules:
                     errors.extend(ActionInputs.validate_module(module))
 
-        if (
-            comment_mode == CommentModeEnum.MODULE
-            and len(ActionInputs.get_modules().keys()) == 0  # type: ignore[union-attr]
-        ):  # type: ignore[union-attr]
-            errors.append("'comment-mode' is 'module' but 'modules' is not defined.")
-
-        modules_thresholds: dict[str, tuple[float, float, float]] | str = ActionInputs.get_modules_thresholds(raw=True)
-        if not isinstance(modules_thresholds, str):
-            errors.append("'modules-thresholds' must be a string or not defined.")
-        else:
-            if ": " in modules_thresholds:
-                modules_thresholds = modules_thresholds.replace(": ", ":")
-
-            if len(modules_thresholds) == 0:
-                pass
-            elif len(modules_thresholds) < 3 or ":" not in modules_thresholds:
-                errors.append("'modules-thresholds' must be a list of strings in format 'module:overall*changed'.")
-            else:
-                split_by: str = "," if "," in modules_thresholds else "\n"  # type: ignore[no-redef]
-                f_modules_thresholds = modules_thresholds.split(split_by)
-                for module_threshold in f_modules_thresholds:
-                    cleaned_module_threshold = ActionInputs.__clean_from_comment(module_threshold)
-                    if len(cleaned_module_threshold) > 0:
-                        errors.extend(ActionInputs.validate_module_threshold(cleaned_module_threshold))
+        # TODO - uncomment this when new modules solution is implemented
+        # if (
+        #     comment_mode == CommentModeEnum.MODULE
+        #     and len(ActionInputs.get_modules().keys()) == 0  # type: ignore[union-attr]
+        # ):  # type: ignore[union-attr]
+        #     errors.append("'comment-mode' is 'module' but 'modules' is not defined.")
+        #
+        # modules_thresholds: dict[str, tuple[float, float, float]] | str =
+        # ActionInputs.get_modules_thresholds(raw=True)
+        # if not isinstance(modules_thresholds, str):
+        #     errors.append("'modules-thresholds' must be a string or not defined.")
+        # else:
+        #     if ": " in modules_thresholds:
+        #         modules_thresholds = modules_thresholds.replace(": ", ":")
+        #
+        #     if len(modules_thresholds) == 0:
+        #         pass
+        #     elif len(modules_thresholds) < 3 or ":" not in modules_thresholds:
+        #         errors.append("'modules-thresholds' must be a list of strings in format 'module:overall*changed'.")
+        #     else:
+        #         split_by: str = "," if "," in modules_thresholds else "\n"  # type: ignore[no-redef]
+        #         f_modules_thresholds = modules_thresholds.split(split_by)
+        #         for module_threshold in f_modules_thresholds:
+        #             cleaned_module_threshold = ActionInputs.__clean_from_comment(module_threshold)
+        #             if len(cleaned_module_threshold) > 0:
+        #                 errors.extend(ActionInputs.validate_module_threshold(cleaned_module_threshold))
 
         skip_unchanged = ActionInputs.get_skip_unchanged()
         if not isinstance(skip_unchanged, bool):
@@ -633,9 +611,8 @@ class ActionInputs:
             f"Modules thresholds: {ActionInputs.get_modules_thresholds()}\n"
             "\n"
             f"Metric: {ActionInputs.get_metric()}\n"
-            f"Sensitivity: {ActionInputs.get_sensitivity()}\n"
             f"Title: {ActionInputs.get_title()}\n"
-            f"Comment mode: {ActionInputs.get_comment_mode()}\n"
+            f"Comment level: {ActionInputs.get_comment_level()}\n"
             "\n"
             f"Skip unchanged: {ActionInputs.get_skip_unchanged()}\n"
             f"Update comment: {ActionInputs.get_update_comment()}\n"

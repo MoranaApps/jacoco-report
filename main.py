@@ -1,5 +1,5 @@
 """
-The main module to run the JaCoCo GitHub Action adding the Jajson report to the pull request.
+The main module to run the JaCoCo GitHub Action adding the Json report to the pull request.
 """
 
 import logging
