@@ -4,7 +4,7 @@ from jacoco_report.evaluator.coverage_evaluator import CoverageEvaluator
 from jacoco_report.generator.pr_comment_generator import PRCommentGenerator
 from jacoco_report.model.evaluated_report_coverage import EvaluatedReportCoverage
 from jacoco_report.model.module import Module
-from jacoco_report.utils.enums import SensitivityEnum, MetricTypeEnum
+from jacoco_report.utils.enums import MetricTypeEnum
 
 
 @pytest.fixture
@@ -30,12 +30,6 @@ def test_evaluator(mocker):
 def pr_comment_generator(mock_github, test_evaluator):
     return PRCommentGenerator(mock_github, test_evaluator, None, 1)
 
-def test_generate_throws_exception(pr_comment_generator, mocker):
-    with pytest.raises(NotImplementedError) as excinfo:
-        pr_comment_generator.generate()
-
-    assert str(excinfo.value) == "Subclasses should implement this method"
-
 def test_get_basic_table(pr_comment_generator, mocker):
     table = pr_comment_generator._get_basic_table(
         "✅", "❌", MetricTypeEnum.INSTRUCTION,
@@ -45,44 +39,6 @@ def test_get_basic_table(pr_comment_generator, mocker):
 
     assert "| **Overall**       | 85.2% | 80.0% | ✅ |" in table
     assert "| **Changed Files** | 78.4% | 80.0% | ❌ |" in table
-
-def test_get_modules_table(pr_comment_generator):
-    table = pr_comment_generator._get_modules_table("✅", "❌")
-    assert "" == table
-
-def test_get_modules_table_with_baseline_with_modules(pr_comment_generator, mocker):
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["baseline.xml"])
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_modules", return_value={"test", "test2"})
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_unchanged", return_value=False)
-    mocker.patch("jacoco_report.generator.pr_comment_generator.PRCommentGenerator._calculate_baseline_module_diffs", return_value=(1.1, 2.0))
-
-    pr_comment_generator.evaluator._modules["test"] = Module("test", "path",85.2, 80.0, 80.0)
-
-    pr_comment_generator.evaluator.evaluated_modules_coverage["test"] = EvaluatedReportCoverage()
-    pr_comment_generator.evaluator.evaluated_modules_coverage["test"].name = "test"
-
-    expected_table = """| Module | Coverage (O/Ch) | Threshold (O/Ch) | Δ Coverage (O/Ch) | Status (O/Ch) |
-|--------|-----------------|------------------|---------------|---------------|
-| `test` | 0.0% / 0.0% | 0.0% / 0.0% | +1.1% / +2.0% | ✅/✅ |"""
-
-    table = pr_comment_generator._get_modules_table("✅", "❌")
-    assert expected_table == table
-
-def test_generate_modules_table_with_baseline(pr_comment_generator, mocker):
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["baseline.xml"])
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_modules", return_value={"test", "test2"})
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_unchanged", return_value=True)
-    mocker.patch("jacoco_report.generator.pr_comment_generator.PRCommentGenerator._calculate_baseline_module_diffs", return_value=(1.1, 2.0))
-
-    pr_comment_generator.evaluator._modules["test"] = Module("test", "path",85.2, 80.0, 80.0)
-
-    pr_comment_generator.evaluator.evaluated_modules_coverage["test"] = EvaluatedReportCoverage()
-    pr_comment_generator.evaluator.evaluated_modules_coverage["test"].name = "test"
-
-    expected_table = """| Module | Coverage (O/Ch) | Threshold (O/Ch) | Δ Coverage (O/Ch) | Status (O/Ch) |\n|--------|-----------------|------------------|---------------|---------------|\n\nNo changed file in reports."""
-
-    table = pr_comment_generator._get_modules_table("✅", "❌")
-    assert expected_table == table
 
 def test_get_changed_files_table_without_baseline(pr_comment_generator):
     table = pr_comment_generator._generate_changed_files_table_without_baseline("✅", "❌")

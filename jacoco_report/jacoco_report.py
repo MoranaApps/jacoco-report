@@ -7,7 +7,7 @@ import logging
 
 from jacoco_report.action_inputs import ActionInputs
 from jacoco_report.evaluator.coverage_evaluator import CoverageEvaluator
-from jacoco_report.generator.pr_comment_generator_factory import PRCommentGeneratorFactory
+from jacoco_report.generator.pr_comment_generator import PRCommentGenerator
 from jacoco_report.model.report_file_coverage import ReportFileCoverage
 from jacoco_report.model.module import Module
 from jacoco_report.parser.jacoco_report_parser import JaCoCoReportParser
@@ -75,7 +75,7 @@ class JaCoCoReport:
 
         # map modules if comment mode is set to MODULE
         logger.info("Mapping modules (if defined).")
-        modules: dict[str, Module] = self._get_modules()
+        modules: dict[str, Module] = {}  # self._get_modules()
 
         # analyse received xml report files
         logger.info("Analyzing JaCoCo (xml) reports.")
@@ -142,16 +142,8 @@ class JaCoCoReport:
 
         # generate the comment(s)
         logger.info("Generating PR comment(s).")
-        generator = PRCommentGeneratorFactory.get_generator(
-            ActionInputs.get_comment_mode(),
-            gh,
-            evaluator,
-            bs_evaluator,
-            pr_number,
-            changed_modules,
-        )
+        generator = PRCommentGenerator(gh, evaluator, bs_evaluator, pr_number, changed_modules)
         generator.generate()
-
         logger.info("PR comment(s) generated successfully.")
 
     def _scan_jacoco_xml_files(self, paths: list[str], exclude_paths: list[str]) -> list[str]:

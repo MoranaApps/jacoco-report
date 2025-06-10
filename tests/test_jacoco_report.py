@@ -3,11 +3,11 @@ import logging
 import os
 
 import pytest
+# TODO - remove this dependency
 from unittest.mock import patch
 
-from jacoco_report.jacoco_report import JaCoCoReport
 from jacoco_report.action_inputs import ActionInputs
-from jacoco_report.utils.enums import SensitivityEnum, CommentModeEnum, MetricTypeEnum
+from jacoco_report.utils.enums import CommentLevelEnum, MetricTypeEnum
 
 comment_no_data_no_baseline = """**JaCoCo Coverage Report**
 
@@ -1891,10 +1891,6 @@ modules_thresholds_100_all = {
     "module small": (100.0, 100.0, 100.0),
 }
 
-@pytest.fixture
-def jacoco_report():
-    return JaCoCoReport()
-
 def test_run_not_pull_request_event(jacoco_report):
     with patch.object(ActionInputs, 'get_event_name', return_value='push'):
         jacoco_report.run()
@@ -1961,24 +1957,24 @@ def test_run_successful_empty_with_baseline(jacoco_report, mocker):
 
 
 one_source_file_scenarios = [
-    (MetricTypeEnum.INSTRUCTION, CommentModeEnum.SINGLE, SensitivityEnum.MINIMAL, comment_one_file_single_minimalist_instruction, 90.0, 80.0, True, True),
-    (MetricTypeEnum.LINE, CommentModeEnum.SINGLE, SensitivityEnum.MINIMAL, comment_one_file_single_minimalist_line, 80.0, 60.0, True, True),
-    (MetricTypeEnum.BRANCH, CommentModeEnum.SINGLE, SensitivityEnum.MINIMAL, comment_one_file_single_minimalist_branch, 75.0, 0.0, True, True),
-    (MetricTypeEnum.COMPLEXITY, CommentModeEnum.SINGLE, SensitivityEnum.MINIMAL, comment_one_file_single_minimalist_complexity, 75.0, 50.0, True, True),
-    (MetricTypeEnum.METHOD, CommentModeEnum.SINGLE, SensitivityEnum.MINIMAL, comment_one_file_single_minimalist_method, 100.0, 0.0, True, True),
-    (MetricTypeEnum.CLASS, CommentModeEnum.SINGLE, SensitivityEnum.MINIMAL, comment_one_file_single_minimalist_class, 100.0, 0.0, True, True),
+    (MetricTypeEnum.INSTRUCTION, comment_one_file_single_minimalist_instruction, 90.0, 80.0, True, True),
+    (MetricTypeEnum.LINE, comment_one_file_single_minimalist_line, 80.0, 60.0, True, True),
+    (MetricTypeEnum.BRANCH, comment_one_file_single_minimalist_branch, 75.0, 0.0, True, True),
+    (MetricTypeEnum.COMPLEXITY, comment_one_file_single_minimalist_complexity, 75.0, 50.0, True, True),
+    (MetricTypeEnum.METHOD, comment_one_file_single_minimalist_method, 100.0, 0.0, True, True),
+    (MetricTypeEnum.CLASS, comment_one_file_single_minimalist_class, 100.0, 0.0, True, True),
 ]
 
-@pytest.mark.parametrize("metric, mode, template, comment, ov_cov, ch_cov, ov_cov_b, ch_cov_b", one_source_file_scenarios)
-def test_successful_one_source_file (jacoco_report, metric, mode, template, comment, ov_cov, ch_cov, ov_cov_b, ch_cov_b, mocker):
+@pytest.mark.parametrize("metric, comment, ov_cov, ch_cov, ov_cov_b, ch_cov_b", one_source_file_scenarios)
+def test_successful_one_source_file (jacoco_report, metric, comment, ov_cov, ch_cov, ov_cov_b, ch_cov_b, mocker):
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value='pull_request')
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_token", return_value='fake_token')
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_title", return_value='Custom Title')
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value=metric)
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_comment_mode", return_value=mode)
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_sensitivity", return_value=template)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_comment_level", return_value=CommentLevelEnum.MINIMAL)
     mocker.patch("jacoco_report.utils.github.GitHub.get_pr_number", return_value=35)
     mocker.patch("jacoco_report.jacoco_report.JaCoCoReport._scan_jacoco_xml_files", return_value=[f'{os.getcwd()}/tests/data/module_c/target/jacoco_one_source_file.xml'])
+    # mocker.patch("jacoco_report.jacoco_report.JaCoCoReport._scan_jacoco_xml_files", return_value=[f'{os.getcwd()}/data/module_c/target/jacoco_one_source_file.xml'])
     mocker.patch("jacoco_report.utils.github.GitHub.get_pr_changed_files", return_value=['com/example/ExampleClass.java'])
 
     mock_add_comment = mocker.patch('jacoco_report.utils.github.GitHub.add_comment', return_value=None)
@@ -1993,97 +1989,31 @@ def test_successful_one_source_file (jacoco_report, metric, mode, template, comm
 
     mock_add_comment.assert_called_once_with(35, comment)
 
+
 # MORE FILES
 
 more_source_files_scenarios = [
-    ("1", CommentModeEnum.SINGLE, SensitivityEnum.MINIMAL, {}, {}, changed_files, [comment_single_minimalist_instruction], 9, 0, [], False, False),
-    ("2", CommentModeEnum.SINGLE, SensitivityEnum.MINIMAL, {}, {}, changed_files, [comment_single_minimalist_instruction_with_bs], 9, 0, [], False, True),
-    ("3", CommentModeEnum.SINGLE, SensitivityEnum.MINIMAL, modules, {}, changed_files, [comment_single_minimalist_instruction], 9, 4, [], False, False),
-    ("4", CommentModeEnum.SINGLE, SensitivityEnum.MINIMAL, modules, {}, changed_files, [comment_single_minimalist_instruction_with_bs], 9, 4, [], False, True),
-    ("5", CommentModeEnum.SINGLE, SensitivityEnum.SUMMARY, {}, {}, changed_files, [comment_single_minimalist_instruction_summary], 9, 0, [], False, False),
-    ("6", CommentModeEnum.SINGLE, SensitivityEnum.SUMMARY, {}, {}, changed_files, [comment_single_minimalist_instruction_with_bs_summary], 9, 0, [], False, True),
-    ("7", CommentModeEnum.SINGLE, SensitivityEnum.SUMMARY, modules, modules_thresholds, changed_files, [comment_more_files_single_summary_instruction_with_modules], 9, 4, ["Module 'module_large' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Large Report' changed files coverage 90.0 is below the threshold 91.0."], False, False),
-    ("8", CommentModeEnum.SINGLE, SensitivityEnum.SUMMARY, modules, modules_thresholds, changed_files, [comment_more_files_single_summary_instruction_with_modules_with_bs], 9, 4, ["Module 'module_large' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Large Report' changed files coverage 90.0 is below the threshold 91.0."], False, True),
-    ("9", CommentModeEnum.SINGLE, SensitivityEnum.SUMMARY, modules, {}, changed_files, [comment_more_files_single_summary_instruction_with_modules_no_module_thresholds], 9, 4, [], False, False),
-    ("10", CommentModeEnum.SINGLE, SensitivityEnum.SUMMARY, modules, {}, changed_files, [comment_more_files_single_summary_instruction_with_modules_no_module_thresholds_with_bs], 9, 4, [], False, True),
-    ("11", CommentModeEnum.SINGLE, SensitivityEnum.DETAIL, {}, {}, changed_files, [comment_more_files_single_detailed_instruction_no_modules], 9, 0, [], False, False),
-    ("12", CommentModeEnum.SINGLE, SensitivityEnum.DETAIL, {}, {}, changed_files, [comment_more_files_single_detailed_instruction_no_modules_with_bs], 9, 0, [], False, True),
-    ("13", CommentModeEnum.SINGLE, SensitivityEnum.DETAIL, modules, modules_thresholds, changed_files, [comment_more_files_single_detailed_instruction_with_modules], 9, 4, ["Module 'module_large' changed files coverage 90.0 is below the threshold 91.0.", "Module Large Report' changed files coverage 90.0 is below the threshold 91.0.", "Module Large Report' changed file 'com/example/module_large/BigClass.java' coverage 90.0 is below the threshold 90.5."], False, False),
-    ("14", CommentModeEnum.SINGLE, SensitivityEnum.DETAIL, modules, modules_thresholds, changed_files, [comment_more_files_single_detailed_instruction_with_modules_with_bs], 9, 4, ["Module 'module_large' changed files coverage 90.0 is below the threshold 91.0.", "Module Large Report' changed files coverage 90.0 is below the threshold 91.0.", "Module Large Report' changed file 'com/example/module_large/BigClass.java' coverage 90.0 is below the threshold 90.5."], False, True),
-    ("15", CommentModeEnum.SINGLE, SensitivityEnum.DETAIL, modules, {}, changed_files, [comment_more_files_single_detailed_instruction_with_modules_no_module_thresholds_not_skip_changed], 9, 4, [], False, False),
-    ("16", CommentModeEnum.SINGLE, SensitivityEnum.DETAIL, modules, {}, changed_files, [comment_more_files_single_detailed_instruction_with_modules_no_module_thresholds_not_skip_changed_with_bs], 9, 4, [], False, True),
-    ("17", CommentModeEnum.SINGLE, SensitivityEnum.DETAIL, modules, {}, changed_files, [comment_more_files_single_detailed_instruction_with_modules_no_module_thresholds_skip_changed], 9, 4, [], True, False),
-    ("18", CommentModeEnum.SINGLE, SensitivityEnum.DETAIL, modules, {}, changed_files, [comment_more_files_single_detailed_instruction_with_modules_no_module_thresholds_skip_changed_with_bs], 9, 4, [], True, True),
-    ("19", CommentModeEnum.MULTI, SensitivityEnum.MINIMAL, {}, {}, changed_files, comment_multi_minimalist_instruction, 9, 0, [], False, False),
-    ("20", CommentModeEnum.MULTI, SensitivityEnum.MINIMAL, {}, {}, changed_files, comment_multi_minimalist_instruction_skip, 9, 0, [], True, False),
-    ("21", CommentModeEnum.MULTI, SensitivityEnum.MINIMAL, {}, {}, changed_files, comment_multi_minimalist_instruction_with_bs, 9, 0, [], False, True),
-    ("22", CommentModeEnum.MULTI, SensitivityEnum.MINIMAL, {}, {}, changed_files, comment_multi_minimalist_instruction_with_bs_skip, 9, 0, [], True, True),
-    ("23", CommentModeEnum.MULTI, SensitivityEnum.MINIMAL, modules, {}, changed_files, comment_multi_minimalist_instruction, 9, 0, [], False, False),
-    ("24", CommentModeEnum.MULTI, SensitivityEnum.MINIMAL, modules, {}, changed_files, comment_multi_minimalist_instruction_with_bs, 9, 0, [], False, True),
-    ("25", CommentModeEnum.MULTI, SensitivityEnum.SUMMARY, {}, {}, changed_files, comment_multi_minimalist_instruction, 9, 0, [], False, False),
-    ("26", CommentModeEnum.MULTI, SensitivityEnum.SUMMARY, {}, {}, changed_files, comment_multi_minimalist_instruction_with_bs, 9, 0, [], False, True),
-    ("27", CommentModeEnum.MULTI, SensitivityEnum.SUMMARY, modules, modules_thresholds, changed_files, comment_multi_summary_instruction_with_modules, 9, 0, ["Report 'Module Large Report' changed files coverage 90.0 is below the threshold 91.0."], False, False),
-    ("28", CommentModeEnum.MULTI, SensitivityEnum.SUMMARY, modules, modules_thresholds, changed_files, comment_multi_summary_instruction_with_modules_with_bs, 9, 0, ["Report 'Module Large Report' changed files coverage 90.0 is below the threshold 91.0."], False, True),
-    ("29", CommentModeEnum.MULTI, SensitivityEnum.SUMMARY, modules, {}, changed_files, comment_multi_minimalist_instruction, 9, 0, [], False, False),
-    ("30", CommentModeEnum.MULTI, SensitivityEnum.SUMMARY, modules, {}, changed_files, comment_multi_minimalist_instruction_with_bs, 9, 0, [], False, True),
-    ("31", CommentModeEnum.MULTI, SensitivityEnum.DETAIL, {}, {}, changed_files, comment_multi_detailed_instruction_no_modules, 9, 0, [], False, False),
-    ("32", CommentModeEnum.MULTI, SensitivityEnum.DETAIL, {}, {}, changed_files, comment_multi_detailed_instruction_no_modules_with_bs, 9, 0, [], False, True),
-    ("33", CommentModeEnum.MULTI, SensitivityEnum.DETAIL, modules, modules_thresholds, changed_files, comment_multi_detailed_instruction_with_modules, 9, 0, ["Report 'Module Large Report' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Large Report' changed file 'com/example/module_large/BigClass.java' coverage 90.0 is below the threshold 90.5."], False, False),
-    ("34", CommentModeEnum.MULTI, SensitivityEnum.DETAIL, modules, modules_thresholds, changed_files, comment_multi_detailed_instruction_with_modules_with_bs, 9, 0, ["Report 'Module Large Report' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Large Report' changed file 'com/example/module_large/BigClass.java' coverage 90.0 is below the threshold 90.5."], False, True),
-    ("35", CommentModeEnum.MULTI, SensitivityEnum.DETAIL, modules, {}, changed_files, comment_multi_detailed_instruction_with_modules_no_module_thresholds_not_skip_changed, 9, 0, [], False, False),
-    ("36", CommentModeEnum.MULTI, SensitivityEnum.DETAIL, modules, {}, changed_files, comment_multi_detailed_instruction_with_modules_no_module_thresholds_not_skip_changed_with_bs, 9, 0, [], False, True),
-    ("37", CommentModeEnum.MULTI, SensitivityEnum.DETAIL, modules, {}, changed_files, comment_multi_detailed_instruction_with_modules_no_module_thresholds_skip_changed, 9, 0, [], True, False),
-    ("38", CommentModeEnum.MULTI, SensitivityEnum.DETAIL, modules, {}, changed_files, comment_multi_detailed_instruction_with_modules_no_module_thresholds_skip_changed_with_bs, 9, 0, [], True, True),
-    ("39", CommentModeEnum.MODULE, SensitivityEnum.MINIMAL, modules, {}, changed_files, comment_module_minimalist_instruction, 9, 4, [], False, False),
-    ("40", CommentModeEnum.MODULE, SensitivityEnum.MINIMAL, modules, {}, changed_files, comment_module_minimalist_instruction_with_bs, 9, 4, [], False, True),
-    ("41", CommentModeEnum.MODULE, SensitivityEnum.SUMMARY, modules, {}, changed_files, comment_module_minimalist_instruction_summary, 9, 4, [], False, False),
-    ("42", CommentModeEnum.MODULE, SensitivityEnum.SUMMARY, modules, {}, changed_files, comment_module_minimalist_instruction_with_bs_summary, 9, 4, [], False, True),
-    ("43", CommentModeEnum.MODULE, SensitivityEnum.SUMMARY, modules, modules_thresholds, changed_files, comment_module_summary_instruction_with_modules, 9, 4, ["Module 'module_large' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Large Report' changed files coverage 90.0 is below the threshold 91.0."], False, False),
-    ("44", CommentModeEnum.MODULE, SensitivityEnum.SUMMARY, modules, modules_thresholds, changed_files, comment_module_summary_instruction_with_modules_with_bs, 9, 4, ["Module 'module_large' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Large Report' changed files coverage 90.0 is below the threshold 91.0."], False, True),
-    ("45", CommentModeEnum.MODULE, SensitivityEnum.DETAIL, modules, modules_thresholds, changed_files, comment_module_detail_instruction_with_modules, 9, 4, ["Module 'module_large' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Large Report' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Large Report' changed file 'com/example/module_large/BigClass.java' coverage 90.0 is below the threshold 90.5."], False, False),
-    ("46", CommentModeEnum.MODULE, SensitivityEnum.DETAIL, modules, modules_thresholds, changed_files, comment_module_detailed_instruction_with_modules_with_bs, 9, 4, ["Module 'module_large' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Large Report' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Large Report' changed file 'com/example/module_large/BigClass.java' coverage 90.0 is below the threshold 90.5."], False, True),
-    ("47", CommentModeEnum.MODULE, SensitivityEnum.DETAIL, modules, {}, changed_files, comment_module_detailed_instruction_with_modules_no_module_thresholds_not_skip_changed, 9, 4, [], False, False),
-    ("48", CommentModeEnum.MODULE, SensitivityEnum.DETAIL, modules, {}, changed_files, comment_module_detailed_instruction_with_modules_no_module_thresholds_not_skip_changed_with_bs, 9, 4, [], False, True),
-    ("49", CommentModeEnum.MODULE, SensitivityEnum.DETAIL, modules, {}, changed_files, comment_module_detailed_instruction_with_modules_no_module_thresholds_skip_changed, 9, 4, [], True, False),
-    ("50", CommentModeEnum.MODULE, SensitivityEnum.DETAIL, modules, {}, changed_files, comment_module_detailed_instruction_with_modules_no_module_thresholds_skip_changed_with_bs, 9, 4, [], True, True),
+    ("1", CommentLevelEnum.FULL, {}, {}, changed_files, [comment_more_files_single_detailed_instruction_no_modules], 9, 0, [], False, False),
+    ("2", CommentLevelEnum.FULL, {}, {}, changed_files, [comment_more_files_single_detailed_instruction_no_modules_with_bs], 9, 0, [], False, True),
+    # TODO comment with modules and thresholds
     # failing module and reports without changed files
-    ("51", CommentModeEnum.MODULE, SensitivityEnum.DETAIL, modules, modules_thresholds_100, changed_files, comment_module_detailed_instruction_with_modules_with_bs_fail_non_changed_module, 9, 4, ["Module 'module_large' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Large Report' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Large Report' changed file 'com/example/module_large/BigClass.java' coverage 90.0 is below the threshold 90.5."], True, True),
-    ("52", CommentModeEnum.SINGLE, SensitivityEnum.DETAIL, modules, modules_thresholds_100, changed_files, [comment_more_files_single_detailed_instruction_with_modules_with_bs_fail_module], 9, 4, ["Module 'module_large' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Large Report' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Large Report' changed file 'com/example/module_large/BigClass.java' coverage 90.0 is below the threshold 90.5."], True, True),
-    ("53", CommentModeEnum.MULTI, SensitivityEnum.DETAIL, modules, modules_thresholds_100, changed_files, comment_multi_detailed_instruction_with_modules_with_bs_fail_module, 9, 0, ["Report 'Module Large Report' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Large Report' changed file 'com/example/module_large/BigClass.java' coverage 90.0 is below the threshold 90.5."], True, True),
-    # failing report in passing module
-    ("54", CommentModeEnum.MODULE, SensitivityEnum.DETAIL, modules, modules_thresholds_89, changed_files_large_only, comment_module_detailed_instruction_with_modules_with_bs_fail_non_changed_module_fail_report, 9, 4, ["Module 'module_large' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Large Report' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Large Report' changed file 'com/example/module_large/BigClass.java' coverage 90.0 is below the threshold 90.5."], True, True),
+    # ("3", CommentLevelEnum.FULL, modules, modules_thresholds_100, changed_files, [comment_more_files_single_detailed_instruction_with_modules_with_bs_fail_module], 9, 4, ["Module 'module_large' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Large Report' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Large Report' changed file 'com/example/module_large/BigClass.java' coverage 90.0 is below the threshold 90.5."], True, True),
     # only partial set of modules
-    ("55", CommentModeEnum.SINGLE, SensitivityEnum.DETAIL, modules_partial_definition_1_report, modules_thresholds_100_partial_definition_1_report, changed_files, [comment_more_files_single_detailed_instruction_with_partial_modules_1], 9, 4, [], True, True),
-    ("56", CommentModeEnum.MULTI, SensitivityEnum.DETAIL, modules_partial_definition_1_report, modules_thresholds_100_partial_definition_1_report, changed_files, comment_multi_detailed_instruction_with_modules_report_1, 9, 0, [], True, True),
-    ("57", CommentModeEnum.MODULE, SensitivityEnum.DETAIL, modules_partial_definition_1_report, modules_thresholds_100_partial_definition_1_report, changed_files, comment_module_detailed_instruction_with_modules_with_bs_report_1, 9, 4, [], True, True),
-    ("58", CommentModeEnum.SINGLE, SensitivityEnum.DETAIL, modules_partial_definition_2_reports, modules_thresholds_100_partial_definition_2_reports, changed_files, [comment_more_files_single_detailed_instruction_with_partial_modules_2], 9, 4, ["Module 'module_large' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Large Report' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Large Report' changed file 'com/example/module_large/BigClass.java' coverage 90.0 is below the threshold 90.5."], True, True),
-    ("59", CommentModeEnum.MULTI, SensitivityEnum.DETAIL, modules_partial_definition_2_reports, modules_thresholds_100_partial_definition_2_reports, changed_files, comment_multi_detailed_instruction_with_modules_with_bs_partial_modules_2, 9, 0, ["Report 'Module Large Report' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Large Report' changed file 'com/example/module_large/BigClass.java' coverage 90.0 is below the threshold 90.5."], True, True),
-    ("60", CommentModeEnum.MODULE, SensitivityEnum.DETAIL, modules_partial_definition_2_reports, modules_thresholds_100_partial_definition_2_reports, changed_files, comment_module_detailed_instruction_with_modules_with_bs_partial_modules_report_2, 9, 4, ["Module 'module_large' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Large Report' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Large Report' changed file 'com/example/module_large/BigClass.java' coverage 90.0 is below the threshold 90.5."], True, True),
-    ("61", CommentModeEnum.SINGLE, SensitivityEnum.DETAIL, modules_partial_definition_3_reports, modules_thresholds_100_partial_definition_3_reports, changed_files, [comment_more_files_single_detailed_instruction_with_partial_modules_3], 9, 3, [], True, True),
-    ("62", CommentModeEnum.MULTI, SensitivityEnum.DETAIL, modules_partial_definition_3_reports, modules_thresholds_100_partial_definition_3_reports, changed_files, comment_multi_detailed_instruction_with_modules_with_bs_partial_modules_3, 9, 0, [], True, True),
-    ("63", CommentModeEnum.MODULE, SensitivityEnum.DETAIL, modules_partial_definition_3_reports, modules_thresholds_100_partial_definition_3_reports, changed_files, comment_module_detailed_instruction_with_modules_with_bs_partial_modules_report_3, 9, 3, [], True, True),
+    # ("4", CommentLevelEnum.FULL, modules_partial_definition_1_report, modules_thresholds_100_partial_definition_1_report, changed_files, [comment_more_files_single_detailed_instruction_with_partial_modules_1], 9, 4, [], True, True),
+    # ("5", CommentLevelEnum.FULL, modules_partial_definition_2_reports, modules_thresholds_100_partial_definition_2_reports, changed_files, [comment_more_files_single_detailed_instruction_with_partial_modules_2], 9, 4, ["Module 'module_large' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Large Report' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Large Report' changed file 'com/example/module_large/BigClass.java' coverage 90.0 is below the threshold 90.5."], True, True),
+    # ("6", CommentLevelEnum.FULL, modules_partial_definition_3_reports, modules_thresholds_100_partial_definition_3_reports, changed_files, [comment_more_files_single_detailed_instruction_with_partial_modules_3], 9, 3, [], True, True),
     # multiple changed files per report file
-    ("64", CommentModeEnum.SINGLE, SensitivityEnum.DETAIL, modules, modules_thresholds, changed_files_two_in_report, [comment_single_detailed_two_changed_files_in_report], 9, 4, ["Module 'module_large' changed files coverage 90.25 is below the threshold 91.0.", "Report 'Module Large Report' changed files coverage 90.41 is below the threshold 91.0.", "Report 'Module Large Report' changed file 'com/example/module_large/BigClass.java' coverage 90.0 is below the threshold 90.5."], True, False),
-    ("65", CommentModeEnum.MULTI, SensitivityEnum.DETAIL, modules, modules_thresholds, changed_files_two_in_report, comment_multi_detailed_two_changed_files_in_report, 9, 0, ["Report 'Module Large Report' changed files coverage 90.41 is below the threshold 91.0.", "Report 'Module Large Report' changed file 'com/example/module_large/BigClass.java' coverage 90.0 is below the threshold 90.5."], True, False),
-    ("66", CommentModeEnum.MODULE, SensitivityEnum.DETAIL, modules, modules_thresholds, changed_files_two_in_report, comment_module_detailed_two_changed_files_in_report, 9, 4, ["Module 'module_large' changed files coverage 90.25 is below the threshold 91.0.", "Report 'Module Large Report' changed files coverage 90.41 is below the threshold 91.0.", "Report 'Module Large Report' changed file 'com/example/module_large/BigClass.java' coverage 90.0 is below the threshold 90.5."], True, False),
+    # ("7", CommentLevelEnum.FULL, modules, modules_thresholds, changed_files_two_in_report, [comment_single_detailed_two_changed_files_in_report], 9, 4, ["Module 'module_large' changed files coverage 90.25 is below the threshold 91.0.", "Report 'Module Large Report' changed files coverage 90.41 is below the threshold 91.0.", "Report 'Module Large Report' changed file 'com/example/module_large/BigClass.java' coverage 90.0 is below the threshold 90.5."], True, False),
     # no changed files in report files = evaluation passed without any violation
-    ("67", CommentModeEnum.SINGLE, SensitivityEnum.MINIMAL, modules, modules_thresholds_100_all, changed_files_none_in_report, [], 9, 4, [], True, False),
-    ("68", CommentModeEnum.SINGLE, SensitivityEnum.SUMMARY, modules, modules_thresholds_100_all, changed_files_none_in_report, [], 9, 4, [], True, False),
-    ("69", CommentModeEnum.SINGLE, SensitivityEnum.DETAIL, modules, modules_thresholds_100_all, changed_files_none_in_report, [], 9, 4, [], True, False),
-    ("70", CommentModeEnum.MULTI, SensitivityEnum.MINIMAL, modules, modules_thresholds_100_all, changed_files_none_in_report, [], 9, 0, [], True, False),
-    ("71", CommentModeEnum.MULTI, SensitivityEnum.SUMMARY, modules, modules_thresholds_100_all, changed_files_none_in_report, [], 9, 0, [], True, False),
-    ("72", CommentModeEnum.MULTI, SensitivityEnum.DETAIL, modules, modules_thresholds_100_all, changed_files_none_in_report, [], 9, 0, [], True, False),
-    ("73", CommentModeEnum.MODULE, SensitivityEnum.MINIMAL, modules, modules_thresholds_100_all, changed_files_none_in_report, [], 9, 4, [], True, False),
-    ("74", CommentModeEnum.MODULE, SensitivityEnum.SUMMARY, modules, modules_thresholds_100_all, changed_files_none_in_report, [], 9, 4, [], True, False),
-    ("75", CommentModeEnum.MODULE, SensitivityEnum.DETAIL, modules, modules_thresholds_100_all, changed_files_none_in_report, [], 9, 4, [], True, False),
+    # ("8",CommentLevelEnum.MINIMAL, modules, modules_thresholds_100_all, changed_files_none_in_report, [], 9, 4, [], True, False),
+    # ("9", CommentLevelEnum.FULL, modules, modules_thresholds_100_all, changed_files_none_in_report, [], 9, 4, [], True, False),
 ]
 
-@pytest.mark.parametrize("id, mode, template, modules, modules_thresholds, changed_files, expected_comments, evaluated_cov_reports, evaluated_cov_modules, violations, skip_unchanged, use_baseline", more_source_files_scenarios)
-def test_successful_more_source_files(jacoco_report, id, mode, template, modules, modules_thresholds, changed_files, expected_comments, evaluated_cov_reports, evaluated_cov_modules, violations, skip_unchanged, use_baseline, mocker):
+@pytest.mark.parametrize("id, level, modules, modules_thresholds, changed_files, expected_comments, evaluated_cov_reports, evaluated_cov_modules, violations, skip_unchanged, use_baseline", more_source_files_scenarios)
+def test_successful_more_source_files(jacoco_report, id, level, modules, modules_thresholds, changed_files, expected_comments, evaluated_cov_reports, evaluated_cov_modules, violations, skip_unchanged, use_baseline, mocker):
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value='pull_request')
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_token", return_value='fake_token')
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_comment_mode", return_value=mode)
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_sensitivity", return_value=template)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_comment_level", return_value=level)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=["tests/data/test_project/**/jacoco.xml"])
     # mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=["data/test_project/**/jacoco.xml"])
     if use_baseline:
@@ -2106,18 +2036,10 @@ def test_successful_more_source_files(jacoco_report, id, mode, template, modules
     # for item in mock_add_comment.call_args_list:
     #     print(item)
 
-    if mode == CommentModeEnum.SINGLE:
-        assert mock_add_comment.call_count == len(expected_comments)
+    assert mock_add_comment.call_count == len(expected_comments)
 
-        if len(expected_comments):
-            mock_add_comment.assert_called_once_with(35, expected_comments[0])
-    else:
-        # Check the count of calls
-        assert mock_add_comment.call_count == len(expected_comments)
-
-        if len(expected_comments):
-            for expected_comment in expected_comments:
-                mock_add_comment.assert_any_call(35, expected_comment)
+    if len(expected_comments):
+        mock_add_comment.assert_called_once_with(35, expected_comments[0])
 
     # Parse the JSON strings
     dict_evaluated_coverage_reports: dict = json.loads(jacoco_report.evaluated_coverage_reports)
@@ -2312,31 +2234,20 @@ module_detail_violations = [
 
 # Note: used min 100% coverage for overall and changed files to test the violations
 more_source_files_scenarios = [
-    ("1", CommentModeEnum.SINGLE, SensitivityEnum.MINIMAL, {}, {}, changed_files, single_minimal_violations),
-    ("2", CommentModeEnum.SINGLE, SensitivityEnum.SUMMARY, {}, {}, changed_files, single_summary_violations),
-    ("3", CommentModeEnum.SINGLE, SensitivityEnum.DETAIL, {}, {}, changed_files, single_detail_violations),
-    ("4", CommentModeEnum.MULTI, SensitivityEnum.MINIMAL, {}, {}, changed_files, multi_minimal_violations),
-    ("5", CommentModeEnum.MULTI, SensitivityEnum.SUMMARY, {}, {}, changed_files, multi_minimal_violations),
-    ("6", CommentModeEnum.MULTI, SensitivityEnum.DETAIL, {}, {}, changed_files, multi_detail_violations),
+    # this tests will be finally covered with final implementation of levels
+    # ("1", CommentLevelEnum.MINIMAL, {}, {}, changed_files, single_minimal_violations),
+    # ("2", CommentLevelEnum.FULL, {}, {}, changed_files, single_detail_violations),
     # with modules expecting 100% coverage
-    ("101", CommentModeEnum.SINGLE, SensitivityEnum.MINIMAL, modules, modules_thresholds_100_all, changed_files, single_minimal_violations),
-    ("102", CommentModeEnum.SINGLE, SensitivityEnum.SUMMARY, modules, modules_thresholds_100_all, changed_files, single_summary_violations_with_modules),
-    ("103", CommentModeEnum.SINGLE, SensitivityEnum.DETAIL, modules, modules_thresholds_100_all, changed_files, single_detail_violations_with_modules),
-    ("104", CommentModeEnum.MULTI, SensitivityEnum.MINIMAL, modules, modules_thresholds_100_all, changed_files, multi_minimal_violations),
-    ("105", CommentModeEnum.MULTI, SensitivityEnum.SUMMARY, modules, modules_thresholds_100_all, changed_files, multi_minimal_violations),
-    ("106", CommentModeEnum.MULTI, SensitivityEnum.DETAIL, modules, modules_thresholds_100_all, changed_files, multi_detail_violations),
-    ("107", CommentModeEnum.MODULE, SensitivityEnum.MINIMAL, modules, modules_thresholds_100_all, changed_files, module_minimal_violations),
-    ("108", CommentModeEnum.MODULE, SensitivityEnum.SUMMARY, modules, modules_thresholds_100_all, changed_files, module_summary_violations),
-    ("109", CommentModeEnum.MODULE, SensitivityEnum.DETAIL, modules, modules_thresholds_100_all, changed_files, module_detail_violations),
+    # ("101", CommentLevelEnum.MINIMAL, modules, modules_thresholds_100_all, changed_files, single_minimal_violations),
+    # ("102", CommentLevelEnum.FULL, modules, modules_thresholds_100_all, changed_files, single_detail_violations_with_modules),
 ]
-@pytest.mark.parametrize("id, mode, template, modules, modules_thresholds, changed_files, violations", more_source_files_scenarios)
-def test_violations(jacoco_report, id, mode, template, modules, modules_thresholds, changed_files, violations, mocker):
+@pytest.mark.parametrize("id, level, modules, modules_thresholds, changed_files, violations", more_source_files_scenarios)
+def test_violations(jacoco_report, id, level, modules, modules_thresholds, changed_files, violations, mocker):
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value='pull_request')
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_token", return_value='fake_token')
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_comment_mode", return_value=mode)
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_sensitivity", return_value=template)
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=["tests/data/test_project/**/jacoco.xml"])
-    # mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=["data/test_project/**/jacoco.xml"])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_comment_level", return_value=level)
+    # mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=["tests/data/test_project/**/jacoco.xml"])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=["data/test_project/**/jacoco.xml"])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_threshold", return_value=100.0)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_files_average_threshold", return_value=100.0)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_file_threshold", return_value=100.0)

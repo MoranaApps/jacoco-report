@@ -25,14 +25,10 @@ inputs:
     description: 'Type of metric to be used.'
     required: false
     default: 'instruction'
-  sensitivity:
-    description: 'Sensitivity of the code coverage evaluation.'
+  comment-level:
+    description: 'Level of the comment.'
     required: false
-    default: 'detail'
-  comment-mode:
-    description: 'Mode of the comment.'
-    required: false
-    default: 'single'
+    default: 'full'
   modules:
     description: 'Identify the modules to be included in the report.'
     required: false
@@ -142,8 +138,7 @@ runs:
         echo "INPUT_TITLE=${{ inputs.title }}" >> $GITHUB_ENV
         echo "INPUT_PR_NUMBER=${{ inputs.pr-number }}" >> $GITHUB_ENV
         echo "INPUT_METRIC=${{ inputs.metric }}" >> $GITHUB_ENV
-        echo "INPUT_SENSITIVITY=${{ inputs.sensitivity }}" >> $GITHUB_ENV
-        echo "INPUT_COMMENT_MODE=${{ inputs.comment-mode }}" >> $GITHUB_ENV
+        echo "INPUT_COMMENT_LEVEL=${{ inputs.comment-level }}" >> $GITHUB_ENV
 
         echo "INPUT_MODULES<<EOF" >> $GITHUB_ENV
         echo "${{ inputs.modules }}" >> $GITHUB_ENV
@@ -175,8 +170,7 @@ runs:
         INPUT_TITLE: ${{ env.INPUT_TITLE }}
         INPUT_PR_NUMBER: ${{ env.INPUT_PR_NUMBER }}
         INPUT_METRIC: ${{ env.INPUT_METRIC }}
-        INPUT_SENSITIVITY: ${{ env.INPUT_SENSITIVITY }}
-        INPUT_COMMENT_MODE: ${{ env.INPUT_COMMENT_MODE }}
+        INPUT_COMMENT_LEVEL: ${{ env.INPUT_COMMENT_LEVEL }}
         INPUT_MODULES: ${{ env.INPUT_MODULES }}
         INPUT_MODULES_THRESHOLDS: ${{ env.INPUT_MODULES_THRESHOLDS }}
         INPUT_SKIP_NOT_CHANGED: ${{ env.INPUT_SKIP_NOT_CHANGED }}

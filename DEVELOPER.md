@@ -58,9 +58,8 @@ export INPUT_GLOBAL_THRESHOLDS="80*80*80"
 
 export INPUT_PR_NUMBER="1"                  # Required to add the PR number to receive the comments
 
-export METRICS="instruction"
-export INPUT_SENSITIVITY="detail"
-export INPUT_COMMENT_MODE="single"
+export INPUT_METRICS="instruction"
+export INPUT_COMMENT_LEVEL="full"
 
 export INPUT_MODULES='
 module_large: test_project/module_large

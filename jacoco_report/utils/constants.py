@@ -15,8 +15,7 @@ TITLE = "title"
 PR_NUMBER = "pr-number"
 METRIC = "metric"
 
-SENSITIVITY = "sensitivity"
-COMMENT_MODE = "comment-mode"
+COMMENT_LEVEL = "comment-level"
 MODULES = "modules"
 MODULES_THRESHOLDS = "modules-thresholds"
 

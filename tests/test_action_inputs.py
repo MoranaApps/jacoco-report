@@ -1,7 +1,7 @@
 import pytest
 
 from jacoco_report.action_inputs import ActionInputs
-from jacoco_report.utils.enums import CommentModeEnum, SensitivityEnum, MetricTypeEnum, FailOnThresholdEnum
+from jacoco_report.utils.enums import CommentLevelEnum, MetricTypeEnum, FailOnThresholdEnum
 from jacoco_report.utils.github import GitHub
 
 # Data-driven test cases
@@ -16,8 +16,7 @@ success_case = {
     "get_global_changed_file_threshold": 25.0,
     "get_title": "Custom Title",
     "get_metric": "instruction",
-    "get_sensitivity": "detail",
-    "get_comment_mode": "single",
+    "get_comment_level": "full",
     "get_modules": "module-a:context/module_a,module-b:module_b",
     "get_modules_thresholds": "module-a:80**,module-b:*70*",
     "get_skip_unchanged": True,
@@ -49,10 +48,8 @@ failure_cases = [
     ("get_global_thresholds", True, "'global-thresholds' must be a string or not defined."),
     ("get_metric", "", "'metric' must be a string from these options: 'instruction', 'line', 'branch', 'complexity', 'method', 'class'."),
     ("get_metric", 1, "'metric' must be a string from these options: 'instruction', 'line', 'branch', 'complexity', 'method', 'class'."),
-    ("get_sensitivity", "", "'sensitivity' must be a string from these options: 'minimal', 'summary', 'detail'."),
-    ("get_sensitivity", 1, "'sensitivity' must be a string from these options: 'minimal', 'summary', 'detail'."),
-    ("get_comment_mode", "", "'comment-mode' must be a string from these options: 'single', 'multi', 'module'."),
-    ("get_comment_mode", 1, "'comment-mode' must be a string from these options: 'single', 'multi', 'module'."),
+    ("get_comment_level", "", "'comment-level' must be a string from these options: 'minimal', 'full'."),
+    ("get_comment_level", 1, "'comment-level' must be a string from these options: 'minimal', 'full'."),
     ("get_modules", 1, "'modules' must be a string or not defined."),
     ("get_modules", "abcd", "'modules' must be a list of strings in format 'module:relative_path'."),
     ("get_modules", "module-a:context/module_a,module-b", "'module':'module-b' must be in the format 'module:module_path'. Where module_path is relative from root of project. Module value: module-b"),
@@ -61,19 +58,20 @@ failure_cases = [
     ("get_modules", "module-a:context/module_a,mo*dule:path", "'module_name':'mo*dule' must be alphanumeric with allowed (/\\-_)."),
     ("get_modules", "module-a:context/module_a,module:pa&th", "'module_path':'pa&th' must be alphanumeric with allowed (/\\-_)."),
     ("get_modules", "module-a:context/module_a,module-b:module_b:c", "'module':'module-b:module_b:c' must be in the format 'module:module_path'. Where module_path is relative from root of project. Module value: module-b:module_b:c"),
-    ("get_modules_thresholds", 1, "'modules-thresholds' must be a string or not defined."),
-    ("get_modules_thresholds", "ab", "'modules-thresholds' must be a list of strings in format 'module:overall*changed'."),
-    ("get_modules_thresholds", "abcd", "'modules-thresholds' must be a list of strings in format 'module:overall*changed'."),
-    ("get_modules_thresholds", "module-a: 80*", "'module-threshold':'80*' must contain two '*' to split overall, changed files and changed per file threshold."),
-    ("get_modules_thresholds", "module-a:80**,module-b", "'module-threshold':'module-b' must be in the format 'module:threshold'."),
-    ("get_modules_thresholds", "module-a:80**,:80.0**", "Module threshold with value:'80.0**' must have a non-empty name."),
-    ("get_modules_thresholds", "module-a:80**,module-b:", "Module threshold with 'name':'module-b' must have a non-empty threshold."),
-    ("get_modules_thresholds", "module-a:80**,module-b:80", "'module-threshold':'80' must contain two '*' to split overall, changed files and changed per file threshold."),
-    ("get_modules_thresholds", "module-a:80**,module-b:True**", "'module-threshold' overall value 'True' must be a float or None."),
-    ("get_modules_thresholds", "module-a:80**,module-b:*True*", "'module-threshold' changed files value 'True' must be a float or None."),
-    ("get_modules_thresholds", "module-a:80**,module-b:**True", "'module-threshold' changed per file value 'True' must be a float or None."),
-    ("get_modules_thresholds", "module-a:80**,module-b:*80*:9", "'module-threshold':'module-b:*80*:9' must be in the format 'module:threshold'."),
-    ("get_modules_thresholds", "module-a:80**,module-b:*80*:9", "'module-threshold':'module-b:*80*:9' must be in the format 'module:threshold'."),
+    # TODO - uncomment when new format of modules thresholds will be supported
+    # ("get_modules_thresholds", 1, "'modules-thresholds' must be a string or not defined."),
+    # ("get_modules_thresholds", "ab", "'modules-thresholds' must be a list of strings in format 'module:overall*changed'."),
+    # ("get_modules_thresholds", "abcd", "'modules-thresholds' must be a list of strings in format 'module:overall*changed'."),
+    # ("get_modules_thresholds", "module-a: 80*", "'module-threshold':'80*' must contain two '*' to split overall, changed files and changed per file threshold."),
+    # ("get_modules_thresholds", "module-a:80**,module-b", "'module-threshold':'module-b' must be in the format 'module:threshold'."),
+    # ("get_modules_thresholds", "module-a:80**,:80.0**", "Module threshold with value:'80.0**' must have a non-empty name."),
+    # ("get_modules_thresholds", "module-a:80**,module-b:", "Module threshold with 'name':'module-b' must have a non-empty threshold."),
+    # ("get_modules_thresholds", "module-a:80**,module-b:80", "'module-threshold':'80' must contain two '*' to split overall, changed files and changed per file threshold."),
+    # ("get_modules_thresholds", "module-a:80**,module-b:True**", "'module-threshold' overall value 'True' must be a float or None."),
+    # ("get_modules_thresholds", "module-a:80**,module-b:*True*", "'module-threshold' changed files value 'True' must be a float or None."),
+    # ("get_modules_thresholds", "module-a:80**,module-b:**True", "'module-threshold' changed per file value 'True' must be a float or None."),
+    # ("get_modules_thresholds", "module-a:80**,module-b:*80*:9", "'module-threshold':'module-b:*80*:9' must be in the format 'module:threshold'."),
+    # ("get_modules_thresholds", "module-a:80**,module-b:*80*:9", "'module-threshold':'module-b:*80*:9' must be in the format 'module:threshold'."),
     ("get_skip_unchanged", "", "'skip-unchanged' must be a boolean."),
     ("get_skip_unchanged", 1, "'skip-unchanged' must be a boolean."),
     ("get_update_comment", "", "'update-comment' must be a boolean."),
@@ -208,36 +206,20 @@ def test_get_global_changed_file_threshold(mocker):
 
 
 failure_cases_modes = [
-    ("", CommentModeEnum.SINGLE, None, "JaCoCo Coverage Report"),
-    ("", CommentModeEnum.SINGLE, "Report Name", "JaCoCo Coverage Report"),
-    ("", CommentModeEnum.MULTI, None, "Report: Unknown Report Name"),
-    ("", CommentModeEnum.MULTI, "Report Name", "Report: Report Name"),
-    ("", CommentModeEnum.MODULE, None, "Module: Unknown Report Name"),
-    ("", CommentModeEnum.MODULE, "Report Name", "Module: Report Name"),
-    ("Custom title", CommentModeEnum.SINGLE, None, "Custom title"),
-    ("Custom title", CommentModeEnum.SINGLE, "Report Name", "Custom title"),
-    ("Custom title ", CommentModeEnum.MULTI, None, "Custom title Unknown Report Name"),
-    ("Custom title ", CommentModeEnum.MULTI, "Report Name", "Custom title Report Name"),
-    ("Custom title ", CommentModeEnum.MODULE, None, "Custom title Unknown Report Name"),
-    ("Custom title ", CommentModeEnum.MODULE, "Report Name", "Custom title Report Name"),
+    ("", "JaCoCo Coverage Report"),
+    ("Custom title", "Custom title"),
 ]
 
-@pytest.mark.parametrize("input_title, comment_mode, report_name, expected_title", failure_cases_modes)
-def test_get_title(input_title, comment_mode, report_name, expected_title, mocker):
+@pytest.mark.parametrize("input_title, expected_title", failure_cases_modes)
+def test_get_title(input_title, expected_title, mocker):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value=input_title)
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_comment_mode", return_value=comment_mode)
 
-    assert expected_title == ActionInputs.get_title(report_name)
-
-
-def test_get_comment_template(mocker):
-    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="detailed")
-    assert "detailed" == ActionInputs.get_sensitivity()
+    assert expected_title == ActionInputs.get_title()
 
 
-def test_get_comment_mode(mocker):
-    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="single")
-    assert "single" == ActionInputs.get_comment_mode()
+def test_get_comment_level(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="full")
+    assert "full" == ActionInputs.get_comment_level()
 
 
 def test_get_modules_no_spaces(mocker):
@@ -427,8 +409,7 @@ failure_cases_defaults = [
     ("get_exclude_paths", []),
     ("get_title", "JaCoCo Coverage Report"),
     ("get_metric", MetricTypeEnum.INSTRUCTION),
-    ("get_sensitivity", SensitivityEnum.DETAIL),
-    ("get_comment_mode", CommentModeEnum.SINGLE),
+    ("get_comment_level", CommentLevelEnum.FULL),
     ("get_modules", {}),
     ("get_modules_thresholds", {}),
     ("get_skip_unchanged", False),

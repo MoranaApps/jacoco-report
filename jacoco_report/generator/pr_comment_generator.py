@@ -11,6 +11,7 @@ from typing import Optional
 from jacoco_report.action_inputs import ActionInputs
 from jacoco_report.evaluator.coverage_evaluator import CoverageEvaluator
 from jacoco_report.model.evaluated_report_coverage import EvaluatedReportCoverage
+from jacoco_report.utils.enums import CommentLevelEnum
 from jacoco_report.utils.github import GitHub
 
 logger = logging.getLogger(__name__)
@@ -40,9 +41,79 @@ class PRCommentGenerator:
 
     def generate(self):
         """
-        The method that generates the comment.
+        The method that generates the comment for a single generator.
         """
-        raise NotImplementedError("Subclasses should implement this method")
+        title, pr_body = self._get_comment_content()
+
+        # Get all comments on the pull request
+        comments = self.gh.get_comments(self.pr_number)
+
+        # Check for existing comment with the same title
+        existing_comment = None
+        for comment in comments:
+            if len(title) > 0 and comment["body"].startswith(title):  # Detects if it starts with the title
+                existing_comment = comment
+                break
+
+        if existing_comment and ActionInputs.get_update_comment() and self.evaluator.changed_files_count() > 0:
+            # Update the existing comment
+            self.gh.update_comment(existing_comment["id"], pr_body)
+        elif existing_comment and ActionInputs.get_update_comment() and self.evaluator.changed_files_count() == 0:
+            # Delete the existing comment
+            self.gh.delete_comment(existing_comment["id"])
+        else:
+            if ActionInputs.get_skip_unchanged() and self.evaluator.changed_files_count() == 0:
+                logger.info("No changed files in PR. Skipping comment generation.")
+                return
+
+            # create a comment on pull request
+            self.gh.add_comment(self.pr_number, pr_body)
+
+    def _get_comment_content(self) -> tuple[str, str]:
+        title = body = f"**{ActionInputs.get_title()}**"
+
+        p = ActionInputs.get_pass_symbol()
+        f = ActionInputs.get_fail_symbol()
+
+        body += f"\n\n{self._get_basic_table_for_all(p, f)}"
+
+        if ActionInputs.get_comment_level() == CommentLevelEnum.FULL:
+            reports_table = self._get_reports_table(p, f)
+            if reports_table != "":
+                body += f"\n\n{reports_table}"
+
+            body += f"\n\n{self._get_changed_files_table(p, f)}"
+
+        return title, body
+
+    def _get_basic_table_for_all(self, p: str, f: str) -> str:
+        # pylint: disable=duplicate-code
+        if not ActionInputs.get_baseline_paths():
+            return self._get_basic_table(
+                p,
+                f,
+                ActionInputs.get_metric(),
+                self.evaluator.total_coverage_overall,
+                self.evaluator.total_coverage_overall_passed,
+                ActionInputs.get_global_overall_threshold(),
+                self.evaluator.total_coverage_changed_files,
+                self.evaluator.total_coverage_changed_files_passed,
+                ActionInputs.get_global_changed_files_average_threshold(),
+            )
+
+        return self._get_basic_table_with_baseline(
+            p,
+            f,
+            ActionInputs.get_metric(),
+            self.evaluator.total_coverage_overall,
+            self.evaluator.total_coverage_overall_passed,
+            ActionInputs.get_global_overall_threshold(),
+            self.evaluator.total_coverage_changed_files,
+            self.evaluator.total_coverage_changed_files_passed,
+            ActionInputs.get_global_changed_files_average_threshold(),
+            self.bs_evaluator.total_coverage_overall,
+            self.bs_evaluator.total_coverage_changed_files,
+        )
 
     # Full example of the table
     # | Metric (Instruction) | Coverage | Threshold | Δ Coverage | Status |
@@ -124,23 +195,6 @@ class PRCommentGenerator:
                 p if total_changed_files_passed else f,
             )
         )
-
-    # Full example of the table
-    # | Module      | Coverage (O/Ch) | Threshold (O/Ch) | Δ Coverage (O/Ch) | Status (O/Ch) |
-    # |-------------|-----------------|------------------|-------------------|---------------|
-    # | `module-1`  | 87.5% / 35.2%   | 60% / 80%        | -0.6% / +1.0%     | ✅/✅           |
-    # | `module-2`  | 80.0% / 45.6%   | 40% / 82%        | +0.3% / -2.1%     | ✅/✅           |
-    # | `module-3`  | 76.3% / 76.4%   | 50% / 76%        | -2.5% / -1.2%     | ❌/✅           |
-
-    def _get_modules_table(self, p: str, f: str) -> str:
-        if ActionInputs.get_modules() == {}:
-            logger.info("No modules defined. No modules table will be generated.")
-            return ""
-
-        if not ActionInputs.get_baseline_paths():
-            return self._generate_modules_table_without_baseline(p, f)
-
-        return self._generate_modules_table_with_baseline(p, f)
 
     def _get_reports_table(self, p: str, f: str) -> str:
         if not ActionInputs.get_baseline_paths():
@@ -243,37 +297,6 @@ class PRCommentGenerator:
 
         return s
 
-    def _generate_modules_table_without_baseline(self, p: str, f: str, **kwargs) -> str:
-        s = dedent(
-            """
-            | Module | Coverage (O/Ch) | Threshold (O/Ch) | Status (O/Ch) |
-            |--------|-----------------|------------------|---------------|
-        """
-        ).strip()
-
-        provided_modules = 0
-        for evaluated_coverage_module in self.evaluator.evaluated_modules_coverage.values():
-            if self._generate_modules_table__skip(evaluated_coverage_module, **kwargs):
-                continue
-
-            provided_modules += 1
-
-            # pylint: disable=C0209
-            s += "\n| `{}` | {}% / {}% | {}% / {}% | {}/{} |".format(
-                evaluated_coverage_module.name,
-                evaluated_coverage_module.overall_coverage_reached,
-                evaluated_coverage_module.avg_changed_files_coverage_reached,
-                evaluated_coverage_module.overall_coverage_threshold,
-                evaluated_coverage_module.changed_files_threshold,
-                p if evaluated_coverage_module.overall_passed else f,
-                p if evaluated_coverage_module.avg_changed_files_passed else f,
-            )
-
-        if provided_modules == 0:
-            s += "\n\nNo changed file in reports."
-
-        return s
-
     # pylint: disable=unused-argument
     def _generate_modules_table__skip(self, evaluated_report: EvaluatedReportCoverage, **kwargs) -> bool:
         if (
@@ -283,43 +306,6 @@ class PRCommentGenerator:
         ):
             return True
         return False
-
-    def _generate_modules_table_with_baseline(self, p: str, f: str, **kwargs) -> str:
-        s = dedent(
-            """
-            | Module | Coverage (O/Ch) | Threshold (O/Ch) | Δ Coverage (O/Ch) | Status (O/Ch) |
-            |--------|-----------------|------------------|---------------|---------------|
-        """
-        ).strip()
-
-        provided_modules = 0
-
-        for evaluated_coverage_module in self.evaluator.evaluated_modules_coverage.values():
-            if self._generate_modules_table__skip(evaluated_coverage_module, **kwargs):
-                continue
-
-            provided_modules += 1
-            diff_o, diff_ch = self._calculate_baseline_module_diffs(evaluated_coverage_module)
-
-            # pylint: disable=C0209
-            s += "\n| `{}` | {}% / {}% | {}% / {}% | {}{}% / {}{}% | {}/{} |".format(
-                evaluated_coverage_module.name,
-                evaluated_coverage_module.overall_coverage_reached,
-                evaluated_coverage_module.avg_changed_files_coverage_reached,
-                evaluated_coverage_module.overall_coverage_threshold,
-                evaluated_coverage_module.changed_files_threshold,
-                "+" if diff_o > 0.001 else "",
-                round(diff_o, 2),
-                "+" if diff_ch > 0.001 else "",
-                round(diff_ch, 2),
-                p if evaluated_coverage_module.overall_passed else f,
-                p if evaluated_coverage_module.avg_changed_files_passed else f,
-            )
-
-        if provided_modules == 0:
-            s += "\n\nNo changed file in reports."
-
-        return s
 
     def _calculate_baseline_module_diffs(self, evaluated_coverage: EvaluatedReportCoverage) -> tuple[float, float]:
         if evaluated_coverage.name not in self.bs_evaluator.evaluated_modules_coverage.keys():
@@ -399,6 +385,15 @@ class PRCommentGenerator:
             s += "\n\nNo changed file in reports."
 
         return s
+
+    def _get_changed_files_table(self, p, f) -> str:
+        if len(self.evaluator.evaluated_reports_coverage.keys()) == 0:
+            return "\nNo changed file in reports."
+
+        if not ActionInputs.get_baseline_paths():
+            return self._generate_changed_files_table_without_baseline(p, f)
+
+        return self._generate_changed_files_table_with_baseline(p, f)
 
     def _generate_changed_files_table_with_baseline(
         self, p: str, f: str, evaluated_reports_coverage: Optional[dict[str, EvaluatedReportCoverage]] = None
