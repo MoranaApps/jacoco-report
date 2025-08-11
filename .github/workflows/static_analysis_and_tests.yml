@@ -23,7 +23,7 @@ jobs:
     name: Pylint Analysis - (Python ${{ matrix.python-version }})
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v5.0.0
         with:
           persist-credentials: false
 
@@ -58,7 +58,7 @@ jobs:
     name: Black Format Check - (Python ${{ matrix.python-version }})
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v5.0.0
         with:
           persist-credentials: false
 
@@ -85,7 +85,7 @@ jobs:
     name: Python Tests - (Python ${{ matrix.python-version }})
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v5.0.0
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -111,7 +111,7 @@ jobs:
     name: Mypy Type Check - (Python ${{ matrix.python-version }})
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v5.0.0
         with:
           persist-credentials: false
 
