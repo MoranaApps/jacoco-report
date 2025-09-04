@@ -2362,3 +2362,35 @@ def test_violations(jacoco_report, id, mode, template, modules, modules_threshol
     assert len(jacoco_report.violations) == len(violations)
     for violation in violations:
         assert violation in actual_merger_violations
+
+def test_filtered_out_all_from_changed_file(jacoco_report, mocker):
+    changed_files = [
+        'com/example/ExampleClass.java'
+    ]
+
+    expected_comments = ["""**Report: Example Report**\n\n| Metric (instruction) | Coverage | Threshold | Status |\n|----------------------|----------|-----------|--------|\n| **Overall**       | 90.0% | 100.0% | ❌ |\n| **Changed Files** | 0.0% | 100.0% | ✅ |\n\n| File Path | Coverage | Threshold | Status |\n|-----------|----------|-----------|--------|\n| [ExampleClass.java](https://github.com/MoranaApps/jacoco-report/pull/35/files#diff-30ac4c908eac65fd143f488145837364d4ee1b2f321154225885e23c8ef80aa7) | 0.0% | 100.0% | ✅ |"""]
+
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value='pull_request')
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_token", return_value='fake_token')
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_comment_mode", return_value=CommentModeEnum.MULTI)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_sensitivity", return_value=SensitivityEnum.DETAIL)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=["tests/data/module_d/**/jacoco*.xml"])
+    # mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=["data/module_d/**/jacoco*.xml"])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_min_coverage_overall", return_value=100.0)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_min_coverage_changed_files", return_value=100.0)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_min_coverage_per_changed_file", return_value=100.0)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_modules", return_value=modules)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_modules_thresholds", return_value=modules_thresholds)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_repository", return_value="MoranaApps/jacoco-report")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_unchanged", return_value=False)
+    mocker.patch("jacoco_report.utils.github.GitHub.get_pr_number", return_value=35)
+    mocker.patch("jacoco_report.utils.github.GitHub.get_pr_changed_files", return_value=changed_files)
+
+    mock_add_comment = mocker.patch('jacoco_report.utils.github.GitHub.add_comment', return_value=None)
+
+    jacoco_report.run()
+
+    assert mock_add_comment.call_count == len(expected_comments)
+
+    if len(expected_comments):
+        mock_add_comment.assert_called_once_with(35, expected_comments[0])

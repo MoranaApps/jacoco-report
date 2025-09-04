@@ -353,6 +353,11 @@ class CoverageEvaluator:
         ):
             evaluated_coverage_report.avg_changed_files_coverage_reached = 0.0
             evaluated_coverage_report.avg_changed_files_passed = True
+
+            # evaluate the changed files
+            for key, changed_file_coverage in report_coverage.changed_files_coverage.items():
+                evaluated_coverage_report.changed_files_passed[key] = True
+
         else:
             evaluated_coverage_report.avg_changed_files_coverage_reached = round(
                 sum(evaluated_coverage_report.changed_files_coverage_reached.values())
