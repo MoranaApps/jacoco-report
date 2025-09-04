@@ -2273,3 +2273,47 @@ def test_violations(jacoco_report, id, level, modules, modules_thresholds, chang
     assert len(jacoco_report.violations) == len(violations)
     for violation in violations:
         assert violation in actual_merger_violations
+
+def test_filtered_out_all_from_changed_file(jacoco_report, mocker):
+    changed_files = [
+        'com/example/ExampleClass.java'
+    ]
+
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value='pull_request')
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_token", return_value='fake_token')
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_comment_level", return_value=CommentLevelEnum.FULL)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=["tests/data/module_d/**/jacoco*.xml"])
+    # mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=["data/module_d/**/jacoco*.xml"])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_threshold", return_value=100.0)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_files_average_threshold", return_value=100.0)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_file_threshold", return_value=100.0)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_modules", return_value={})
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_modules_thresholds", return_value={})
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_repository", return_value="MoranaApps/jacoco-report")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_unchanged", return_value=False)
+    mocker.patch("jacoco_report.utils.github.GitHub.get_pr_number", return_value=35)
+    mocker.patch("jacoco_report.utils.github.GitHub.get_pr_changed_files", return_value=changed_files)
+
+    mock_add_comment = mocker.patch('jacoco_report.utils.github.GitHub.add_comment', return_value=None)
+
+    jacoco_report.run()
+
+    print("hello")
+
+    for item in mock_add_comment.call_args_list:
+        print(item)
+
+    print("bye")
+
+
+    # for comment in mock_add_comment.call_args_list:
+    #     print(f"\ncomment: \n{comment[0][1]}")
+
+    # assert mock_add_comment.call_count == len(expected_comments)
+
+    # if len(expected_comments):
+    #     mock_add_comment.assert_called_once_with(35, expected_comments[0])
+
+    # Parse the JSON strings
+    # dict_evaluated_coverage_reports: dict = json.loads(jacoco_report.evaluated_coverage_reports)
+    # dict_evaluated_coverage_modules: dict = json.loads(jacoco_report.evaluated_coverage_modules)
