@@ -73,6 +73,16 @@ class JaCoCoReport:
         logger.info("Getting changed files in PR.")
         all_changed_files_in_pr = gh.get_pr_changed_files()
 
+        # TODOs
+        '''
+        README
+        action.yml
+        remove previous usages
+        add new one
+        update tests - remove old ones, add new ones
+        '''
+
+
         # map modules if comment mode is set to MODULE
         logger.info("Mapping modules (if defined).")
         modules: dict[str, Module] = {}  # self._get_modules()
