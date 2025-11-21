@@ -1,0 +1,30 @@
+# NOTE: This workflow expects that branch protection rules require all checks to pass before merging.
+# Auto-merge will only occur if all required status checks and reviews are successful.
+
+name: Renovate auto-approve and auto-merge
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  renovate:
+    name: Auto-approve and auto-merge Renovate PRs
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.user.login == 'renovate[bot]' && github.repository == 'MoranaApps/jacoco-report'
+    steps:
+      - name: Approve Renovate PR
+        run: gh pr review --approve "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Enable auto-merge for Renovate PR
+        run: gh pr merge --auto --squash "$PR_URL"
+        continue-on-error: true
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
