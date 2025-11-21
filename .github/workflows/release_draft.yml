@@ -59,7 +59,7 @@ jobs:
           print-empty-chapters: true
 
       - name: Create and Push Tag
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const tag = core.getInput('tag-name')
