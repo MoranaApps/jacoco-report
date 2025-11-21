@@ -18,9 +18,9 @@ jobs:
 
       - name: Link Checker
         id: lychee
-        uses: lycheeverse/lychee-action@1ef33e2493308e49729a7789ddd73e7f8bed8f45
+        uses: lycheeverse/lychee-action@v2.7.0
         with:
-          args: --base . --verbose --no-progress --timeout 30 './**/*.md'
+          args: --root-dir "${{ github.workspace }}" --verbose --no-progress --timeout 30 './**/*.md'
           format: markdown
           output: ./lychee-results.md
           token: ${{ secrets.TOKEN }}
