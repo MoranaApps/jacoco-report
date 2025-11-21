@@ -1,1 +1,4 @@
 * @miroslavpojer
+
+# Dependency soubory (bez code owners) – nebudou vyžadovat Code Owner review
+/requirements*.txt
