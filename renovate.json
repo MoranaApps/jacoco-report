@@ -13,7 +13,11 @@
         "minor",
         "patch"
       ],
-      "automerge": true
+      "automerge": true,
+      "labels": [
+        "auto-update",
+        "no-RN"
+      ]
     }
   ],
   "labels": [

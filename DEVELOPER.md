@@ -21,8 +21,8 @@ python3 --version
 ### Set Up Python Environment
 
 ```shell
-python3 -m venv venv
-source venv/bin/activate
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
@@ -117,8 +117,8 @@ Follow these steps to run Pylint check locally:
 From terminal in the root of the project, run the following command:
 
 ```shell
-python3 -m venv venv
-source venv/bin/activate
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
@@ -171,8 +171,8 @@ Follow these steps to format your code with Black locally:
 From terminal in the root of the project, run the following command:
 
 ```shell
-python3 -m venv venv
-source venv/bin/activate
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
