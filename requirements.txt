@@ -6,4 +6,4 @@ pytest-mock==3.15.1
 requests==2.32.5
 mypy==1.19.1
 mypy-extensions==1.1.0
-types-requests==2.32.4.20250913
+types-requests==2.32.4.20260107
