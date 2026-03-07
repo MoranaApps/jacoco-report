@@ -28,7 +28,7 @@ jobs:
 
       - name: Upload Results
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: lychee-results
           path: ./lychee-results.md
