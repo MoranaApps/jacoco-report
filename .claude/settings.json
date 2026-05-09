@@ -62,7 +62,10 @@
       "Bash(curl -s \"https://api.github.com/repos/MoranaApps/jacoco-report/pulls/148/files\")",
       "Bash(black jacoco_report/generator/pr_comment_generator.py)",
       "Bash(black --version)",
-      "Bash(pip install *)"
+      "Bash(pip install *)",
+      "Bash(git fetch *)",
+      "Bash(git checkout *)",
+      "Bash(git branch *)"
     ]
   }
 }
