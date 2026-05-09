@@ -134,14 +134,12 @@ class PRCommentGenerator:
         min_changed_files: float,
     ) -> str:
         return (
-            dedent(
-                """
+            dedent("""
             | Metric ({}) | Coverage | Threshold | Status |
             |----------------------|----------|-----------|--------|
             | **Overall**       | {}% | {}% | {} |
             | **Changed Files** | {}% | {}% | {} |
-        """
-            )
+        """)
             .strip()
             .format(
                 metric,
@@ -172,14 +170,12 @@ class PRCommentGenerator:
         diff_ch = total_changed_files_reached - bs_total_changed_files_reached
 
         return (
-            dedent(
-                """
+            dedent("""
             | Metric ({}) | Coverage | Threshold | Δ Coverage | Status |
             |-------------------|-----|-----|-----|----|
             | **Overall**       | {}% | {}% | {}{}% | {} |
             | **Changed Files** | {}% | {}% | {}{}% | {} |
-        """
-            )
+        """)
             .strip()
             .format(
                 metric,
@@ -213,12 +209,10 @@ class PRCommentGenerator:
         return False
 
     def _generate_reports_table_without_baseline(self, p: str, f: str, **kwargs) -> str:
-        s = dedent(
-            """
+        s = dedent("""
             | Report | Coverage (O/Ch) | Threshold (O/Ch) | Status (O/Ch) |
             |--------|----------|-----------|--------|
-        """
-        ).strip()
+        """).strip()
 
         provided_reports = 0
         keys: list[str] = sorted(list(self.evaluator.evaluated_reports_coverage.keys()))
@@ -252,12 +246,10 @@ class PRCommentGenerator:
         return s
 
     def _generate_reports_table_with_baseline(self, p: str, f: str, **kwargs) -> str:
-        s = dedent(
-            """
+        s = dedent("""
             | Report | Coverage (O/Ch) | Threshold (O/Ch) | Δ Coverage (O/Ch) | Status (O/Ch) |
             |--------|----------|-----------|------------|--------|
-        """
-        ).strip()
+        """).strip()
 
         provided_reports = 0
         keys: list[str] = sorted(list(self.evaluator.evaluated_reports_coverage.keys()))
@@ -350,12 +342,10 @@ class PRCommentGenerator:
         """
         Generate a table with changed files without baseline. The table contains the files from all reports.
         """
-        s = dedent(
-            """
+        s = dedent("""
             | File Path | Coverage | Threshold | Status |
             |-----------|----------|-----------|--------|
-        """
-        ).strip()
+        """).strip()
 
         if evaluated_reports_coverage is None:
             evaluated_reports_coverage = self.evaluator.evaluated_reports_coverage
@@ -398,12 +388,10 @@ class PRCommentGenerator:
     def _generate_changed_files_table_with_baseline(
         self, p: str, f: str, evaluated_reports_coverage: Optional[dict[str, EvaluatedReportCoverage]] = None
     ) -> str:
-        s = dedent(
-            """
+        s = dedent("""
             | File Path | Coverage | Threshold | Δ Coverage | Status |
             |-----------|----------|-----------|------------|--------|
-        """
-        ).strip()
+        """).strip()
 
         if evaluated_reports_coverage is None:
             evaluated_reports_coverage = self.evaluator.evaluated_reports_coverage
