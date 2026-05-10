@@ -66,8 +66,8 @@ Group 0 (deps) → Task 20 🔝 → Tasks 17/18/21 → Group F (design decisions
 | **24** | F | Baseline mapping design | ✅ | N/A | #108 |
 | **25** | F | `report-thresholds-default` precedence design | ✅ | N/A | #113 |
 | **26** | F | `fail-on-threshold` boolean deprecation design | ✅ | N/A | #103 |
-| **27** | G | Implement `skip-unchanged` scan-stage filter | ⬜ | `feature/112-Update-logic-for-input-skip_unchanged` | #112 |
-| **28** | G | Implement `report-groups` YAML input | 🔒 ⬜ | `feature/108-report-groups-yaml-input` | #108 |
+| **27** | G | Implement `skip-unchanged` scan-stage filter | ✅ | `feature/112-Update-logic-for-input-skip_unchanged` | #112 |
+| **28** | G | Implement `report-groups` YAML input | ✅ | `feature/108-report-groups-yaml-input` | #108 |
 | **29** | G | Add `report-thresholds-default` input | 🔒 ⬜ | `feature/113-report-thresholds-default` | #113 |
 | **30** | G | Expand `comment-level` full option set | 🔒 ⬜ | `feature/102-comment-level-full-option-set` | #102 |
 | **31** | G | `fail-on-threshold` boolean deprecation impl | 🔒 ⬜ | `feature/103-fail-on-threshold-deprecation-evaluate-unchanged` | #103 |
@@ -277,7 +277,7 @@ mypy .
 
 ---
 
-#### Task 27 — `skip-unchanged` scan-stage filter ⬜
+#### Task 27 — `skip-unchanged` scan-stage filter ✅
 
 **Branch:** `feature/112-Update-logic-for-input-skip_unchanged` *(exists — one in-progress commit)*
 **Issue:** #112 | **Depends on:** Task 22 (design ✅)
@@ -616,7 +616,7 @@ Task 27 ──────────────────► Task 31
 
 - [ ] All Group 0 Renovate PRs merged
 - [ ] Task 20 (fixture factories) done
-- [ ] Task 27 (`skip-unchanged`) done
+- [x] Task 27 (`skip-unchanged`) done
 - [ ] Task 28 (`report-groups`) done
 - [ ] Task 29 (`report-thresholds-default`) done
 - [ ] Task 30 (full `comment-level`) done

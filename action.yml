@@ -29,16 +29,14 @@ inputs:
     description: 'Level of the comment.'
     required: false
     default: 'full'
-  modules:
-    description: 'Identify the modules to be included in the report.'
-    required: false
-    default: ''
-  modules-thresholds:
-    description: 'Identify the modules and their thresholds.'
+  report-groups:
+    description: >
+      Define named report groups. YAML list; each entry: name (required), paths (required list of globs),
+      thresholds (optional O*A*P string), baseline-paths (optional list).
     required: false
     default: ''
   skip-unchanged:
-    description: 'Reduce module table and comments to ones with changed files in PR.'
+    description: 'Skip reports with no changed files in PR.'
     required: false
     default: 'false'
   baseline-paths:
@@ -83,9 +81,9 @@ outputs:
   reports-coverage:
     description: 'Coverage for each report.'
     value: ${{ steps.jacoco-report-to-pr-comment.outputs.reports-coverage }}
-  modules-coverage:
-    description: 'Coverage for each module.'
-    value: ${{ steps.jacoco-report-to-pr-comment.outputs.modules-coverage }}
+  groups-coverage:
+    description: 'Coverage for each report group.'
+    value: ${{ steps.jacoco-report-to-pr-comment.outputs.groups-coverage }}
 
 branding:
   icon: 'book-open'
@@ -140,11 +138,8 @@ runs:
         echo "INPUT_METRIC=${{ inputs.metric }}" >> $GITHUB_ENV
         echo "INPUT_COMMENT_LEVEL=${{ inputs.comment-level }}" >> $GITHUB_ENV
 
-        echo "INPUT_MODULES<<EOF" >> $GITHUB_ENV
-        echo "${{ inputs.modules }}" >> $GITHUB_ENV
-        echo "EOF" >> $GITHUB_ENV
-        echo "INPUT_MODULES_THRESHOLDS<<EOF" >> $GITHUB_ENV
-        echo "${{ inputs.modules-thresholds }}" >> $GITHUB_ENV
+        echo "INPUT_REPORT_GROUPS<<EOF" >> $GITHUB_ENV
+        echo "${{ inputs.report-groups }}" >> $GITHUB_ENV
         echo "EOF" >> $GITHUB_ENV
     
         echo "INPUT_SKIP_UNCHANGED=${{ inputs.skip-unchanged }}" >> $GITHUB_ENV
@@ -171,8 +166,7 @@ runs:
         INPUT_PR_NUMBER: ${{ env.INPUT_PR_NUMBER }}
         INPUT_METRIC: ${{ env.INPUT_METRIC }}
         INPUT_COMMENT_LEVEL: ${{ env.INPUT_COMMENT_LEVEL }}
-        INPUT_MODULES: ${{ env.INPUT_MODULES }}
-        INPUT_MODULES_THRESHOLDS: ${{ env.INPUT_MODULES_THRESHOLDS }}
+        INPUT_REPORT_GROUPS: ${{ env.INPUT_REPORT_GROUPS }}
         INPUT_SKIP_NOT_CHANGED: ${{ env.INPUT_SKIP_NOT_CHANGED }}
         INPUT_BASELINE_PATHS: ${{ env.INPUT_BASELINE_PATHS }}
         INPUT_UPDATE_COMMENT: ${{ env.INPUT_UPDATE_COMMENT }}

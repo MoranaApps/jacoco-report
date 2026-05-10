@@ -10,7 +10,7 @@ from jacoco_report.action_inputs import ActionInputs
 from jacoco_report.model.counter import Counter
 from jacoco_report.model.report_file_coverage import ReportFileCoverage
 from jacoco_report.model.evaluated_report_coverage import EvaluatedReportCoverage
-from jacoco_report.model.module import Module
+from jacoco_report.model.report_group import ReportGroup
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +28,7 @@ class CoverageEvaluator:
         global_min_coverage_overall: float,
         global_min_coverage_changed_files: float,
         global_min_coverage_changed_per_file: float,
-        modules: Optional[dict[str, Module]] = None,
+        report_groups: Optional[list[ReportGroup]] = None,
     ):
         # input data stats
         self._report_files_coverage: list[ReportFileCoverage] = report_files_coverage
@@ -37,7 +37,7 @@ class CoverageEvaluator:
         self._global_min_coverage_overall: float = global_min_coverage_overall
         self._global_min_coverage_changed_files: float = global_min_coverage_changed_files
         self._global_min_coverage_changed_per_file = global_min_coverage_changed_per_file
-        self._modules: dict[str, Module] = modules if modules is not None else {}
+        self._report_groups: list[ReportGroup] = report_groups if report_groups is not None else []
 
         # *** output data for the comment(s) ***
         # global data
@@ -46,8 +46,8 @@ class CoverageEvaluator:
         self.total_coverage_changed_files: float = 0.0
         self.total_coverage_changed_files_passed: bool = False
 
-        # evaluated module data
-        self.evaluated_modules_coverage: dict[str, EvaluatedReportCoverage] = {}
+        # evaluated group data
+        self.evaluated_groups_coverage: dict[str, EvaluatedReportCoverage] = {}
 
         # evaluated report files data
         self.evaluated_reports_coverage: dict[str, EvaluatedReportCoverage] = {}
@@ -73,10 +73,9 @@ class CoverageEvaluator:
         changed_file_counter = 0
 
         # evaluation of all report files (report == input xml file)
-        is_unknown_module_present = False
         for report in self._report_files_coverage:
             evaluated_coverage_report: EvaluatedReportCoverage = EvaluatedReportCoverage(
-                report.name, report.module_name
+                report.name, report.group_name
             )
 
             # get report's overall values
@@ -103,44 +102,34 @@ class CoverageEvaluator:
             # save the evaluated report
             self.evaluated_reports_coverage[report.name] = self._evaluate_report(report, evaluated_coverage_report)
 
-            if report.module_name in "Unknown":
-                is_unknown_module_present = True
+        # evaluation of all groups (group == named set of reports with common paths/thresholds)
+        for group in self._report_groups:
+            evaluated_coverage_group: EvaluatedReportCoverage = EvaluatedReportCoverage(group.name)
 
-        # evaluation of all modules (module == group of reports under module root path)
-        if ActionInputs.get_modules() != {}:
-            modules: list[str] = list(ActionInputs.get_modules().keys())
+            # aggregate all reports belonging to this group
+            for evaluated_report_coverage in self.evaluated_reports_coverage.values():
+                if evaluated_report_coverage.group_name == group.name:
+                    evaluated_coverage_group.overall_coverage.append(evaluated_report_coverage.overall_coverage)
+                    evaluated_coverage_group.avg_changed_files_coverage.append(
+                        evaluated_report_coverage.avg_changed_files_coverage
+                    )
+                    evaluated_coverage_group.changed_files_passed.update(
+                        evaluated_report_coverage.changed_files_passed
+                    )
+                    evaluated_coverage_group.changed_files_coverage_reached.update(
+                        evaluated_report_coverage.changed_files_coverage_reached
+                    )
 
-            if is_unknown_module_present:
-                modules.append("Unknown")
+            # count reached values from raw weights
+            evaluated_coverage_group.overall_coverage_reached = (
+                evaluated_coverage_group.overall_coverage.coverage()
+            )
+            evaluated_coverage_group.avg_changed_files_coverage_reached = (
+                evaluated_coverage_group.avg_changed_files_coverage.coverage()
+            )
 
-            for module_name in modules:
-                evaluated_coverage_module: EvaluatedReportCoverage = EvaluatedReportCoverage(module_name)
-
-                # get the numbers from all module's reports counters (raw weights)
-                for evaluated_report_coverage in self.evaluated_reports_coverage.values():
-                    if evaluated_report_coverage.module_name == module_name:
-                        evaluated_coverage_module.overall_coverage.append(evaluated_report_coverage.overall_coverage)
-                        evaluated_coverage_module.avg_changed_files_coverage.append(
-                            evaluated_report_coverage.avg_changed_files_coverage
-                        )
-
-                        evaluated_coverage_module.changed_files_passed.update(
-                            evaluated_report_coverage.changed_files_passed
-                        )
-                        evaluated_coverage_module.changed_files_coverage_reached.update(
-                            evaluated_report_coverage.changed_files_coverage_reached
-                        )
-
-                # count reached values from raw weights
-                evaluated_coverage_module.overall_coverage_reached = (
-                    evaluated_coverage_module.overall_coverage.coverage()
-                )
-                evaluated_coverage_module.avg_changed_files_coverage_reached = (
-                    evaluated_coverage_module.avg_changed_files_coverage.coverage()
-                )
-
-                # save the evaluated module
-                self.evaluated_modules_coverage[module_name] = self.evaluate_module(evaluated_coverage_module)
+            # save the evaluated group
+            self.evaluated_groups_coverage[group.name] = self.evaluate_group(evaluated_coverage_group, group)
 
         # evaluate the global coverage values
         self.total_coverage_overall = global_overall.coverage()
@@ -174,20 +163,20 @@ class CoverageEvaluator:
             )
             self.reached_threshold_changed_files_average = False
 
-        # module violations
+        # group violations
         module_violations: list[str] = []
-        for module_name, evaluated_coverage_module in self.evaluated_modules_coverage.items():
-            if not evaluated_coverage_module.overall_passed:
+        for group_name, evaluated_coverage_group in self.evaluated_groups_coverage.items():
+            if not evaluated_coverage_group.overall_passed:
                 module_violations.append(
-                    f"Module '{module_name}' overall coverage {evaluated_coverage_module.overall_coverage_reached} "
-                    f"is below the threshold {evaluated_coverage_module.overall_coverage_threshold}."
+                    f"Group '{group_name}' overall coverage {evaluated_coverage_group.overall_coverage_reached} "
+                    f"is below the threshold {evaluated_coverage_group.overall_coverage_threshold}."
                 )
                 self.reached_threshold_overall = False
-            if not evaluated_coverage_module.avg_changed_files_passed:
+            if not evaluated_coverage_group.avg_changed_files_passed:
                 module_violations.append(
-                    f"Module '{module_name}' changed files coverage "
-                    f"{evaluated_coverage_module.avg_changed_files_coverage_reached} is below the threshold "
-                    f"{evaluated_coverage_module.changed_files_threshold}."
+                    f"Group '{group_name}' changed files coverage "
+                    f"{evaluated_coverage_group.avg_changed_files_coverage_reached} is below the threshold "
+                    f"{evaluated_coverage_group.changed_files_threshold}."
                 )
                 self.reached_threshold_changed_files_average = False
 
@@ -222,20 +211,27 @@ class CoverageEvaluator:
         self.violations.extend(report_violations)
         self.violations.extend(changed_files_violations)
 
-    def evaluate_module(self, evaluated_coverage: EvaluatedReportCoverage) -> EvaluatedReportCoverage:
+    def evaluate_group(
+        self, evaluated_coverage: EvaluatedReportCoverage, group: ReportGroup
+    ) -> EvaluatedReportCoverage:
         """
-        Evaluates the coverage of the one module.
-        Evaluation uses modules thresholds if defined, otherwise global thresholds.
-
-        Parameters:
-            evaluated_coverage (EvaluatedReportCoverage): The evaluated coverage of the module
-
-        Returns:
-            EvaluatedReportCoverage: The evaluated coverage of the module
+        Evaluates the coverage of one report group.
+        Uses group-level thresholds when set, otherwise falls back to global thresholds.
         """
-        # get the thresholds for the module
-        overall_threshold, changed_files_threshold, changed_per_file_threshold = self._set_thresholds(
-            evaluated_coverage.name
+        overall_threshold = (
+            group.min_coverage_overall
+            if group.min_coverage_overall is not None
+            else self._global_min_coverage_overall
+        )
+        changed_files_threshold = (
+            group.min_coverage_changed_files
+            if group.min_coverage_changed_files is not None
+            else self._global_min_coverage_changed_files
+        )
+        changed_per_file_threshold = (
+            group.min_coverage_per_changed_file
+            if group.min_coverage_per_changed_file is not None
+            else self._global_min_coverage_changed_per_file
         )
         evaluated_coverage.overall_coverage_threshold = overall_threshold
         evaluated_coverage.changed_files_threshold = changed_files_threshold
@@ -276,7 +272,7 @@ class CoverageEvaluator:
         """
         # get the thresholds for the report
         overall_threshold, changed_files_threshold, changed_per_file_threshold = self._set_thresholds(
-            report_coverage.module_name
+            report_coverage.group_name
         )
         evaluated_coverage_report.overall_coverage_threshold = overall_threshold
         evaluated_coverage_report.changed_files_threshold = changed_files_threshold
@@ -324,32 +320,28 @@ class CoverageEvaluator:
 
         return evaluated_coverage_report
 
-    def _set_thresholds(self, module_name: str) -> tuple[float, float, float]:
+    def _set_thresholds(self, group_name: str) -> tuple[float, float, float]:
         """
-        Sets the coverage thresholds for the report.
+        Returns coverage thresholds for a report: group-level thresholds when set, global otherwise.
         """
-        if len(self._modules.items()) > 0 and module_name in self._modules.keys():
-            overall_threshold = (
-                self._modules[module_name].min_coverage_overall
-                if self._modules[module_name].min_coverage_overall is not None
-                else self._global_min_coverage_overall
-            )
-            changed_files_threshold = (
-                self._modules[module_name].min_coverage_changed_files
-                if self._modules[module_name].min_coverage_changed_files is not None
-                else self._global_min_coverage_changed_files
-            )
-            changed_per_file_threshold = (
-                self._modules[module_name].min_coverage_per_changed_file
-                if self._modules[module_name].min_coverage_per_changed_file is not None
-                else self._global_min_coverage_changed_per_file
-            )
-        else:
-            overall_threshold = self._global_min_coverage_overall
-            changed_files_threshold = self._global_min_coverage_changed_files
-            changed_per_file_threshold = self._global_min_coverage_changed_per_file
-
-        return overall_threshold, changed_files_threshold, changed_per_file_threshold
+        for group in self._report_groups:
+            if group.name == group_name:
+                return (
+                    group.min_coverage_overall
+                    if group.min_coverage_overall is not None
+                    else self._global_min_coverage_overall,
+                    group.min_coverage_changed_files
+                    if group.min_coverage_changed_files is not None
+                    else self._global_min_coverage_changed_files,
+                    group.min_coverage_per_changed_file
+                    if group.min_coverage_per_changed_file is not None
+                    else self._global_min_coverage_changed_per_file,
+                )
+        return (
+            self._global_min_coverage_overall,
+            self._global_min_coverage_changed_files,
+            self._global_min_coverage_changed_per_file,
+        )
 
     def changed_files_count(self) -> int:
         """

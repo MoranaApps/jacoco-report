@@ -3,7 +3,6 @@ import pytest
 from jacoco_report.evaluator.coverage_evaluator import CoverageEvaluator
 from jacoco_report.generator.pr_comment_generator import PRCommentGenerator
 from jacoco_report.model.evaluated_report_coverage import EvaluatedReportCoverage
-from jacoco_report.model.module import Module
 from jacoco_report.utils.enums import MetricTypeEnum
 
 
@@ -18,7 +17,6 @@ def test_evaluator(mocker):
         global_min_coverage_overall=80.0,
         global_min_coverage_changed_files=80.0,
         global_min_coverage_changed_per_file=80.0,
-        modules={},
     )
     ce.total_coverage_overall = 85.2
     ce.total_coverage_overall_passed = True
@@ -48,14 +46,14 @@ def test_get_changed_files_table_with_baseline(pr_comment_generator):
     table = pr_comment_generator.generate_changed_files_table_with_baseline("✅", "❌")
     assert "| File Path | Coverage | Threshold | Δ Coverage | Status |\n|-----------|----------|-----------|------------|--------|\n\nNo changed file in reports." in table
 
-def test_calculate_module_diff(pr_comment_generator, mocker):
+def test_calculate_group_diff(pr_comment_generator, mocker):
     # Mock the baseline evaluator with some values
     mock_baseline_evaluator = mocker.Mock()
-    mock_baseline_evaluator.evaluated_modules_coverage = {
+    mock_baseline_evaluator.evaluated_groups_coverage = {
         "module-a": EvaluatedReportCoverage("module-a")
     }
-    mock_baseline_evaluator.evaluated_modules_coverage["module-a"].overall_coverage_reached = 70.0
-    mock_baseline_evaluator.evaluated_modules_coverage["module-a"].avg_changed_files_coverage_reached = 75.0
+    mock_baseline_evaluator.evaluated_groups_coverage["module-a"].overall_coverage_reached = 70.0
+    mock_baseline_evaluator.evaluated_groups_coverage["module-a"].avg_changed_files_coverage_reached = 75.0
     pr_comment_generator.bs_evaluator = mock_baseline_evaluator
 
     # Create an evaluated coverage module with different values
@@ -64,16 +62,16 @@ def test_calculate_module_diff(pr_comment_generator, mocker):
     evaluated_coverage_module.avg_changed_files_coverage_reached = 85.0
 
     # Calculate the differences
-    diff_o, diff_ch = pr_comment_generator.calculate_baseline_module_diffs(evaluated_coverage_module)
+    diff_o, diff_ch = pr_comment_generator.calculate_baseline_group_diffs(evaluated_coverage_module)
 
     # Assert the differences are calculated correctly
     assert diff_o == 10.0
     assert diff_ch == 10.0
 
-def test_calculate_module_diff_no_module_in_baseline(pr_comment_generator, mocker):
-    # Mock the baseline evaluator with no modules
+def test_calculate_group_diff_no_group_in_baseline(pr_comment_generator, mocker):
+    # Mock the baseline evaluator with no groups
     mock_baseline_evaluator = mocker.Mock()
-    mock_baseline_evaluator.evaluated_modules_coverage = {}
+    mock_baseline_evaluator.evaluated_groups_coverage = {}
     pr_comment_generator.bs_evaluator = mock_baseline_evaluator
 
     # Create an evaluated coverage module
@@ -82,16 +80,16 @@ def test_calculate_module_diff_no_module_in_baseline(pr_comment_generator, mocke
     evaluated_coverage_module.avg_changed_files_coverage_reached = 85.0
 
     # Calculate the differences
-    diff_o, diff_ch = pr_comment_generator.calculate_baseline_module_diffs(evaluated_coverage_module)
+    diff_o, diff_ch = pr_comment_generator.calculate_baseline_group_diffs(evaluated_coverage_module)
 
-    # Assert the differences are zero since the module is not in the baseline
+    # Assert the differences are zero since the group is not in the baseline
     assert diff_o == 0.0
     assert diff_ch == 0.0
 
 def testgenerate_changed_files_table_with_baseline(pr_comment_generator, mocker):
     # Mock the necessary methods and attributes
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["baseline.xml"])
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_modules", return_value={"test", "test2"})
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups", return_value=[])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_unchanged", return_value=False)
     mocker.patch("hashlib.sha256", return_value=mocker.Mock(hexdigest=lambda: "fakehash"))
 
@@ -131,7 +129,7 @@ def testgenerate_changed_files_table_with_baseline(pr_comment_generator, mocker)
 def testgenerate_changed_files_table_with_baseline_no_evaluated_report_coverage(pr_comment_generator, mocker):
     # Mock the necessary methods and attributes
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["baseline.xml"])
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_modules", return_value={"test", "test2"})
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups", return_value=[])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_unchanged", return_value=False)
     mocker.patch("hashlib.sha256", return_value=mocker.Mock(hexdigest=lambda: "fakehash"))
 
@@ -171,7 +169,7 @@ def testgenerate_changed_files_table_with_baseline_no_evaluated_report_coverage(
 def testgenerate_changed_files_table_with_baseline_no_changed_file(pr_comment_generator, mocker):
     # Mock the necessary methods and attributes
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["baseline.xml"])
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_modules", return_value={"test", "test2"})
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups", return_value=[])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_unchanged", return_value=False)
     mocker.patch("hashlib.sha256", return_value=mocker.Mock(hexdigest=lambda: "fakehash"))
 

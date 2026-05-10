@@ -20,25 +20,11 @@ class ReportFileCoverage:
         name: str,
         overall_coverage: Coverage,
         changed_files_coverage: dict[str, FileCoverage],
-        module_name: Optional[str] = None,
+        group_name: Optional[str] = None,
     ):
-        """
-        A constructor for the CoverageReport class
-
-        Parameters:
-            path (str): The path of the coverage report
-            overall_coverage (Coverage): The overall coverage
-            changed_files_coverage (dict[str, FileCoverage]): The coverage of the changed files
-            module_name (str): The name of the module
-
-        Returns:
-            None
-        """
         self.path = path
         self.name = name
-
-        # Represents the module name of the report file.
-        self.module_name: str = module_name if module_name else "Unknown"
+        self.group_name: str = group_name if group_name else "Unknown"
 
         # Represents the overall coverage of the report file.
         self.overall_coverage: Coverage = overall_coverage

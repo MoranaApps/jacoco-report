@@ -5,13 +5,7 @@ from jacoco_report.model.evaluated_report_coverage import EvaluatedReportCoverag
 from jacoco_report.model.file_coverage import FileCoverage
 from jacoco_report.model.report_file_coverage import ReportFileCoverage
 from jacoco_report.model.coverage import Coverage
-
-modules = {
-    "context/notification": 'test_project/context/notification',
-    "context/user-info": 'test_project/context/user-info',
-    "module_large": 'test_project/module_large',
-    "module small": 'test_project/module small',
-}
+from jacoco_report.model.report_group import ReportGroup
 
 @pytest.fixture
 def sample_report_file_coverage():
@@ -271,8 +265,9 @@ def test_evaluate_module_with_patched_thresholds(mocker):
     evaluated_coverage_module.overall_coverage.covered = 0
     evaluated_coverage_module.overall_coverage.missed = 0
 
-    # Evaluate the module
-    evaluated_coverage_module = evaluator.evaluate_module(evaluated_coverage_module)
+    # Evaluate the group
+    group = ReportGroup(name="module-a", paths=[])
+    evaluated_coverage_module = evaluator.evaluate_group(evaluated_coverage_module, group)
 
     # Assert that the overall coverage reached is 0.0 and it passed
     assert evaluated_coverage_module.overall_coverage_reached == 0.0

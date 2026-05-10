@@ -38,14 +38,14 @@ def run() -> None:
     set_action_output("coverage-overall-passed", str(jr.total_overall_coverage_passed))
     set_action_output("coverage-changed-files-passed", str(jr.total_changed_files_coverage_passed))
     set_action_output_text("reports-coverage", jr.evaluated_coverage_reports)
-    set_action_output_text("modules-coverage", jr.evaluated_coverage_modules)
+    set_action_output_text("groups-coverage", jr.evaluated_coverage_groups)
 
     logger.debug("Action output 'coverage-overall' set to: %s", jr.total_overall_coverage)
     logger.debug("Action output 'coverage-changed-files' set to: %s", jr.total_changed_files_coverage)
     logger.debug("Action output 'coverage-overall-passed' set to: %s", jr.total_overall_coverage_passed)
     logger.debug("Action output 'coverage-changed-files-passed' set to: %s", jr.total_changed_files_coverage_passed)
     logger.debug("Action output 'reports-coverage' set to: %s", jr.evaluated_coverage_reports)
-    logger.debug("Action output 'modules-coverage' set to: %s", jr.evaluated_coverage_modules)
+    logger.debug("Action output 'groups-coverage' set to: %s", jr.evaluated_coverage_groups)
     logger.debug("Action output 'violations' set to: %s", jr.violations)
 
     if len(jr.violations) > 0:

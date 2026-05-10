@@ -21,7 +21,7 @@ def test_run_no_violations(mocker):
     mock_jr.total_overall_coverage = 85.0
     mock_jr.total_changed_files_coverage = 75.0
     mock_jr.evaluated_coverage_reports = "Report Coverage"
-    mock_jr.evaluated_coverage_modules = "Module Coverage"
+    mock_jr.evaluated_coverage_groups = "Group Coverage"
     mock_jr.violations = []
 
     # Run the main function
@@ -34,7 +34,7 @@ def test_run_no_violations(mocker):
     mock_set_action_output.assert_any_call("coverage-overall", "85.0")
     mock_set_action_output.assert_any_call("coverage-changed-files", "75.0")
     mock_set_action_output_text.assert_any_call("reports-coverage", "Report Coverage")
-    mock_set_action_output_text.assert_any_call("modules-coverage", "Module Coverage")
+    mock_set_action_output_text.assert_any_call("groups-coverage", "Group Coverage")
     mock_set_action_failed.assert_not_called()
     mock_sys_exit.assert_called_once_with(0)
 
@@ -55,7 +55,7 @@ def test_run_fail_overall_level(mocker):
     mock_jr.total_overall_coverage = 85.0
     mock_jr.total_changed_files_coverage = 75.0
     mock_jr.evaluated_coverage_reports = "Report Coverage"
-    mock_jr.evaluated_coverage_modules = "Module Coverage"
+    mock_jr.evaluated_coverage_groups = "Group Coverage"
     mock_jr.violations = ["Violation 1"]
     mock_jr.reached_threshold_overall = False
     mock_jr.reached_threshold_changed_files_average = True
@@ -71,7 +71,7 @@ def test_run_fail_overall_level(mocker):
     mock_set_action_output.assert_any_call("coverage-overall", "85.0")
     mock_set_action_output.assert_any_call("coverage-changed-files", "75.0")
     mock_set_action_output_text.assert_any_call("reports-coverage", "Report Coverage")
-    mock_set_action_output_text.assert_any_call("modules-coverage", "Module Coverage")
+    mock_set_action_output_text.assert_any_call("groups-coverage", "Group Coverage")
     mock_set_action_failed.assert_called_once_with(messages=["Violation 1"], fail=True)
 
 
@@ -91,7 +91,7 @@ def test_run_fail_changed_files_average_level(mocker):
     mock_jr.total_overall_coverage = 85.0
     mock_jr.total_changed_files_coverage = 75.0
     mock_jr.evaluated_coverage_reports = "Report Coverage"
-    mock_jr.evaluated_coverage_modules = "Module Coverage"
+    mock_jr.evaluated_coverage_groups = "Group Coverage"
     mock_jr.violations = ["Violation 1"]
     mock_jr.reached_threshold_overall = True
     mock_jr.reached_threshold_changed_files_average = False
@@ -107,7 +107,7 @@ def test_run_fail_changed_files_average_level(mocker):
     mock_set_action_output.assert_any_call("coverage-overall", "85.0")
     mock_set_action_output.assert_any_call("coverage-changed-files", "75.0")
     mock_set_action_output_text.assert_any_call("reports-coverage", "Report Coverage")
-    mock_set_action_output_text.assert_any_call("modules-coverage", "Module Coverage")
+    mock_set_action_output_text.assert_any_call("groups-coverage", "Group Coverage")
     mock_set_action_failed.assert_called_once_with(messages=["Violation 1"], fail=True)
 
 
@@ -127,7 +127,7 @@ def test_run_fail_per_changed_file_level(mocker):
     mock_jr.total_overall_coverage = 85.0
     mock_jr.total_changed_files_coverage = 75.0
     mock_jr.evaluated_coverage_reports = "Report Coverage"
-    mock_jr.evaluated_coverage_modules = "Module Coverage"
+    mock_jr.evaluated_coverage_groups = "Group Coverage"
     mock_jr.violations = ["Violation 1"]
     mock_jr.reached_threshold_overall = True
     mock_jr.reached_threshold_changed_files_average = True
@@ -143,7 +143,7 @@ def test_run_fail_per_changed_file_level(mocker):
     mock_set_action_output.assert_any_call("coverage-overall", "85.0")
     mock_set_action_output.assert_any_call("coverage-changed-files", "75.0")
     mock_set_action_output_text.assert_any_call("reports-coverage", "Report Coverage")
-    mock_set_action_output_text.assert_any_call("modules-coverage", "Module Coverage")
+    mock_set_action_output_text.assert_any_call("groups-coverage", "Group Coverage")
     mock_set_action_failed.assert_called_once_with(messages=["Violation 1"], fail=True)
 
 
@@ -164,7 +164,7 @@ def test_run_fail_disabled(mocker):
     mock_jr.total_overall_coverage = 85.0
     mock_jr.total_changed_files_coverage = 75.0
     mock_jr.evaluated_coverage_reports = "Report Coverage"
-    mock_jr.evaluated_coverage_modules = "Module Coverage"
+    mock_jr.evaluated_coverage_groups = "Group Coverage"
     mock_jr.violations = ["Violation 1"]
     mock_jr.reached_threshold_overall = True
     mock_jr.reached_threshold_changed_files_average = True
@@ -180,7 +180,7 @@ def test_run_fail_disabled(mocker):
     mock_set_action_output.assert_any_call("coverage-overall", "85.0")
     mock_set_action_output.assert_any_call("coverage-changed-files", "75.0")
     mock_set_action_output_text.assert_any_call("reports-coverage", "Report Coverage")
-    mock_set_action_output_text.assert_any_call("modules-coverage", "Module Coverage")
+    mock_set_action_output_text.assert_any_call("groups-coverage", "Group Coverage")
     mock_set_action_failed.assert_called_once_with(messages=["Violation 1"], fail=False)
 
 
@@ -203,7 +203,7 @@ def test_run_fail_disabled_level(mocker):
     mock_jr.total_overall_coverage = 85.0
     mock_jr.total_changed_files_coverage = 75.0
     mock_jr.evaluated_coverage_reports = "Report Coverage"
-    mock_jr.evaluated_coverage_modules = "Module Coverage"
+    mock_jr.evaluated_coverage_groups = "Group Coverage"
     mock_jr.violations = ["Violation 1"]
     mock_jr.reached_threshold_overall = True
     mock_jr.reached_threshold_changed_files_average = True
@@ -219,5 +219,5 @@ def test_run_fail_disabled_level(mocker):
     mock_set_action_output.assert_any_call("coverage-overall", "85.0")
     mock_set_action_output.assert_any_call("coverage-changed-files", "75.0")
     mock_set_action_output_text.assert_any_call("reports-coverage", "Report Coverage")
-    mock_set_action_output_text.assert_any_call("modules-coverage", "Module Coverage")
+    mock_set_action_output_text.assert_any_call("groups-coverage", "Group Coverage")
     mock_set_action_failed.assert_called_once_with(messages=["Violation 1"], fail=False)

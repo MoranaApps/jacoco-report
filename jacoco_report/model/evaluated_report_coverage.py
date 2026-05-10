@@ -10,9 +10,9 @@ class EvaluatedReportCoverage:
     A class that represents an evaluated coverage of one report file or module.
     """
 
-    def __init__(self, name: str = "Unknown", module_name: str = "Unknown"):
+    def __init__(self, name: str = "Unknown", group_name: str = "Unknown"):
         self.name: str = name
-        self.module_name: str = module_name
+        self.group_name: str = group_name
 
         # PR comment data
         # summary data

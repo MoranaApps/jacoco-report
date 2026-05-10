@@ -7,6 +7,8 @@ import sys
 import re
 from typing import Literal, Optional, overload
 
+import yaml
+
 from jacoco_report.utils.constants import (
     TOKEN,
     PATHS,
@@ -14,8 +16,7 @@ from jacoco_report.utils.constants import (
     GLOBAL_THRESHOLDS,
     TITLE,
     COMMENT_LEVEL,
-    MODULES,
-    MODULES_THRESHOLDS,
+    REPORT_GROUPS,
     SKIP_UNCHANGED,
     UPDATE_COMMENT,
     PASS_SYMBOL,
@@ -27,11 +28,20 @@ from jacoco_report.utils.constants import (
     DEFAULT_GLOBAL_THRESHOLDS,
 )
 
+from jacoco_report.model.report_group import ReportGroup
 from jacoco_report.utils.enums import CommentLevelEnum, MetricTypeEnum, FailOnThresholdEnum
 from jacoco_report.utils.gh_action import get_action_input
 from jacoco_report.utils.github import GitHub
 
 logger = logging.getLogger(__name__)
+
+
+def _is_valid_threshold_float(value: str) -> bool:
+    try:
+        f = float(value)
+        return 0.0 <= f < 100.0
+    except ValueError:
+        return False
 
 
 class ActionInputs:
@@ -198,91 +208,44 @@ class ActionInputs:
         """
         return get_action_input(COMMENT_LEVEL, CommentLevelEnum.FULL)
 
-    @overload
     @staticmethod
-    def get_modules(raw: Literal[True]) -> str: ...
-    @overload
-    @staticmethod
-    def get_modules(raw: Literal[False] = ...) -> dict[str, str]: ...
-    @staticmethod
-    def get_modules(raw: bool = False) -> dict[str, str] | str:
+    def get_report_groups(raw: bool = False) -> list[ReportGroup] | str:
         """
-        Get the modules from the action inputs.
+        Get the report groups from the action inputs.
+        Returns a list of ReportGroup objects parsed from the YAML input,
+        or the raw string when raw=True.
         """
-        mods = get_action_input(MODULES, "").strip()
-
-        if raw:
-            return mods
-
-        if ": " in mods:
-            mods = mods.replace(": ", ":")
-
-        split_by: str = "," if "," in mods else "\n"
-        d = {}
-
-        if len(mods) > 0:
-            for mod in mods.split(split_by):
-                cleaned_mod = ActionInputs.__clean_from_comment(mod)
-                if len(cleaned_mod) == 0:
-                    continue
-
-                # create a dictionary record from formatted string
-                key, value = cleaned_mod.split(":")
-                d[key] = value.strip()
-
-        return d
-
-    @overload
-    @staticmethod
-    def get_modules_thresholds(raw: Literal[True]) -> str: ...
-    @overload
-    @staticmethod
-    def get_modules_thresholds(raw: Literal[False] = ...) -> dict[str, tuple[float, float, float]]: ...
-    @staticmethod
-    def get_modules_thresholds(raw: bool = False) -> dict[str, tuple[float, float, float]] | str:
-        """
-        Get the modules thresholds from the action inputs.
-        """
-
-        def parse_module_thresholds(received: str) -> dict[str, tuple[float, float, float]]:
-            if len(received) == 0:
-                return {}
-
-            result = dict[str, tuple[float, float, float]]()
-            split_by: str = "," if "," in received else "\n"
-            mts: list[str] = received.split(split_by)
-            for mt in mts:
-                # format string, clean up, ...
-                cleaned_mt = ActionInputs.__clean_from_comment(mt)
-
-                if len(cleaned_mt) == 0:
-                    continue
-
-                name, values = cleaned_mt.split(":")
-                f_name = name.strip()
-                f_values = values.strip()
-                parts = f_values.split("*")
-
-                overall = float(parts[0]) if len(parts[0]) > 0 else ActionInputs.get_global_overall_threshold()
-                changed = (
-                    float(parts[1]) if len(parts[1]) > 0 else ActionInputs.get_global_changed_files_average_threshold()
-                )
-                changed_per_file = (
-                    float(parts[2]) if len(parts[2]) > 0 else ActionInputs.get_global_changed_file_threshold()
-                )
-                result[f_name] = (overall, changed, changed_per_file)
-            return result
-
-        raw_input = get_action_input(MODULES_THRESHOLDS, "").strip()
+        raw_input = get_action_input(REPORT_GROUPS, "").strip()
 
         if raw:
             return raw_input
 
-        if ": " in raw_input:
-            raw_input = raw_input.replace(": ", ":")
+        if not raw_input:
+            return []
 
-        # return parse_module_thresholds(get_action_input(raw_input))
-        return parse_module_thresholds(raw_input)
+        data = yaml.safe_load(raw_input)
+        if not isinstance(data, list):
+            raise ValueError("'report-groups' must be a YAML list.")
+
+        groups: list[ReportGroup] = []
+        for entry in data:
+            name = entry["name"]
+            paths = entry["paths"]
+            baseline_paths = entry.get("baseline-paths", [])
+
+            thresholds_str = entry.get("thresholds", "")
+            overall: Optional[float] = None
+            changed: Optional[float] = None
+            per_file: Optional[float] = None
+            if thresholds_str:
+                parts = str(thresholds_str).split("*")
+                overall = float(parts[0]) if len(parts) > 0 and parts[0] else None
+                changed = float(parts[1]) if len(parts) > 1 and parts[1] else None
+                per_file = float(parts[2]) if len(parts) > 2 and parts[2] else None
+
+            groups.append(ReportGroup(name, paths, overall, changed, per_file, baseline_paths))
+
+        return groups
 
     @staticmethod
     def get_skip_unchanged() -> bool:
@@ -379,110 +342,43 @@ class ActionInputs:
         return ActionInputs.__parse_paths(baseline_paths)
 
     @staticmethod
-    def validate_module(module_touple: str) -> list[str]:
+    def validate_report_groups(raw_input: str) -> list[str]:
         """
-        Validate the module string.
-
-        Parameters:
-            module_name (str): The module name string to validate.
-            module_value (str): The module value string to validate.
-
-        Returns:
-            list: A list of errors if any.
+        Validate the report-groups YAML input string.
         """
-        # Check if the module is in the format 'module:module_path'
-        if ":" not in module_touple or module_touple.count(":") > 1:
-            return [
-                f"'module':'{module_touple}' must be in the format 'module:module_path'. "
-                f"Where module_path is relative from root of project. "
-                f"Module value: {module_touple}"
-            ]
+        errors: list[str] = []
+        if not raw_input:
+            return errors
+        try:
+            data = yaml.safe_load(raw_input)
+        except yaml.YAMLError as e:
+            return [f"'report-groups' is not valid YAML: {e}"]
 
-        # Check if the module name is a non-empty string
-        module_parts = module_touple.split(":")
-        if not module_parts[0]:
-            return [f"Module with value:'{module_parts[1]}' must have a non-empty name."]
+        if not isinstance(data, list):
+            return ["'report-groups' must be a YAML list."]
 
-        # Check if the module path is a non-empty string
-        if not module_parts[1]:
-            return [f"Module with 'name':'{module_parts[0]}' must have a non-empty path."]
-
-        input_module_pattern = r"^[a-zA-Z0-9_][a-zA-Z0-9_ \/\\-]*$"
-
-        # Check if the module name is alphanumeric
-        if not re.match(input_module_pattern, module_parts[0]):
-            return [f"'module_name':'{module_parts[0]}' must be alphanumeric with allowed (/\\-_)."]
-
-        # Check if the module path is alphanumeric
-        if not re.match(input_module_pattern, module_parts[1]):
-            return [f"'module_path':'{module_parts[1]}' must be alphanumeric with allowed (/\\-_)."]
-
-        return []
-
-    @staticmethod
-    def validate_module_threshold(input_module_threshold: str) -> list[str]:
-        """
-        Validate the module threshold string.
-
-        Parameters:
-            input_module_threshold (str): The module threshold string to validate.
-
-        Returns:
-            list: A list of errors if any.
-        """
-        # Check if the module is in the format 'module:threshold'
-        if ":" not in input_module_threshold or input_module_threshold.count(":") > 1:
-            return [f"'module-threshold':'{input_module_threshold}' must be in the format 'module:threshold'."]
-
-        # Check if the module name is a non-empty string
-        module_threshold_parts = input_module_threshold.split(":")
-        if not module_threshold_parts[0]:
-            return [f"Module threshold with value:'{module_threshold_parts[1]}' must have a non-empty name."]
-
-        # Check if the module threshold is a non-empty string
-        if not module_threshold_parts[1]:
-            return [f"Module threshold with 'name':'{module_threshold_parts[0]}' must have a non-empty threshold."]
-
-        # Check if the module threshold is the format containing '*'
-        if module_threshold_parts[1].count("*") != 2:
-            return [
-                f"'module-threshold':'{module_threshold_parts[1]}' must contain two '*' to split overall, "
-                f"changed files and changed per file threshold."
-            ]
-
-        errors = []
-        # Check if the module threshold defined values are float or None
-        # Overall
-        values = module_threshold_parts[1].split("*")
-        if len(values[0]) == 0:
-            # if the value is empty, it means that the user wants to use the default value
-            pass
-        else:
-            try:
-                float(values[0])
-            except ValueError:
-                errors.append(f"'module-threshold' overall value '{values[0]}' must be a float or None.")
-
-        # Changed
-        if len(values[1]) == 0:
-            # if the value is empty, it means that the user wants to use the default value
-            pass
-        else:
-            try:
-                float(values[1])
-            except ValueError:
-                errors.append(f"'module-threshold' changed files value '{values[1]}' must be a float or None.")
-
-        # Changed per file
-        if len(values[2]) == 0:
-            # if the value is empty, it means that the user wants to use the default value
-            pass
-        else:
-            try:
-                float(values[2])
-            except ValueError:
-                errors.append(f"'module-threshold' changed per file value '{values[2]}' must be a float or None.")
-
+        for i, entry in enumerate(data):
+            prefix = f"'report-groups' entry #{i + 1}"
+            if not isinstance(entry, dict):
+                errors.append(f"{prefix} must be a YAML mapping.")
+                continue
+            if not entry.get("name"):
+                errors.append(f"{prefix} must have a non-empty 'name'.")
+            paths = entry.get("paths")
+            if not paths or not isinstance(paths, list) or not all(isinstance(p, str) and p for p in paths):
+                errors.append(f"{prefix} must have a non-empty 'paths' list of non-empty strings.")
+            thresholds_str = entry.get("thresholds", "")
+            if thresholds_str:
+                parts = str(thresholds_str).split("*")
+                if len(parts) != 3:
+                    errors.append(f"{prefix} 'thresholds' must be in format 'O*A*P' (e.g. '80*70*60').")
+                else:
+                    for label, v in zip(("overall", "avg-changed", "per-file"), parts):
+                        if v and not _is_valid_threshold_float(v):
+                            errors.append(f"{prefix} 'thresholds' {label} value '{v}' must be a float 0–100.")
+            baseline_paths = entry.get("baseline-paths", [])
+            if baseline_paths is not None and not isinstance(baseline_paths, list):
+                errors.append(f"{prefix} 'baseline-paths' must be a list.")
         return errors
 
     @staticmethod
@@ -570,41 +466,8 @@ class ActionInputs:
         if not isinstance(comment_level, str) or comment_level not in CommentLevelEnum:
             errors.append("'comment-level' must be a string from these options: 'minimal', 'full'.")
 
-        modules: dict[str, str] | str = ActionInputs.get_modules(raw=True)
-        if not isinstance(modules, str):
-            errors.append("'modules' must be a string or not defined.")
-        else:
-            if ": " in modules:
-                modules = modules.replace(": ", ":")
-
-            if len(modules) == 0:
-                pass
-            elif len(modules) < 3 or ":" not in modules:
-                errors.append("'modules' must be a list of strings in format 'module:relative_path'.")
-            else:
-                split_by: str = "," if "," in modules else "\n"
-                f_modules = modules.split(split_by)
-                for module in f_modules:
-                    errors.extend(ActionInputs.validate_module(module))
-
-        modules_thresholds: dict[str, tuple[float, float, float]] | str = ActionInputs.get_modules_thresholds(raw=True)
-        if not isinstance(modules_thresholds, str):
-            errors.append("'modules-thresholds' must be a string or not defined.")
-        else:
-            if ": " in modules_thresholds:
-                modules_thresholds = modules_thresholds.replace(": ", ":")
-
-            if len(modules_thresholds) == 0:
-                pass
-            elif len(modules_thresholds) < 3 or ":" not in modules_thresholds:
-                errors.append("'modules-thresholds' must be a list of strings in format 'module:overall*changed'.")
-            else:
-                split_by = "," if "," in modules_thresholds else "\n"  # type: ignore[no-redef]
-                f_modules_thresholds = modules_thresholds.split(split_by)
-                for module_threshold in f_modules_thresholds:
-                    cleaned_module_threshold = ActionInputs.__clean_from_comment(module_threshold)
-                    if len(cleaned_module_threshold) > 0:
-                        errors.extend(ActionInputs.validate_module_threshold(cleaned_module_threshold))
+        report_groups_raw: str = ActionInputs.get_report_groups(raw=True)  # type: ignore[assignment]
+        errors.extend(ActionInputs.validate_report_groups(report_groups_raw))
 
         skip_unchanged = ActionInputs.get_skip_unchanged()
         if not isinstance(skip_unchanged, bool):
@@ -639,8 +502,7 @@ class ActionInputs:
             "\n"
             "Global thresholds: overall=%s, avg_changed_files=%s, changed_file=%s\n"
             "\n"
-            "Modules: %s\n"
-            "Modules thresholds: %s\n"
+            "Report groups: %s\n"
             "\n"
             "Metric: %s\n"
             "Title: %s\n"
@@ -658,8 +520,7 @@ class ActionInputs:
             ActionInputs.get_global_overall_threshold(),
             ActionInputs.get_global_changed_files_average_threshold(),
             ActionInputs.get_global_changed_file_threshold(),
-            ActionInputs.get_modules(),
-            ActionInputs.get_modules_thresholds(),
+            report_groups_raw,
             ActionInputs.get_metric(),
             ActionInputs.get_title(),
             ActionInputs.get_comment_level(),

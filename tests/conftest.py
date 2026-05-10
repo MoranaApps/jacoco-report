@@ -8,8 +8,8 @@ from jacoco_report.model.counter import Counter
 from jacoco_report.model.coverage import Coverage
 from jacoco_report.model.evaluated_report_coverage import EvaluatedReportCoverage
 from jacoco_report.model.file_coverage import FileCoverage
-from jacoco_report.model.module import Module
 from jacoco_report.model.report_file_coverage import ReportFileCoverage
+from jacoco_report.model.report_group import ReportGroup
 from jacoco_report.utils.github import GitHub
 
 
@@ -48,7 +48,6 @@ def make_coverage() -> Callable[..., Coverage]:
         method: Optional[Counter] = None,
         clazz: Optional[Counter] = None,
     ) -> Coverage:
-        default = Counter(missed=0, covered=10)
         return Coverage(
             instruction=instruction if instruction is not None else Counter(missed=0, covered=10),
             branch=branch if branch is not None else Counter(missed=0, covered=10),
@@ -94,7 +93,7 @@ def make_report_file_coverage() -> Callable[..., ReportFileCoverage]:
         name: str = "Test Report",
         overall_coverage: Optional[Coverage] = None,
         changed_files_coverage: Optional[dict[str, FileCoverage]] = None,
-        module_name: Optional[str] = None,
+        group_name: Optional[str] = None,
     ) -> ReportFileCoverage:
         if overall_coverage is None:
             overall_coverage = Coverage(
@@ -110,27 +109,29 @@ def make_report_file_coverage() -> Callable[..., ReportFileCoverage]:
             name=name,
             overall_coverage=overall_coverage,
             changed_files_coverage=changed_files_coverage if changed_files_coverage is not None else {},
-            module_name=module_name,
+            group_name=group_name,
         )
 
     return factory
 
 
 @pytest.fixture
-def make_module() -> Callable[..., Module]:
+def make_report_group() -> Callable[..., ReportGroup]:
     def factory(
-        name: str = "test-module",
-        unique_path: str = "test_project/test-module",
-        min_coverage_overall: float = 80.0,
-        min_coverage_changed_files: float = 70.0,
-        min_coverage_changed_per_file: float = 60.0,
-    ) -> Module:
-        return Module(
+        name: str = "test-group",
+        paths: Optional[list[str]] = None,
+        min_coverage_overall: Optional[float] = 80.0,
+        min_coverage_changed_files: Optional[float] = 70.0,
+        min_coverage_per_changed_file: Optional[float] = 60.0,
+        baseline_paths: Optional[list[str]] = None,
+    ) -> ReportGroup:
+        return ReportGroup(
             name=name,
-            unique_path=unique_path,
+            paths=paths if paths is not None else ["**/jacoco.xml"],
             min_coverage_overall=min_coverage_overall,
             min_coverage_changed_files=min_coverage_changed_files,
-            min_coverage_changed_per_file=min_coverage_changed_per_file,
+            min_coverage_per_changed_file=min_coverage_per_changed_file,
+            baseline_paths=baseline_paths,
         )
 
     return factory
@@ -140,7 +141,7 @@ def make_module() -> Callable[..., Module]:
 def make_evaluated_report_coverage() -> Callable[..., EvaluatedReportCoverage]:
     def factory(
         name: str = "test-report",
-        module_name: str = "Unknown",
+        group_name: str = "Unknown",
         overall_passed: bool = True,
         overall_coverage_reached: float = 80.0,
         overall_coverage_threshold: float = 70.0,
@@ -151,7 +152,7 @@ def make_evaluated_report_coverage() -> Callable[..., EvaluatedReportCoverage]:
         changed_files_passed: Optional[dict[str, bool]] = None,
         changed_files_coverage_reached: Optional[dict[str, float]] = None,
     ) -> EvaluatedReportCoverage:
-        erc = EvaluatedReportCoverage(name=name, module_name=module_name)
+        erc = EvaluatedReportCoverage(name=name, group_name=group_name)
         erc.overall_passed = overall_passed
         erc.overall_coverage_reached = overall_coverage_reached
         erc.overall_coverage_threshold = overall_coverage_threshold

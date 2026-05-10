@@ -7,3 +7,4 @@ requests==2.33.1
 mypy==2.0.0
 mypy-extensions==1.1.0
 types-requests==2.33.0.20260508
+pyyaml==6.0.2

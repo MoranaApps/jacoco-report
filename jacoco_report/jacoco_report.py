@@ -9,9 +9,8 @@ from jacoco_report.action_inputs import ActionInputs
 from jacoco_report.evaluator.coverage_evaluator import CoverageEvaluator
 from jacoco_report.generator.pr_comment_generator import PRCommentGenerator
 from jacoco_report.model.report_file_coverage import ReportFileCoverage
-from jacoco_report.model.module import Module
+from jacoco_report.model.report_group import ReportGroup
 from jacoco_report.parser.jacoco_report_parser import JaCoCoReportParser
-from jacoco_report.parser.module_parser import ModuleParser
 from jacoco_report.scanner.jacoco_report_input_scanner import JaCoCoReportInputScanner
 from jacoco_report.utils.github import GitHub
 
@@ -31,7 +30,7 @@ class JaCoCoReport:
         self.total_changed_files_coverage_passed: bool = False
 
         self.evaluated_coverage_reports: str = ""
-        self.evaluated_coverage_modules: str = ""
+        self.evaluated_coverage_groups: str = ""
         self.violations: list[str] = []
 
         self.reached_threshold_overall = True
@@ -71,16 +70,24 @@ class JaCoCoReport:
         logger.info("Getting changed files in PR.")
         all_changed_files_in_pr: list[str] = gh.get_pr_changed_files() or []
 
-        # map modules if comment mode is set to MODULE
-        logger.info("Mapping modules (if defined).")
-        modules: dict[str, Module] = {}  # self._get_modules()
+        # get report groups (if configured)
+        report_groups: list[ReportGroup] = ActionInputs.get_report_groups()
 
         # analyse received xml report files
         logger.info("Analyzing JaCoCo (xml) reports.")
         report_files_coverage: list[ReportFileCoverage] = []
-        parser = JaCoCoReportParser(all_changed_files_in_pr, modules)
-        for report_path in input_report_paths_to_analyse:
-            report_files_coverage.append(parser.parse(report_path))
+        parser = JaCoCoReportParser(all_changed_files_in_pr)
+        if report_groups:
+            # scan each group's paths independently and tag reports with group name
+            for group in report_groups:
+                group_paths = self.scan_jacoco_xml_files(
+                    paths=group.paths, exclude_paths=ActionInputs.get_exclude_paths()
+                )
+                for report_path in group_paths:
+                    report_files_coverage.append(parser.parse(report_path, group_name=group.name))
+        else:
+            for report_path in input_report_paths_to_analyse:
+                report_files_coverage.append(parser.parse(report_path))
 
         # scan-stage filter: remove reports with no changed files before evaluation
         if ActionInputs.get_skip_unchanged():
@@ -93,7 +100,7 @@ class JaCoCoReport:
                 self.total_overall_coverage_passed = True
                 self.total_changed_files_coverage_passed = True
                 self.evaluated_coverage_reports = "{}"
-                self.evaluated_coverage_modules = "{}"
+                self.evaluated_coverage_groups = "{}"
                 if ActionInputs.get_update_comment():
                     title = f"**{ActionInputs.get_title()}**"
                     for comment in gh.get_comments(pr_number):
@@ -124,7 +131,7 @@ class JaCoCoReport:
             global_min_coverage_overall=ActionInputs.get_global_overall_threshold(),
             global_min_coverage_changed_files=ActionInputs.get_global_changed_files_average_threshold(),
             global_min_coverage_changed_per_file=ActionInputs.get_global_changed_file_threshold(),
-            modules=modules,
+            report_groups=report_groups,
         )
         evaluator.evaluate()
 
@@ -133,7 +140,7 @@ class JaCoCoReport:
             global_min_coverage_overall=ActionInputs.get_global_overall_threshold(),
             global_min_coverage_changed_files=ActionInputs.get_global_changed_files_average_threshold(),
             global_min_coverage_changed_per_file=ActionInputs.get_global_changed_file_threshold(),
-            modules=modules,
+            report_groups=report_groups,
         )
 
         if len(ActionInputs.get_baseline_paths()) > 0:
@@ -145,10 +152,10 @@ class JaCoCoReport:
         self.total_changed_files_coverage_passed = evaluator.total_coverage_changed_files_passed
 
         evaluated_coverage_reports = {k: v.to_dict() for k, v in evaluator.evaluated_reports_coverage.items()}
-        evaluated_coverage_modules = {k: v.to_dict() for k, v in evaluator.evaluated_modules_coverage.items()}
+        evaluated_coverage_groups = {k: v.to_dict() for k, v in evaluator.evaluated_groups_coverage.items()}
 
         self.evaluated_coverage_reports = json.dumps(evaluated_coverage_reports, indent=4)
-        self.evaluated_coverage_modules = json.dumps(evaluated_coverage_modules, indent=4)
+        self.evaluated_coverage_groups = json.dumps(evaluated_coverage_groups, indent=4)
 
         self.violations = evaluator.violations
         self.reached_threshold_overall = evaluator.reached_threshold_overall
@@ -167,8 +174,3 @@ class JaCoCoReport:
         logger.info("Found %s JaCoCo reports.", len(paths_to_analyse))
         return paths_to_analyse
 
-    def _get_modules(self) -> dict[str, Module]:
-        return ModuleParser().parse(
-            modules=ActionInputs.get_modules(),
-            modules_thresholds=ActionInputs.get_modules_thresholds(),
-        )

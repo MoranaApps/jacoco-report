@@ -17,8 +17,7 @@ success_case = {
     "get_title": "Custom Title",
     "get_metric": "instruction",
     "get_comment_level": "full",
-    "get_modules": "module-a:context/module_a,module-b:module_b",
-    "get_modules_thresholds": "module-a:80**,module-b:*70*",
+    "get_report_groups": "",
     "get_skip_unchanged": True,
     "get_update_comment": True,
     "get_pass_symbol": "**Passed**",
@@ -50,26 +49,11 @@ failure_cases = [
     ("get_metric", 1, "'metric' must be a string from these options: 'instruction', 'line', 'branch', 'complexity', 'method', 'class'."),
     ("get_comment_level", "", "'comment-level' must be a string from these options: 'minimal', 'full'."),
     ("get_comment_level", 1, "'comment-level' must be a string from these options: 'minimal', 'full'."),
-    ("get_modules", 1, "'modules' must be a string or not defined."),
-    ("get_modules", "abcd", "'modules' must be a list of strings in format 'module:relative_path'."),
-    ("get_modules", "module-a:context/module_a,module-b", "'module':'module-b' must be in the format 'module:module_path'. Where module_path is relative from root of project. Module value: module-b"),
-    ("get_modules", "module-a: context/module_a,:module_b", "Module with value:'module_b' must have a non-empty name."),
-    ("get_modules", "module-a:context/module_a,module_b:", "Module with 'name':'module_b' must have a non-empty path."),
-    ("get_modules", "module-a:context/module_a,mo*dule:path", "'module_name':'mo*dule' must be alphanumeric with allowed (/\\-_)."),
-    ("get_modules", "module-a:context/module_a,module:pa&th", "'module_path':'pa&th' must be alphanumeric with allowed (/\\-_)."),
-    ("get_modules", "module-a:context/module_a,module-b:module_b:c", "'module':'module-b:module_b:c' must be in the format 'module:module_path'. Where module_path is relative from root of project. Module value: module-b:module_b:c"),
-    ("get_modules_thresholds", 1, "'modules-thresholds' must be a string or not defined."),
-    ("get_modules_thresholds", "ab", "'modules-thresholds' must be a list of strings in format 'module:overall*changed'."),
-    ("get_modules_thresholds", "abcd", "'modules-thresholds' must be a list of strings in format 'module:overall*changed'."),
-    ("get_modules_thresholds", "module-a: 80*", "'module-threshold':'80*' must contain two '*' to split overall, changed files and changed per file threshold."),
-    ("get_modules_thresholds", "module-a:80**,module-b", "'module-threshold':'module-b' must be in the format 'module:threshold'."),
-    ("get_modules_thresholds", "module-a:80**,:80.0**", "Module threshold with value:'80.0**' must have a non-empty name."),
-    ("get_modules_thresholds", "module-a:80**,module-b:", "Module threshold with 'name':'module-b' must have a non-empty threshold."),
-    ("get_modules_thresholds", "module-a:80**,module-b:80", "'module-threshold':'80' must contain two '*' to split overall, changed files and changed per file threshold."),
-    ("get_modules_thresholds", "module-a:80**,module-b:True**", "'module-threshold' overall value 'True' must be a float or None."),
-    ("get_modules_thresholds", "module-a:80**,module-b:*True*", "'module-threshold' changed files value 'True' must be a float or None."),
-    ("get_modules_thresholds", "module-a:80**,module-b:**True", "'module-threshold' changed per file value 'True' must be a float or None."),
-    ("get_modules_thresholds", "module-a:80**,module-b:*80*:9", "'module-threshold':'module-b:*80*:9' must be in the format 'module:threshold'."),
+    ("get_report_groups", "not_a_list", "'report-groups' must be a YAML list."),
+    ("get_report_groups", "- name: ''\n  paths: ['**']", "'report-groups' entry #1 must have a non-empty 'name'."),
+    ("get_report_groups", "- name: group1\n  paths: []", "'report-groups' entry #1 must have a non-empty 'paths' list of non-empty strings."),
+    ("get_report_groups", "- name: group1\n  paths: ['**']\n  thresholds: '80'", "'report-groups' entry #1 'thresholds' must be in format 'O*A*P' (e.g. '80*70*60')."),
+    ("get_report_groups", "- name: group1\n  paths: ['**']\n  thresholds: 'x*70*60'", "'report-groups' entry #1 'thresholds' overall value 'x' must be a float 0–100."),
     ("get_skip_unchanged", "", "'skip-unchanged' must be a boolean."),
     ("get_skip_unchanged", 1, "'skip-unchanged' must be a boolean."),
     ("get_update_comment", "", "'update-comment' must be a boolean."),
@@ -220,64 +204,67 @@ def test_get_comment_level(mocker):
     assert "full" == ActionInputs.get_comment_level()
 
 
-def test_get_modules_no_spaces(mocker):
-    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="module-a:context/module_a,module-b:module_b")
-    assert {"module-a": "context/module_a", "module-b": "module_b"} == ActionInputs.get_modules()
+def test_get_report_groups_empty(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="")
+    assert [] == ActionInputs.get_report_groups()
 
 
-def test_get_modules_with_spaces(mocker):
-    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="module-a: context/module_a,module-b: module_b")
-    assert {"module-a": "context/module_a", "module-b": "module_b"} == ActionInputs.get_modules()
+def test_get_report_groups_valid_yaml(mocker):
+    yaml_input = """
+- name: backend
+  paths:
+    - backend/**/jacoco.xml
+  thresholds: 80*70*60
+"""
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value=yaml_input)
+    groups = ActionInputs.get_report_groups()
+    assert len(groups) == 1
+    assert groups[0].name == "backend"
+    assert groups[0].paths == ["backend/**/jacoco.xml"]
+    assert groups[0].min_coverage_overall == 80.0
+    assert groups[0].min_coverage_changed_files == 70.0
+    assert groups[0].min_coverage_per_changed_file == 60.0
 
 
-def test_get_modules_with_commented_line(mocker):
-    input_data = """module-a: context/module_a
-    # module-b: module_b
-    # module-c: context/module_c
-    module-d: context/module_d      # another comment
-    """
-    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value=input_data)
-    assert {"module-a": "context/module_a", "module-d": "context/module_d"} == ActionInputs.get_modules()
+def test_get_report_groups_raw(mocker):
+    raw = "- name: g\n  paths: ['**']"
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value=raw)
+    assert raw == ActionInputs.get_report_groups(raw=True)
 
 
-def test_get_modules_raw(mocker):
-    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="  module-a:context/module_a,module-b:module_b")
-    assert "module-a:context/module_a,module-b:module_b" == ActionInputs.get_modules(raw=True)
+def test_validate_report_groups_valid(mocker):
+    yaml_input = "- name: g\n  paths: ['**/jacoco.xml']"
+    errors = ActionInputs.validate_report_groups(yaml_input)
+    assert errors == []
 
 
-def test_get_modules_thresholds_no_spaces(mocker):
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_threshold", return_value=0.0)
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_files_average_threshold", return_value=0.0)
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_file_threshold", return_value=0.0)
-    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="module-a:80**,module-b:*70*")
-    assert {"module-a": (80.0, 0.0, 0.0), "module-b": (0.0, 70.0, 0.0)} == ActionInputs.get_modules_thresholds()
+def test_validate_report_groups_empty(mocker):
+    assert ActionInputs.validate_report_groups("") == []
 
 
-def test_get_modules_thresholds_with_spaces(mocker):
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_threshold", return_value=0.0)
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_files_average_threshold", return_value=0.0)
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_file_threshold", return_value=0.0)
-    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="module-a: 80**,module-b: *70*")
-    assert {"module-a": (80.0, 0.0, 0.0), "module-b": (0.0, 70.0, 0.0)} == ActionInputs.get_modules_thresholds()
+def test_validate_report_groups_not_list(mocker):
+    errors = ActionInputs.validate_report_groups("not_a_list")
+    assert "'report-groups' must be a YAML list." in errors
 
 
-def test_get_modules_thresholds_with_commented_line(mocker):
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_threshold", return_value=0.0)
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_files_average_threshold", return_value=0.0)
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_file_threshold", return_value=0.0)
-    input_data = """module-a: 80**
-    module-b: *70*
-    #module-c: 90**
-    # module-d: *100*
-    module-e: *100*     # another comment 
-    """
-    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value=input_data)
-    assert ActionInputs.get_modules_thresholds() == {"module-a": (80.0, 0.0, 0.0), "module-b": (0.0, 70.0, 0.0), "module-e": (0.0, 100.0, 0.0)}
+def test_validate_report_groups_missing_name(mocker):
+    errors = ActionInputs.validate_report_groups("- name: ''\n  paths: ['**']")
+    assert any("non-empty 'name'" in e for e in errors)
 
 
-def test_get_modules_thresholds_raw(mocker):
-    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="  module-a:80*,module-b:  *70")
-    assert "module-a:80*,module-b:  *70" == ActionInputs.get_modules_thresholds(raw=True)
+def test_validate_report_groups_missing_paths(mocker):
+    errors = ActionInputs.validate_report_groups("- name: group1")
+    assert any("non-empty 'paths'" in e for e in errors)
+
+
+def test_validate_report_groups_invalid_threshold_format(mocker):
+    errors = ActionInputs.validate_report_groups("- name: g\n  paths: ['**']\n  thresholds: '80'")
+    assert any("O*A*P" in e for e in errors)
+
+
+def test_validate_report_groups_invalid_threshold_value(mocker):
+    errors = ActionInputs.validate_report_groups("- name: g\n  paths: ['**']\n  thresholds: 'x*70*60'")
+    assert any("overall value" in e for e in errors)
 
 
 def test_get_skip_unchanged_true(mocker):
@@ -408,8 +395,7 @@ failure_cases_defaults = [
     ("get_title", "JaCoCo Coverage Report"),
     ("get_metric", MetricTypeEnum.INSTRUCTION),
     ("get_comment_level", CommentLevelEnum.FULL),
-    ("get_modules", {}),
-    ("get_modules_thresholds", {}),
+    ("get_report_groups", []),
     ("get_skip_unchanged", False),
     ("get_update_comment", True),
     ("get_pass_symbol", "✅"),
