@@ -326,14 +326,15 @@ class ActionInputs:
         if value == "false":
             logger.warning(
                 "Boolean value for fail-on-threshold is no longer supported from v3. "
-                "Use list form: [] to disable threshold failure."
+                "Use an empty string to disable threshold failure."
             )
             return []
 
         if value == "true":
             logger.warning(
                 "Boolean value for fail-on-threshold is no longer supported from v3. "
-                "Use list form: [overall, changed-files-average, per-changed-file] to fail on thresholds."
+                "Use comma-separated values to fail on thresholds: "
+                "overall,changed-files-average,per-changed-file"
             )
             return [
                 FailOnThresholdEnum.OVERALL.value,

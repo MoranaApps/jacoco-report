@@ -120,6 +120,33 @@ def test_skip_unchanged_all_filtered_exits_cleanly(mocker: MockerFixture, make_r
     assert jr.violations == []
 
 
+def test_skip_unchanged_all_filtered_deletes_stale_comment(mocker: MockerFixture, make_report_file_coverage, caplog):
+    unchanged = _report_without_changes("Report A", make_report_file_coverage)
+    mocks = _make_run_mocks(mocker, skip_unchanged=True, reports=[unchanged])
+
+    mocks["gh"].get_comments.return_value = [{"id": 99, "body": "**JaCoCo**\n\nsome old content"}]
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=True)
+
+    with caplog.at_level(logging.INFO, logger="jacoco_report.jacoco_report"):
+        JaCoCoReport().run()
+
+    mocks["gh"].delete_comment.assert_called_once_with(99)
+    assert "Deleted stale comment" in caplog.text
+
+
+def test_skip_unchanged_all_filtered_no_delete_when_update_comment_false(
+    mocker: MockerFixture, make_report_file_coverage
+):
+    unchanged = _report_without_changes("Report A", make_report_file_coverage)
+    mocks = _make_run_mocks(mocker, skip_unchanged=True, reports=[unchanged])
+
+    mocks["gh"].get_comments.return_value = [{"id": 99, "body": "**JaCoCo**\n\nsome old content"}]
+
+    JaCoCoReport().run()
+
+    mocks["gh"].delete_comment.assert_not_called()
+
+
 def test_skip_unchanged_false_does_not_filter(mocker: MockerFixture, make_report_file_coverage):
     unchanged = _report_without_changes("Report A", make_report_file_coverage)
     _make_run_mocks(mocker, skip_unchanged=False, reports=[unchanged])
@@ -235,7 +262,8 @@ def test_fail_on_threshold_true_emits_deprecation_warning(mocker: MockerFixture,
     with caplog.at_level(logging.WARNING, logger="jacoco_report.action_inputs"):
         result = ActionInputs.get_fail_on_threshold()
     assert result == ["overall", "changed-files-average", "per-changed-file"]
-    assert "no longer supported from v3" in caplog.text.lower()
+    assert "no longer supported from v3" in caplog.text
+    assert "overall,changed-files-average,per-changed-file" in caplog.text
 
 
 def test_fail_on_threshold_false_emits_deprecation_warning(mocker: MockerFixture, caplog):
@@ -243,7 +271,8 @@ def test_fail_on_threshold_false_emits_deprecation_warning(mocker: MockerFixture
     with caplog.at_level(logging.WARNING, logger="jacoco_report.action_inputs"):
         result = ActionInputs.get_fail_on_threshold()
     assert result == []
-    assert "no longer supported from v3" in caplog.text.lower()
+    assert "no longer supported from v3" in caplog.text
+    assert "empty string" in caplog.text
 
 
 def test_fail_on_threshold_list_form_no_warning(mocker: MockerFixture, caplog):
