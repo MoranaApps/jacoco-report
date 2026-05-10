@@ -41,7 +41,7 @@ class GitHub:
             requests.Session: The initialized request Session.
         """
 
-        self.__session: Optional[Session] = requests.Session()  # type: ignore[no-redef]
+        self.__session = requests.Session()
         headers = {
             "Authorization": f"Bearer {self.__token}",
             "Host": "api.github.com",
@@ -121,21 +121,22 @@ class GitHub:
         """
         try:
             if self.__session is None:
-                self.__initialize_request_session()
+                self.__session = self.__initialize_request_session()
 
+            session = self.__session
             response = None
             # Fetch the response from the API
             if method == "GET":
-                response = self.__session.get(url, params=params)  # type: ignore[union-attr]
+                response = session.get(url, params=params)
                 response.raise_for_status()
             elif method == "POST":
-                response = self.__session.post(url, params=params, json=data)  # type: ignore[union-attr]
+                response = session.post(url, params=params, json=data)
                 response.raise_for_status()
             elif method == "PATCH":
-                response = self.__session.patch(url, params=params, json=data)  # type: ignore[union-attr]
+                response = session.patch(url, params=params, json=data)
                 response.raise_for_status()
             elif method == "DELETE":
-                response = self.__session.delete(url, params=params, json=data)  # type: ignore[union-attr]
+                response = session.delete(url, params=params, json=data)
                 response.raise_for_status()
             else:
                 logger.error("Unsupported HTTP method: %s.", method)
@@ -175,9 +176,12 @@ class GitHub:
         """
         # Path to the event payload file
         event_path = os.getenv("GITHUB_EVENT_PATH")
+        if event_path is None:
+            logger.error("GITHUB_EVENT_PATH environment variable is not set.")
+            return None
 
         # Read and parse the event payload
-        with open(event_path, "r", encoding="utf-8") as f:  # type: ignore[arg-type]
+        with open(event_path, "r", encoding="utf-8") as f:
             event_data = json.load(f)
 
         # Check if the event is a pull request and get the PR number
@@ -216,7 +220,7 @@ class GitHub:
         logger.info("Comment added to the PR.")
         return True
 
-    def get_comments(self, pr_number: int, per_page: int = 100) -> list:
+    def get_comments(self, pr_number: int, per_page: int = 100) -> list[dict]:
         """
         Retrieves all comments from the pull request.
 
@@ -258,7 +262,7 @@ class GitHub:
         logger.info("Retrieved %d comments from the PR.", len(all_comments))
         return all_comments
 
-    def update_comment(self, comment_id, pr_body) -> bool:
+    def update_comment(self, comment_id: int, pr_body: str) -> bool:
         """
         Updates an existing comment on the pull request.
 
@@ -290,7 +294,7 @@ class GitHub:
         logger.error("Unexpected response format when updating comment: %s", response)
         return False
 
-    def delete_comment(self, comment_id) -> bool:
+    def delete_comment(self, comment_id: int) -> bool:
         """
         Deletes a comment from the pull request.
 

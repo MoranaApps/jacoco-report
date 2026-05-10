@@ -4,7 +4,7 @@ A module evaluating the coverage of the reports.
 
 import logging
 
-from typing_extensions import Optional
+from typing import Optional
 
 from jacoco_report.action_inputs import ActionInputs
 from jacoco_report.model.counter import Counter
@@ -108,12 +108,12 @@ class CoverageEvaluator:
 
         # evaluation of all modules (module == group of reports under module root path)
         if ActionInputs.get_modules() != {}:
-            modules: list[str] = list(ActionInputs.get_modules().keys())  # type: ignore[union-attr]
+            modules: list[str] = list(ActionInputs.get_modules().keys())
 
             if is_unknown_module_present:
                 modules.append("Unknown")
 
-            for module_name in modules:  # type: ignore[union-attr]
+            for module_name in modules:
                 evaluated_coverage_module: EvaluatedReportCoverage = EvaluatedReportCoverage(module_name)
 
                 # get the numbers from all module's reports counters (raw weights)

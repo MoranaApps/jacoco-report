@@ -37,7 +37,7 @@ class PRCommentGenerator:
         self.github_repository: str = ActionInputs.get_repository()
         self.changed_modules: set[str] = changed_modules or set()
 
-    def generate(self):
+    def generate(self) -> None:
         """
         The method that generates the comment for a single generator.
         """
@@ -364,7 +364,7 @@ class PRCommentGenerator:
 
         return s
 
-    def _get_changed_files_table(self, p, f) -> str:
+    def _get_changed_files_table(self, p: str, f: str) -> str:
         if len(self.evaluator.evaluated_reports_coverage.keys()) == 0:
             return "\nNo changed file in reports."
 

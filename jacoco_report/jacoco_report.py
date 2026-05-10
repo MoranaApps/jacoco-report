@@ -58,7 +58,7 @@ class JaCoCoReport:
 
         logger.info("Scanning for JaCoCo (xml) reports.")
         input_report_paths_to_analyse = self._scan_jacoco_xml_files(
-            paths=ActionInputs.get_paths(), exclude_paths=ActionInputs.get_exclude_paths()  # type: ignore[arg-type]
+            paths=ActionInputs.get_paths(), exclude_paths=ActionInputs.get_exclude_paths()
         )
 
         # skip when not jacoco xml files found
@@ -69,7 +69,7 @@ class JaCoCoReport:
 
         # get changed files in PR
         logger.info("Getting changed files in PR.")
-        all_changed_files_in_pr = gh.get_pr_changed_files()
+        all_changed_files_in_pr: list[str] = gh.get_pr_changed_files() or []
 
         # map modules if comment mode is set to MODULE
         logger.info("Mapping modules (if defined).")
@@ -79,7 +79,7 @@ class JaCoCoReport:
         logger.info("Analyzing JaCoCo (xml) reports.")
         report_files_coverage: list[ReportFileCoverage] = []
         changed_modules: set[str] = set()
-        parser = JaCoCoReportParser(all_changed_files_in_pr, modules)  # type: ignore[arg-type]
+        parser = JaCoCoReportParser(all_changed_files_in_pr, modules)
         for report_path in input_report_paths_to_analyse:
             report_files_coverage.append(rfc := parser.parse(report_path))
 
@@ -89,7 +89,7 @@ class JaCoCoReport:
         # get baseline files for comparison
         logger.info("Scanning for JaCoCo (xml) baseline reports.")
         baseline_report_paths_to_analyse = self._scan_jacoco_xml_files(
-            paths=ActionInputs.get_baseline_paths(), exclude_paths=[]  # type: ignore[arg-type]
+            paths=ActionInputs.get_baseline_paths(), exclude_paths=[]
         )
         bs_report_files_coverage: list[ReportFileCoverage] = []
         if len(baseline_report_paths_to_analyse) == 0:
@@ -152,6 +152,6 @@ class JaCoCoReport:
 
     def _get_modules(self) -> dict[str, Module]:
         return ModuleParser().parse(
-            modules=ActionInputs.get_modules(),  # type: ignore[arg-type]
-            modules_thresholds=ActionInputs.get_modules_thresholds(),  # type: ignore[arg-type]
+            modules=ActionInputs.get_modules(),
+            modules_thresholds=ActionInputs.get_modules_thresholds(),
         )
