@@ -122,6 +122,8 @@ def test_skip_unchanged_all_filtered_exits_cleanly(mocker: MockerFixture, make_r
     assert jr.violations == []
     assert jr.total_overall_coverage_passed is True
     assert jr.total_changed_files_coverage_passed is True
+    assert jr.evaluated_coverage_reports == "{}"
+    assert jr.evaluated_coverage_modules == "{}"
 
 
 def test_skip_unchanged_all_filtered_deletes_stale_comment(mocker: MockerFixture, make_report_file_coverage, caplog):

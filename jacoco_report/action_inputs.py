@@ -333,7 +333,7 @@ class ActionInputs:
         if value == "true":
             logger.warning(
                 "Boolean value for fail-on-threshold is no longer supported from v3. "
-                "Use comma-separated values to fail on thresholds: "
+                "Use comma- or newline-separated values to fail on thresholds: "
                 "overall,changed-files-average,per-changed-file"
             )
             return [
