@@ -325,14 +325,15 @@ class ActionInputs:
 
         if value == "false":
             logger.warning(
-                "Boolean value for fail-on-threshold is deprecated. Use list form: [] to disable threshold failure."
+                "Boolean value for fail-on-threshold is no longer supported from v3. "
+                "Use list form: [] to disable threshold failure."
             )
             return []
 
         if value == "true":
             logger.warning(
-                "Boolean value for fail-on-threshold is deprecated. "
-                "Use list form: [overall, changed-files-average, per-changed-file]."
+                "Boolean value for fail-on-threshold is no longer supported from v3. "
+                "Use list form: [overall, changed-files-average, per-changed-file] to fail on thresholds."
             )
             return [
                 FailOnThresholdEnum.OVERALL.value,

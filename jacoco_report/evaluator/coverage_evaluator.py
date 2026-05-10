@@ -160,8 +160,6 @@ class CoverageEvaluator:
     def review_violations(self) -> None:
         """
         Reviews the coverage evaluation results and appends violations to the violations list.
-        Global violations are only reported when comment mode is set to SINGLE.
-        Module and report-level violations are added based on sensitivity and comment mode settings.
         """
         if not self.total_coverage_overall_passed:
             self.violations.append(
@@ -219,7 +217,7 @@ class CoverageEvaluator:
                     )
                     self.reached_threshold_per_change_file = False
 
-        # Add all violations to the list depending on the sensitivity and comment mode
+        # Add all violations to the list
         self.violations.extend(report_violations)
         self.violations.extend(changed_files_violations)
 

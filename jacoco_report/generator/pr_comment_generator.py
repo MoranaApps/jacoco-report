@@ -194,7 +194,6 @@ class PRCommentGenerator:
         keys: list[str] = sorted(list(self.evaluator.evaluated_reports_coverage.keys()))
         for key in keys:
             evaluated_report = self.evaluator.evaluated_reports_coverage[key]
-
             provided_reports += 1
             o_thres = ActionInputs.get_global_overall_threshold()
             ch_thres = ActionInputs.get_global_changed_files_average_threshold()

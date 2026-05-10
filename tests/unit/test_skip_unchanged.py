@@ -235,7 +235,7 @@ def test_fail_on_threshold_true_emits_deprecation_warning(mocker: MockerFixture,
     with caplog.at_level(logging.WARNING, logger="jacoco_report.action_inputs"):
         result = ActionInputs.get_fail_on_threshold()
     assert result == ["overall", "changed-files-average", "per-changed-file"]
-    assert "deprecated" in caplog.text.lower()
+    assert "no longer supported from v3" in caplog.text.lower()
 
 
 def test_fail_on_threshold_false_emits_deprecation_warning(mocker: MockerFixture, caplog):
@@ -243,7 +243,7 @@ def test_fail_on_threshold_false_emits_deprecation_warning(mocker: MockerFixture
     with caplog.at_level(logging.WARNING, logger="jacoco_report.action_inputs"):
         result = ActionInputs.get_fail_on_threshold()
     assert result == []
-    assert "deprecated" in caplog.text.lower()
+    assert "no longer supported from v3" in caplog.text.lower()
 
 
 def test_fail_on_threshold_list_form_no_warning(mocker: MockerFixture, caplog):

@@ -89,7 +89,11 @@
       "Bash(venv/bin/pip install *)",
       "Bash(git commit -m ' *)",
       "Bash(git -C /Users/admin/repos/MoranaApps/jacoco-report log --oneline -10)",
-      "Bash(git -C /Users/admin/repos/MoranaApps/jacoco-report branch -a)"
+      "Bash(git -C /Users/admin/repos/MoranaApps/jacoco-report branch -a)",
+      "Bash(git reset *)",
+      "Bash(python -m pytest tests/unit/test_skip_unchanged.py::test_fail_on_threshold_true_emits_deprecation_warning tests/unit/test_skip_unchanged.py::test_fail_on_threshold_false_emits_deprecation_warning tests/unit/test_skip_unchanged.py::test_fail_on_threshold_list_form_no_warning -v)",
+      "Bash(python -m pytest tests/unit/test_skip_unchanged.py -v)",
+      "Bash(python -m pytest --cov=jacoco_report tests/ --cov-fail-under=80 -q)"
     ]
   }
 }
