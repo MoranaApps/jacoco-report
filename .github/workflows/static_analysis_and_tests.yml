@@ -5,6 +5,10 @@ on:
     branches: [ master ]
   pull_request:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   set-matrix:
     runs-on: ubuntu-latest
@@ -13,7 +17,7 @@ jobs:
     steps:
       - id: set-matrix
         run: |
-          echo "matrix={\"python-version\": [\"3.12\", \"3.13\"]}" >> $GITHUB_OUTPUT
+          echo "matrix={\"python-version\": [\"3.14\"]}" >> $GITHUB_OUTPUT
 
   analysis:
     needs: set-matrix
@@ -41,9 +45,11 @@ jobs:
         id: analyze-code
         run: |
           pylint_score=$(pylint $(git ls-files '*.py') | grep 'rated at' | awk '{print $7}' | cut -d'/' -f1)
-          echo "PYLINT_SCORE=$pylint_score" >> $GITHUB_ENV
+          echo "score=$pylint_score" >> "$GITHUB_OUTPUT"
 
       - name: Check Pylint score
+        env:
+          PYLINT_SCORE: ${{ steps.analyze-code.outputs.score }}
         run: |
           if (( $(echo "$PYLINT_SCORE < 9.5" | bc -l) )); then
             echo "Failure: Pylint score is below 9.5 (project score: $PYLINT_SCORE)."
@@ -55,6 +61,8 @@ jobs:
   code-format-check:
     needs: set-matrix
     runs-on: ubuntu-latest
+    strategy:
+      matrix: ${{fromJson(needs.set-matrix.outputs.matrix)}}
     name: Black Format Check - (Python ${{ matrix.python-version }})
     steps:
       - name: Checkout repository

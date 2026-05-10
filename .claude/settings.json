@@ -66,7 +66,27 @@
       "Bash(git fetch *)",
       "Bash(git checkout *)",
       "Bash(git branch *)",
-      "Bash(gh auth *)"
+      "Bash(gh auth *)",
+      "Bash(gh pr *)",
+      "Bash(black jacoco_report/action_inputs.py)",
+      "Bash(pip index *)",
+      "Bash(pip show *)",
+      "Bash(python -c \"import subprocess; result = subprocess.run\\(['pip', 'index', 'versions', 'black'], capture_output=True, text=True\\); print\\(result.stdout\\)\")",
+      "Bash(pip download *)",
+      "Bash(python -c ' *)",
+      "Bash(pyenv --version)",
+      "Bash(brew --version)",
+      "Bash(brew list *)",
+      "Read(//usr/local/bin/**)",
+      "Bash(brew info *)",
+      "Read(//usr/local/opt/**)",
+      "Bash(python3.14 --version)",
+      "Read(//usr/local/Cellar/python@3.14/3.14.4_1/**)",
+      "Read(//usr/local/**)",
+      "Read(//opt/**)",
+      "Read(//opt/homebrew/**)",
+      "Bash(/usr/local/Cellar/python@3.14/3.14.4_1/bin/python3.14 -m venv venv --clear)",
+      "Bash(venv/bin/pip install *)"
     ]
   }
 }

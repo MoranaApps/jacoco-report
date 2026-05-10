@@ -471,7 +471,7 @@ class ActionInputs:
             try:
                 float(value)
                 return True
-            except (ValueError, TypeError):
+            except ValueError, TypeError:
                 return False
 
         errors = []
