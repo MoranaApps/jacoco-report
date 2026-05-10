@@ -77,7 +77,7 @@ Group 0 (deps) → Task 20 🔝 → Tasks 17/18/21 → Group F (design decisions
 | **35** | H | Live integration smoke test | 🔒 ⬜ | `chore/live-integration-smoke-test` | new |
 | **36** | I | Enhanced logging (thresholds + reached values) | 🔒 ⬜ | `feature/101-enhance-threshold-logging` | #101 |
 | **37** | I | PR comment metadata | 🔒 ⬜ | `feature/94-pr-comment-metadata` | #94 |
-| **38** | J | v2→v3 migration guide | 🔒 ⬜ | `docs/74-v2-v3-migration-guide` | #74 |
+| **38** | J | v2→v3 migration guide | ✅ | `docs/74-v2-v3-migration-guide` | #74 |
 | **39** | J | Create `docs/` directory | 🔒 ⬜ | `docs/extended-docs-directory` | new |
 | **40** | J | Update `DEVELOPER.md` | 🔒 ⬜ | `docs/update-developer-md` | new |
 | **41** | J | Update `README.md` | 🔒 ⬜ | `feature/70-Improve-README` | #70 |
