@@ -59,7 +59,7 @@ inputs:
   fail-on-threshold:
     description: >
       Fail the action on threshold breach.
-      Comma-separated list: overall, changed-files-average, per-changed-file. Leave empty to disable.
+      Comma- or newline-separated list: overall, changed-files-average, per-changed-file. Leave empty to disable.
     required: false
     default: 'overall,changed-files-average,per-changed-file'
   debug:
