@@ -16,7 +16,6 @@ from jacoco_report.model.file_coverage import FileCoverage
 logger = logging.getLogger(__name__)
 
 
-# pylint: disable=too-few-public-methods
 class JaCoCoReportParser:
     """
     A class for parsing JaCoCo XML reports and creating CoverageReport instances.
@@ -37,7 +36,6 @@ class JaCoCoReportParser:
             A CoverageReport instance.
         """
         logger.debug("Parsing JaCoCo XML report: %s", report_path)
-        # pylint: disable=unsubscriptable-object
         tree: ET.ElementTree[ET.Element] = ET.parse(report_path)
         root: Optional[ET.Element] = tree.getroot()
 
@@ -139,8 +137,7 @@ class JaCoCoReportParser:
 
         def find_file(root_dir: str, relative_path: str) -> list[str]:
             paths: list[str] = []
-            # pylint: disable=unused-variable
-            for dirpath, _, filenames in os.walk(root_dir):
+            for dirpath, *_ in os.walk(root_dir):
                 full_path = os.path.join(dirpath, relative_path)
                 if os.path.isfile(full_path):
                     paths.append(os.path.relpath(full_path, root_dir))

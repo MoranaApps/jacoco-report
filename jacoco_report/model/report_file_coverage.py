@@ -8,14 +8,12 @@ from jacoco_report.model.coverage import Coverage
 from jacoco_report.model.file_coverage import FileCoverage
 
 
-# pylint: disable=too-few-public-methods
 class ReportFileCoverage:
     """
     A class that represents the coverage of a report file.
     Class variables are filled with data from the XML report file.
     """
 
-    # pylint: disable=too-many-arguments
     def __init__(
         self,
         path: str,

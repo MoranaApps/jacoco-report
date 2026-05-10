@@ -15,7 +15,6 @@ from jacoco_report.model.module import Module
 logger = logging.getLogger(__name__)
 
 
-# pylint: disable=too-few-public-methods, too-many-instance-attributes
 class CoverageEvaluator:
     """
     A class evaluating the coverage of the reports.
@@ -23,7 +22,6 @@ class CoverageEvaluator:
     to check if they pass the thresholds.
     """
 
-    # pylint: disable=too-many-arguments
     def __init__(
         self,
         report_files_coverage: list[ReportFileCoverage],
@@ -60,7 +58,6 @@ class CoverageEvaluator:
         self.reached_threshold_changed_files_average: bool = True
         self.reached_threshold_per_change_file: bool = True
 
-    # pylint: disable=too-many-locals
     def evaluate(self) -> None:
         """
         Evaluates the coverage of the all reports.
@@ -160,7 +157,6 @@ class CoverageEvaluator:
         # review for violations
         self._review_violations()
 
-    # pylint: disable=too-many-branches, too-many-statements
     def _review_violations(self) -> None:
         """
         Reviews the coverage evaluation results and appends violations to the violations list.

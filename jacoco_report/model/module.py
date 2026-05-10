@@ -3,13 +3,11 @@ A module that contains the class that represents a module in a project.
 """
 
 
-# pylint: disable=too-few-public-methods
 class Module:
     """
     A class that represents a module in a project.
     """
 
-    # pylint: disable=too-many-arguments
     def __init__(
         self,
         name: str,

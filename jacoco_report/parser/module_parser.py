@@ -6,7 +6,6 @@ from jacoco_report.action_inputs import ActionInputs
 from jacoco_report.model.module import Module
 
 
-# pylint: disable=too-few-public-methods
 class ModuleParser:
     """
     A class that parses the module information from the action inputs.
