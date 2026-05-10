@@ -120,6 +120,8 @@ def test_skip_unchanged_all_filtered_exits_cleanly(mocker: MockerFixture, make_r
     assert "All reports filtered out by skip-unchanged" in caplog.text
     mocks["gh"].add_comment.assert_not_called()
     assert jr.violations == []
+    assert jr.total_overall_coverage_passed is True
+    assert jr.total_changed_files_coverage_passed is True
 
 
 def test_skip_unchanged_all_filtered_deletes_stale_comment(mocker: MockerFixture, make_report_file_coverage, caplog):

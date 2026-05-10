@@ -90,6 +90,8 @@ class JaCoCoReport:
             report_files_coverage = [r for r in report_files_coverage if r.changed_files_coverage]
             if not report_files_coverage:
                 logger.info("All reports filtered out by skip-unchanged. No comment will be generated.")
+                self.total_overall_coverage_passed = True
+                self.total_changed_files_coverage_passed = True
                 if ActionInputs.get_update_comment():
                     title = f"**{ActionInputs.get_title()}**"
                     for comment in gh.get_comments(pr_number):

@@ -321,7 +321,7 @@ class ActionInputs:
           - "false": do not fail
           - Comma or newline separated of supported thresholds: overall, changed-files-average, per-changed-file
         """
-        value = get_action_input(FAIL_ON_THRESHOLD, "true").strip().lower()
+        value = get_action_input(FAIL_ON_THRESHOLD, "overall,changed-files-average,per-changed-file").strip().lower()
 
         if value == "false":
             logger.warning(
