@@ -61,9 +61,13 @@ def test_evaluate_changed_files_coverage(evaluator):
     assert evaluator.total_coverage_changed_files == pytest.approx(90.0, 0.01)
     assert evaluator.total_coverage_changed_files_passed is True
 
-def test_evaluate_with_low_thresholds(evaluator):
-    evaluator._global_min_coverage_overall = 70.0
-    evaluator._global_min_coverage_changed_files = 95.0
+def test_evaluate_with_low_thresholds(sample_report_file_coverage):
+    evaluator = CoverageEvaluator(
+        report_files_coverage=[sample_report_file_coverage],
+        global_min_coverage_overall=70.0,
+        global_min_coverage_changed_files=95.0,
+        global_min_coverage_changed_per_file=50.0
+    )
     evaluator.evaluate()
     assert evaluator.total_coverage_overall_passed is False
     assert evaluator.total_coverage_changed_files_passed is False
@@ -77,7 +81,7 @@ def test_review_violations_global_overall_coverage_below_threshold(evaluator,):
     evaluator.total_coverage_overall_passed = False
     evaluator.total_coverage_changed_files_passed = True
 
-    evaluator._review_violations()
+    evaluator.review_violations()
 
     assert "Global overall coverage 40.0 is below the threshold 50.0." in evaluator.violations
 
@@ -88,7 +92,7 @@ def test_review_violations_global_overall_coverage_below_threshold_minimal(evalu
     evaluator.total_coverage_overall_passed = True
     evaluator.total_coverage_changed_files_passed = True
 
-    evaluator._review_violations()
+    evaluator.review_violations()
 
     assert evaluator.violations == []
 
@@ -99,7 +103,7 @@ def test_review_violations_global_changed_files_coverage_below_threshold(evaluat
     evaluator.total_coverage_overall_passed = True
     evaluator.total_coverage_changed_files_passed = False
 
-    evaluator._review_violations()
+    evaluator.review_violations()
 
     assert "Global changed files coverage 40.0 is below the threshold 50.0." in evaluator.violations
 
@@ -110,7 +114,7 @@ def test_review_violations_global_changed_files_coverage_zero_no_changed_file(ev
     evaluator.total_coverage_overall_passed = True
     evaluator.total_coverage_changed_files_passed = True
 
-    evaluator._review_violations()
+    evaluator.review_violations()
 
     assert len(evaluator.violations) == 0
 
@@ -121,7 +125,7 @@ def test_review_violations_global_changed_files_coverage_zero_w_changed_file(eva
     evaluator.total_coverage_overall_passed = True
     evaluator.total_coverage_changed_files_passed = False
 
-    evaluator._review_violations()
+    evaluator.review_violations()
 
     assert "Global changed files coverage 0.0 is below the threshold 50.0." in evaluator.violations
 
@@ -144,7 +148,7 @@ def test_review_violations_global_changed_files_coverage_zero_w_changed_file(eva
 #     evaluator.evaluated_modules_coverage = {
 #         "module-a": module_evaluated_coverage
 #     }
-#     evaluator._review_violations()
+#     evaluator.review_violations()
 #
 #     assert "Module 'module-a' overall coverage 40.0 is below the threshold 50.0." in evaluator.violations
 
@@ -170,7 +174,7 @@ def test_review_violations_global_changed_files_coverage_zero_w_changed_file(eva
 #     evaluator.evaluated_modules_coverage = {
 #         "module-a": module_evaluated_coverage
 #     }
-#     evaluator._review_violations()
+#     evaluator.review_violations()
 #
 #     assert "Module 'module-a' changed files coverage 40.0 is below the threshold 50.0." in evaluator.violations
 
@@ -188,7 +192,7 @@ def test_review_violations_report_overall_coverage_below_threshold(evaluator, mo
     evaluator.evaluated_reports_coverage = {
         "filepath": report_evaluated_coverage
     }
-    evaluator._review_violations()
+    evaluator.review_violations()
 
     assert "Report 'filepath' overall coverage 40.0 is below the threshold 50.0." in evaluator.violations
 
@@ -217,7 +221,7 @@ def test_review_violations_report_changed_files_coverage_below_threshold(evaluat
     evaluator.evaluated_reports_coverage = {
         "filepath": report_evaluated_coverage
     }
-    evaluator._review_violations()
+    evaluator.review_violations()
 
     assert "Report 'filepath' changed files coverage 40.0 is below the threshold 50.0." in evaluator.violations
 
@@ -268,7 +272,7 @@ def test_evaluate_module_with_patched_thresholds(mocker):
     evaluated_coverage_module.overall_coverage.missed = 0
 
     # Evaluate the module
-    evaluated_coverage_module = evaluator._evaluate_module(evaluated_coverage_module)
+    evaluated_coverage_module = evaluator.evaluate_module(evaluated_coverage_module)
 
     # Assert that the overall coverage reached is 0.0 and it passed
     assert evaluated_coverage_module.overall_coverage_reached == 0.0

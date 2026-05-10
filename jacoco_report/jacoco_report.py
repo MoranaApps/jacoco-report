@@ -57,7 +57,7 @@ class JaCoCoReport:
         logger.info("Pull request number: %s", pr_number)
 
         logger.info("Scanning for JaCoCo (xml) reports.")
-        input_report_paths_to_analyse = self._scan_jacoco_xml_files(
+        input_report_paths_to_analyse = self.scan_jacoco_xml_files(
             paths=ActionInputs.get_paths(), exclude_paths=ActionInputs.get_exclude_paths()
         )
 
@@ -88,7 +88,7 @@ class JaCoCoReport:
 
         # get baseline files for comparison
         logger.info("Scanning for JaCoCo (xml) baseline reports.")
-        baseline_report_paths_to_analyse = self._scan_jacoco_xml_files(
+        baseline_report_paths_to_analyse = self.scan_jacoco_xml_files(
             paths=ActionInputs.get_baseline_paths(), exclude_paths=[]
         )
         bs_report_files_coverage: list[ReportFileCoverage] = []
@@ -144,7 +144,7 @@ class JaCoCoReport:
         generator.generate()
         logger.info("PR comment(s) generated successfully.")
 
-    def _scan_jacoco_xml_files(self, paths: list[str], exclude_paths: list[str]) -> list[str]:
+    def scan_jacoco_xml_files(self, paths: list[str], exclude_paths: list[str]) -> list[str]:
         # get files jacoco xml files for analysis
         paths_to_analyse: list[str] = JaCoCoReportInputScanner(paths=paths, exclude_paths=exclude_paths).scan()
         logger.info("Found %s JaCoCo reports.", len(paths_to_analyse))

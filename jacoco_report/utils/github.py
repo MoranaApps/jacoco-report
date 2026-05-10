@@ -83,7 +83,7 @@ class GitHub:
             params = {"per_page": per_page, "page": page}
             logger.debug("GitHub - URL: %s, Page: %d", api_url, page)
 
-            response = self._send_request("GET", api_url, params=params)
+            response = self.send_request("GET", api_url, params=params)
             if response is None:
                 logger.error("Failed to get the list of changed files.")
                 return None
@@ -104,7 +104,7 @@ class GitHub:
         logger.info("List of changed files in PR: %s", file_list)
         return file_list
 
-    def _send_request(
+    def send_request(
         self, method: str, url: str, data: Optional[dict] = None, params: Optional[dict] = None
     ) -> Optional[requests.Response]:
         """
@@ -212,7 +212,7 @@ class GitHub:
         # Prepare the comment data
         comment_data = {"body": body}
 
-        response = self._send_request("POST", api_url, data=comment_data)
+        response = self.send_request("POST", api_url, data=comment_data)
         if response is None:
             logger.error("Failed to add a comment to the PR.")
             return False
@@ -241,7 +241,7 @@ class GitHub:
             api_url = f"{self.__gh_url}/repos/{repo}/issues/{pr_number}/comments" f"?per_page={per_page}&page={page}"
             logger.debug("GitHub - URL (page %d): %s", page, api_url)
 
-            response = self._send_request("GET", api_url)
+            response = self.send_request("GET", api_url)
             if response is None:
                 logger.error("Failed to get PR comments.")
                 break
@@ -281,7 +281,7 @@ class GitHub:
 
         payload = {"body": pr_body}
 
-        response = self._send_request("PATCH", api_url, data=payload)
+        response = self.send_request("PATCH", api_url, data=payload)
 
         if response is None:
             logger.error("Failed to update the comment with ID %d.", comment_id)
@@ -310,7 +310,7 @@ class GitHub:
         api_url = f"{self.__gh_url}/repos/{repo}/issues/comments/{comment_id}"
         logger.debug("GitHub - Delete Comment URL: %s", api_url)
 
-        response = self._send_request("DELETE", api_url)
+        response = self.send_request("DELETE", api_url)
 
         if response is None or response.status_code != 204:
             logger.error("Failed to delete the comment with ID %d.", comment_id)
