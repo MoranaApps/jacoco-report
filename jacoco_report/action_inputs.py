@@ -578,32 +578,24 @@ class ActionInputs:
                 for module in f_modules:
                     errors.extend(ActionInputs.validate_module(module))
 
-        # TODO - uncomment this when new modules solution is implemented
-        # if (
-        #     comment_mode == CommentModeEnum.MODULE
-        #     and len(ActionInputs.get_modules().keys()) == 0  # type: ignore[union-attr]
-        # ):  # type: ignore[union-attr]
-        #     errors.append("'comment-mode' is 'module' but 'modules' is not defined.")
-        #
-        # modules_thresholds: dict[str, tuple[float, float, float]] | str =
-        # ActionInputs.get_modules_thresholds(raw=True)
-        # if not isinstance(modules_thresholds, str):
-        #     errors.append("'modules-thresholds' must be a string or not defined.")
-        # else:
-        #     if ": " in modules_thresholds:
-        #         modules_thresholds = modules_thresholds.replace(": ", ":")
-        #
-        #     if len(modules_thresholds) == 0:
-        #         pass
-        #     elif len(modules_thresholds) < 3 or ":" not in modules_thresholds:
-        #         errors.append("'modules-thresholds' must be a list of strings in format 'module:overall*changed'.")
-        #     else:
-        #         split_by: str = "," if "," in modules_thresholds else "\n"  # type: ignore[no-redef]
-        #         f_modules_thresholds = modules_thresholds.split(split_by)
-        #         for module_threshold in f_modules_thresholds:
-        #             cleaned_module_threshold = ActionInputs.__clean_from_comment(module_threshold)
-        #             if len(cleaned_module_threshold) > 0:
-        #                 errors.extend(ActionInputs.validate_module_threshold(cleaned_module_threshold))
+        modules_thresholds: dict[str, tuple[float, float, float]] | str = ActionInputs.get_modules_thresholds(raw=True)
+        if not isinstance(modules_thresholds, str):
+            errors.append("'modules-thresholds' must be a string or not defined.")
+        else:
+            if ": " in modules_thresholds:
+                modules_thresholds = modules_thresholds.replace(": ", ":")
+
+            if len(modules_thresholds) == 0:
+                pass
+            elif len(modules_thresholds) < 3 or ":" not in modules_thresholds:
+                errors.append("'modules-thresholds' must be a list of strings in format 'module:overall*changed'.")
+            else:
+                split_by = "," if "," in modules_thresholds else "\n"  # type: ignore[no-redef]
+                f_modules_thresholds = modules_thresholds.split(split_by)
+                for module_threshold in f_modules_thresholds:
+                    cleaned_module_threshold = ActionInputs.__clean_from_comment(module_threshold)
+                    if len(cleaned_module_threshold) > 0:
+                        errors.extend(ActionInputs.validate_module_threshold(cleaned_module_threshold))
 
         skip_unchanged = ActionInputs.get_skip_unchanged()
         if not isinstance(skip_unchanged, bool):
