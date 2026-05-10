@@ -86,14 +86,7 @@
       "Read(//opt/**)",
       "Read(//opt/homebrew/**)",
       "Bash(/usr/local/Cellar/python@3.14/3.14.4_1/bin/python3.14 -m venv venv --clear)",
-      "Bash(venv/bin/pip install *)",
-      "Bash(sed -n '195,215p' jacoco_report/generator/pr_comment_generator.py)",
-      "Bash(sed -n '283,295p' jacoco_report/generator/pr_comment_generator.py)",
-      "Bash(sed -n '220,245p' jacoco_report/generator/pr_comment_generator.py)",
-      "Bash(sed -n '260,285p' jacoco_report/generator/pr_comment_generator.py)",
-      "Bash(sed -n '348,365p' jacoco_report/generator/pr_comment_generator.py)",
-      "Bash(sed -n '406,425p' jacoco_report/generator/pr_comment_generator.py)",
-      "Bash(echo \"exit $?\")"
+      "Bash(venv/bin/pip install *)"
     ]
   }
 }

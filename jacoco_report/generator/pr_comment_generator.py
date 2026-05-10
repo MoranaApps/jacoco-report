@@ -227,8 +227,7 @@ class PRCommentGenerator:
 
             name = evaluated_report.name
             overall_cov = evaluated_report.overall_coverage_reached
-            avg_cov = evaluated_report.avg_changed_files_coverage_reached
-            cov = f"{overall_cov}% / {avg_cov}%"
+            cov = f"{overall_cov}% / {evaluated_report.avg_changed_files_coverage_reached}%"
             thres = f"{o_thres}% / {ch_thres}%"
             status_o = p if evaluated_report.overall_passed else f
             status_ch = p if evaluated_report.avg_changed_files_passed else f
@@ -263,19 +262,17 @@ class PRCommentGenerator:
                 o_thres = evaluated_report.overall_coverage_threshold
                 ch_thres = evaluated_report.changed_files_threshold
 
+            name = evaluated_report.name
             overall_cov = evaluated_report.overall_coverage_reached
-            avg_cov = evaluated_report.avg_changed_files_coverage_reached
-            cov = f"{overall_cov}% / {avg_cov}%"
+            cov = f"{overall_cov}% / {evaluated_report.avg_changed_files_coverage_reached}%"
+            thres = f"{o_thres}% / {ch_thres}%"
             delta = (
-                f"{'+'if diff_o > 0.001 else ''}{round(diff_o, 2)}%"
-                f" / {'+'if diff_ch > 0.001 else ''}{round(diff_ch, 2)}%"
+                f"{'+' if diff_o > 0.001 else ''}{round(diff_o, 2)}%"
+                f" / {'+' if diff_ch > 0.001 else ''}{round(diff_ch, 2)}%"
             )
             status_o = p if evaluated_report.overall_passed else f
             status_ch = p if evaluated_report.avg_changed_files_passed else f
-            s += (
-                f"\n| `{evaluated_report.name}` | {cov}"
-                f" | {o_thres}% / {ch_thres}% | {delta} | {status_o}/{status_ch} |"
-            )
+            s += f"\n| `{name}` | {cov} | {thres} | {delta} | {status_o}/{status_ch} |"
 
         if provided_reports == 0:
             s += "\n\nNo changed file in reports."
