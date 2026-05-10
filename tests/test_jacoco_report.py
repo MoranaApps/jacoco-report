@@ -1907,7 +1907,7 @@ def test_run_no_jacoco_xml_files(jacoco_report, caplog, mocker):
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value='pull_request')
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_token", return_value='fake_token')
     mocker.patch("jacoco_report.utils.github.GitHub.get_pr_number", return_value=1)
-    mocker.patch("jacoco_report.jacoco_report.JaCoCoReport._scan_jacoco_xml_files", return_value=[])
+    mocker.patch("jacoco_report.jacoco_report.JaCoCoReport.scan_jacoco_xml_files", return_value=[])
     mock_add_comment = mocker.patch('jacoco_report.utils.github.GitHub.add_comment', return_value=None)
 
     with caplog.at_level(logging.ERROR):
@@ -1922,7 +1922,7 @@ def test_run_successful_empty_no_baseline(jacoco_report, mocker):
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value='pull_request')
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_token", return_value='fake_token')
     mocker.patch("jacoco_report.utils.github.GitHub.get_pr_number", return_value=35)
-    mocker.patch("jacoco_report.jacoco_report.JaCoCoReport._scan_jacoco_xml_files", return_value=[f'{os.getcwd()}/tests/data/module_b/target/jacoco_no_data.xml'])
+    mocker.patch("jacoco_report.jacoco_report.JaCoCoReport.scan_jacoco_xml_files", return_value=[f'{os.getcwd()}/tests/data/module_b/target/jacoco_no_data.xml'])
     mocker.patch("jacoco_report.utils.github.GitHub.get_pr_changed_files", return_value=[])
     mock_add_comment = mocker.patch('jacoco_report.utils.github.GitHub.add_comment', return_value=None)
 
@@ -1941,7 +1941,7 @@ def test_run_successful_empty_with_baseline(jacoco_report, mocker):
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_token", return_value='fake_token')
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=['fake/path'])
     mocker.patch("jacoco_report.utils.github.GitHub.get_pr_number", return_value=35)
-    mocker.patch("jacoco_report.jacoco_report.JaCoCoReport._scan_jacoco_xml_files", return_value=[f'{os.getcwd()}/tests/data/module_b/target/jacoco_no_data.xml'])
+    mocker.patch("jacoco_report.jacoco_report.JaCoCoReport.scan_jacoco_xml_files", return_value=[f'{os.getcwd()}/tests/data/module_b/target/jacoco_no_data.xml'])
     mocker.patch("jacoco_report.utils.github.GitHub.get_pr_changed_files", return_value=[])
     mock_add_comment = mocker.patch('jacoco_report.utils.github.GitHub.add_comment', return_value=None)
 
@@ -1973,8 +1973,8 @@ def test_successful_one_source_file (jacoco_report, metric, comment, ov_cov, ch_
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value=metric)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_comment_level", return_value=CommentLevelEnum.MINIMAL)
     mocker.patch("jacoco_report.utils.github.GitHub.get_pr_number", return_value=35)
-    mocker.patch("jacoco_report.jacoco_report.JaCoCoReport._scan_jacoco_xml_files", return_value=[f'{os.getcwd()}/tests/data/module_c/target/jacoco_one_source_file.xml'])
-    # mocker.patch("jacoco_report.jacoco_report.JaCoCoReport._scan_jacoco_xml_files", return_value=[f'{os.getcwd()}/data/module_c/target/jacoco_one_source_file.xml'])
+    mocker.patch("jacoco_report.jacoco_report.JaCoCoReport.scan_jacoco_xml_files", return_value=[f'{os.getcwd()}/tests/data/module_c/target/jacoco_one_source_file.xml'])
+    # mocker.patch("jacoco_report.jacoco_report.JaCoCoReport.scan_jacoco_xml_files", return_value=[f'{os.getcwd()}/data/module_c/target/jacoco_one_source_file.xml'])
     mocker.patch("jacoco_report.utils.github.GitHub.get_pr_changed_files", return_value=['com/example/ExampleClass.java'])
 
     mock_add_comment = mocker.patch('jacoco_report.utils.github.GitHub.add_comment', return_value=None)

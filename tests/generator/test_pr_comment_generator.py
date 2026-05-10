@@ -30,8 +30,8 @@ def test_evaluator(mocker):
 def pr_comment_generator(mock_github, test_evaluator):
     return PRCommentGenerator(mock_github, test_evaluator, None, 1)
 
-def test_get_basic_table(pr_comment_generator, mocker):
-    table = pr_comment_generator._get_basic_table(
+def testget_basic_table(pr_comment_generator, mocker):
+    table = pr_comment_generator.get_basic_table(
         "✅", "❌", MetricTypeEnum.INSTRUCTION,
         85.2, True, 80.0,
         78.4, False, 80.0
@@ -41,11 +41,11 @@ def test_get_basic_table(pr_comment_generator, mocker):
     assert "| **Changed Files** | 78.4% | 80.0% | ❌ |" in table
 
 def test_get_changed_files_table_without_baseline(pr_comment_generator):
-    table = pr_comment_generator._generate_changed_files_table_without_baseline("✅", "❌")
+    table = pr_comment_generator.generate_changed_files_table_without_baseline("✅", "❌")
     assert "| File Path | Coverage | Threshold | Status |\n|-----------|----------|-----------|--------|\n\nNo changed file in reports." in table
 
 def test_get_changed_files_table_with_baseline(pr_comment_generator):
-    table = pr_comment_generator._generate_changed_files_table_with_baseline("✅", "❌")
+    table = pr_comment_generator.generate_changed_files_table_with_baseline("✅", "❌")
     assert "| File Path | Coverage | Threshold | Δ Coverage | Status |\n|-----------|----------|-----------|------------|--------|\n\nNo changed file in reports." in table
 
 def test_calculate_module_diff(pr_comment_generator, mocker):
@@ -64,7 +64,7 @@ def test_calculate_module_diff(pr_comment_generator, mocker):
     evaluated_coverage_module.avg_changed_files_coverage_reached = 85.0
 
     # Calculate the differences
-    diff_o, diff_ch = pr_comment_generator._calculate_baseline_module_diffs(evaluated_coverage_module)
+    diff_o, diff_ch = pr_comment_generator.calculate_baseline_module_diffs(evaluated_coverage_module)
 
     # Assert the differences are calculated correctly
     assert diff_o == 10.0
@@ -82,13 +82,13 @@ def test_calculate_module_diff_no_module_in_baseline(pr_comment_generator, mocke
     evaluated_coverage_module.avg_changed_files_coverage_reached = 85.0
 
     # Calculate the differences
-    diff_o, diff_ch = pr_comment_generator._calculate_baseline_module_diffs(evaluated_coverage_module)
+    diff_o, diff_ch = pr_comment_generator.calculate_baseline_module_diffs(evaluated_coverage_module)
 
     # Assert the differences are zero since the module is not in the baseline
     assert diff_o == 0.0
     assert diff_ch == 0.0
 
-def test_generate_changed_files_table_with_baseline(pr_comment_generator, mocker):
+def testgenerate_changed_files_table_with_baseline(pr_comment_generator, mocker):
     # Mock the necessary methods and attributes
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["baseline.xml"])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_modules", return_value={"test", "test2"})
@@ -120,7 +120,7 @@ def test_generate_changed_files_table_with_baseline(pr_comment_generator, mocker
     }
 
     # Generate the table
-    table = pr_comment_generator._generate_changed_files_table_with_baseline("✅", "❌")
+    table = pr_comment_generator.generate_changed_files_table_with_baseline("✅", "❌")
 
     # Assert the table content
     expected_table = """| File Path | Coverage | Threshold | Δ Coverage | Status |
@@ -128,7 +128,7 @@ def test_generate_changed_files_table_with_baseline(pr_comment_generator, mocker
 | [file1.java](https://github.com/fake_repo/pull/1/files#diff-fakehash) | 80.0% | 0.0% | +10.0% | ✅ |"""
     assert table == expected_table
 
-def test_generate_changed_files_table_with_baseline_no_evaluated_report_coverage(pr_comment_generator, mocker):
+def testgenerate_changed_files_table_with_baseline_no_evaluated_report_coverage(pr_comment_generator, mocker):
     # Mock the necessary methods and attributes
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["baseline.xml"])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_modules", return_value={"test", "test2"})
@@ -160,7 +160,7 @@ def test_generate_changed_files_table_with_baseline_no_evaluated_report_coverage
     }
 
     # Generate the table
-    table = pr_comment_generator._generate_changed_files_table_with_baseline("✅", "❌")
+    table = pr_comment_generator.generate_changed_files_table_with_baseline("✅", "❌")
 
     # Assert the table content
     expected_table = """| File Path | Coverage | Threshold | Δ Coverage | Status |
@@ -168,7 +168,7 @@ def test_generate_changed_files_table_with_baseline_no_evaluated_report_coverage
 | [file1.java](https://github.com/fake_repo/pull/1/files#diff-fakehash) | 80.0% | 0.0% | 0.0% | ✅ |"""
     assert table == expected_table
 
-def test_generate_changed_files_table_with_baseline_no_changed_file(pr_comment_generator, mocker):
+def testgenerate_changed_files_table_with_baseline_no_changed_file(pr_comment_generator, mocker):
     # Mock the necessary methods and attributes
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["baseline.xml"])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_modules", return_value={"test", "test2"})
@@ -200,7 +200,7 @@ def test_generate_changed_files_table_with_baseline_no_changed_file(pr_comment_g
     }
 
     # Generate the table
-    table = pr_comment_generator._generate_changed_files_table_with_baseline("✅", "❌")
+    table = pr_comment_generator.generate_changed_files_table_with_baseline("✅", "❌")
 
     # Assert the table content
     expected_table = """| File Path | Coverage | Threshold | Δ Coverage | Status |

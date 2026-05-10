@@ -9,7 +9,7 @@ def test_get_pr_changed_files(mocker):
     mocker.patch("os.getenv", side_effect=lambda key: "fake_repo" if key == "GITHUB_REPOSITORY" else "refs/pull/1/merge")
     mock_response = mocker.Mock()
     mock_response.json.return_value = [{"filename": "file1.py"}, {"filename": "file2.py"}]
-    mocker.patch.object(GitHub, "_send_request", return_value=mock_response)
+    mocker.patch.object(GitHub, "send_request", return_value=mock_response)
     github = GitHub("fake_token")
 
     files = github.get_pr_changed_files()
@@ -19,7 +19,7 @@ def test_get_pr_changed_files(mocker):
 
 def test_get_pr_changed_files_none_response(mocker):
     mocker.patch("os.getenv", side_effect=lambda key: "fake_repo" if key == "GITHUB_REPOSITORY" else "refs/pull/1/merge")
-    mocker.patch.object(GitHub, "_send_request", return_value=None)
+    mocker.patch.object(GitHub, "send_request", return_value=None)
     github = GitHub("fake_token")
 
     files = github.get_pr_changed_files()
@@ -27,9 +27,9 @@ def test_get_pr_changed_files_none_response(mocker):
     assert files is None
 
 
-# _send_request
+# send_request
 
-def test_send_request_get(mocker):
+def testsend_request_get(mocker):
     mock_session = mocker.Mock()
     mock_response = mocker.Mock()
     mock_response.raise_for_status = mocker.Mock()
@@ -37,14 +37,14 @@ def test_send_request_get(mocker):
     mocker.patch("requests.Session", return_value=mock_session)
     github = GitHub("fake_token")
 
-    response = github._send_request("GET", "https://api.github.com/test")
+    response = github.send_request("GET", "https://api.github.com/test")
 
     mock_session.get.assert_called_once_with("https://api.github.com/test", params=None)
     mock_response.raise_for_status.assert_called_once()
     assert response == mock_response
 
 
-def test_send_request_post(mocker):
+def testsend_request_post(mocker):
     mock_session = mocker.Mock()
     mock_response = mocker.Mock()
     mock_response.raise_for_status = mocker.Mock()
@@ -52,14 +52,14 @@ def test_send_request_post(mocker):
     mocker.patch("requests.Session", return_value=mock_session)
     github = GitHub("fake_token")
 
-    response = github._send_request("POST", "https://api.github.com/test", data={"key": "value"})
+    response = github.send_request("POST", "https://api.github.com/test", data={"key": "value"})
 
     mock_session.post.assert_called_once_with("https://api.github.com/test", json={"key": "value"}, params=None)
     mock_response.raise_for_status.assert_called_once()
     assert response == mock_response
 
 
-def test_send_request_patch(mocker):
+def testsend_request_patch(mocker):
     mock_session = mocker.Mock()
     mock_response = mocker.Mock()
     mock_response.raise_for_status = mocker.Mock()
@@ -67,14 +67,14 @@ def test_send_request_patch(mocker):
     mocker.patch("requests.Session", return_value=mock_session)
     github = GitHub("fake_token")
 
-    response = github._send_request("PATCH", "https://api.github.com/test", data={"key": "value"})
+    response = github.send_request("PATCH", "https://api.github.com/test", data={"key": "value"})
 
     mock_session.patch.assert_called_once_with("https://api.github.com/test", json={"key": "value"}, params=None)
     mock_response.raise_for_status.assert_called_once()
     assert response == mock_response
 
 
-def test_send_request_delete(mocker):
+def testsend_request_delete(mocker):
     mock_session = mocker.Mock()
     mock_response = mocker.Mock()
     mock_response.raise_for_status = mocker.Mock()
@@ -82,24 +82,24 @@ def test_send_request_delete(mocker):
     mocker.patch("requests.Session", return_value=mock_session)
     github = GitHub("fake_token")
 
-    response = github._send_request("DELETE", "https://api.github.com/test", data={"key": "value"})
+    response = github.send_request("DELETE", "https://api.github.com/test", data={"key": "value"})
 
     mock_session.delete.assert_called_once_with("https://api.github.com/test", json={"key": "value"}, params=None)
     mock_response.raise_for_status.assert_called_once()
     assert response == mock_response
 
 
-def test_send_request_unsupported_method(mocker):
+def testsend_request_unsupported_method(mocker):
     mock_logger = mocker.patch("jacoco_report.utils.github.logger")
     github = GitHub("fake_token")
 
-    response = github._send_request("PUT", "https://api.github.com/test")
+    response = github.send_request("PUT", "https://api.github.com/test")
 
     mock_logger.error.assert_called_once_with("Unsupported HTTP method: %s.", "PUT")
     assert response is None
 
 
-def test_send_request_get_http_error(mocker):
+def testsend_request_get_http_error(mocker):
     mock_session = mocker.Mock()
     mock_response = mocker.Mock()
     mock_response.raise_for_status.side_effect = requests.HTTPError("HTTP Error")
@@ -107,20 +107,20 @@ def test_send_request_get_http_error(mocker):
     mocker.patch("requests.Session", return_value=mock_session)
     github = GitHub("fake_token")
 
-    response = github._send_request("GET", "https://api.github.com/test")
+    response = github.send_request("GET", "https://api.github.com/test")
 
     mock_session.get.assert_called_once_with("https://api.github.com/test", params=None)
     mock_response.raise_for_status.assert_called_once()
     assert response is None
 
 
-def test_send_request_post_request_exception(mocker):
+def testsend_request_post_request_exception(mocker):
     mock_session = mocker.Mock()
     mock_session.post.side_effect = requests.RequestException("Request Exception")
     mocker.patch("requests.Session", return_value=mock_session)
     github = GitHub("fake_token")
 
-    response = github._send_request("POST", "https://api.github.com/test", data={"key": "value"})
+    response = github.send_request("POST", "https://api.github.com/test", data={"key": "value"})
 
     mock_session.post.assert_called_once_with("https://api.github.com/test", json={"key": "value"}, params=None)
     assert response is None
@@ -153,7 +153,7 @@ def test_get_pr_number_no_pr(mocker):
 def test_add_comment(mocker):
     mocker.patch("os.getenv", return_value="fake_repo")
     mock_response = mocker.Mock()
-    mock_send_req = mocker.patch.object(GitHub, "_send_request", return_value=mock_response)
+    mock_send_req = mocker.patch.object(GitHub, "send_request", return_value=mock_response)
     github = GitHub("fake_token")
 
     github.add_comment(1, "Test comment")
@@ -163,7 +163,7 @@ def test_add_comment(mocker):
 
 def test_add_comment_failed_request(mocker):
     mocker.patch("os.getenv", return_value="fake_repo")
-    mock_send_req = mocker.patch.object(GitHub, "_send_request", return_value=None)
+    mock_send_req = mocker.patch.object(GitHub, "send_request", return_value=None)
     github = GitHub("fake_token")
 
     github.add_comment(1, "Test comment")
@@ -177,7 +177,7 @@ def test_get_comments(mocker):
     mocker.patch("os.getenv", return_value="fake_repo")
     mock_response = mocker.Mock()
     mock_response.json.return_value = [{"body": "comment1"}, {"body": "comment2"}]
-    mock_send_req = mocker.patch.object(GitHub, "_send_request", return_value=mock_response)
+    mock_send_req = mocker.patch.object(GitHub, "send_request", return_value=mock_response)
     github = GitHub("fake_token")
 
     comments = github.get_comments(1)
@@ -197,7 +197,7 @@ def test_get_comments_pagination(mocker):
     mock_response_2.json.return_value = comments_page_2
 
     mocker.patch(
-        "jacoco_report.utils.github.GitHub._send_request",
+        "jacoco_report.utils.github.GitHub.send_request",
         side_effect=[mock_response_1, mock_response_2]
     )
 
@@ -220,7 +220,7 @@ def test_get_comments_unexpected_format(mocker):
     mocker.patch("os.getenv", return_value="fake_repo")
     mock_response = mocker.Mock()
     mock_response.json.return_value = {"body": "comment1"}
-    mock_send_req = mocker.patch.object(GitHub, "_send_request", return_value=mock_response)
+    mock_send_req = mocker.patch.object(GitHub, "send_request", return_value=mock_response)
     github = GitHub("fake_token")
 
     comments = github.get_comments(1)
@@ -239,7 +239,7 @@ def test_update_comment_success(mocker):
     mocker.patch("os.getenv", return_value="fake_repo")
     mock_response = mocker.Mock()
     mock_response.json.return_value = {"body": "Updated comment"}
-    mock_send_req = mocker.patch.object(GitHub, "_send_request", return_value=mock_response)
+    mock_send_req = mocker.patch.object(GitHub, "send_request", return_value=mock_response)
     github = GitHub("fake_token")
 
     result = github.update_comment(1, "Updated comment")
@@ -249,7 +249,7 @@ def test_update_comment_success(mocker):
 
 def test_update_comment_failed_request(mocker):
     mocker.patch("os.getenv", return_value="fake_repo")
-    mock_send_req = mocker.patch.object(GitHub, "_send_request", return_value=None)
+    mock_send_req = mocker.patch.object(GitHub, "send_request", return_value=None)
     github = GitHub("fake_token")
 
     result = github.update_comment(1, "Updated comment")
@@ -261,7 +261,7 @@ def test_update_comment_unexpected_response_format(mocker):
     mocker.patch("os.getenv", return_value="fake_repo")
     mock_response = mocker.Mock()
     mock_response.json.return_value = {"body": "unexpected_value"}
-    mock_send_req = mocker.patch.object(GitHub, "_send_request", return_value=mock_response)
+    mock_send_req = mocker.patch.object(GitHub, "send_request", return_value=mock_response)
     github = GitHub("fake_token")
 
     result = github.update_comment(1, "Updated comment")
@@ -275,27 +275,27 @@ def test_update_comment_unexpected_response_format(mocker):
 def test_delete_pr_comment_success(mocker, github):
     mock_response = mocker.Mock()
     mock_response.status_code = 204  # HTTP 204 No Content
-    mocker.patch.object(github, "_send_request", return_value=mock_response)
+    mocker.patch.object(github, "send_request", return_value=mock_response)
 
     result = github.delete_comment(123)
 
-    github._send_request.assert_called_once_with("DELETE", "https://api.github.com/repos/fake_repo/issues/comments/123")
+    github.send_request.assert_called_once_with("DELETE", "https://api.github.com/repos/fake_repo/issues/comments/123")
     assert result is True
 
 def test_delete_pr_comment_failed_request(mocker, github):
-    mocker.patch.object(github, "_send_request", return_value=None)
+    mocker.patch.object(github, "send_request", return_value=None)
 
     result = github.delete_comment(123)
 
-    github._send_request.assert_called_once_with("DELETE", "https://api.github.com/repos/fake_repo/issues/comments/123")
+    github.send_request.assert_called_once_with("DELETE", "https://api.github.com/repos/fake_repo/issues/comments/123")
     assert result is False
 
 def test_delete_pr_comment_unexpected_response(mocker, github):
     mock_response = mocker.Mock()
     mock_response.status_code = 400  # HTTP 400 Bad Request
-    mocker.patch.object(github, "_send_request", return_value=mock_response)
+    mocker.patch.object(github, "send_request", return_value=mock_response)
 
     result = github.delete_comment(123)
 
-    github._send_request.assert_called_once_with("DELETE", "https://api.github.com/repos/fake_repo/issues/comments/123")
+    github.send_request.assert_called_once_with("DELETE", "https://api.github.com/repos/fake_repo/issues/comments/123")
     assert result is False

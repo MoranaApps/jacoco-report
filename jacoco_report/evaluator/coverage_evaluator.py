@@ -140,7 +140,7 @@ class CoverageEvaluator:
                 )
 
                 # save the evaluated module
-                self.evaluated_modules_coverage[module_name] = self._evaluate_module(evaluated_coverage_module)
+                self.evaluated_modules_coverage[module_name] = self.evaluate_module(evaluated_coverage_module)
 
         # evaluate the global coverage values
         self.total_coverage_overall = global_overall.coverage()
@@ -155,9 +155,9 @@ class CoverageEvaluator:
             )
 
         # review for violations
-        self._review_violations()
+        self.review_violations()
 
-    def _review_violations(self) -> None:
+    def review_violations(self) -> None:
         """
         Reviews the coverage evaluation results and appends violations to the violations list.
         Global violations are only reported when comment mode is set to SINGLE.
@@ -233,7 +233,7 @@ class CoverageEvaluator:
         self.violations.extend(report_violations)
         self.violations.extend(changed_files_violations)
 
-    def _evaluate_module(self, evaluated_coverage: EvaluatedReportCoverage) -> EvaluatedReportCoverage:
+    def evaluate_module(self, evaluated_coverage: EvaluatedReportCoverage) -> EvaluatedReportCoverage:
         """
         Evaluates the coverage of the one module.
         Evaluation uses modules thresholds if defined, otherwise global thresholds.

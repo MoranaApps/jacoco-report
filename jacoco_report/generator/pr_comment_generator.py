@@ -73,7 +73,7 @@ class PRCommentGenerator:
         p = ActionInputs.get_pass_symbol()
         f = ActionInputs.get_fail_symbol()
 
-        body += f"\n\n{self._get_basic_table_for_all(p, f)}"
+        body += f"\n\n{self.get_basic_table_for_all(p, f)}"
 
         if ActionInputs.get_comment_level() == CommentLevelEnum.FULL:
             reports_table = self._get_reports_table(p, f)
@@ -84,9 +84,9 @@ class PRCommentGenerator:
 
         return title, body
 
-    def _get_basic_table_for_all(self, p: str, f: str) -> str:
+    def get_basic_table_for_all(self, p: str, f: str) -> str:
         if not ActionInputs.get_baseline_paths():
-            return self._get_basic_table(
+            return self.get_basic_table(
                 p,
                 f,
                 ActionInputs.get_metric(),
@@ -98,7 +98,7 @@ class PRCommentGenerator:
                 ActionInputs.get_global_changed_files_average_threshold(),
             )
 
-        return self._get_basic_table_with_baseline(
+        return self.get_basic_table_with_baseline(
             p,
             f,
             ActionInputs.get_metric(),
@@ -118,7 +118,7 @@ class PRCommentGenerator:
     # | **Overall**          | 85.2%    | 80%       | +1,3%      | ✅      |
     # | **Changed Files**    | 78.4%    | 80%       | 0.3%       | ❌      |
 
-    def _get_basic_table(
+    def get_basic_table(
         self,
         p: str,
         f: str,
@@ -149,7 +149,7 @@ class PRCommentGenerator:
             )
         )
 
-    def _get_basic_table_with_baseline(
+    def get_basic_table_with_baseline(
         self,
         p: str,
         f: str,
@@ -288,7 +288,7 @@ class PRCommentGenerator:
             return True
         return False
 
-    def _calculate_baseline_module_diffs(self, evaluated_coverage: EvaluatedReportCoverage) -> tuple[float, float]:
+    def calculate_baseline_module_diffs(self, evaluated_coverage: EvaluatedReportCoverage) -> tuple[float, float]:
         if evaluated_coverage.name not in self.bs_evaluator.evaluated_modules_coverage.keys():
             return 0.0, 0.0
 
@@ -325,7 +325,7 @@ class PRCommentGenerator:
     # | `src/main/java/com/example/File2.java`         | 70.5%    | 80%       | -1.0%      | ❌      |
     # | `src/main/java/com/example/File3.java`         | 82.1%    | 80%       | +2.7%      | ✅      |
 
-    def _generate_changed_files_table_without_baseline(
+    def generate_changed_files_table_without_baseline(
         self, p: str, f: str, evaluated_reports_coverage: Optional[dict[str, EvaluatedReportCoverage]] = None
     ) -> str:
         """
@@ -369,11 +369,11 @@ class PRCommentGenerator:
             return "\nNo changed file in reports."
 
         if not ActionInputs.get_baseline_paths():
-            return self._generate_changed_files_table_without_baseline(p, f)
+            return self.generate_changed_files_table_without_baseline(p, f)
 
-        return self._generate_changed_files_table_with_baseline(p, f)
+        return self.generate_changed_files_table_with_baseline(p, f)
 
-    def _generate_changed_files_table_with_baseline(
+    def generate_changed_files_table_with_baseline(
         self, p: str, f: str, evaluated_reports_coverage: Optional[dict[str, EvaluatedReportCoverage]] = None
     ) -> str:
         s = dedent("""

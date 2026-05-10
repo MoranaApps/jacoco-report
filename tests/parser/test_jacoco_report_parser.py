@@ -85,12 +85,11 @@ def test_parse_changed_files_stats(parser, sample_jacoco_report):
     assert file_coverage.clazz == Counter(missed=0, covered=5)
 
 
-def test_file_not_in_changed_files(parser, sample_jacoco_report, caplog):
-    # Add a file that is not in the changed_files list
-    parser._changed_files = ["com/example/NonExistent.java"]
+def test_file_not_in_changed_files(sample_jacoco_report, caplog):
+    non_matching_parser = JaCoCoReportParser(changed_files=["com/example/NonExistent.java"], modules={})
 
     with caplog.at_level(logging.DEBUG):
-        parser.parse(sample_jacoco_report)
+        non_matching_parser.parse(sample_jacoco_report)
 
     assert "File 'com/example/Example.java' is not in the list of changed files." in caplog.text
 
