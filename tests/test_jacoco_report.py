@@ -2233,12 +2233,12 @@ module_detail_violations = [
 ]
 
 # Note: used min 100% coverage for overall and changed files to test the violations
+# Violations are independent of comment level — MINIMAL and FULL produce the same violation list.
 more_source_files_scenarios = [
-    # this tests will be finally covered with final implementation of levels
-    # ("1", CommentLevelEnum.MINIMAL, {}, {}, changed_files, single_minimal_violations),
-    # ("2", CommentLevelEnum.FULL, {}, {}, changed_files, single_detail_violations),
-    # with modules expecting 100% coverage
-    # ("101", CommentLevelEnum.MINIMAL, modules, modules_thresholds_100_all, changed_files, single_minimal_violations),
+    ("1", CommentLevelEnum.MINIMAL, {}, {}, changed_files, single_detail_violations),
+    ("2", CommentLevelEnum.FULL, {}, {}, changed_files, single_detail_violations),
+    # Depends on task 16 (E2): _get_modules() must be restored before module violations are produced
+    # ("101", CommentLevelEnum.MINIMAL, modules, modules_thresholds_100_all, changed_files, single_detail_violations_with_modules),
     # ("102", CommentLevelEnum.FULL, modules, modules_thresholds_100_all, changed_files, single_detail_violations_with_modules),
 ]
 @pytest.mark.parametrize("id, level, modules, modules_thresholds, changed_files, violations", more_source_files_scenarios)
@@ -2246,8 +2246,7 @@ def test_violations(jacoco_report, id, level, modules, modules_thresholds, chang
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value='pull_request')
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_token", return_value='fake_token')
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_comment_level", return_value=level)
-    # mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=["tests/data/test_project/**/jacoco.xml"])
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=["data/test_project/**/jacoco.xml"])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=["tests/data/test_project/**/jacoco.xml"])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_threshold", return_value=100.0)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_files_average_threshold", return_value=100.0)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_file_threshold", return_value=100.0)
