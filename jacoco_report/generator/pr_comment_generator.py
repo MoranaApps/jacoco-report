@@ -202,13 +202,9 @@ class PRCommentGenerator:
                 |-------|----------|-----------|------------|--------|
             """).strip()
             for group_name, ev in sorted(self.evaluator.evaluated_groups_coverage.items()):
-                bs_ev = self.bs_evaluator.evaluated_groups_coverage.get(group_name)
-                diff_o = round(ev.overall_coverage_reached - (bs_ev.overall_coverage_reached if bs_ev else 0.0), 2)
-                diff_ch = round(
-                    ev.avg_changed_files_coverage_reached
-                    - (bs_ev.avg_changed_files_coverage_reached if bs_ev else 0.0),
-                    2,
-                )
+                diff_o, diff_ch = self.calculate_baseline_group_diffs(ev)
+                diff_o = round(diff_o, 2)
+                diff_ch = round(diff_ch, 2)
                 cov = f"{ev.overall_coverage_reached}% / {ev.avg_changed_files_coverage_reached}%"
                 thres = f"{ev.overall_coverage_threshold}% / {ev.changed_files_threshold}%"
                 delta = f"{'+' if diff_o > 0.001 else ''}{diff_o}% / {'+' if diff_ch > 0.001 else ''}{diff_ch}%"

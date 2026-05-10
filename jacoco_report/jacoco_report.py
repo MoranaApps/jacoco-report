@@ -119,12 +119,11 @@ class JaCoCoReport:
         if len(baseline_report_paths_to_analyse) == 0:
             logger.warning("No baseline JaCoCo xml file found. No difference will be calculated.")
         else:
-            # analyse received baseline xml report files - limit to the same modules and changed files
             logger.info("Analyzing baseline JaCoCo (xml) reports.")
             for report_path in baseline_report_paths_to_analyse:
                 bs_report_files_coverage.append(parser.parse(report_path))
 
-        # evaluate the coverage and module to xml file mapping
+        # evaluate the coverage
         logger.info("Evaluating the coverage of the reports.")
         evaluator: CoverageEvaluator = CoverageEvaluator(
             report_files_coverage=report_files_coverage,

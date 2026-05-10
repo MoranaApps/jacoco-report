@@ -53,7 +53,7 @@ failure_cases = [
     ("get_report_groups", "- name: ''\n  paths: ['**']", "'report-groups' entry #1 must have a non-empty 'name'."),
     ("get_report_groups", "- name: group1\n  paths: []", "'report-groups' entry #1 must have a non-empty 'paths' list of non-empty strings."),
     ("get_report_groups", "- name: group1\n  paths: ['**']\n  thresholds: '80'", "'report-groups' entry #1 'thresholds' must be in format 'O*A*P' (e.g. '80*70*60')."),
-    ("get_report_groups", "- name: group1\n  paths: ['**']\n  thresholds: 'x*70*60'", "'report-groups' entry #1 'thresholds' overall value 'x' must be a float 0–100."),
+    ("get_report_groups", "- name: group1\n  paths: ['**']\n  thresholds: 'x*70*60'", "'report-groups' entry #1 'thresholds' overall value 'x' must be a float in [0, 100)."),
     ("get_skip_unchanged", "", "'skip-unchanged' must be a boolean."),
     ("get_skip_unchanged", 1, "'skip-unchanged' must be a boolean."),
     ("get_update_comment", "", "'update-comment' must be a boolean."),
@@ -264,7 +264,7 @@ def test_validate_report_groups_invalid_threshold_format(mocker):
 
 def test_validate_report_groups_invalid_threshold_value(mocker):
     errors = ActionInputs.validate_report_groups("- name: g\n  paths: ['**']\n  thresholds: 'x*70*60'")
-    assert any("overall value" in e for e in errors)
+    assert any("overall value" in e and "[0, 100)" in e for e in errors)
 
 
 def test_get_skip_unchanged_true(mocker):

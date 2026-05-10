@@ -7,7 +7,7 @@ from jacoco_report.model.counter import Counter
 
 class EvaluatedReportCoverage:
     """
-    A class that represents an evaluated coverage of one report file or module.
+    A class that represents an evaluated coverage of one report file or report group.
     """
 
     def __init__(self, name: str = "Unknown", group_name: str = "Unknown"):
@@ -36,6 +36,7 @@ class EvaluatedReportCoverage:
         """Convert object to dictionary for JSON serialization"""
         return {
             "name": self.name,
+            "group_name": self.group_name,
             "overall_passed": self.overall_passed,
             "overall_coverage_reached": self.overall_coverage_reached,
             "overall_coverage_threshold": self.overall_coverage_threshold,

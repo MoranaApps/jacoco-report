@@ -2285,4 +2285,3 @@ def test_filtered_out_all_from_changed_file(jacoco_report, mocker):
 
     # Parse the JSON strings
     # dict_evaluated_coverage_reports: dict = json.loads(jacoco_report.evaluated_coverage_reports)
-    # dict_evaluated_coverage_modules: dict = json.loads(jacoco_report.evaluated_coverage_modules)

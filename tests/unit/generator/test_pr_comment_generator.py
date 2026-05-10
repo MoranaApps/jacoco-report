@@ -205,3 +205,74 @@ def testgenerate_changed_files_table_with_baseline_no_changed_file(pr_comment_ge
 |-----------|----------|-----------|------------|--------|
 | [file1.java](https://github.com/fake_repo/pull/1/files#diff-fakehash) | 80.0% | 0.0% | 0.0% | ✅ |"""
     assert table == expected_table
+
+
+def test_get_groups_table_empty(pr_comment_generator, mocker):
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=[])
+    pr_comment_generator.evaluator.evaluated_groups_coverage = {}
+    assert pr_comment_generator._get_groups_table("✅", "❌") == ""
+
+
+def test_get_groups_table_without_baseline(pr_comment_generator, mocker):
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=[])
+    ev = EvaluatedReportCoverage("backend")
+    ev.overall_coverage_reached = 85.0
+    ev.avg_changed_files_coverage_reached = 80.0
+    ev.overall_coverage_threshold = 75.0
+    ev.changed_files_threshold = 70.0
+    ev.overall_passed = True
+    ev.avg_changed_files_passed = True
+    pr_comment_generator.evaluator.evaluated_groups_coverage = {"backend": ev}
+
+    table = pr_comment_generator._get_groups_table("✅", "❌")
+
+    assert "| Group |" in table
+    assert "| `backend` | 85.0% / 80.0% | 75.0% / 70.0% | ✅/✅ |" in table
+
+
+def test_get_groups_table_with_baseline(pr_comment_generator, mocker):
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["baseline.xml"])
+    ev = EvaluatedReportCoverage("backend")
+    ev.overall_coverage_reached = 85.0
+    ev.avg_changed_files_coverage_reached = 80.0
+    ev.overall_coverage_threshold = 75.0
+    ev.changed_files_threshold = 70.0
+    ev.overall_passed = True
+    ev.avg_changed_files_passed = False
+    pr_comment_generator.evaluator.evaluated_groups_coverage = {"backend": ev}
+
+    bs_ev = EvaluatedReportCoverage("backend")
+    bs_ev.overall_coverage_reached = 80.0
+    bs_ev.avg_changed_files_coverage_reached = 75.0
+    bs_evaluator = mocker.Mock()
+    bs_evaluator.evaluated_groups_coverage = {"backend": bs_ev}
+    pr_comment_generator.bs_evaluator = bs_evaluator
+
+    table = pr_comment_generator._get_groups_table("✅", "❌")
+
+    assert "| Group |" in table
+    assert "Δ Coverage" in table
+    assert "| `backend` | 85.0% / 80.0% | 75.0% / 70.0% | +5.0% / +5.0% | ✅/❌ |" in table
+
+
+def test_reports_table_uses_group_thresholds_when_groups_configured(pr_comment_generator, mocker):
+    from jacoco_report.model.report_group import ReportGroup
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=[])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups",
+                 return_value=[ReportGroup("backend", ["**/jacoco.xml"])])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_threshold", return_value=50.0)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_files_average_threshold", return_value=50.0)
+
+    ev = EvaluatedReportCoverage("backend-report")
+    ev.overall_coverage_reached = 90.0
+    ev.avg_changed_files_coverage_reached = 85.0
+    ev.overall_coverage_threshold = 75.0
+    ev.changed_files_threshold = 70.0
+    ev.overall_passed = True
+    ev.avg_changed_files_passed = True
+    pr_comment_generator.evaluator.evaluated_reports_coverage = {"backend-report": ev}
+
+    table = pr_comment_generator._generate_reports_table_without_baseline("✅", "❌")
+
+    assert "75.0% / 70.0%" in table
+    assert "50.0%" not in table

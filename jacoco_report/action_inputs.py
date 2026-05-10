@@ -375,7 +375,7 @@ class ActionInputs:
                 else:
                     for label, v in zip(("overall", "avg-changed", "per-file"), parts):
                         if v and not _is_valid_threshold_float(v):
-                            errors.append(f"{prefix} 'thresholds' {label} value '{v}' must be a float 0–100.")
+                            errors.append(f"{prefix} 'thresholds' {label} value '{v}' must be a float in [0, 100).")
             baseline_paths = entry.get("baseline-paths", [])
             if baseline_paths is not None and not isinstance(baseline_paths, list):
                 errors.append(f"{prefix} 'baseline-paths' must be a list.")

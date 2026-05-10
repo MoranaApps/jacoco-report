@@ -300,7 +300,7 @@ mypy .
 
 ---
 
-#### Task 28 — `report-groups` YAML input ⬜
+#### Task 28 — `report-groups` YAML input ✅
 
 **Branch:** `feature/108-report-groups-yaml-input`
 **Issue:** #108 | **Depends on:** Tasks 23, 24 (design ✅). Note: task 16 skipped — no v2 baseline.
@@ -329,13 +329,13 @@ mypy .
 `Group | Coverage (O/Ch) | Threshold (O/Ch) | [Δ Coverage (O/Ch)] | Status (O/Ch)`
 
 **Acceptance criteria:**
-- [ ] `report-groups` YAML parsed and validated
-- [ ] Invalid YAML raises a clear `ValueError` in `ActionInputs`
-- [ ] Each group's paths are resolved independently
-- [ ] Groups table appears only when `report-groups` is non-empty
-- [ ] `modules` and `modules-thresholds` removed from `action.yml`
-- [ ] Existing three-table structure intact when no groups configured
-- [ ] `report-groups` validation failure tests (from task 18) pass in new format
+- [x] `report-groups` YAML parsed and validated
+- [x] Invalid YAML raises a clear `ValueError` in `ActionInputs`
+- [x] Each group's paths are resolved independently
+- [x] Groups table appears only when `report-groups` is non-empty
+- [x] `modules` and `modules-thresholds` removed from `action.yml`
+- [x] Existing three-table structure intact when no groups configured
+- [x] `report-groups` validation failure tests (from task 18) pass in new format
 
 ---
 
@@ -617,7 +617,7 @@ Task 27 ──────────────────► Task 31
 - [ ] All Group 0 Renovate PRs merged
 - [ ] Task 20 (fixture factories) done
 - [x] Task 27 (`skip-unchanged`) done
-- [ ] Task 28 (`report-groups`) done
+- [x] Task 28 (`report-groups`) done
 - [ ] Task 29 (`report-thresholds-default`) done
 - [ ] Task 30 (full `comment-level`) done
 - [ ] Task 31 (`fail-on-threshold` deprecation + `evaluate-unchanged`) done

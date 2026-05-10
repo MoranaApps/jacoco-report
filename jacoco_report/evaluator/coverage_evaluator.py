@@ -164,16 +164,16 @@ class CoverageEvaluator:
             self.reached_threshold_changed_files_average = False
 
         # group violations
-        module_violations: list[str] = []
+        group_violations: list[str] = []
         for group_name, evaluated_coverage_group in self.evaluated_groups_coverage.items():
             if not evaluated_coverage_group.overall_passed:
-                module_violations.append(
+                group_violations.append(
                     f"Group '{group_name}' overall coverage {evaluated_coverage_group.overall_coverage_reached} "
                     f"is below the threshold {evaluated_coverage_group.overall_coverage_threshold}."
                 )
                 self.reached_threshold_overall = False
             if not evaluated_coverage_group.avg_changed_files_passed:
-                module_violations.append(
+                group_violations.append(
                     f"Group '{group_name}' changed files coverage "
                     f"{evaluated_coverage_group.avg_changed_files_coverage_reached} is below the threshold "
                     f"{evaluated_coverage_group.changed_files_threshold}."
@@ -207,7 +207,7 @@ class CoverageEvaluator:
                     self.reached_threshold_per_change_file = False
 
         # Add all violations to the list
-        self.violations.extend(module_violations)
+        self.violations.extend(group_violations)
         self.violations.extend(report_violations)
         self.violations.extend(changed_files_violations)
 
@@ -261,7 +261,7 @@ class CoverageEvaluator:
     ) -> EvaluatedReportCoverage:
         """
         Evaluates the coverage of the one report.
-        Evaluation uses modules thresholds if defined, otherwise global thresholds.
+        Evaluation uses group thresholds if defined, otherwise global thresholds.
 
         Parameters:
             report_coverage (ReportFileCoverage): The coverage of the report

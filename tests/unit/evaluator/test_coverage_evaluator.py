@@ -123,55 +123,6 @@ def test_review_violations_global_changed_files_coverage_zero_w_changed_file(eva
 
     assert "Global changed files coverage 0.0 is below the threshold 50.0." in evaluator.violations
 
-# TODO commented out because of the issue with the module coverage
-# def test_review_violations_module_overall_coverage_below_threshold(evaluator, mocker):
-#     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_comment_mode", return_value=CommentModeEnum.SINGLE)
-#     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_sensitivity", return_value=SensitivityEnum.SUMMARY)
-#     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_modules", return_value=modules)
-#
-#     evaluator.total_coverage_overall = 75.0
-#     evaluator.total_coverage_changed_files = 80.0
-#     evaluator.total_coverage_overall_passed = True
-#     evaluator.total_coverage_changed_files_passed = True
-#
-#     module_evaluated_coverage: EvaluatedReportCoverage = EvaluatedReportCoverage("module-a")
-#     module_evaluated_coverage.overall_coverage_reached = 40.0
-#     module_evaluated_coverage.overall_passed = False
-#     module_evaluated_coverage.overall_coverage_threshold = 50.0
-#
-#     evaluator.evaluated_modules_coverage = {
-#         "module-a": module_evaluated_coverage
-#     }
-#     evaluator.review_violations()
-#
-#     assert "Module 'module-a' overall coverage 40.0 is below the threshold 50.0." in evaluator.violations
-
-# def test_review_violations_module_changed_files_coverage_below_threshold(evaluator, mocker):
-#     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_comment_mode", return_value=CommentModeEnum.SINGLE)
-#     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_sensitivity", return_value=SensitivityEnum.SUMMARY)
-#     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_modules", return_value=modules)
-#
-#     evaluator.total_coverage_overall = 75.0
-#     evaluator.total_coverage_changed_files = 80.0
-#     evaluator.total_coverage_overall_passed = True
-#     evaluator.total_coverage_changed_files_passed = True
-#
-#     module_evaluated_coverage: EvaluatedReportCoverage = EvaluatedReportCoverage("module-a")
-#     module_evaluated_coverage.overall_coverage_reached = 60.0
-#     module_evaluated_coverage.overall_passed = True
-#     module_evaluated_coverage.overall_coverage_threshold = 50.0
-#
-#     module_evaluated_coverage.avg_changed_files_passed = False
-#     module_evaluated_coverage.avg_changed_files_coverage_reached = 40.0
-#     module_evaluated_coverage.changed_files_threshold = 50.0
-#
-#     evaluator.evaluated_modules_coverage = {
-#         "module-a": module_evaluated_coverage
-#     }
-#     evaluator.review_violations()
-#
-#     assert "Module 'module-a' changed files coverage 40.0 is below the threshold 50.0." in evaluator.violations
-
 def test_review_violations_report_overall_coverage_below_threshold(evaluator, mocker):
     evaluator.total_coverage_overall = 75.0
     evaluator.total_coverage_changed_files = 80.0
@@ -219,7 +170,7 @@ def test_review_violations_report_changed_files_coverage_below_threshold(evaluat
 
     assert "Report 'filepath' changed files coverage 40.0 is below the threshold 50.0." in evaluator.violations
 
-def test_evaluate_module_with_patched_thresholds(mocker):
+def test_evaluate_group_with_zero_coverage(mocker):
     # Create a sample report file coverage
     overall_coverage = Coverage(
         instruction=Counter(missed=0, covered=0),
@@ -257,18 +208,90 @@ def test_evaluate_module_with_patched_thresholds(mocker):
         global_min_coverage_changed_per_file=50.0
     )
 
-    # Patch the _set_thresholds method
-    mocker.patch.object(evaluator, '_set_thresholds', return_value=(50.0, 50.0, 50.0))
+    evaluated_coverage = EvaluatedReportCoverage("module-a")
+    evaluated_coverage.overall_coverage.covered = 0
+    evaluated_coverage.overall_coverage.missed = 0
 
-    # Create an evaluated coverage module with no coverage
-    evaluated_coverage_module = EvaluatedReportCoverage("module-a")
-    evaluated_coverage_module.overall_coverage.covered = 0
-    evaluated_coverage_module.overall_coverage.missed = 0
-
-    # Evaluate the group
     group = ReportGroup(name="module-a", paths=[])
-    evaluated_coverage_module = evaluator.evaluate_group(evaluated_coverage_module, group)
+    evaluated_coverage = evaluator.evaluate_group(evaluated_coverage, group)
 
-    # Assert that the overall coverage reached is 0.0 and it passed
-    assert evaluated_coverage_module.overall_coverage_reached == 0.0
-    assert evaluated_coverage_module.overall_passed is True
+    assert evaluated_coverage.overall_coverage_reached == 0.0
+    assert evaluated_coverage.overall_passed is True
+
+
+def test_set_thresholds_uses_group_when_matched():
+    group = ReportGroup(name="team-a", paths=[], min_coverage_overall=70.0,
+                        min_coverage_changed_files=60.0, min_coverage_per_changed_file=50.0)
+    evaluator = CoverageEvaluator(
+        report_files_coverage=[],
+        global_min_coverage_overall=80.0,
+        global_min_coverage_changed_files=75.0,
+        global_min_coverage_changed_per_file=65.0,
+        report_groups=[group],
+    )
+    o, ch, pf = evaluator._set_thresholds("team-a")
+    assert o == 70.0
+    assert ch == 60.0
+    assert pf == 50.0
+
+
+def test_set_thresholds_falls_back_to_global_when_no_match():
+    group = ReportGroup(name="team-a", paths=[])
+    evaluator = CoverageEvaluator(
+        report_files_coverage=[],
+        global_min_coverage_overall=80.0,
+        global_min_coverage_changed_files=75.0,
+        global_min_coverage_changed_per_file=65.0,
+        report_groups=[group],
+    )
+    o, ch, pf = evaluator._set_thresholds("unknown-group")
+    assert o == 80.0
+    assert ch == 75.0
+    assert pf == 65.0
+
+
+def test_set_thresholds_partial_group_thresholds_fall_back_to_global():
+    group = ReportGroup(name="team-a", paths=[], min_coverage_overall=70.0)
+    evaluator = CoverageEvaluator(
+        report_files_coverage=[],
+        global_min_coverage_overall=80.0,
+        global_min_coverage_changed_files=75.0,
+        global_min_coverage_changed_per_file=65.0,
+        report_groups=[group],
+    )
+    o, ch, pf = evaluator._set_thresholds("team-a")
+    assert o == 70.0
+    assert ch == 75.0
+    assert pf == 65.0
+
+
+def test_evaluate_populates_evaluated_groups_coverage():
+    overall_coverage = Coverage(
+        instruction=Counter(missed=0, covered=10),
+        branch=Counter(missed=0, covered=10),
+        line=Counter(missed=0, covered=10),
+        complexity=Counter(missed=0, covered=10),
+        method=Counter(missed=0, covered=10),
+        clazz=Counter(missed=0, covered=10),
+    )
+    report = ReportFileCoverage(
+        path="report.xml",
+        name="My Report",
+        overall_coverage=overall_coverage,
+        changed_files_coverage={},
+        group_name="team-a",
+    )
+    group = ReportGroup(name="team-a", paths=[], min_coverage_overall=80.0)
+    evaluator = CoverageEvaluator(
+        report_files_coverage=[report],
+        global_min_coverage_overall=50.0,
+        global_min_coverage_changed_files=50.0,
+        global_min_coverage_changed_per_file=50.0,
+        report_groups=[group],
+    )
+    evaluator.evaluate()
+
+    assert "team-a" in evaluator.evaluated_groups_coverage
+    group_cov = evaluator.evaluated_groups_coverage["team-a"]
+    assert group_cov.overall_coverage_threshold == 80.0
+    assert group_cov.overall_passed is True
