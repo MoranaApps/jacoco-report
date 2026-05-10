@@ -121,22 +121,22 @@ class GitHub:
         """
         try:
             if self.__session is None:
-                self.__initialize_request_session()
+                self.__session = self.__initialize_request_session()
 
-            assert self.__session is not None
+            session = self.__session
             response = None
             # Fetch the response from the API
             if method == "GET":
-                response = self.__session.get(url, params=params)
+                response = session.get(url, params=params)
                 response.raise_for_status()
             elif method == "POST":
-                response = self.__session.post(url, params=params, json=data)
+                response = session.post(url, params=params, json=data)
                 response.raise_for_status()
             elif method == "PATCH":
-                response = self.__session.patch(url, params=params, json=data)
+                response = session.patch(url, params=params, json=data)
                 response.raise_for_status()
             elif method == "DELETE":
-                response = self.__session.delete(url, params=params, json=data)
+                response = session.delete(url, params=params, json=data)
                 response.raise_for_status()
             else:
                 logger.error("Unsupported HTTP method: %s.", method)
