@@ -210,7 +210,7 @@ All done! ✨ 🍰 ✨
 Unit tests are written using the Pytest framework. To run all the tests, use the following command:
 
 ```shell
-pytest tests/
+pytest tests/unit/
 ```
 
 You can modify the directory to control the level of detail or granularity as per your needs.
@@ -218,7 +218,7 @@ You can modify the directory to control the level of detail or granularity as pe
 To run a specific test, write the command following the pattern below:
 
 ```shell
-pytest tests/utils/test_utils.py::test_make_issue_key
+pytest tests/unit/utils/test_github.py::test_send_request_get
 ```
 
 ---
@@ -232,7 +232,7 @@ report.
 To generate the coverage report, run the following command:
 
 ```shell
-pytest --cov=. tests/ --cov-fail-under=80 --cov-report=html -vv
+pytest tests/unit/ --cov=. --cov-fail-under=80 --cov-report=html -vv
 ```
 
 See the coverage report on the path:

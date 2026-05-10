@@ -109,7 +109,7 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run unit tests with coverage
-        run: pytest --ignore=tests/integration --cov=. tests/ --cov-fail-under=80 --cov-report=html
+        run: pytest tests/unit/ --cov=. --cov-fail-under=80 --cov-report=html
 
   integration-tests:
     needs: set-matrix
