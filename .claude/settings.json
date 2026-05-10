@@ -79,7 +79,14 @@
       "Bash(brew list *)",
       "Read(//usr/local/bin/**)",
       "Bash(brew info *)",
-      "Read(//usr/local/opt/**)"
+      "Read(//usr/local/opt/**)",
+      "Bash(python3.14 --version)",
+      "Read(//usr/local/Cellar/python@3.14/3.14.4_1/**)",
+      "Read(//usr/local/**)",
+      "Read(//opt/**)",
+      "Read(//opt/homebrew/**)",
+      "Bash(/usr/local/Cellar/python@3.14/3.14.4_1/bin/python3.14 -m venv venv --clear)",
+      "Bash(venv/bin/pip install *)"
     ]
   }
 }
