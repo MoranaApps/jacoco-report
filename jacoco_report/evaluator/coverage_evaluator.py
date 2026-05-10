@@ -218,6 +218,7 @@ class CoverageEvaluator:
                     self.reached_threshold_per_change_file = False
 
         # Add all violations to the list
+        self.violations.extend(module_violations)
         self.violations.extend(report_violations)
         self.violations.extend(changed_files_violations)
 
