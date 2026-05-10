@@ -86,7 +86,8 @@
       "Read(//opt/**)",
       "Read(//opt/homebrew/**)",
       "Bash(/usr/local/Cellar/python@3.14/3.14.4_1/bin/python3.14 -m venv venv --clear)",
-      "Bash(venv/bin/pip install *)"
+      "Bash(venv/bin/pip install *)",
+      "Bash(git commit -m ' *)"
     ]
   }
 }
