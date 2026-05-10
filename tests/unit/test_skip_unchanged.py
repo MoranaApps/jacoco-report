@@ -76,17 +76,19 @@ def _report_without_changes(name: str, make_report_file_coverage) -> ReportFileC
 
 # --- scan-stage filter tests ---
 
-def test_skip_unchanged_filters_report_with_no_changed_files(mocker: MockerFixture, make_report_file_coverage):
+def test_skip_unchanged_filters_report_with_no_changed_files(
+    mocker: MockerFixture, make_report_file_coverage, caplog
+):
     unchanged = _report_without_changes("Report A", make_report_file_coverage)
     changed = _report_with_changes("Report B", make_report_file_coverage)
 
     _make_run_mocks(mocker, skip_unchanged=True, reports=[unchanged, changed])
-    jr = JaCoCoReport()
-    jr.run()
 
-    # evaluator only sees the one report with changed files
-    assert jr.total_overall_coverage >= 0.0  # ran to completion
-    assert jr.violations == []
+    with caplog.at_level(logging.INFO, logger="jacoco_report.jacoco_report"):
+        JaCoCoReport().run()
+
+    assert "Skipping report 'Report A': no changed files." in caplog.text
+    assert "Skipping report 'Report B'" not in caplog.text
 
 
 def test_skip_unchanged_logs_each_filtered_report(mocker: MockerFixture, make_report_file_coverage, caplog):
