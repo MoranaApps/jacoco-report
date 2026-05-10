@@ -34,7 +34,6 @@ from jacoco_report.utils.github import GitHub
 logger = logging.getLogger(__name__)
 
 
-# pylint: disable=too-many-branches, too-many-statements, too-many-locals, too-many-public-methods
 class ActionInputs:
     """
     A class representing the inputs provided to the GH action.
@@ -375,7 +374,6 @@ class ActionInputs:
 
         return []
 
-    # pylint: disable=too-many-return-statements
     @staticmethod
     def validate_module_threshold(input_module_threshold: str) -> list[str]:
         """
@@ -596,31 +594,44 @@ class ActionInputs:
         if not isinstance(debug, bool):
             errors.append("'debug' must be a boolean.")
 
-        # pylint: disable=W1203
         logger.info(
             "[CONFIGURATION] Received input values:\n"
-            f"Paths: {ActionInputs.get_paths()}\n"
-            f"Exclude paths: {ActionInputs.get_exclude_paths()}\n"
-            f"Baseline paths: {ActionInputs.get_baseline_paths()}\n"
+            "Paths: %s\n"
+            "Exclude paths: %s\n"
+            "Baseline paths: %s\n"
             "\n"
-            f"Global thresholds: overall={ActionInputs.get_global_overall_threshold()}, "
-            f"avg_changed_files={ActionInputs.get_global_changed_files_average_threshold()}, "
-            f"changed_file={ActionInputs.get_global_changed_file_threshold()}\n"
+            "Global thresholds: overall=%s, avg_changed_files=%s, changed_file=%s\n"
             "\n"
-            f"Modules: {ActionInputs.get_modules()}\n"
-            f"Modules thresholds: {ActionInputs.get_modules_thresholds()}\n"
+            "Modules: %s\n"
+            "Modules thresholds: %s\n"
             "\n"
-            f"Metric: {ActionInputs.get_metric()}\n"
-            f"Title: {ActionInputs.get_title()}\n"
-            f"Comment level: {ActionInputs.get_comment_level()}\n"
+            "Metric: %s\n"
+            "Title: %s\n"
+            "Comment level: %s\n"
             "\n"
-            f"Skip unchanged: {ActionInputs.get_skip_unchanged()}\n"
-            f"Update comment: {ActionInputs.get_update_comment()}\n"
-            f"Fail on threshold: {fail_on_threshold if fail_on_threshold else []}\n"
-            f"Debug logging enabled: {ActionInputs.get_debug()}"
-            "\n"
-            f"Pass symbol: {ActionInputs.get_pass_symbol()}\n"
-            f"Fail symbol: {ActionInputs.get_fail_symbol()}\n"
+            "Skip unchanged: %s\n"
+            "Update comment: %s\n"
+            "Fail on threshold: %s\n"
+            "Debug logging enabled: %s\n"
+            "Pass symbol: %s\n"
+            "Fail symbol: %s",
+            ActionInputs.get_paths(),
+            ActionInputs.get_exclude_paths(),
+            ActionInputs.get_baseline_paths(),
+            ActionInputs.get_global_overall_threshold(),
+            ActionInputs.get_global_changed_files_average_threshold(),
+            ActionInputs.get_global_changed_file_threshold(),
+            ActionInputs.get_modules(),
+            ActionInputs.get_modules_thresholds(),
+            ActionInputs.get_metric(),
+            ActionInputs.get_title(),
+            ActionInputs.get_comment_level(),
+            ActionInputs.get_skip_unchanged(),
+            ActionInputs.get_update_comment(),
+            fail_on_threshold if fail_on_threshold else [],
+            ActionInputs.get_debug(),
+            ActionInputs.get_pass_symbol(),
+            ActionInputs.get_fail_symbol(),
         )
 
         # Log errors if any

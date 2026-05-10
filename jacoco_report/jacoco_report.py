@@ -18,7 +18,6 @@ from jacoco_report.utils.github import GitHub
 logger = logging.getLogger(__name__)
 
 
-# pylint: disable=too-few-public-methods,too-many-instance-attributes
 class JaCoCoReport:
     """
     A class representing the JaCoCo Report.
@@ -39,7 +38,6 @@ class JaCoCoReport:
         self.reached_threshold_changed_files_average = True
         self.reached_threshold_per_change_file = True
 
-    # pylint: disable=too-many-locals, too-many-branches, too-many-statements
     def run(self) -> None:
         """
         The main function to run the JaCoCo GitHub Action adding the JaCoCo coverage report to the pull request.

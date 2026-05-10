@@ -6,13 +6,11 @@ from jacoco_report.model.counter import Counter
 from jacoco_report.model.coverage import Coverage
 
 
-# pylint: disable=too-few-public-methods
 class FileCoverage(Coverage):
     """
     A class that represents the coverage of a file
     """
 
-    # pylint: disable=too-many-arguments
     def __init__(
         self,
         file_name: str,

@@ -9,7 +9,6 @@ import os
 logger = logging.getLogger(__name__)
 
 
-# pylint: disable=too-few-public-methods
 class JaCoCoReportInputScanner:
     """
     A class for scanning input paths for JaCoCo XML files and excluding specified paths.

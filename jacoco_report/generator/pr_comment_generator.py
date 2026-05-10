@@ -17,13 +17,11 @@ from jacoco_report.utils.github import GitHub
 logger = logging.getLogger(__name__)
 
 
-# pylint: disable=too-few-public-methods
 class PRCommentGenerator:
     """
     A class that represents the PR Comment Generator.
     """
 
-    # pylint: disable=too-many-arguments
     def __init__(
         self,
         gh: GitHub,
@@ -87,7 +85,6 @@ class PRCommentGenerator:
         return title, body
 
     def _get_basic_table_for_all(self, p: str, f: str) -> str:
-        # pylint: disable=duplicate-code
         if not ActionInputs.get_baseline_paths():
             return self._get_basic_table(
                 p,
@@ -198,8 +195,7 @@ class PRCommentGenerator:
 
         return self._generate_reports_table_with_baseline(p, f)
 
-    # pylint: disable=unused-argument
-    def _generate_reports_table__skip(self, evaluated_report: EvaluatedReportCoverage, **kwargs) -> bool:
+    def _generate_reports_table__skip(self, evaluated_report: EvaluatedReportCoverage, **_kwargs) -> bool:
         if (
             ActionInputs.get_skip_unchanged()
             and evaluated_report.name not in self.changed_modules
@@ -229,16 +225,14 @@ class PRCommentGenerator:
                 o_thres = evaluated_report.overall_coverage_threshold
                 ch_thres = evaluated_report.changed_files_threshold
 
-            # pylint: disable=C0209
-            s += "\n| `{}` | {}% / {}% | {}% / {}% | {}/{} |".format(
-                evaluated_report.name,
-                evaluated_report.overall_coverage_reached,
-                evaluated_report.avg_changed_files_coverage_reached,
-                o_thres,
-                ch_thres,
-                p if evaluated_report.overall_passed else f,
-                p if evaluated_report.avg_changed_files_passed else f,
-            )
+            name = evaluated_report.name
+            overall_cov = evaluated_report.overall_coverage_reached
+            avg_cov = evaluated_report.avg_changed_files_coverage_reached
+            cov = f"{overall_cov}% / {avg_cov}%"
+            thres = f"{o_thres}% / {ch_thres}%"
+            status_o = p if evaluated_report.overall_passed else f
+            status_ch = p if evaluated_report.avg_changed_files_passed else f
+            s += f"\n| `{name}` | {cov} | {thres} | {status_o}/{status_ch} |"
 
         if provided_reports == 0:
             s += "\n\nNo changed file in reports."
@@ -269,19 +263,18 @@ class PRCommentGenerator:
                 o_thres = evaluated_report.overall_coverage_threshold
                 ch_thres = evaluated_report.changed_files_threshold
 
-            # pylint: disable=C0209
-            s += "\n| `{}` | {}% / {}% | {}% / {}% | {}{}% / {}{}% | {}/{} |".format(
-                evaluated_report.name,
-                evaluated_report.overall_coverage_reached,
-                evaluated_report.avg_changed_files_coverage_reached,
-                o_thres,
-                ch_thres,
-                "+" if diff_o > 0.001 else "",
-                round(diff_o, 2),
-                "+" if diff_ch > 0.001 else "",
-                round(diff_ch, 2),
-                p if evaluated_report.overall_passed else f,
-                p if evaluated_report.avg_changed_files_passed else f,
+            overall_cov = evaluated_report.overall_coverage_reached
+            avg_cov = evaluated_report.avg_changed_files_coverage_reached
+            cov = f"{overall_cov}% / {avg_cov}%"
+            delta = (
+                f"{'+'if diff_o > 0.001 else ''}{round(diff_o, 2)}%"
+                f" / {'+'if diff_ch > 0.001 else ''}{round(diff_ch, 2)}%"
+            )
+            status_o = p if evaluated_report.overall_passed else f
+            status_ch = p if evaluated_report.avg_changed_files_passed else f
+            s += (
+                f"\n| `{evaluated_report.name}` | {cov}"
+                f" | {o_thres}% / {ch_thres}% | {delta} | {status_o}/{status_ch} |"
             )
 
         if provided_reports == 0:
@@ -289,8 +282,7 @@ class PRCommentGenerator:
 
         return s
 
-    # pylint: disable=unused-argument
-    def _generate_modules_table__skip(self, evaluated_report: EvaluatedReportCoverage, **kwargs) -> bool:
+    def _generate_modules_table__skip(self, evaluated_report: EvaluatedReportCoverage, **_kwargs) -> bool:
         if (
             ActionInputs.get_skip_unchanged()
             and evaluated_report.name not in self.changed_modules
@@ -359,12 +351,11 @@ class PRCommentGenerator:
                     f"https://github.com/{self.github_repository}/pull/{self.pr_number}/files#diff-{file_hash}"
                 )
 
-                # pylint: disable=C0209
-                line = "\n| {} | {}% | {}% | {} |".format(
-                    f"[{filename}]({file_as_link_to_diff})",
-                    evaluated_reports_coverage[ecr_key].changed_files_coverage_reached[file_key],
-                    evaluated_reports_coverage[ecr_key].per_changed_file_threshold,
-                    (p if evaluated_reports_coverage[ecr_key].changed_files_passed[file_key] else f),
+                line = (
+                    f"\n| [{filename}]({file_as_link_to_diff})"
+                    f" | {evaluated_reports_coverage[ecr_key].changed_files_coverage_reached[file_key]}%"
+                    f" | {evaluated_reports_coverage[ecr_key].per_changed_file_threshold}%"
+                    f" | {p if evaluated_reports_coverage[ecr_key].changed_files_passed[file_key] else f} |"
                 )
                 lines.append(line)
 
@@ -418,14 +409,12 @@ class PRCommentGenerator:
                         - self.bs_evaluator.evaluated_reports_coverage[ecr_key].changed_files_coverage_reached[file_key]
                     )
 
-                # pylint: disable=C0209
-                line = "\n| {} | {}% | {}% | {}{}% | {} |".format(
-                    f"[{filename}]({file_as_link_to_diff})",
-                    evaluated_reports_coverage[ecr_key].changed_files_coverage_reached[file_key],
-                    evaluated_reports_coverage[ecr_key].per_changed_file_threshold,
-                    "+" if diff > 0.001 else "",
-                    round(diff, 2),
-                    (p if evaluated_reports_coverage[ecr_key].changed_files_passed[file_key] else f),
+                line = (
+                    f"\n| [{filename}]({file_as_link_to_diff})"
+                    f" | {evaluated_reports_coverage[ecr_key].changed_files_coverage_reached[file_key]}%"
+                    f" | {evaluated_reports_coverage[ecr_key].per_changed_file_threshold}%"
+                    f" | {'+' if diff > 0.001 else ''}{round(diff, 2)}%"
+                    f" | {p if evaluated_reports_coverage[ecr_key].changed_files_passed[file_key] else f} |"
                 )
                 lines.append(line)
 

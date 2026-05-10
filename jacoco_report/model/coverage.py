@@ -10,13 +10,11 @@ from jacoco_report.utils.enums import MetricTypeEnum
 logger = logging.getLogger(__name__)
 
 
-# pylint: disable=too-few-public-methods
 class Coverage:
     """
     A class that represents the coverage of a file
     """
 
-    # pylint: disable=too-many-arguments
     def __init__(
         self, instruction: Counter, branch: Counter, line: Counter, complexity: Counter, method: Counter, clazz: Counter
     ):
@@ -38,7 +36,6 @@ class Coverage:
         self.method: Counter = method
         self.clazz: Counter = clazz
 
-    # pylint: disable=too-many-return-statements
     def get_coverage_by_metric(self, metric_type: str) -> float:
         """
         Returns the coverage of the given counter

@@ -5,7 +5,6 @@ A module that contains the Counter class.
 from typing import Union, Optional
 
 
-# pylint: disable=too-few-public-methods
 class Counter:
     """
     A class that represents a counter

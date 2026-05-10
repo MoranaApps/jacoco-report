@@ -5,7 +5,6 @@ A module that contains the EvaluatedCoverage class.
 from jacoco_report.model.counter import Counter
 
 
-# pylint: disable=too-few-public-methods, too-many-instance-attributes
 class EvaluatedReportCoverage:
     """
     A class that represents an evaluated coverage of one report file or module.
