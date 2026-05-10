@@ -4,10 +4,9 @@ Utility functions for interacting with GitHub Actions.
 
 import os
 import sys
-from typing import Optional
 
 
-def get_action_input(name: str, default: Optional[str] = None, prefix: str = "INPUT_") -> str:
+def get_action_input(name: str, default: str = "", prefix: str = "INPUT_") -> str:
     """
     Retrieve the value of a specified input parameter from environment variables.
 
@@ -16,7 +15,7 @@ def get_action_input(name: str, default: Optional[str] = None, prefix: str = "IN
 
     @return: The value of the specified input parameter, or an empty string if the environment
     """
-    return os.getenv(f'{prefix}{name.replace("-", "_").upper()}', default=default)  # type: ignore[arg-type]
+    return os.getenv(f'{prefix}{name.replace("-", "_").upper()}', default=default)
 
 
 def set_action_output(name: str, value: str, default_output_path: str = "default_output.txt") -> None:
@@ -36,7 +35,7 @@ def set_action_output(name: str, value: str, default_output_path: str = "default
         f.write(f"{name}={value}\n")
 
 
-def set_action_output_text(name: str, value: str, default_output_path: str = "default_output.txt"):
+def set_action_output_text(name: str, value: str, default_output_path: str = "default_output.txt") -> None:
     """
     Write an action output to a file in the format expected by GitHub Actions.
 

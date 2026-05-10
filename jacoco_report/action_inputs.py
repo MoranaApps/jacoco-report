@@ -5,7 +5,7 @@ A module for handling the inputs provided to the GH action.
 import logging
 import sys
 import re
-from typing import Optional
+from typing import Literal, Optional, overload
 
 from jacoco_report.utils.constants import (
     TOKEN,
@@ -47,6 +47,12 @@ class ActionInputs:
         """
         return get_action_input(TOKEN)
 
+    @overload
+    @staticmethod
+    def get_paths(raw: Literal[True]) -> str: ...
+    @overload
+    @staticmethod
+    def get_paths(raw: Literal[False] = ...) -> list[str]: ...
     @staticmethod
     def get_paths(raw: bool = False) -> list[str] | str:
         """
@@ -59,6 +65,12 @@ class ActionInputs:
 
         return ActionInputs.__parse_paths(paths)
 
+    @overload
+    @staticmethod
+    def get_exclude_paths(raw: Literal[True]) -> str: ...
+    @overload
+    @staticmethod
+    def get_exclude_paths(raw: Literal[False] = ...) -> list[str]: ...
     @staticmethod
     def get_exclude_paths(raw: bool = False) -> list[str] | str:
         """
@@ -71,6 +83,12 @@ class ActionInputs:
 
         return ActionInputs.__parse_paths(exclude_paths)
 
+    @overload
+    @staticmethod
+    def get_global_thresholds(raw: Literal[True]) -> str: ...
+    @overload
+    @staticmethod
+    def get_global_thresholds(raw: Literal[False] = ...) -> tuple[float, float, float]: ...
     @staticmethod
     def get_global_thresholds(raw: bool = False) -> tuple[float, float, float] | str:
         """Return the global coverage thresholds as a tuple."""
@@ -155,11 +173,11 @@ class ActionInputs:
         """
         Get the PR number from the GitHub environment variables.
         """
-        pr_number = get_action_input(PR_NUMBER)
-        if pr_number:
-            return int(pr_number)
+        pr_input = get_action_input(PR_NUMBER)
+        if pr_input:
+            return int(pr_input)
 
-        pr_number: Optional[int] = gh.get_pr_number()  # type: ignore[no-redef]
+        pr_number: Optional[int] = gh.get_pr_number()
         if pr_number:
             return pr_number
 
@@ -180,6 +198,12 @@ class ActionInputs:
         """
         return get_action_input(COMMENT_LEVEL, CommentLevelEnum.FULL)
 
+    @overload
+    @staticmethod
+    def get_modules(raw: Literal[True]) -> str: ...
+    @overload
+    @staticmethod
+    def get_modules(raw: Literal[False] = ...) -> dict[str, str]: ...
     @staticmethod
     def get_modules(raw: bool = False) -> dict[str, str] | str:
         """
@@ -208,6 +232,12 @@ class ActionInputs:
 
         return d
 
+    @overload
+    @staticmethod
+    def get_modules_thresholds(raw: Literal[True]) -> str: ...
+    @overload
+    @staticmethod
+    def get_modules_thresholds(raw: Literal[False] = ...) -> dict[str, tuple[float, float, float]]: ...
     @staticmethod
     def get_modules_thresholds(raw: bool = False) -> dict[str, tuple[float, float, float]] | str:
         """
@@ -321,6 +351,12 @@ class ActionInputs:
         """
         return get_action_input(DEBUG, "false") == "true"
 
+    @overload
+    @staticmethod
+    def get_baseline_paths(raw: Literal[True]) -> str: ...
+    @overload
+    @staticmethod
+    def get_baseline_paths(raw: Literal[False] = ...) -> list[str]: ...
     @staticmethod
     def get_baseline_paths(raw: bool = False) -> list[str] | str:
         """
@@ -469,7 +505,7 @@ class ActionInputs:
             try:
                 float(value)
                 return True
-            except ValueError, TypeError:
+            except ValueError:
                 return False
 
         errors = []
@@ -659,11 +695,11 @@ class ActionInputs:
         return get_action_input("GITHUB_REPOSITORY", prefix="")
 
     @staticmethod
-    def __parse_paths(paths: Optional[str]) -> list[str]:
+    def __parse_paths(paths: str) -> list[str]:
         """
         Parse the paths from the action inputs.
         """
-        if paths is None:
+        if not paths:
             return []
 
         res: list[str] = []
