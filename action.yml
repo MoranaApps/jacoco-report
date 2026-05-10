@@ -59,9 +59,9 @@ inputs:
   fail-on-threshold:
     description: >
       Fail the action on threshold breach.
-      Defaults to `true` (fail on overall, changed-files-average, and per-changed-file).
+      Comma- or newline-separated list: overall, changed-files-average, per-changed-file. Leave empty to disable.
     required: false
-    default: 'true'
+    default: 'overall,changed-files-average,per-changed-file'
   debug:
     description: 'Enable detail logging.'
     required: false

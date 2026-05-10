@@ -28,14 +28,12 @@ class PRCommentGenerator:
         evaluator: CoverageEvaluator,
         bs_evaluator: CoverageEvaluator,
         pr_number: int,
-        changed_modules: Optional[set[str]] = None,
     ):
         self.gh: GitHub = gh
         self.evaluator: CoverageEvaluator = evaluator
         self.bs_evaluator: CoverageEvaluator = bs_evaluator
         self.pr_number: int = pr_number
         self.github_repository: str = ActionInputs.get_repository()
-        self.changed_modules: set[str] = changed_modules or set()
 
     def generate(self) -> None:
         """
@@ -53,18 +51,9 @@ class PRCommentGenerator:
                 existing_comment = comment
                 break
 
-        if existing_comment and ActionInputs.get_update_comment() and self.evaluator.changed_files_count() > 0:
-            # Update the existing comment
+        if existing_comment and ActionInputs.get_update_comment():
             self.gh.update_comment(existing_comment["id"], pr_body)
-        elif existing_comment and ActionInputs.get_update_comment() and self.evaluator.changed_files_count() == 0:
-            # Delete the existing comment
-            self.gh.delete_comment(existing_comment["id"])
         else:
-            if ActionInputs.get_skip_unchanged() and self.evaluator.changed_files_count() == 0:
-                logger.info("No changed files in PR. Skipping comment generation.")
-                return
-
-            # create a comment on pull request
             self.gh.add_comment(self.pr_number, pr_body)
 
     def _get_comment_content(self) -> tuple[str, str]:
@@ -195,15 +184,6 @@ class PRCommentGenerator:
 
         return self._generate_reports_table_with_baseline(p, f)
 
-    def _generate_reports_table__skip(self, evaluated_report: EvaluatedReportCoverage, **_kwargs) -> bool:
-        if (
-            ActionInputs.get_skip_unchanged()
-            and evaluated_report.name not in self.changed_modules
-            and len(evaluated_report.changed_files_coverage_reached) == 0
-        ):
-            return True
-        return False
-
     def _generate_reports_table_without_baseline(self, p: str, f: str, **kwargs) -> str:
         s = dedent("""
             | Report | Coverage (O/Ch) | Threshold (O/Ch) | Status (O/Ch) |
@@ -214,9 +194,6 @@ class PRCommentGenerator:
         keys: list[str] = sorted(list(self.evaluator.evaluated_reports_coverage.keys()))
         for key in keys:
             evaluated_report = self.evaluator.evaluated_reports_coverage[key]
-            if self._generate_reports_table__skip(evaluated_report, **kwargs):
-                continue
-
             provided_reports += 1
             o_thres = ActionInputs.get_global_overall_threshold()
             ch_thres = ActionInputs.get_global_changed_files_average_threshold()
@@ -249,9 +226,6 @@ class PRCommentGenerator:
         for key in keys:
             evaluated_report = self.evaluator.evaluated_reports_coverage[key]
 
-            if self._generate_reports_table__skip(evaluated_report, **kwargs):
-                continue
-
             provided_reports += 1
             diff_o, diff_ch = self._calculate_baseline_report_diffs(evaluated_report)
 
@@ -278,15 +252,6 @@ class PRCommentGenerator:
             s += "\n\nNo changed file in reports."
 
         return s
-
-    def _generate_modules_table__skip(self, evaluated_report: EvaluatedReportCoverage, **_kwargs) -> bool:
-        if (
-            ActionInputs.get_skip_unchanged()
-            and evaluated_report.name not in self.changed_modules
-            and len(evaluated_report.changed_files_coverage_reached) == 0
-        ):
-            return True
-        return False
 
     def calculate_baseline_module_diffs(self, evaluated_coverage: EvaluatedReportCoverage) -> tuple[float, float]:
         if evaluated_coverage.name not in self.bs_evaluator.evaluated_modules_coverage.keys():

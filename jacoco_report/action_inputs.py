@@ -321,12 +321,21 @@ class ActionInputs:
           - "false": do not fail
           - Comma or newline separated of supported thresholds: overall, changed-files-average, per-changed-file
         """
-        value = get_action_input(FAIL_ON_THRESHOLD, "true").strip().lower()
+        value = get_action_input(FAIL_ON_THRESHOLD, "overall,changed-files-average,per-changed-file").strip().lower()
 
         if value == "false":
+            logger.warning(
+                "Boolean value for fail-on-threshold is no longer supported from v3. "
+                "Use an empty string to disable threshold failure."
+            )
             return []
 
         if value == "true":
+            logger.warning(
+                "Boolean value for fail-on-threshold is no longer supported from v3. "
+                "Use comma- or newline-separated values to fail on thresholds: "
+                "overall,changed-files-average,per-changed-file"
+            )
             return [
                 FailOnThresholdEnum.OVERALL.value,
                 FailOnThresholdEnum.CHANGED_FILES_AVERAGE.value,

@@ -175,3 +175,4 @@ cython_debug/
 
 # Project planning (local only)
 SPEC.md
+.claude/settings.json
