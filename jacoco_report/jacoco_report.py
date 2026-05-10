@@ -78,13 +78,19 @@ class JaCoCoReport:
         # analyse received xml report files
         logger.info("Analyzing JaCoCo (xml) reports.")
         report_files_coverage: list[ReportFileCoverage] = []
-        changed_modules: set[str] = set()
         parser = JaCoCoReportParser(all_changed_files_in_pr, modules)
         for report_path in input_report_paths_to_analyse:
-            report_files_coverage.append(rfc := parser.parse(report_path))
+            report_files_coverage.append(parser.parse(report_path))
 
-            if ActionInputs.get_skip_unchanged() and rfc.module_name is not None and rfc.changed_files_coverage != {}:
-                changed_modules.add(rfc.module_name)  # note module with changed files
+        # scan-stage filter: remove reports with no changed files before evaluation
+        if ActionInputs.get_skip_unchanged():
+            for report in report_files_coverage:
+                if not report.changed_files_coverage:
+                    logger.info("Skipping report '%s': no changed files.", report.name)
+            report_files_coverage = [r for r in report_files_coverage if r.changed_files_coverage]
+            if not report_files_coverage:
+                logger.info("All reports filtered out by skip-unchanged. No comment will be generated.")
+                return
 
         # get baseline files for comparison
         logger.info("Scanning for JaCoCo (xml) baseline reports.")
@@ -140,7 +146,7 @@ class JaCoCoReport:
 
         # generate the comment(s)
         logger.info("Generating PR comment(s).")
-        generator = PRCommentGenerator(gh, evaluator, bs_evaluator, pr_number, changed_modules)
+        generator = PRCommentGenerator(gh, evaluator, bs_evaluator, pr_number)
         generator.generate()
         logger.info("PR comment(s) generated successfully.")
 

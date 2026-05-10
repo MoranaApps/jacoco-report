@@ -324,9 +324,16 @@ class ActionInputs:
         value = get_action_input(FAIL_ON_THRESHOLD, "true").strip().lower()
 
         if value == "false":
+            logger.warning(
+                "Boolean value for fail-on-threshold is deprecated. Use list form: [] to disable threshold failure."
+            )
             return []
 
         if value == "true":
+            logger.warning(
+                "Boolean value for fail-on-threshold is deprecated. "
+                "Use list form: [overall, changed-files-average, per-changed-file]."
+            )
             return [
                 FailOnThresholdEnum.OVERALL.value,
                 FailOnThresholdEnum.CHANGED_FILES_AVERAGE.value,

@@ -163,29 +163,22 @@ class CoverageEvaluator:
         Global violations are only reported when comment mode is set to SINGLE.
         Module and report-level violations are added based on sensitivity and comment mode settings.
         """
-        skip_unchanged_with_none_changed_files = ActionInputs.get_skip_unchanged() and self.changed_files_count() == 0
-
-        # global - usable only for `single` comment-mode
-        if not skip_unchanged_with_none_changed_files:
-            if not self.total_coverage_overall_passed:
-                self.violations.append(
-                    f"Global overall coverage {self.total_coverage_overall} is below the threshold "
-                    f"{self._global_min_coverage_overall}."
-                )
-                self.reached_threshold_overall = False
-            if not self.total_coverage_changed_files_passed:
-                self.violations.append(
-                    f"Global changed files coverage {self.total_coverage_changed_files} is below the threshold "
-                    f"{self._global_min_coverage_changed_files}."
-                )
-                self.reached_threshold_changed_files_average = False
+        if not self.total_coverage_overall_passed:
+            self.violations.append(
+                f"Global overall coverage {self.total_coverage_overall} is below the threshold "
+                f"{self._global_min_coverage_overall}."
+            )
+            self.reached_threshold_overall = False
+        if not self.total_coverage_changed_files_passed:
+            self.violations.append(
+                f"Global changed files coverage {self.total_coverage_changed_files} is below the threshold "
+                f"{self._global_min_coverage_changed_files}."
+            )
+            self.reached_threshold_changed_files_average = False
 
         # module violations
         module_violations: list[str] = []
         for module_name, evaluated_coverage_module in self.evaluated_modules_coverage.items():
-            if ActionInputs.get_skip_unchanged() and len(evaluated_coverage_module.changed_files_coverage_reached) == 0:
-                continue
-
             if not evaluated_coverage_module.overall_passed:
                 module_violations.append(
                     f"Module '{module_name}' overall coverage {evaluated_coverage_module.overall_coverage_reached} "
@@ -204,9 +197,6 @@ class CoverageEvaluator:
         changed_files_violations: list[str] = []
 
         for report_path, evaluated_coverage_report in self.evaluated_reports_coverage.items():
-            if ActionInputs.get_skip_unchanged() and len(evaluated_coverage_report.changed_files_coverage_reached) == 0:
-                continue
-
             if not evaluated_coverage_report.overall_passed:
                 report_violations.append(
                     f"Report '{report_path}' overall coverage {evaluated_coverage_report.overall_coverage_reached} "
