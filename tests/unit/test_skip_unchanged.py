@@ -17,6 +17,8 @@ from jacoco_report.action_inputs import ActionInputs
 from jacoco_report.evaluator.coverage_evaluator import CoverageEvaluator
 from jacoco_report.generator.pr_comment_generator import PRCommentGenerator
 from jacoco_report.jacoco_report import JaCoCoReport
+from jacoco_report.model.counter import Counter
+from jacoco_report.model.file_coverage import FileCoverage
 from jacoco_report.model.report_file_coverage import ReportFileCoverage
 from jacoco_report.utils.enums import CommentLevelEnum
 
@@ -63,8 +65,6 @@ def _make_run_mocks(mocker: MockerFixture, *, skip_unchanged: bool, reports: lis
 
 
 def _report_with_changes(name: str, make_report_file_coverage) -> ReportFileCoverage:
-    from jacoco_report.model.file_coverage import FileCoverage
-    from jacoco_report.model.counter import Counter
     fc = FileCoverage("Foo.java", "src", Counter(0, 10), Counter(0, 10), Counter(0, 10),
                       Counter(0, 10), Counter(0, 10), Counter(0, 10))
     return make_report_file_coverage(name=name, changed_files_coverage={"src/Foo.java": fc})
@@ -171,7 +171,6 @@ def test_skip_unchanged_false_does_not_filter(mocker: MockerFixture, make_report
 
 @pytest.fixture
 def evaluator_with_changed(make_report_file_coverage, make_file_coverage):
-    from jacoco_report.model.counter import Counter
     fc = make_file_coverage(instruction=Counter(missed=0, covered=10))
     rfc = make_report_file_coverage(changed_files_coverage={"src/Foo.java": fc})
     ce = CoverageEvaluator(
