@@ -182,7 +182,7 @@ class ActionInputs:
             try:
                 return float(value) if value else 0.0
             except ValueError:
-                logger.error("Warning: Cannot convert '%s' part ('%s') to float. Defaulting to 0.0.", label, value)
+                logger.warning("Cannot convert '%s' part ('%s') to float. Defaulting to 0.0.", label, value)
                 return 0.0
 
         raw_value = get_action_input(input_name, default_value).strip()
@@ -205,8 +205,8 @@ class ActionInputs:
 
         parts = cleaned.split("*")
         overall = safe_float(parts[0], "overall")
-        changed = safe_float(parts[1], "changed files average")
-        per_file = safe_float(parts[2], "changed file")
+        changed = safe_float(parts[1], "changed-files-average")
+        per_file = safe_float(parts[2], third_component_label)
 
         return overall, changed, per_file
 

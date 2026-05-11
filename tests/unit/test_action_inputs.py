@@ -256,6 +256,55 @@ def test_get_global_thresholds_two_components_warns_changed_file(mocker):
     )
 
 
+def test_get_global_thresholds_invalid_component_logs_warning_without_warning_prefix(mocker):
+    mock_warning = mocker.patch("jacoco_report.action_inputs.logger.warning")
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="x*1*2")
+
+    result = ActionInputs.get_global_thresholds()
+
+    assert result == (0.0, 1.0, 2.0)
+    warning_messages = [
+        (str(call.args[0]) % tuple(call.args[1:])) if len(call.args) > 1 else str(call.args[0])
+        for call in mock_warning.call_args_list
+    ]
+    assert any("Cannot convert 'overall' part ('x') to float. Defaulting to 0.0." in message for message in warning_messages)
+    assert not any("Warning: Cannot convert" in message for message in warning_messages)
+
+
+def test_get_report_thresholds_default_invalid_third_component_logs_per_changed_file_label(mocker):
+    mock_warning = mocker.patch("jacoco_report.action_inputs.logger.warning")
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="1*2*x")
+
+    result = ActionInputs.get_report_thresholds_default()
+
+    assert result == (1.0, 2.0, 0.0)
+    warning_messages = [
+        (str(call.args[0]) % tuple(call.args[1:])) if len(call.args) > 1 else str(call.args[0])
+        for call in mock_warning.call_args_list
+    ]
+    assert any(
+        "Cannot convert 'per-changed-file' part ('x') to float. Defaulting to 0.0." in message
+        for message in warning_messages
+    )
+
+
+def test_get_global_thresholds_invalid_third_component_logs_changed_file_label(mocker):
+    mock_warning = mocker.patch("jacoco_report.action_inputs.logger.warning")
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="1*2*x")
+
+    result = ActionInputs.get_global_thresholds()
+
+    assert result == (1.0, 2.0, 0.0)
+    warning_messages = [
+        (str(call.args[0]) % tuple(call.args[1:])) if len(call.args) > 1 else str(call.args[0])
+        for call in mock_warning.call_args_list
+    ]
+    assert any(
+        "Cannot convert 'changed file' part ('x') to float. Defaulting to 0.0." in message
+        for message in warning_messages
+    )
+
+
 failure_cases_modes = [
     ("", "JaCoCo Coverage Report"),
     ("Custom title", "Custom title"),
