@@ -60,8 +60,18 @@ failure_cases = [
     ("get_report_thresholds_default", True, "'report-thresholds-default' must be a string or not defined."),
     ("get_metric", "", "'metric' must be a string from these options: 'instruction', 'line', 'branch', 'complexity', 'method', 'class'."),
     ("get_metric", 1, "'metric' must be a string from these options: 'instruction', 'line', 'branch', 'complexity', 'method', 'class'."),
-    ("get_comment_level", "", "'comment-level' must be a string from these options: 'minimal', 'full'."),
-    ("get_comment_level", 1, "'comment-level' must be a string from these options: 'minimal', 'full'."),
+    (
+        "get_comment_level",
+        "",
+        "'comment-level' must be a string from these options: "
+        "'none', 'minimal', 'full', 'changed', 'failed', 'failed-or-changed'.",
+    ),
+    (
+        "get_comment_level",
+        1,
+        "'comment-level' must be a string from these options: "
+        "'none', 'minimal', 'full', 'changed', 'failed', 'failed-or-changed'.",
+    ),
     ("get_report_groups", "not_a_list", "'report-groups' must be a YAML list."),
     ("get_report_groups", "- name: ''\n  paths: ['**']", "'report-groups' entry #1 must have a non-empty 'name'."),
     ("get_report_groups", "- name: group1\n  paths: []", "'report-groups' entry #1 must have a non-empty 'paths' list of non-empty strings."),
@@ -97,6 +107,22 @@ def test_validate_inputs_success(mocker):
     patchers = apply_mocks(success_case, mocker)
     try:
         ActionInputs.validate_inputs()
+    finally:
+        stop_mocks(patchers)
+
+
+@pytest.mark.parametrize(
+    "comment_level",
+    ["none", "minimal", "full", "changed", "failed", "failed-or-changed"],
+)
+def test_validate_inputs_accepts_all_comment_levels(comment_level, mocker):
+    case = success_case.copy()
+    case["get_comment_level"] = comment_level
+    patchers = apply_mocks(case, mocker)
+    try:
+        mock_exit = mocker.patch("sys.exit")
+        ActionInputs.validate_inputs()
+        mock_exit.assert_not_called()
     finally:
         stop_mocks(patchers)
 

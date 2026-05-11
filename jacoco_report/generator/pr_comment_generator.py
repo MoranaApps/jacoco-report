@@ -40,6 +40,8 @@ class PRCommentGenerator:
         The method that generates the comment for a single generator.
         """
         title, pr_body = self._get_comment_content()
+        if ActionInputs.get_comment_level() == CommentLevelEnum.NONE:
+            return
 
         # Get all comments on the pull request
         comments = self.gh.get_comments(self.pr_number)
@@ -57,27 +59,97 @@ class PRCommentGenerator:
             self.gh.add_comment(self.pr_number, pr_body)
 
     def _get_comment_content(self) -> tuple[str, str]:
+        """Build the PR comment title and body for the selected comment level."""
         title = body = f"**{ActionInputs.get_title()}**"
+        comment_level = ActionInputs.get_comment_level()
+
+        if comment_level == CommentLevelEnum.NONE:
+            return title, body
 
         p = ActionInputs.get_pass_symbol()
         f = ActionInputs.get_fail_symbol()
 
         body += f"\n\n{self.get_basic_table_for_all(p, f)}"
 
-        if ActionInputs.get_comment_level() == CommentLevelEnum.FULL:
-            groups_table = self.get_groups_table(p, f)
-            if groups_table:
-                body += f"\n\n{groups_table}"
+        if comment_level == CommentLevelEnum.MINIMAL:
+            return title, body
 
-            reports_table = self.get_reports_table(p, f)
-            if reports_table != "":
-                body += f"\n\n{reports_table}"
+        filtered_groups = self.evaluator.evaluated_groups_coverage
+        filtered_reports = self.evaluator.evaluated_reports_coverage
 
-            body += f"\n\n{self._get_changed_files_table(p, f)}"
+        if comment_level != CommentLevelEnum.FULL:
+            filtered_groups = self._filter_evaluated_coverage_rows(filtered_groups, comment_level)
+            filtered_reports = self._filter_evaluated_coverage_rows(filtered_reports, comment_level)
+
+        detail_sections: list[str] = []
+
+        groups_table = self.get_groups_table(p, f, filtered_groups)
+        if groups_table:
+            detail_sections.append(groups_table)
+
+        reports_table = self.get_reports_table(p, f, filtered_reports)
+        if reports_table:
+            detail_sections.append(reports_table)
+
+        changed_files_table = self._get_changed_files_table(p, f, filtered_reports, comment_level)
+        if changed_files_table:
+            detail_sections.append(changed_files_table)
+
+        if detail_sections:
+            body += "\n\n" + "\n\n".join(detail_sections)
+        elif comment_level != CommentLevelEnum.FULL:
+            body += "\n\nNo rows match the selected comment level."
 
         return title, body
 
+    def _filter_evaluated_coverage_rows(
+        self,
+        evaluated_coverages: dict[str, EvaluatedReportCoverage],
+        comment_level: str,
+    ) -> dict[str, EvaluatedReportCoverage]:
+        """Filter group or report rows according to the selected comment level."""
+        return {
+            key: coverage
+            for key, coverage in evaluated_coverages.items()
+            if self._should_include_coverage_row(coverage, comment_level)
+        }
+
+    def _should_include_coverage_row(self, coverage: EvaluatedReportCoverage, comment_level: str) -> bool:
+        """Return whether one evaluated group or report row should be rendered."""
+        if comment_level == CommentLevelEnum.FULL:
+            return True
+
+        has_changed_files = self._has_changed_files(coverage)
+        is_failing = self._is_failing_coverage(coverage)
+
+        if comment_level == CommentLevelEnum.CHANGED:
+            return has_changed_files
+
+        if comment_level == CommentLevelEnum.FAILED:
+            return is_failing
+
+        if comment_level == CommentLevelEnum.FAILED_OR_CHANGED:
+            return has_changed_files or is_failing
+
+        return False
+
+    def _has_changed_files(self, coverage: EvaluatedReportCoverage) -> bool:
+        """Return whether a coverage row represents at least one changed file."""
+        if coverage.changed_files_coverage_reached:
+            return True
+
+        return (coverage.avg_changed_files_coverage.covered + coverage.avg_changed_files_coverage.missed) > 0
+
+    def _is_failing_coverage(self, coverage: EvaluatedReportCoverage) -> bool:
+        """Return whether any threshold represented by the coverage row is failing."""
+        return (
+            not coverage.overall_passed
+            or not coverage.avg_changed_files_passed
+            or any(not passed for passed in coverage.changed_files_passed.values())
+        )
+
     def _has_baseline_data(self) -> bool:
+        """Return whether baseline evaluator data is available for diff columns."""
         if not self.bs_evaluator:
             return False
 
@@ -90,6 +162,7 @@ class PRCommentGenerator:
         return has_report_baseline or has_group_baseline
 
     def get_basic_table_for_all(self, p: str, f: str) -> str:
+        """Render the global summary table, with baseline deltas when available."""
         if not self._has_baseline_data():
             return self.get_basic_table(
                 p,
@@ -135,13 +208,16 @@ class PRCommentGenerator:
         total_changed_files_passed: bool,
         min_changed_files: float,
     ) -> str:
+        """Render the global summary table without baseline deltas."""
         return (
-            dedent("""
+            dedent(
+                """
             | Metric ({}) | Coverage | Threshold | Status |
             |----------------------|----------|-----------|--------|
             | **Overall**       | {}% | {}% | {} |
             | **Changed Files** | {}% | {}% | {} |
-        """)
+        """
+            )
             .strip()
             .format(
                 metric,
@@ -168,16 +244,19 @@ class PRCommentGenerator:
         bs_total_overall_reached: float,
         bs_total_changed_files_reached: float,
     ) -> str:
+        """Render the global summary table with baseline delta columns."""
         diff_o = total_overall_reached - bs_total_overall_reached
         diff_ch = total_changed_files_reached - bs_total_changed_files_reached
 
         return (
-            dedent("""
+            dedent(
+                """
             | Metric ({}) | Coverage | Threshold | Δ Coverage | Status |
             |-------------------|-----|-----|-----|----|
             | **Overall**       | {}% | {}% | {}{}% | {} |
             | **Changed Files** | {}% | {}% | {}{}% | {} |
-        """)
+        """
+            )
             .strip()
             .format(
                 metric,
@@ -194,28 +273,41 @@ class PRCommentGenerator:
             )
         )
 
-    def get_groups_table(self, p: str, f: str) -> str:
-        if not self.evaluator.evaluated_groups_coverage:
+    def get_groups_table(
+        self,
+        p: str,
+        f: str,
+        evaluated_groups_coverage: Optional[dict[str, EvaluatedReportCoverage]] = None,
+    ) -> str:
+        """Render the groups table for the provided evaluated group rows."""
+        if evaluated_groups_coverage is None:
+            evaluated_groups_coverage = self.evaluator.evaluated_groups_coverage
+
+        if not evaluated_groups_coverage:
             return ""
 
         has_baseline = self._has_baseline_data()
 
         if not has_baseline:
-            s = dedent("""
+            s = dedent(
+                """
                 | Group | Coverage (O/Ch) | Threshold (O/Ch) | Status (O/Ch) |
                 |-------|----------|-----------|--------|
-            """).strip()
-            for group_name, ev in sorted(self.evaluator.evaluated_groups_coverage.items()):
+            """
+            ).strip()
+            for group_name, ev in sorted(evaluated_groups_coverage.items()):
                 cov = f"{ev.overall_coverage_reached}% / {ev.avg_changed_files_coverage_reached}%"
                 thres = f"{ev.overall_coverage_threshold}% / {ev.changed_files_threshold}%"
                 status = f"{p if ev.overall_passed else f}/{p if ev.avg_changed_files_passed else f}"
                 s += f"\n| `{group_name}` | {cov} | {thres} | {status} |"
         else:
-            s = dedent("""
+            s = dedent(
+                """
                 | Group | Coverage (O/Ch) | Threshold (O/Ch) | Δ Coverage (O/Ch) | Status (O/Ch) |
                 |-------|----------|-----------|------------|--------|
-            """).strip()
-            for group_name, ev in sorted(self.evaluator.evaluated_groups_coverage.items()):
+            """
+            ).strip()
+            for group_name, ev in sorted(evaluated_groups_coverage.items()):
                 diff_o, diff_ch = self.calculate_baseline_group_diffs(ev)
                 diff_o = round(diff_o, 2)
                 diff_ch = round(diff_ch, 2)
@@ -226,22 +318,41 @@ class PRCommentGenerator:
                 s += f"\n| `{group_name}` | {cov} | {thres} | {delta} | {status} |"
         return s
 
-    def get_reports_table(self, p: str, f: str) -> str:
+    def get_reports_table(
+        self,
+        p: str,
+        f: str,
+        evaluated_reports_coverage: Optional[dict[str, EvaluatedReportCoverage]] = None,
+    ) -> str:
+        """Render the reports table for the provided evaluated report rows."""
         if not self._has_baseline_data():
-            return self._generate_reports_table_without_baseline(p, f)
+            return self._generate_reports_table_without_baseline(p, f, evaluated_reports_coverage)
 
-        return self._generate_reports_table_with_baseline(p, f)
+        return self._generate_reports_table_with_baseline(p, f, evaluated_reports_coverage)
 
-    def _generate_reports_table_without_baseline(self, p: str, f: str, **kwargs) -> str:
-        s = dedent("""
+    def _generate_reports_table_without_baseline(
+        self,
+        p: str,
+        f: str,
+        evaluated_reports_coverage: Optional[dict[str, EvaluatedReportCoverage]] = None,
+    ) -> str:
+        if evaluated_reports_coverage is None:
+            evaluated_reports_coverage = self.evaluator.evaluated_reports_coverage
+
+        if not evaluated_reports_coverage:
+            return ""
+
+        s = dedent(
+            """
             | Report | Coverage (O/Ch) | Threshold (O/Ch) | Status (O/Ch) |
             |--------|----------|-----------|--------|
-        """).strip()
+        """
+        ).strip()
 
         provided_reports = 0
-        keys: list[str] = sorted(list(self.evaluator.evaluated_reports_coverage.keys()))
+        keys: list[str] = sorted(list(evaluated_reports_coverage.keys()))
         for key in keys:
-            evaluated_report = self.evaluator.evaluated_reports_coverage[key]
+            evaluated_report = evaluated_reports_coverage[key]
             provided_reports += 1
             o_thres = evaluated_report.overall_coverage_threshold
             ch_thres = evaluated_report.changed_files_threshold
@@ -259,16 +370,29 @@ class PRCommentGenerator:
 
         return s
 
-    def _generate_reports_table_with_baseline(self, p: str, f: str, **kwargs) -> str:
-        s = dedent("""
+    def _generate_reports_table_with_baseline(
+        self,
+        p: str,
+        f: str,
+        evaluated_reports_coverage: Optional[dict[str, EvaluatedReportCoverage]] = None,
+    ) -> str:
+        if evaluated_reports_coverage is None:
+            evaluated_reports_coverage = self.evaluator.evaluated_reports_coverage
+
+        if not evaluated_reports_coverage:
+            return ""
+
+        s = dedent(
+            """
             | Report | Coverage (O/Ch) | Threshold (O/Ch) | Δ Coverage (O/Ch) | Status (O/Ch) |
             |--------|----------|-----------|------------|--------|
-        """).strip()
+        """
+        ).strip()
 
         provided_reports = 0
-        keys: list[str] = sorted(list(self.evaluator.evaluated_reports_coverage.keys()))
+        keys: list[str] = sorted(list(evaluated_reports_coverage.keys()))
         for key in keys:
-            evaluated_report = self.evaluator.evaluated_reports_coverage[key]
+            evaluated_report = evaluated_reports_coverage[key]
 
             provided_reports += 1
             diff_o, diff_ch = self._calculate_baseline_report_diffs(evaluated_report)
@@ -294,6 +418,7 @@ class PRCommentGenerator:
         return s
 
     def calculate_baseline_group_diffs(self, evaluated_coverage: EvaluatedReportCoverage) -> tuple[float, float]:
+        """Calculate baseline deltas for one rendered group row."""
         if evaluated_coverage.name not in self.bs_evaluator.evaluated_groups_coverage.keys():
             return 0.0, 0.0
 
@@ -315,6 +440,7 @@ class PRCommentGenerator:
         return diff_o, diff_ch
 
     def _calculate_baseline_report_diffs(self, evaluated_coverage: EvaluatedReportCoverage) -> tuple[float, float]:
+        """Calculate baseline deltas for one rendered report row."""
         if evaluated_coverage.name not in self.bs_evaluator.evaluated_reports_coverage.keys():
             return 0.0, 0.0
 
@@ -342,10 +468,12 @@ class PRCommentGenerator:
         """
         Generate a table with changed files without baseline. The table contains the files from all reports.
         """
-        s = dedent("""
+        s = dedent(
+            """
             | File Path | Coverage | Threshold | Status |
             |-----------|----------|-----------|--------|
-        """).strip()
+        """
+        ).strip()
 
         if evaluated_reports_coverage is None:
             evaluated_reports_coverage = self.evaluator.evaluated_reports_coverage
@@ -375,22 +503,74 @@ class PRCommentGenerator:
 
         return s
 
-    def _get_changed_files_table(self, p: str, f: str) -> str:
-        if len(self.evaluator.evaluated_reports_coverage.keys()) == 0:
-            return "\nNo changed file in reports."
+    def _get_changed_files_table(
+        self,
+        p: str,
+        f: str,
+        evaluated_reports_coverage: Optional[dict[str, EvaluatedReportCoverage]] = None,
+        comment_level: str = CommentLevelEnum.FULL,
+    ) -> str:
+        """Render the changed-files table after applying any file-level filters."""
+        if evaluated_reports_coverage is None:
+            evaluated_reports_coverage = self.evaluator.evaluated_reports_coverage
+
+        if not evaluated_reports_coverage:
+            return ""
+
+        if comment_level == CommentLevelEnum.FAILED:
+            evaluated_reports_coverage = self._filter_reports_for_failed_files(evaluated_reports_coverage)
+
+        if not evaluated_reports_coverage:
+            return ""
 
         if not self._has_baseline_data():
-            return self.generate_changed_files_table_without_baseline(p, f)
+            return self.generate_changed_files_table_without_baseline(p, f, evaluated_reports_coverage)
 
-        return self.generate_changed_files_table_with_baseline(p, f)
+        return self.generate_changed_files_table_with_baseline(p, f, evaluated_reports_coverage)
+
+    def _filter_reports_for_failed_files(
+        self,
+        evaluated_reports_coverage: dict[str, EvaluatedReportCoverage],
+    ) -> dict[str, EvaluatedReportCoverage]:
+        """Keep only failing changed-file rows while preserving report metadata."""
+        filtered_reports: dict[str, EvaluatedReportCoverage] = {}
+        for key, coverage in evaluated_reports_coverage.items():
+            failed_files = {
+                file_path: score
+                for file_path, score in coverage.changed_files_coverage_reached.items()
+                if not coverage.changed_files_passed.get(file_path, True)
+            }
+            if not failed_files:
+                continue
+
+            filtered_coverage = EvaluatedReportCoverage(coverage.name, coverage.group_name)
+            filtered_coverage.overall_passed = coverage.overall_passed
+            filtered_coverage.avg_changed_files_passed = coverage.avg_changed_files_passed
+            filtered_coverage.overall_coverage_reached = coverage.overall_coverage_reached
+            filtered_coverage.avg_changed_files_coverage_reached = coverage.avg_changed_files_coverage_reached
+            filtered_coverage.overall_coverage_threshold = coverage.overall_coverage_threshold
+            filtered_coverage.changed_files_threshold = coverage.changed_files_threshold
+            filtered_coverage.per_changed_file_threshold = coverage.per_changed_file_threshold
+            filtered_coverage.overall_coverage = coverage.overall_coverage
+            filtered_coverage.avg_changed_files_coverage = coverage.avg_changed_files_coverage
+            filtered_coverage.changed_files_coverage_reached = failed_files
+            filtered_coverage.changed_files_passed = {
+                file_path: coverage.changed_files_passed[file_path] for file_path in failed_files
+            }
+            filtered_reports[key] = filtered_coverage
+
+        return filtered_reports
 
     def generate_changed_files_table_with_baseline(
         self, p: str, f: str, evaluated_reports_coverage: Optional[dict[str, EvaluatedReportCoverage]] = None
     ) -> str:
-        s = dedent("""
+        """Generate a changed-files table that includes baseline deltas."""
+        s = dedent(
+            """
             | File Path | Coverage | Threshold | Δ Coverage | Status |
             |-----------|----------|-----------|------------|--------|
-        """).strip()
+        """
+        ).strip()
 
         if evaluated_reports_coverage is None:
             evaluated_reports_coverage = self.evaluator.evaluated_reports_coverage
