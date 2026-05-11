@@ -61,7 +61,7 @@ jobs:
 | `token`             | GitHub token for authentication with the repository.                                                                                                                                                                           | **Yes**  |                                                  |
 | `paths`             | Newline-separated paths to JaCoCo XML files. Supports wildcard glob patterns. Required when `report-groups` is not set.                                                                                                        | No       | `''`                                             |
 | `exclude-paths`     | Newline-separated paths to exclude from coverage analysis. Supports glob patterns.                                                                                                                                             | No       | `''`                                             |
-| `global-thresholds` | Global coverage thresholds in `overall*average-changed-files*changed-file` format. Evaluated independently as a separate pass over aggregated totals.                                                                         | No       | `0.0*0.0*0.0`                                    |
+| `global-thresholds` | Global coverage thresholds in `overall*changed-files-average*changed-file` format. Evaluated independently as a separate pass over aggregated totals.                                                                         | No       | `0.0*0.0*0.0`                                    |
 | `report-thresholds-default` | Default thresholds for reports/groups when a group omits a threshold field. Format: `overall*changed-files-average*per-changed-file` (e.g. `75*60*0`). Field-level fallback chain: per-group → this default → 0.0.        | No       | `0.0*0.0*0.0`                                    |
 | `title`             | Title for the coverage report comment added to the Pull Request.                                                                                                                                                               | No       | `JaCoCo Coverage Report`                         |
 | `pr-number`         | Number of the pull request. If not provided, the action will attempt to determine <br> the PR number from the GitHub context.                                                                                                  | No       | `''`                                             |
@@ -137,12 +137,12 @@ analysis.
 The `global-thresholds` input allows you to define global coverage thresholds for the overall, average changed files,
 and each changed file coverage. This input is a string in the format:
 
-- `overall*average-changed-files*changed-file`
+- `overall*changed-files-average*changed-file`
 
 Where:
 
 - `overall`: Minimum overall coverage percentage required.
-- `average-changed-files`: Minimum average coverage percentage required for changed files.
+- `changed-files-average`: Minimum average coverage percentage required for changed files.
 - `changed-file`: Minimum coverage percentage required for each individual changed file.
 
 ```yaml
@@ -273,7 +273,7 @@ changed files coverage for all detected report files.
 > - **(O)** - Overall coverage.
 > - **(Ch)** - Coverage for changed files.
 > - **Δ Coverage** is visible when `baseline-paths` are defined and data is available.
-> - The report table is always visible. When `report-groups` is defined, each group's thresholds are used (with field-level fallback to `report-thresholds-default`); otherwise, `global-thresholds` are applied.
+> - The report table is always visible. When `report-groups` is defined, each group's thresholds are used (with field-level fallback to `report-thresholds-default`); otherwise, reports use `report-thresholds-default` (per-field fallback to 0.0).
 > - The groups table is visible when `report-groups` is defined.
 > - `global-thresholds` is always evaluated independently as a separate pass over aggregated totals and is never part of the group fallback chain.
 
