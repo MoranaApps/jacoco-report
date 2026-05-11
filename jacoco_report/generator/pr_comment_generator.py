@@ -65,11 +65,11 @@ class PRCommentGenerator:
         body += f"\n\n{self.get_basic_table_for_all(p, f)}"
 
         if ActionInputs.get_comment_level() == CommentLevelEnum.FULL:
-            groups_table = self._get_groups_table(p, f)
+            groups_table = self.get_groups_table(p, f)
             if groups_table:
                 body += f"\n\n{groups_table}"
 
-            reports_table = self._get_reports_table(p, f)
+            reports_table = self.get_reports_table(p, f)
             if reports_table != "":
                 body += f"\n\n{reports_table}"
 
@@ -198,7 +198,7 @@ class PRCommentGenerator:
             )
         )
 
-    def _get_groups_table(self, p: str, f: str) -> str:
+    def get_groups_table(self, p: str, f: str) -> str:
         if not self.evaluator.evaluated_groups_coverage:
             return ""
 
@@ -234,7 +234,7 @@ class PRCommentGenerator:
                 s += f"\n| `{group_name}` | {cov} | {thres} | {delta} | {status} |"
         return s
 
-    def _get_reports_table(self, p: str, f: str) -> str:
+    def get_reports_table(self, p: str, f: str) -> str:
         if not self._has_baseline_data():
             return self._generate_reports_table_without_baseline(p, f)
 

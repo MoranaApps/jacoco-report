@@ -210,7 +210,7 @@ def testgenerate_changed_files_table_with_baseline_no_changed_file(pr_comment_ge
 def test_get_groups_table_empty(pr_comment_generator, mocker):
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=[])
     pr_comment_generator.evaluator.evaluated_groups_coverage = {}
-    assert pr_comment_generator._get_groups_table("✅", "❌") == ""
+    assert pr_comment_generator.get_groups_table("✅", "❌") == ""
 
 
 def test_get_groups_table_without_baseline(pr_comment_generator, mocker):
@@ -224,7 +224,7 @@ def test_get_groups_table_without_baseline(pr_comment_generator, mocker):
     ev.avg_changed_files_passed = True
     pr_comment_generator.evaluator.evaluated_groups_coverage = {"backend": ev}
 
-    table = pr_comment_generator._get_groups_table("✅", "❌")
+    table = pr_comment_generator.get_groups_table("✅", "❌")
 
     assert "| Group |" in table
     assert "| `backend` | 85.0% / 80.0% | 75.0% / 70.0% | ✅/✅ |" in table
@@ -248,7 +248,7 @@ def test_get_groups_table_with_baseline(pr_comment_generator, mocker):
     bs_evaluator.evaluated_groups_coverage = {"backend": bs_ev}
     pr_comment_generator.bs_evaluator = bs_evaluator
 
-    table = pr_comment_generator._get_groups_table("✅", "❌")
+    table = pr_comment_generator.get_groups_table("✅", "❌")
 
     assert "| Group |" in table
     assert "Δ Coverage" in table
@@ -272,7 +272,7 @@ def test_reports_table_uses_group_thresholds_when_groups_configured(pr_comment_g
     ev.avg_changed_files_passed = True
     pr_comment_generator.evaluator.evaluated_reports_coverage = {"backend-report": ev}
 
-    table = pr_comment_generator._generate_reports_table_without_baseline("✅", "❌")
+    table = pr_comment_generator.get_reports_table("✅", "❌")
 
     assert "75.0% / 70.0%" in table
     assert "50.0%" not in table
@@ -293,15 +293,15 @@ def test_reports_table_does_not_call_get_report_groups_per_row(pr_comment_genera
     pr_comment_generator.evaluator.evaluated_reports_coverage = {"backend-report": ev}
     pr_comment_generator.evaluator.evaluated_groups_coverage = {"backend": EvaluatedReportCoverage("backend")}
 
-    table = pr_comment_generator._generate_reports_table_without_baseline("✅", "❌")
+    table = pr_comment_generator.get_reports_table("✅", "❌")
 
     assert "50.0% / 50.0%" in table
     get_groups_mock.assert_called_once()
 
-# --- Issue 1: _get_groups_table baseline decision logic ---
+# --- Issue 1: get_groups_table baseline decision logic ---
 
 def test_get_groups_table_baseline_decision_global_only(pr_comment_generator, mocker):
-    """Test that _get_groups_table shows baseline Δ when global baseline-paths is set"""
+    """Test that get_groups_table shows baseline Δ when global baseline-paths is set"""
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["baseline.xml"])
     ev = EvaluatedReportCoverage("backend")
     ev.overall_coverage_reached = 85.0
@@ -319,14 +319,14 @@ def test_get_groups_table_baseline_decision_global_only(pr_comment_generator, mo
     bs_evaluator.evaluated_groups_coverage = {"backend": bs_ev}
     pr_comment_generator.bs_evaluator = bs_evaluator
 
-    table = pr_comment_generator._get_groups_table("✅", "❌")
+    table = pr_comment_generator.get_groups_table("✅", "❌")
 
     assert "Δ Coverage" in table
     assert "+5.0% / +5.0%" in table
 
 
 def test_get_groups_table_baseline_decision_group_only(pr_comment_generator, mocker):
-    """Test that _get_groups_table shows baseline Δ when group has per-group baseline-paths"""
+    """Test that get_groups_table shows baseline Δ when group has per-group baseline-paths"""
     # Global baseline-paths is empty
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=[])
     
@@ -347,7 +347,7 @@ def test_get_groups_table_baseline_decision_group_only(pr_comment_generator, moc
     bs_evaluator.evaluated_groups_coverage = {"backend": bs_ev}
     pr_comment_generator.bs_evaluator = bs_evaluator
 
-    table = pr_comment_generator._get_groups_table("✅", "❌")
+    table = pr_comment_generator.get_groups_table("✅", "❌")
 
     # Should show baseline Δ when bs_evaluator has data, even if global baseline-paths is empty
     assert "Δ Coverage" in table
@@ -376,7 +376,7 @@ def test_get_reports_table_baseline_decision_group_only(pr_comment_generator, mo
     bs_evaluator.evaluated_groups_coverage = {}
     pr_comment_generator.bs_evaluator = bs_evaluator
 
-    table = pr_comment_generator._get_reports_table("✅", "❌")
+    table = pr_comment_generator.get_reports_table("✅", "❌")
 
     assert "Δ Coverage (O/Ch)" in table
 
@@ -405,7 +405,7 @@ def test_get_basic_table_baseline_decision_group_only(pr_comment_generator, mock
 
 
 def test_get_groups_table_baseline_decision_no_baseline(pr_comment_generator, mocker):
-    """Test that _get_groups_table omits baseline Δ when no baseline data available"""
+    """Test that get_groups_table omits baseline Δ when no baseline data available"""
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=[])
     
     ev = EvaluatedReportCoverage("backend")
@@ -422,7 +422,7 @@ def test_get_groups_table_baseline_decision_no_baseline(pr_comment_generator, mo
     bs_evaluator.evaluated_groups_coverage = {}
     pr_comment_generator.bs_evaluator = bs_evaluator
 
-    table = pr_comment_generator._get_groups_table("✅", "❌")
+    table = pr_comment_generator.get_groups_table("✅", "❌")
 
     # Should NOT show baseline Δ
     assert "Δ Coverage" not in table
@@ -446,7 +446,7 @@ def test_get_groups_table_hides_baseline_when_paths_set_but_no_evaluated_data(pr
     bs_evaluator.evaluated_groups_coverage = {}
     pr_comment_generator.bs_evaluator = bs_evaluator
 
-    table = pr_comment_generator._get_groups_table("✅", "❌")
+    table = pr_comment_generator.get_groups_table("✅", "❌")
 
     assert "Δ Coverage" not in table
 
