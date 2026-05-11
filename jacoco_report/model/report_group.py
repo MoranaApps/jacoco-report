@@ -25,4 +25,7 @@ class ReportGroup:
         self.min_coverage_overall = min_coverage_overall
         self.min_coverage_changed_files = min_coverage_changed_files
         self.min_coverage_per_changed_file = min_coverage_per_changed_file
-        self.baseline_paths = baseline_paths
+        # Keep [] default for backward compatibility while tracking whether the
+        # field was explicitly provided in report-groups YAML.
+        self.baseline_paths_configured = baseline_paths is not None
+        self.baseline_paths = baseline_paths or []

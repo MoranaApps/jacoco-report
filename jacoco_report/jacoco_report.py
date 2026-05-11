@@ -139,7 +139,11 @@ class JaCoCoReport:
             for group in report_groups:
                 # Inherit global baseline paths only when group-level baseline-paths is omitted (None).
                 # Explicit [] means baseline is intentionally disabled for this group.
-                group_baseline_paths = global_baseline_paths if group.baseline_paths is None else group.baseline_paths
+                group_baseline_paths = (
+                    group.baseline_paths
+                    if getattr(group, "baseline_paths_configured", False)
+                    else global_baseline_paths
+                )
                 if not group_baseline_paths:
                     continue
 
