@@ -196,4 +196,3 @@ class JaCoCoReportParser:
                         logger.debug("File '%s' is not in the list of changed files.", key)
 
         return changed_files_stats
-

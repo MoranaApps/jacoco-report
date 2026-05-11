@@ -208,6 +208,14 @@ class ActionInputs:
         """
         return get_action_input(COMMENT_LEVEL, CommentLevelEnum.FULL)
 
+    @overload
+    @staticmethod
+    def get_report_groups(raw: Literal[True]) -> str: ...
+
+    @overload
+    @staticmethod
+    def get_report_groups(raw: Literal[False] = ...) -> list[ReportGroup]: ...
+
     @staticmethod
     def get_report_groups(raw: bool = False) -> list[ReportGroup] | str:
         """
@@ -466,7 +474,7 @@ class ActionInputs:
         if not isinstance(comment_level, str) or comment_level not in CommentLevelEnum:
             errors.append("'comment-level' must be a string from these options: 'minimal', 'full'.")
 
-        report_groups_raw: str = ActionInputs.get_report_groups(raw=True)  # type: ignore[assignment]
+        report_groups_raw: str = ActionInputs.get_report_groups(raw=True)
         errors.extend(ActionInputs.validate_report_groups(report_groups_raw))
 
         skip_unchanged = ActionInputs.get_skip_unchanged()

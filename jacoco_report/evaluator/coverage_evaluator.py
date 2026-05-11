@@ -74,9 +74,7 @@ class CoverageEvaluator:
 
         # evaluation of all report files (report == input xml file)
         for report in self._report_files_coverage:
-            evaluated_coverage_report: EvaluatedReportCoverage = EvaluatedReportCoverage(
-                report.name, report.group_name
-            )
+            evaluated_coverage_report: EvaluatedReportCoverage = EvaluatedReportCoverage(report.name, report.group_name)
 
             # get report's overall values
             mi, co = report.overall_coverage.get_values_by_metric(m)
@@ -113,17 +111,13 @@ class CoverageEvaluator:
                     evaluated_coverage_group.avg_changed_files_coverage.append(
                         evaluated_report_coverage.avg_changed_files_coverage
                     )
-                    evaluated_coverage_group.changed_files_passed.update(
-                        evaluated_report_coverage.changed_files_passed
-                    )
+                    evaluated_coverage_group.changed_files_passed.update(evaluated_report_coverage.changed_files_passed)
                     evaluated_coverage_group.changed_files_coverage_reached.update(
                         evaluated_report_coverage.changed_files_coverage_reached
                     )
 
             # count reached values from raw weights
-            evaluated_coverage_group.overall_coverage_reached = (
-                evaluated_coverage_group.overall_coverage.coverage()
-            )
+            evaluated_coverage_group.overall_coverage_reached = evaluated_coverage_group.overall_coverage.coverage()
             evaluated_coverage_group.avg_changed_files_coverage_reached = (
                 evaluated_coverage_group.avg_changed_files_coverage.coverage()
             )
@@ -219,9 +213,7 @@ class CoverageEvaluator:
         Uses group-level thresholds when set, otherwise falls back to global thresholds.
         """
         overall_threshold = (
-            group.min_coverage_overall
-            if group.min_coverage_overall is not None
-            else self._global_min_coverage_overall
+            group.min_coverage_overall if group.min_coverage_overall is not None else self._global_min_coverage_overall
         )
         changed_files_threshold = (
             group.min_coverage_changed_files
@@ -327,15 +319,21 @@ class CoverageEvaluator:
         for group in self._report_groups:
             if group.name == group_name:
                 return (
-                    group.min_coverage_overall
-                    if group.min_coverage_overall is not None
-                    else self._global_min_coverage_overall,
-                    group.min_coverage_changed_files
-                    if group.min_coverage_changed_files is not None
-                    else self._global_min_coverage_changed_files,
-                    group.min_coverage_per_changed_file
-                    if group.min_coverage_per_changed_file is not None
-                    else self._global_min_coverage_changed_per_file,
+                    (
+                        group.min_coverage_overall
+                        if group.min_coverage_overall is not None
+                        else self._global_min_coverage_overall
+                    ),
+                    (
+                        group.min_coverage_changed_files
+                        if group.min_coverage_changed_files is not None
+                        else self._global_min_coverage_changed_files
+                    ),
+                    (
+                        group.min_coverage_per_changed_file
+                        if group.min_coverage_per_changed_file is not None
+                        else self._global_min_coverage_changed_per_file
+                    ),
                 )
         return (
             self._global_min_coverage_overall,

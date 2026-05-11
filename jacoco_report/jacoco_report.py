@@ -112,16 +112,32 @@ class JaCoCoReport:
 
         # get baseline files for comparison
         logger.info("Scanning for JaCoCo (xml) baseline reports.")
-        baseline_report_paths_to_analyse = self.scan_jacoco_xml_files(
-            paths=ActionInputs.get_baseline_paths(), exclude_paths=[]
-        )
         bs_report_files_coverage: list[ReportFileCoverage] = []
-        if len(baseline_report_paths_to_analyse) == 0:
-            logger.warning("No baseline JaCoCo xml file found. No difference will be calculated.")
+        if report_groups:
+            for group in report_groups:
+                group_baseline_paths = (
+                    group.baseline_paths if group.baseline_paths else ActionInputs.get_baseline_paths()
+                )
+                group_baseline_report_paths = self.scan_jacoco_xml_files(paths=group_baseline_paths, exclude_paths=[])
+                if len(group_baseline_report_paths) == 0:
+                    logger.warning(
+                        "No baseline JaCoCo xml file found for group '%s'. No difference will be calculated.",
+                        group.name,
+                    )
+                else:
+                    logger.info("Analyzing baseline JaCoCo (xml) reports for group '%s'.", group.name)
+                    for report_path in group_baseline_report_paths:
+                        bs_report_files_coverage.append(parser.parse(report_path, group_name=group.name))
         else:
-            logger.info("Analyzing baseline JaCoCo (xml) reports.")
-            for report_path in baseline_report_paths_to_analyse:
-                bs_report_files_coverage.append(parser.parse(report_path))
+            baseline_report_paths_to_analyse = self.scan_jacoco_xml_files(
+                paths=ActionInputs.get_baseline_paths(), exclude_paths=[]
+            )
+            if len(baseline_report_paths_to_analyse) == 0:
+                logger.warning("No baseline JaCoCo xml file found. No difference will be calculated.")
+            else:
+                logger.info("Analyzing baseline JaCoCo (xml) reports.")
+                for report_path in baseline_report_paths_to_analyse:
+                    bs_report_files_coverage.append(parser.parse(report_path))
 
         # evaluate the coverage
         logger.info("Evaluating the coverage of the reports.")
@@ -142,7 +158,7 @@ class JaCoCoReport:
             report_groups=report_groups,
         )
 
-        if len(ActionInputs.get_baseline_paths()) > 0:
+        if bs_report_files_coverage:
             bs_evaluator.evaluate()
 
         self.total_overall_coverage = evaluator.total_coverage_overall
@@ -172,4 +188,3 @@ class JaCoCoReport:
         paths_to_analyse: list[str] = JaCoCoReportInputScanner(paths=paths, exclude_paths=exclude_paths).scan()
         logger.info("Found %s JaCoCo reports.", len(paths_to_analyse))
         return paths_to_analyse
-
