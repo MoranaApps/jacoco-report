@@ -52,3 +52,24 @@ class EvaluatedReportCoverage:
             "changed_files_coverage_reached": self.changed_files_coverage_reached,
             "per_changed_file_threshold": self.per_changed_file_threshold,
         }
+
+    def clone(self) -> "EvaluatedReportCoverage":
+        """Return a detached copy of the evaluated coverage object."""
+        clone = EvaluatedReportCoverage(self.name, self.group_name)
+        clone.overall_passed = self.overall_passed
+        clone.overall_coverage_reached = self.overall_coverage_reached
+        clone.overall_coverage_threshold = self.overall_coverage_threshold
+        clone.overall_coverage = Counter(self.overall_coverage.missed, self.overall_coverage.covered)
+
+        clone.avg_changed_files_passed = self.avg_changed_files_passed
+        clone.avg_changed_files_coverage_reached = self.avg_changed_files_coverage_reached
+        clone.avg_changed_files_coverage = Counter(
+            self.avg_changed_files_coverage.missed,
+            self.avg_changed_files_coverage.covered,
+        )
+
+        clone.changed_files_passed = dict(self.changed_files_passed)
+        clone.changed_files_threshold = self.changed_files_threshold
+        clone.changed_files_coverage_reached = dict(self.changed_files_coverage_reached)
+        clone.per_changed_file_threshold = self.per_changed_file_threshold
+        return clone

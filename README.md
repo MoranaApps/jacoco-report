@@ -239,6 +239,7 @@ Each entry is a YAML mapping with:
 ##### No Comment
 
 - When the `comment-level` is set to `none`, no PR comment is posted.
+- If `update-comment: true` and a previous JaCoCo comment with the same title exists, that stale comment is deleted.
 
 ##### Minimal Level
 

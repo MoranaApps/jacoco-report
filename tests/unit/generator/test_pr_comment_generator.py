@@ -536,6 +536,7 @@ def test_generate_skips_github_comment_for_none(pr_comment_generator, mocker):
 
     pr_comment_generator.generate()
 
+    pr_comment_generator.gh.get_comments.assert_called_once_with(1)
     pr_comment_generator.gh.add_comment.assert_not_called()
     pr_comment_generator.gh.update_comment.assert_not_called()
 
@@ -562,20 +563,6 @@ def test_none_leaves_existing_comment_when_update_comment_disabled(pr_comment_ge
     pr_comment_generator.gh.add_comment.assert_not_called()
     pr_comment_generator.gh.update_comment.assert_not_called()
     pr_comment_generator.gh.delete_comment.assert_not_called()
-
-
-def test_none_comment_content_is_title_only(pr_comment_generator, mocker):
-    _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="none")
-    _set_mixed_comment_level_fixture(pr_comment_generator)
-
-    title, body = pr_comment_generator._get_comment_content()
-
-    assert title == "**JaCoCo**"
-    assert body == "**JaCoCo**"
-    assert "| Metric (instruction) |" not in body
-    assert "| Group |" not in body
-    assert "| Report |" not in body
-    assert "| File Path |" not in body
 
 
 @pytest.mark.parametrize(

@@ -39,7 +39,10 @@ class PRCommentGenerator:
         """
         The method that generates the comment for a single generator.
         """
-        title, pr_body = self._get_comment_content()
+        comment_level = ActionInputs.get_comment_level()
+        update_comment = ActionInputs.get_update_comment()
+
+        title, pr_body = self._get_comment_content(comment_level)
         # Get all comments on the pull request
         comments = self.gh.get_comments(self.pr_number)
 
@@ -50,20 +53,19 @@ class PRCommentGenerator:
                 existing_comment = comment
                 break
 
-        if ActionInputs.get_comment_level() == CommentLevelEnum.NONE:
-            if existing_comment and ActionInputs.get_update_comment():
+        if comment_level == CommentLevelEnum.NONE:
+            if existing_comment and update_comment:
                 self.gh.delete_comment(existing_comment["id"])
             return
 
-        if existing_comment and ActionInputs.get_update_comment():
+        if existing_comment and update_comment:
             self.gh.update_comment(existing_comment["id"], pr_body)
         else:
             self.gh.add_comment(self.pr_number, pr_body)
 
-    def _get_comment_content(self) -> tuple[str, str]:
+    def _get_comment_content(self, comment_level: str) -> tuple[str, str]:
         """Build the PR comment title and body for the selected comment level."""
         title = body = f"**{ActionInputs.get_title()}**"
-        comment_level = ActionInputs.get_comment_level()
 
         if comment_level == CommentLevelEnum.NONE:
             return title, body
@@ -545,16 +547,7 @@ class PRCommentGenerator:
             if not failed_files:
                 continue
 
-            filtered_coverage = EvaluatedReportCoverage(coverage.name, coverage.group_name)
-            filtered_coverage.overall_passed = coverage.overall_passed
-            filtered_coverage.avg_changed_files_passed = coverage.avg_changed_files_passed
-            filtered_coverage.overall_coverage_reached = coverage.overall_coverage_reached
-            filtered_coverage.avg_changed_files_coverage_reached = coverage.avg_changed_files_coverage_reached
-            filtered_coverage.overall_coverage_threshold = coverage.overall_coverage_threshold
-            filtered_coverage.changed_files_threshold = coverage.changed_files_threshold
-            filtered_coverage.per_changed_file_threshold = coverage.per_changed_file_threshold
-            filtered_coverage.overall_coverage = coverage.overall_coverage
-            filtered_coverage.avg_changed_files_coverage = coverage.avg_changed_files_coverage
+            filtered_coverage = coverage.clone()
             filtered_coverage.changed_files_coverage_reached = failed_files
             filtered_coverage.changed_files_passed = {
                 file_path: coverage.changed_files_passed[file_path] for file_path in failed_files
