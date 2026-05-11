@@ -231,14 +231,39 @@ class ActionInputs:
         if not raw_input:
             return []
 
-        data = yaml.safe_load(raw_input)
+        try:
+            data = yaml.safe_load(raw_input)
+        except yaml.YAMLError as e:
+            raise ValueError(f"'report-groups' is not valid YAML: {e}") from e
+
         if not isinstance(data, list):
             raise ValueError("'report-groups' must be a YAML list.")
 
         groups: list[ReportGroup] = []
-        for entry in data:
-            name = entry["name"]
+        for i, entry in enumerate(data):
+            # Validate entry is a dict
+            if not isinstance(entry, dict):
+                raise ValueError(
+                    f"'report-groups' entry #{i + 1} must be a YAML mapping (dict), got {type(entry).__name__}."
+                )
+
+            # Validate required keys
+            if "name" not in entry or not entry.get("name"):
+                raise ValueError(f"'report-groups' entry #{i + 1} must have a non-empty 'name' key.")
+
+            if "paths" not in entry:
+                raise ValueError(f"'report-groups' entry #{i + 1} must have a 'paths' key.")
+
             paths = entry["paths"]
+            if not isinstance(paths, list):
+                raise ValueError(f"'report-groups' entry #{i + 1} 'paths' must be a list, got {type(paths).__name__}.")
+
+            if not paths or not all(isinstance(p, str) and p for p in paths):
+                raise ValueError(
+                    f"'report-groups' entry #{i + 1} 'paths' must be a non-empty list of non-empty strings."
+                )
+
+            name = entry["name"]
             baseline_paths = entry.get("baseline-paths", [])
 
             thresholds_str = entry.get("thresholds", "")
@@ -440,9 +465,12 @@ class ActionInputs:
             errors.append("'paths' must be defined.")
         elif not isinstance(paths, str):
             errors.append("'paths' must be a list of strings.")
-        elif len(paths) == 0 and not has_report_groups:
-            # paths is required only if report-groups is not configured
-            errors.append("'paths' must be a non-empty list of strings.")
+        else:
+            # Check parsed paths list (which strips whitespace) instead of raw string length
+            parsed_paths = ActionInputs.get_paths()
+            if not parsed_paths and not has_report_groups:
+                # paths is required only if report-groups is not configured
+                errors.append("'paths' must be a non-empty list of strings.")
 
         global_thresholds = ActionInputs.get_global_thresholds(raw=True)
         if not isinstance(global_thresholds, str):

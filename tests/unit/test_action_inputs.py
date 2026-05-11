@@ -398,6 +398,105 @@ def test_get_event_name(mocker):
     assert ActionInputs.get_event_name() == "push"
 
 
+# --- Issue 6: whitespace-only paths ---
+def test_validate_inputs_paths_whitespace_only_requires_error_without_groups(mocker):
+    case = success_case.copy()
+    case["get_paths"] = "  \n  "
+    case["get_report_groups"] = ""
+
+    patchers = apply_mocks(case, mocker)
+    try:
+        mock_error = mocker.patch("jacoco_report.action_inputs.logger.error")
+        mock_exit = mocker.patch("sys.exit")
+        mocker.patch(
+            "jacoco_report.action_inputs.ActionInputs.get_paths",
+            side_effect=lambda raw=False: "  \n  " if raw else [],
+        )
+
+        ActionInputs.validate_inputs()
+
+        mock_error.assert_any_call("'paths' must be a non-empty list of strings.")
+        mock_exit.assert_called_once_with(1)
+    finally:
+        stop_mocks(patchers)
+
+
+def test_validate_inputs_paths_whitespace_only_allowed_with_groups(mocker):
+    case = success_case.copy()
+    case["get_paths"] = "  \n  "
+    case["get_report_groups"] = "- name: g1\n  paths: ['**']"
+
+    patchers = apply_mocks(case, mocker)
+    try:
+        mock_exit = mocker.patch("sys.exit")
+        mocker.patch(
+            "jacoco_report.action_inputs.ActionInputs.get_paths",
+            side_effect=lambda raw=False: "  \n  " if raw else [],
+        )
+
+        ActionInputs.validate_inputs()
+
+        mock_exit.assert_not_called()
+    finally:
+        stop_mocks(patchers)
+
+
+# --- Issue 7: yaml.YAMLError handling ---
+def test_get_report_groups_yaml_syntax_error_raises_value_error(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="invalid: yaml: [")
+
+    with pytest.raises(ValueError) as exc_info:
+        ActionInputs.get_report_groups(raw=False)
+
+    assert "is not valid YAML" in str(exc_info.value)
+
+
+# --- Issue 8: entry validation in get_report_groups ---
+def test_get_report_groups_entry_not_mapping_raises_value_error(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value='["not-a-dict"]')
+
+    with pytest.raises(ValueError) as exc_info:
+        ActionInputs.get_report_groups(raw=False)
+
+    assert "mapping" in str(exc_info.value).lower() or "dict" in str(exc_info.value).lower()
+
+
+def test_get_report_groups_missing_name_raises_value_error(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="- paths: ['**']")
+
+    with pytest.raises(ValueError) as exc_info:
+        ActionInputs.get_report_groups(raw=False)
+
+    assert "name" in str(exc_info.value).lower()
+
+
+def test_get_report_groups_missing_paths_raises_value_error(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="- name: g1")
+
+    with pytest.raises(ValueError) as exc_info:
+        ActionInputs.get_report_groups(raw=False)
+
+    assert "paths" in str(exc_info.value).lower()
+
+
+def test_get_report_groups_paths_not_list_raises_value_error(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="- name: g1\n  paths: single-string")
+
+    with pytest.raises(ValueError) as exc_info:
+        ActionInputs.get_report_groups(raw=False)
+
+    assert "list" in str(exc_info.value).lower()
+
+
+def test_get_report_groups_empty_paths_raises_value_error(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="- name: g1\n  paths: []")
+
+    with pytest.raises(ValueError) as exc_info:
+        ActionInputs.get_report_groups(raw=False)
+
+    assert "non-empty" in str(exc_info.value).lower() or "empty" in str(exc_info.value).lower()
+
+
 failure_cases_defaults = [
     # ("get_token", ""),    # There are no defaults for token, it must be provided.
     # ("get_paths", ""),    # There are no defaults for paths, it must be provided.
