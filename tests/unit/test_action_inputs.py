@@ -262,6 +262,13 @@ def test_validate_report_groups_whitespace_only_paths_item(mocker):
     assert any("non-empty 'paths'" in e for e in errors)
 
 
+def test_validate_report_groups_duplicate_names(mocker):
+    errors = ActionInputs.validate_report_groups(
+        "- name: group1\n  paths: ['**/a.xml']\n- name: group1\n  paths: ['**/b.xml']"
+    )
+    assert any("duplicate 'name' value 'group1'" in e for e in errors)
+
+
 def test_validate_report_groups_invalid_threshold_format(mocker):
     errors = ActionInputs.validate_report_groups("- name: g\n  paths: ['**']\n  thresholds: '80'")
     assert any("O*A*P" in e for e in errors)

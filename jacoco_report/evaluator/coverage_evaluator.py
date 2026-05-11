@@ -38,6 +38,26 @@ class CoverageEvaluator:
         self._global_min_coverage_changed_files: float = global_min_coverage_changed_files
         self._global_min_coverage_changed_per_file = global_min_coverage_changed_per_file
         self._report_groups: list[ReportGroup] = report_groups if report_groups is not None else []
+        self._group_thresholds_lookup: dict[str, tuple[float, float, float]] = {
+            group.name: (
+                (
+                    group.min_coverage_overall
+                    if group.min_coverage_overall is not None
+                    else self._global_min_coverage_overall
+                ),
+                (
+                    group.min_coverage_changed_files
+                    if group.min_coverage_changed_files is not None
+                    else self._global_min_coverage_changed_files
+                ),
+                (
+                    group.min_coverage_per_changed_file
+                    if group.min_coverage_per_changed_file is not None
+                    else self._global_min_coverage_changed_per_file
+                ),
+            )
+            for group in self._report_groups
+        }
 
         # *** output data for the comment(s) ***
         # global data
@@ -318,29 +338,13 @@ class CoverageEvaluator:
         """
         Returns coverage thresholds for a report: group-level thresholds when set, global otherwise.
         """
-        for group in self._report_groups:
-            if group.name == group_name:
-                return (
-                    (
-                        group.min_coverage_overall
-                        if group.min_coverage_overall is not None
-                        else self._global_min_coverage_overall
-                    ),
-                    (
-                        group.min_coverage_changed_files
-                        if group.min_coverage_changed_files is not None
-                        else self._global_min_coverage_changed_files
-                    ),
-                    (
-                        group.min_coverage_per_changed_file
-                        if group.min_coverage_per_changed_file is not None
-                        else self._global_min_coverage_changed_per_file
-                    ),
-                )
-        return (
-            self._global_min_coverage_overall,
-            self._global_min_coverage_changed_files,
-            self._global_min_coverage_changed_per_file,
+        return self._group_thresholds_lookup.get(
+            group_name,
+            (
+                self._global_min_coverage_overall,
+                self._global_min_coverage_changed_files,
+                self._global_min_coverage_changed_per_file,
+            ),
         )
 
     def changed_files_count(self) -> int:

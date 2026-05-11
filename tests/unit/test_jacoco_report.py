@@ -2389,12 +2389,6 @@ def test_violations(jacoco_report, id, level, changed_files, violations, mocker)
 
     jacoco_report.run()
 
-    # for comment in mock_add_comment.call_args_list:
-    #     print(f"\ncomment: \n{comment[0][1]}")
-
-    # print(f"Violations: \n")
-    # for violation in jacoco_report.violations:
-    #     print(f"{violation}")
 
     actual_merger_violations = " ".join(jacoco_report.violations)
     assert len(jacoco_report.violations) == len(violations)
@@ -2405,9 +2399,6 @@ def test_filtered_out_all_from_changed_file(jacoco_report, mocker):
     changed_files = [
         'com/example/ExampleClass.java'
     ]
-
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value='pull_request')
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_token", return_value='fake_token')
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_comment_level", return_value=CommentLevelEnum.FULL)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=["tests/data/module_d/**/jacoco*.xml"])
     # mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=["data/module_d/**/jacoco*.xml"])
@@ -2423,10 +2414,6 @@ def test_filtered_out_all_from_changed_file(jacoco_report, mocker):
     mock_add_comment = mocker.patch('jacoco_report.utils.github.GitHub.add_comment', return_value=None)
 
     jacoco_report.run()
-
-
-    # for comment in mock_add_comment.call_args_list:
-    #     print(f"\ncomment: \n{comment[0][1]}")
 
 
 # --- Issue 3: Duplicate report files when group paths overlap ---

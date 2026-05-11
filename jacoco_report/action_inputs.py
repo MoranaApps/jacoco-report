@@ -377,6 +377,7 @@ class ActionInputs:
         if not isinstance(data, list):
             return ["'report-groups' must be a YAML list."]
 
+        seen_names: set[str] = set()
         for i, entry in enumerate(data):
             prefix = f"'report-groups' entry #{i + 1}"
             if not isinstance(entry, dict):
@@ -384,6 +385,11 @@ class ActionInputs:
                 continue
             if not entry.get("name"):
                 errors.append(f"{prefix} must have a non-empty 'name'.")
+            else:
+                group_name = str(entry["name"])
+                if group_name in seen_names:
+                    errors.append(f"{prefix} has duplicate 'name' value '{group_name}'.")
+                seen_names.add(group_name)
             paths = entry.get("paths")
             if not paths or not isinstance(paths, list) or not all(isinstance(p, str) and p.strip() for p in paths):
                 errors.append(f"{prefix} must have a non-empty 'paths' list of non-empty strings.")
