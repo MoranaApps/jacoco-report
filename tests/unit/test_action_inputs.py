@@ -252,6 +252,11 @@ def test_validate_report_groups_missing_name(mocker):
     assert any("non-empty 'name'" in e for e in errors)
 
 
+def test_validate_report_groups_whitespace_only_name_invalid(mocker):
+    errors = ActionInputs.validate_report_groups("- name: '   '\n  paths: ['**']")
+    assert any("non-empty 'name'" in e for e in errors)
+
+
 def test_validate_report_groups_missing_paths(mocker):
     errors = ActionInputs.validate_report_groups("- name: group1")
     assert any("non-empty 'paths'" in e for e in errors)
@@ -265,6 +270,13 @@ def test_validate_report_groups_whitespace_only_paths_item(mocker):
 def test_validate_report_groups_duplicate_names(mocker):
     errors = ActionInputs.validate_report_groups(
         "- name: group1\n  paths: ['**/a.xml']\n- name: group1\n  paths: ['**/b.xml']"
+    )
+    assert any("duplicate 'name' value 'group1'" in e for e in errors)
+
+
+def test_validate_report_groups_duplicate_names_after_strip(mocker):
+    errors = ActionInputs.validate_report_groups(
+        "- name: group1\n  paths: ['**/a.xml']\n- name: ' group1 '\n  paths: ['**/b.xml']"
     )
     assert any("duplicate 'name' value 'group1'" in e for e in errors)
 
@@ -522,6 +534,33 @@ def test_get_report_groups_invalid_threshold_format_raises_value_error(mocker):
 
     assert "thresholds" in str(exc_info.value).lower()
     assert "o*a*p" in str(exc_info.value).lower()
+
+
+def test_get_report_groups_normalizes_name_and_paths(mocker):
+    yaml_input = "- name: '  backend  '\n  paths:\n    - '  backend/**/jacoco.xml  '\n  thresholds: 80*70*60"
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value=yaml_input)
+
+    groups = ActionInputs.get_report_groups()
+
+    assert len(groups) == 1
+    assert groups[0].name == "backend"
+    assert groups[0].paths == ["backend/**/jacoco.xml"]
+
+
+def test_get_report_groups_normalizes_baseline_paths(mocker):
+    yaml_input = (
+        "- name: backend\n"
+        "  paths:\n"
+        "    - backend/**/jacoco.xml\n"
+        "  baseline-paths:\n"
+        "    - '  baseline/**/jacoco.xml  '"
+    )
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value=yaml_input)
+
+    groups = ActionInputs.get_report_groups()
+
+    assert len(groups) == 1
+    assert groups[0].baseline_paths == ["baseline/**/jacoco.xml"]
 
 
 failure_cases_defaults = [

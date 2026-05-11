@@ -248,10 +248,11 @@ class ActionInputs:
                     f"'report-groups' entry #{i + 1} must be a YAML mapping (dict), got {type(entry).__name__}."
                 )
 
-            paths = entry["paths"]
+            paths = [p.strip() for p in entry["paths"]]
 
-            name = entry["name"]
-            baseline_paths = entry["baseline-paths"] if "baseline-paths" in entry else None
+            name = str(entry["name"]).strip()
+            baseline_paths_raw = entry["baseline-paths"] if "baseline-paths" in entry else None
+            baseline_paths = [p.strip() for p in baseline_paths_raw] if baseline_paths_raw is not None else None
 
             thresholds_str = entry.get("thresholds", "")
             overall: Optional[float] = None
@@ -383,10 +384,11 @@ class ActionInputs:
             if not isinstance(entry, dict):
                 errors.append(f"{prefix} must be a YAML mapping.")
                 continue
-            if not entry.get("name"):
+            name_value = entry.get("name")
+            if not isinstance(name_value, str) or not name_value.strip():
                 errors.append(f"{prefix} must have a non-empty 'name'.")
             else:
-                group_name = str(entry["name"])
+                group_name = name_value.strip()
                 if group_name in seen_names:
                     errors.append(f"{prefix} has duplicate 'name' value '{group_name}'.")
                 seen_names.add(group_name)
