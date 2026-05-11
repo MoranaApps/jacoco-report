@@ -134,28 +134,28 @@ runs:
           } >> "$GITHUB_ENV"
         }
 
-        echo "INPUT_TOKEN=${{ inputs.token }}" >> $GITHUB_ENV
+        write_multiline_env "INPUT_TOKEN" "${{ inputs.token }}"
 
         write_multiline_env "INPUT_PATHS" "${{ inputs.paths }}"
         write_multiline_env "INPUT_EXCLUDE_PATHS" "${{ inputs.exclude-paths }}"
 
-        echo "INPUT_GLOBAL_THRESHOLDS=${{ inputs.global-thresholds }}" >> $GITHUB_ENV
-        echo "INPUT_TITLE=${{ inputs.title }}" >> $GITHUB_ENV
-        echo "INPUT_PR_NUMBER=${{ inputs.pr-number }}" >> $GITHUB_ENV
-        echo "INPUT_METRIC=${{ inputs.metric }}" >> $GITHUB_ENV
-        echo "INPUT_COMMENT_LEVEL=${{ inputs.comment-level }}" >> $GITHUB_ENV
+        write_multiline_env "INPUT_GLOBAL_THRESHOLDS" "${{ inputs.global-thresholds }}"
+        write_multiline_env "INPUT_TITLE" "${{ inputs.title }}"
+        write_multiline_env "INPUT_PR_NUMBER" "${{ inputs.pr-number }}"
+        write_multiline_env "INPUT_METRIC" "${{ inputs.metric }}"
+        write_multiline_env "INPUT_COMMENT_LEVEL" "${{ inputs.comment-level }}"
 
         write_multiline_env "INPUT_REPORT_GROUPS" "${{ inputs.report-groups }}"
-    
-        echo "INPUT_SKIP_UNCHANGED=${{ inputs.skip-unchanged }}" >> $GITHUB_ENV
-        
+
+        write_multiline_env "INPUT_SKIP_UNCHANGED" "${{ inputs.skip-unchanged }}"
+
         write_multiline_env "INPUT_BASELINE_PATHS" "${{ inputs.baseline-paths }}"
-        
-        echo "INPUT_UPDATE_COMMENT=${{ inputs.update-comment }}" >> $GITHUB_ENV
-        echo "INPUT_PASS_SYMBOL=${{ inputs.pass-symbol }}" >> $GITHUB_ENV
-        echo "INPUT_FAIL_SYMBOL=${{ inputs.fail-symbol }}" >> $GITHUB_ENV
-        echo "INPUT_FAIL_ON_THRESHOLD=${{ inputs.fail-on-threshold }}" >> $GITHUB_ENV
-        echo "INPUT_DEBUG=${{ inputs.debug }}" >> $GITHUB_ENV
+
+        write_multiline_env "INPUT_UPDATE_COMMENT" "${{ inputs.update-comment }}"
+        write_multiline_env "INPUT_PASS_SYMBOL" "${{ inputs.pass-symbol }}"
+        write_multiline_env "INPUT_FAIL_SYMBOL" "${{ inputs.fail-symbol }}"
+        write_multiline_env "INPUT_FAIL_ON_THRESHOLD" "${{ inputs.fail-on-threshold }}"
+        write_multiline_env "INPUT_DEBUG" "${{ inputs.debug }}"
       shell: bash
 
     - name: Run JaCoCo Report to PR Comment

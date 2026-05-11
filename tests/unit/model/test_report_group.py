@@ -31,5 +31,5 @@ def test_initialization_all_fields():
 
 
 def test_baseline_paths_defaults_to_empty_list():
-    group = ReportGroup(name="g", paths=[], baseline_paths=None)
+    group = ReportGroup(name="g", paths=["**"], baseline_paths=None)
     assert group.baseline_paths == []
