@@ -204,12 +204,14 @@ class JaCoCoReport:
 
         # evaluate the coverage
         logger.info("Evaluating the coverage of the reports.")
+        report_thresholds_default = ActionInputs.get_report_thresholds_default()
         evaluator: CoverageEvaluator = CoverageEvaluator(
             report_files_coverage=report_files_coverage,
             global_min_coverage_overall=ActionInputs.get_global_overall_threshold(),
             global_min_coverage_changed_files=ActionInputs.get_global_changed_files_average_threshold(),
             global_min_coverage_changed_per_file=ActionInputs.get_global_changed_file_threshold(),
             report_groups=report_groups,
+            report_thresholds_default=report_thresholds_default,
         )
         evaluator.evaluate()
 
@@ -219,6 +221,7 @@ class JaCoCoReport:
             global_min_coverage_changed_files=ActionInputs.get_global_changed_files_average_threshold(),
             global_min_coverage_changed_per_file=ActionInputs.get_global_changed_file_threshold(),
             report_groups=report_groups,
+            report_thresholds_default=report_thresholds_default,
         )
 
         if bs_report_files_coverage:

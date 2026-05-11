@@ -14,6 +14,7 @@ success_case = {
     "get_global_overall_threshold": 80.0,
     "get_global_changed_files_average_threshold": 70.0,
     "get_global_changed_file_threshold": 25.0,
+    "get_report_thresholds_default": "0.0*0.0*0.0",
     "get_title": "Custom Title",
     "get_metric": "instruction",
     "get_comment_level": "full",
@@ -45,6 +46,11 @@ failure_cases = [
     ("get_global_thresholds", "0*101*0", "'global-thresholds' changed_files_average files value must be a float between 0 and 100."),
     ("get_global_thresholds", "0*0*101", "'global-thresholds' changed-file value must be a float between 0 and 100."),
     ("get_global_thresholds", True, "'global-thresholds' must be a string or not defined."),
+    ("get_report_thresholds_default", "x", "'report-thresholds-default' must be in the format 'overall*changed_files_average*changed_file'."),
+    ("get_report_thresholds_default", "x*0*0", "'report-thresholds-default' overall value must be a float between 0 and 100."),
+    ("get_report_thresholds_default", "0*x*0", "'report-thresholds-default' changed_files_average value must be a float between 0 and 100."),
+    ("get_report_thresholds_default", "0*0*x", "'report-thresholds-default' changed-file value must be a float between 0 and 100."),
+    ("get_report_thresholds_default", True, "'report-thresholds-default' must be a string or not defined."),
     ("get_metric", "", "'metric' must be a string from these options: 'instruction', 'line', 'branch', 'complexity', 'method', 'class'."),
     ("get_metric", 1, "'metric' must be a string from these options: 'instruction', 'line', 'branch', 'complexity', 'method', 'class'."),
     ("get_comment_level", "", "'comment-level' must be a string from these options: 'minimal', 'full'."),
@@ -185,6 +191,30 @@ def test_get_global_changed_files_average_threshold(mocker):
 def test_get_global_changed_file_threshold(mocker):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="0")
     assert 0.0 == ActionInputs.get_global_changed_file_threshold()
+
+
+report_thresholds_default_cases = [
+    ("75.0*60.0*40.0", (75.0, 60.0, 40.0)),
+    ("0.0*0.0*0.0", (0.0, 0.0, 0.0)),
+    ("50*30*10", (50.0, 30.0, 10.0)),
+]
+
+
+@pytest.mark.parametrize("raw_input, expected_tuple", report_thresholds_default_cases)
+def test_get_report_thresholds_default_parsed(raw_input, expected_tuple, mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value=raw_input)
+    assert ActionInputs.get_report_thresholds_default() == expected_tuple
+
+
+def test_get_report_thresholds_default_raw(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="75.0*60.0*40.0")
+    assert ActionInputs.get_report_thresholds_default(raw=True) == "75.0*60.0*40.0"
+
+
+def test_get_report_thresholds_default_missing_uses_zeros(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="0.0*0.0*0.0")
+    result = ActionInputs.get_report_thresholds_default()
+    assert result == (0.0, 0.0, 0.0)
 
 
 failure_cases_modes = [

@@ -11,6 +11,9 @@ EXCLUDE_PATHS = "exclude-paths"
 GLOBAL_THRESHOLDS = "global-thresholds"
 DEFAULT_GLOBAL_THRESHOLDS = "0.0*0.0*0.0"
 
+REPORT_THRESHOLDS_DEFAULT = "report-thresholds-default"
+DEFAULT_REPORT_THRESHOLDS_DEFAULT = "0.0*0.0*0.0"
+
 TITLE = "title"
 PR_NUMBER = "pr-number"
 METRIC = "metric"
