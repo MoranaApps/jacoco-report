@@ -16,8 +16,7 @@ PR_NUMBER = "pr-number"
 METRIC = "metric"
 
 COMMENT_LEVEL = "comment-level"
-MODULES = "modules"
-MODULES_THRESHOLDS = "modules-thresholds"
+REPORT_GROUPS = "report-groups"
 
 SKIP_UNCHANGED = "skip-unchanged"
 UPDATE_COMMENT = "update-comment"

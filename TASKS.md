@@ -66,8 +66,8 @@ Group 0 (deps) → Task 20 🔝 → Tasks 17/18/21 → Group F (design decisions
 | **24** | F | Baseline mapping design | ✅ | N/A | #108 |
 | **25** | F | `report-thresholds-default` precedence design | ✅ | N/A | #113 |
 | **26** | F | `fail-on-threshold` boolean deprecation design | ✅ | N/A | #103 |
-| **27** | G | Implement `skip-unchanged` scan-stage filter | ⬜ | `feature/112-Update-logic-for-input-skip_unchanged` | #112 |
-| **28** | G | Implement `report-groups` YAML input | 🔒 ⬜ | `feature/108-report-groups-yaml-input` | #108 |
+| **27** | G | Implement `skip-unchanged` scan-stage filter | ✅ | `feature/112-Update-logic-for-input-skip_unchanged` | #112 |
+| **28** | G | Implement `report-groups` YAML input | ✅ | `feature/108-report-groups-yaml-input` | #108 |
 | **29** | G | Add `report-thresholds-default` input | 🔒 ⬜ | `feature/113-report-thresholds-default` | #113 |
 | **30** | G | Expand `comment-level` full option set | 🔒 ⬜ | `feature/102-comment-level-full-option-set` | #102 |
 | **31** | G | `fail-on-threshold` boolean deprecation impl | 🔒 ⬜ | `feature/103-fail-on-threshold-deprecation-evaluate-unchanged` | #103 |
@@ -277,7 +277,7 @@ mypy .
 
 ---
 
-#### Task 27 — `skip-unchanged` scan-stage filter ⬜
+#### Task 27 — `skip-unchanged` scan-stage filter ✅
 
 **Branch:** `feature/112-Update-logic-for-input-skip_unchanged` *(exists — one in-progress commit)*
 **Issue:** #112 | **Depends on:** Task 22 (design ✅)
@@ -300,7 +300,7 @@ mypy .
 
 ---
 
-#### Task 28 — `report-groups` YAML input ⬜
+#### Task 28 — `report-groups` YAML input ✅
 
 **Branch:** `feature/108-report-groups-yaml-input`
 **Issue:** #108 | **Depends on:** Tasks 23, 24 (design ✅). Note: task 16 skipped — no v2 baseline.
@@ -329,13 +329,13 @@ mypy .
 `Group | Coverage (O/Ch) | Threshold (O/Ch) | [Δ Coverage (O/Ch)] | Status (O/Ch)`
 
 **Acceptance criteria:**
-- [ ] `report-groups` YAML parsed and validated
-- [ ] Invalid YAML raises a clear `ValueError` in `ActionInputs`
-- [ ] Each group's paths are resolved independently
-- [ ] Groups table appears only when `report-groups` is non-empty
-- [ ] `modules` and `modules-thresholds` removed from `action.yml`
-- [ ] Existing three-table structure intact when no groups configured
-- [ ] `report-groups` validation failure tests (from task 18) pass in new format
+- [x] `report-groups` YAML parsed and validated
+- [x] Invalid YAML raises a clear `ValueError` in `ActionInputs`
+- [x] Each group's paths are resolved independently
+- [x] Groups table appears only when `report-groups` is non-empty
+- [x] `modules` and `modules-thresholds` removed from `action.yml`
+- [x] Existing three-table structure intact when no groups configured
+- [x] `report-groups` validation failure tests (from task 18) pass in new format
 
 ---
 
@@ -616,8 +616,8 @@ Task 27 ──────────────────► Task 31
 
 - [ ] All Group 0 Renovate PRs merged
 - [ ] Task 20 (fixture factories) done
-- [ ] Task 27 (`skip-unchanged`) done
-- [ ] Task 28 (`report-groups`) done
+- [x] Task 27 (`skip-unchanged`) done
+- [x] Task 28 (`report-groups`) done
 - [ ] Task 29 (`report-thresholds-default`) done
 - [ ] Task 30 (full `comment-level`) done
 - [ ] Task 31 (`fail-on-threshold` deprecation + `evaluate-unchanged`) done

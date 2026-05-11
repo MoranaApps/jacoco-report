@@ -9,9 +9,8 @@ from jacoco_report.action_inputs import ActionInputs
 from jacoco_report.evaluator.coverage_evaluator import CoverageEvaluator
 from jacoco_report.generator.pr_comment_generator import PRCommentGenerator
 from jacoco_report.model.report_file_coverage import ReportFileCoverage
-from jacoco_report.model.module import Module
+from jacoco_report.model.report_group import ReportGroup
 from jacoco_report.parser.jacoco_report_parser import JaCoCoReportParser
-from jacoco_report.parser.module_parser import ModuleParser
 from jacoco_report.scanner.jacoco_report_input_scanner import JaCoCoReportInputScanner
 from jacoco_report.utils.github import GitHub
 
@@ -31,7 +30,7 @@ class JaCoCoReport:
         self.total_changed_files_coverage_passed: bool = False
 
         self.evaluated_coverage_reports: str = ""
-        self.evaluated_coverage_modules: str = ""
+        self.evaluated_coverage_groups: str = ""
         self.violations: list[str] = []
 
         self.reached_threshold_overall = True
@@ -56,31 +55,58 @@ class JaCoCoReport:
             return
         logger.info("Pull request number: %s", pr_number)
 
-        logger.info("Scanning for JaCoCo (xml) reports.")
-        input_report_paths_to_analyse = self.scan_jacoco_xml_files(
-            paths=ActionInputs.get_paths(), exclude_paths=ActionInputs.get_exclude_paths()
-        )
+        # get report groups (if configured)
+        report_groups: list[ReportGroup] = ActionInputs.get_report_groups()
 
-        # skip when not jacoco xml files found
-        if len(input_report_paths_to_analyse) == 0:
-            logger.error("No input JaCoCo xml file found. No comment will be generated.")
-            self.violations.append("No input JaCoCo xml file found.")
-            return
+        input_report_paths_to_analyse: list[str] = []
+        if report_groups:
+            logger.info("Report groups configured. Skipping top-level paths scan.")
+        else:
+            logger.info("Scanning for JaCoCo (xml) reports.")
+            input_report_paths_to_analyse = self.scan_jacoco_xml_files(
+                paths=ActionInputs.get_paths(), exclude_paths=ActionInputs.get_exclude_paths()
+            )
+
+            # skip when no top-level jacoco xml files found
+            if len(input_report_paths_to_analyse) == 0:
+                logger.error("No input JaCoCo xml file found. No comment will be generated.")
+                self.violations.append("No input JaCoCo xml file found.")
+                return
 
         # get changed files in PR
         logger.info("Getting changed files in PR.")
         all_changed_files_in_pr: list[str] = gh.get_pr_changed_files() or []
 
-        # map modules if comment mode is set to MODULE
-        logger.info("Mapping modules (if defined).")
-        modules: dict[str, Module] = {}  # self._get_modules()
-
         # analyse received xml report files
         logger.info("Analyzing JaCoCo (xml) reports.")
         report_files_coverage: list[ReportFileCoverage] = []
-        parser = JaCoCoReportParser(all_changed_files_in_pr, modules)
-        for report_path in input_report_paths_to_analyse:
-            report_files_coverage.append(parser.parse(report_path))
+        parser = JaCoCoReportParser(all_changed_files_in_pr)
+        seen_report_paths: set[str] = set()
+        if report_groups:
+            # scan each group's paths independently and tag reports with group name
+            # deduplicate by report path to avoid double-counting when groups have overlapping globs
+            for group in report_groups:
+                group_paths = self.scan_jacoco_xml_files(
+                    paths=group.paths, exclude_paths=ActionInputs.get_exclude_paths()
+                )
+                for report_path in group_paths:
+                    if report_path not in seen_report_paths:
+                        report_files_coverage.append(parser.parse(report_path, group_name=group.name))
+                        seen_report_paths.add(report_path)
+                    else:
+                        logger.info(
+                            "Skipping duplicate report '%s' (already assigned to a group).",
+                            report_path,
+                        )
+        else:
+            for report_path in input_report_paths_to_analyse:
+                report_files_coverage.append(parser.parse(report_path))
+
+        # grouped flow may skip top-level scan; fail here if no grouped reports matched
+        if len(report_files_coverage) == 0:
+            logger.error("No input JaCoCo xml file found. No comment will be generated.")
+            self.violations.append("No input JaCoCo xml file found.")
+            return
 
         # scan-stage filter: remove reports with no changed files before evaluation
         if ActionInputs.get_skip_unchanged():
@@ -93,7 +119,7 @@ class JaCoCoReport:
                 self.total_overall_coverage_passed = True
                 self.total_changed_files_coverage_passed = True
                 self.evaluated_coverage_reports = "{}"
-                self.evaluated_coverage_modules = "{}"
+                self.evaluated_coverage_groups = "{}"
                 if ActionInputs.get_update_comment():
                     title = f"**{ActionInputs.get_title()}**"
                     for comment in gh.get_comments(pr_number):
@@ -105,26 +131,85 @@ class JaCoCoReport:
 
         # get baseline files for comparison
         logger.info("Scanning for JaCoCo (xml) baseline reports.")
-        baseline_report_paths_to_analyse = self.scan_jacoco_xml_files(
-            paths=ActionInputs.get_baseline_paths(), exclude_paths=[]
-        )
         bs_report_files_coverage: list[ReportFileCoverage] = []
-        if len(baseline_report_paths_to_analyse) == 0:
-            logger.warning("No baseline JaCoCo xml file found. No difference will be calculated.")
-        else:
-            # analyse received baseline xml report files - limit to the same modules and changed files
-            logger.info("Analyzing baseline JaCoCo (xml) reports.")
-            for report_path in baseline_report_paths_to_analyse:
-                bs_report_files_coverage.append(parser.parse(report_path))
+        if report_groups:
+            global_baseline_paths = ActionInputs.get_baseline_paths()
+            baseline_scan_cache: dict[tuple[str, ...], list[str]] = {}
+            seen_baseline_report_paths: set[str] = set()
+            groups_inheriting_global = [
+                group for group in report_groups if not getattr(group, "baseline_paths_configured", False)
+            ]
+            ambiguous_global_inheritance = bool(global_baseline_paths) and len(groups_inheriting_global) > 1
+            ambiguous_group_names = {group.name for group in groups_inheriting_global}
 
-        # evaluate the coverage and module to xml file mapping
+            if ambiguous_global_inheritance:
+                logger.warning(
+                    "Ambiguous baseline configuration: multiple report groups omit 'baseline-paths' while global "
+                    "'baseline-paths' is set. Define explicit 'baseline-paths' per group to enable grouped baseline "
+                    "diffs for those groups."
+                )
+
+            for group in report_groups:
+                if ambiguous_global_inheritance and group.name in ambiguous_group_names:
+                    logger.info(
+                        "Skipping baseline scan for group '%s' due to ambiguous global baseline inheritance.",
+                        group.name,
+                    )
+                    continue
+
+                # Inherit global baseline paths only when group-level baseline-paths is omitted (None).
+                # Explicit [] means baseline is intentionally disabled for this group.
+                group_baseline_paths = (
+                    group.baseline_paths
+                    if getattr(group, "baseline_paths_configured", False)
+                    else global_baseline_paths
+                )
+                if not group_baseline_paths:
+                    continue
+
+                baseline_paths_key = tuple(group_baseline_paths)
+                if baseline_paths_key not in baseline_scan_cache:
+                    baseline_scan_cache[baseline_paths_key] = self.scan_jacoco_xml_files(
+                        paths=group_baseline_paths,
+                        exclude_paths=[],
+                    )
+
+                group_baseline_report_paths = baseline_scan_cache[baseline_paths_key]
+                if len(group_baseline_report_paths) == 0:
+                    logger.warning(
+                        "No baseline JaCoCo xml file found for group '%s'. No difference will be calculated.",
+                        group.name,
+                    )
+                else:
+                    logger.info("Analyzing baseline JaCoCo (xml) reports for group '%s'.", group.name)
+                    for report_path in group_baseline_report_paths:
+                        if report_path in seen_baseline_report_paths:
+                            logger.info(
+                                "Skipping duplicate baseline report '%s' (already assigned to a group).",
+                                report_path,
+                            )
+                            continue
+                        bs_report_files_coverage.append(parser.parse(report_path, group_name=group.name))
+                        seen_baseline_report_paths.add(report_path)
+        else:
+            baseline_paths = ActionInputs.get_baseline_paths()
+            if baseline_paths:
+                baseline_report_paths_to_analyse = self.scan_jacoco_xml_files(paths=baseline_paths, exclude_paths=[])
+                if len(baseline_report_paths_to_analyse) == 0:
+                    logger.warning("No baseline JaCoCo xml file found. No difference will be calculated.")
+                else:
+                    logger.info("Analyzing baseline JaCoCo (xml) reports.")
+                    for report_path in baseline_report_paths_to_analyse:
+                        bs_report_files_coverage.append(parser.parse(report_path))
+
+        # evaluate the coverage
         logger.info("Evaluating the coverage of the reports.")
         evaluator: CoverageEvaluator = CoverageEvaluator(
             report_files_coverage=report_files_coverage,
             global_min_coverage_overall=ActionInputs.get_global_overall_threshold(),
             global_min_coverage_changed_files=ActionInputs.get_global_changed_files_average_threshold(),
             global_min_coverage_changed_per_file=ActionInputs.get_global_changed_file_threshold(),
-            modules=modules,
+            report_groups=report_groups,
         )
         evaluator.evaluate()
 
@@ -133,10 +218,10 @@ class JaCoCoReport:
             global_min_coverage_overall=ActionInputs.get_global_overall_threshold(),
             global_min_coverage_changed_files=ActionInputs.get_global_changed_files_average_threshold(),
             global_min_coverage_changed_per_file=ActionInputs.get_global_changed_file_threshold(),
-            modules=modules,
+            report_groups=report_groups,
         )
 
-        if len(ActionInputs.get_baseline_paths()) > 0:
+        if bs_report_files_coverage:
             bs_evaluator.evaluate()
 
         self.total_overall_coverage = evaluator.total_coverage_overall
@@ -145,10 +230,10 @@ class JaCoCoReport:
         self.total_changed_files_coverage_passed = evaluator.total_coverage_changed_files_passed
 
         evaluated_coverage_reports = {k: v.to_dict() for k, v in evaluator.evaluated_reports_coverage.items()}
-        evaluated_coverage_modules = {k: v.to_dict() for k, v in evaluator.evaluated_modules_coverage.items()}
+        evaluated_coverage_groups = {k: v.to_dict() for k, v in evaluator.evaluated_groups_coverage.items()}
 
         self.evaluated_coverage_reports = json.dumps(evaluated_coverage_reports, indent=4)
-        self.evaluated_coverage_modules = json.dumps(evaluated_coverage_modules, indent=4)
+        self.evaluated_coverage_groups = json.dumps(evaluated_coverage_groups, indent=4)
 
         self.violations = evaluator.violations
         self.reached_threshold_overall = evaluator.reached_threshold_overall
@@ -166,9 +251,3 @@ class JaCoCoReport:
         paths_to_analyse: list[str] = JaCoCoReportInputScanner(paths=paths, exclude_paths=exclude_paths).scan()
         logger.info("Found %s JaCoCo reports.", len(paths_to_analyse))
         return paths_to_analyse
-
-    def _get_modules(self) -> dict[str, Module]:
-        return ModuleParser().parse(
-            modules=ActionInputs.get_modules(),
-            modules_thresholds=ActionInputs.get_modules_thresholds(),
-        )

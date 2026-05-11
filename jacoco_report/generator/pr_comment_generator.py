@@ -65,7 +65,11 @@ class PRCommentGenerator:
         body += f"\n\n{self.get_basic_table_for_all(p, f)}"
 
         if ActionInputs.get_comment_level() == CommentLevelEnum.FULL:
-            reports_table = self._get_reports_table(p, f)
+            groups_table = self.get_groups_table(p, f)
+            if groups_table:
+                body += f"\n\n{groups_table}"
+
+            reports_table = self.get_reports_table(p, f)
             if reports_table != "":
                 body += f"\n\n{reports_table}"
 
@@ -73,8 +77,20 @@ class PRCommentGenerator:
 
         return title, body
 
+    def _has_baseline_data(self) -> bool:
+        if not self.bs_evaluator:
+            return False
+
+        reports_coverage = getattr(self.bs_evaluator, "evaluated_reports_coverage", {})
+        groups_coverage = getattr(self.bs_evaluator, "evaluated_groups_coverage", {})
+
+        has_report_baseline = isinstance(reports_coverage, dict) and len(reports_coverage) > 0
+        has_group_baseline = isinstance(groups_coverage, dict) and len(groups_coverage) > 0
+
+        return has_report_baseline or has_group_baseline
+
     def get_basic_table_for_all(self, p: str, f: str) -> str:
-        if not ActionInputs.get_baseline_paths():
+        if not self._has_baseline_data():
             return self.get_basic_table(
                 p,
                 f,
@@ -120,12 +136,14 @@ class PRCommentGenerator:
         min_changed_files: float,
     ) -> str:
         return (
-            dedent("""
+            dedent(
+                """
             | Metric ({}) | Coverage | Threshold | Status |
             |----------------------|----------|-----------|--------|
             | **Overall**       | {}% | {}% | {} |
             | **Changed Files** | {}% | {}% | {} |
-        """)
+        """
+            )
             .strip()
             .format(
                 metric,
@@ -156,12 +174,14 @@ class PRCommentGenerator:
         diff_ch = total_changed_files_reached - bs_total_changed_files_reached
 
         return (
-            dedent("""
+            dedent(
+                """
             | Metric ({}) | Coverage | Threshold | Δ Coverage | Status |
             |-------------------|-----|-----|-----|----|
             | **Overall**       | {}% | {}% | {}{}% | {} |
             | **Changed Files** | {}% | {}% | {}{}% | {} |
-        """)
+        """
+            )
             .strip()
             .format(
                 metric,
@@ -178,19 +198,58 @@ class PRCommentGenerator:
             )
         )
 
-    def _get_reports_table(self, p: str, f: str) -> str:
-        if not ActionInputs.get_baseline_paths():
+    def get_groups_table(self, p: str, f: str) -> str:
+        if not self.evaluator.evaluated_groups_coverage:
+            return ""
+
+        has_baseline = self._has_baseline_data()
+
+        if not has_baseline:
+            s = dedent(
+                """
+                | Group | Coverage (O/Ch) | Threshold (O/Ch) | Status (O/Ch) |
+                |-------|----------|-----------|--------|
+            """
+            ).strip()
+            for group_name, ev in sorted(self.evaluator.evaluated_groups_coverage.items()):
+                cov = f"{ev.overall_coverage_reached}% / {ev.avg_changed_files_coverage_reached}%"
+                thres = f"{ev.overall_coverage_threshold}% / {ev.changed_files_threshold}%"
+                status = f"{p if ev.overall_passed else f}/{p if ev.avg_changed_files_passed else f}"
+                s += f"\n| `{group_name}` | {cov} | {thres} | {status} |"
+        else:
+            s = dedent(
+                """
+                | Group | Coverage (O/Ch) | Threshold (O/Ch) | Δ Coverage (O/Ch) | Status (O/Ch) |
+                |-------|----------|-----------|------------|--------|
+            """
+            ).strip()
+            for group_name, ev in sorted(self.evaluator.evaluated_groups_coverage.items()):
+                diff_o, diff_ch = self.calculate_baseline_group_diffs(ev)
+                diff_o = round(diff_o, 2)
+                diff_ch = round(diff_ch, 2)
+                cov = f"{ev.overall_coverage_reached}% / {ev.avg_changed_files_coverage_reached}%"
+                thres = f"{ev.overall_coverage_threshold}% / {ev.changed_files_threshold}%"
+                delta = f"{'+' if diff_o > 0.001 else ''}{diff_o}% / {'+' if diff_ch > 0.001 else ''}{diff_ch}%"
+                status = f"{p if ev.overall_passed else f}/{p if ev.avg_changed_files_passed else f}"
+                s += f"\n| `{group_name}` | {cov} | {thres} | {delta} | {status} |"
+        return s
+
+    def get_reports_table(self, p: str, f: str) -> str:
+        if not self._has_baseline_data():
             return self._generate_reports_table_without_baseline(p, f)
 
         return self._generate_reports_table_with_baseline(p, f)
 
     def _generate_reports_table_without_baseline(self, p: str, f: str, **kwargs) -> str:
-        s = dedent("""
+        s = dedent(
+            """
             | Report | Coverage (O/Ch) | Threshold (O/Ch) | Status (O/Ch) |
             |--------|----------|-----------|--------|
-        """).strip()
+        """
+        ).strip()
 
         provided_reports = 0
+        has_groups = bool(ActionInputs.get_report_groups())
         keys: list[str] = sorted(list(self.evaluator.evaluated_reports_coverage.keys()))
         for key in keys:
             evaluated_report = self.evaluator.evaluated_reports_coverage[key]
@@ -198,7 +257,7 @@ class PRCommentGenerator:
             o_thres = ActionInputs.get_global_overall_threshold()
             ch_thres = ActionInputs.get_global_changed_files_average_threshold()
 
-            if len(ActionInputs.get_modules()) > 0 and len(ActionInputs.get_modules_thresholds()) > 0:
+            if has_groups:
                 o_thres = evaluated_report.overall_coverage_threshold
                 ch_thres = evaluated_report.changed_files_threshold
 
@@ -216,12 +275,15 @@ class PRCommentGenerator:
         return s
 
     def _generate_reports_table_with_baseline(self, p: str, f: str, **kwargs) -> str:
-        s = dedent("""
+        s = dedent(
+            """
             | Report | Coverage (O/Ch) | Threshold (O/Ch) | Δ Coverage (O/Ch) | Status (O/Ch) |
             |--------|----------|-----------|------------|--------|
-        """).strip()
+        """
+        ).strip()
 
         provided_reports = 0
+        has_groups = bool(ActionInputs.get_report_groups())
         keys: list[str] = sorted(list(self.evaluator.evaluated_reports_coverage.keys()))
         for key in keys:
             evaluated_report = self.evaluator.evaluated_reports_coverage[key]
@@ -232,7 +294,7 @@ class PRCommentGenerator:
             o_thres = ActionInputs.get_global_overall_threshold()
             ch_thres = ActionInputs.get_global_changed_files_average_threshold()
 
-            if len(ActionInputs.get_modules()) > 0 and len(ActionInputs.get_modules_thresholds()) > 0:
+            if has_groups:
                 o_thres = evaluated_report.overall_coverage_threshold
                 ch_thres = evaluated_report.changed_files_threshold
 
@@ -253,17 +315,23 @@ class PRCommentGenerator:
 
         return s
 
-    def calculate_baseline_module_diffs(self, evaluated_coverage: EvaluatedReportCoverage) -> tuple[float, float]:
-        if evaluated_coverage.name not in self.bs_evaluator.evaluated_modules_coverage.keys():
+    def calculate_baseline_group_diffs(self, evaluated_coverage: EvaluatedReportCoverage) -> tuple[float, float]:
+        if evaluated_coverage.name not in self.bs_evaluator.evaluated_groups_coverage.keys():
             return 0.0, 0.0
 
-        diff_o = (
-            evaluated_coverage.overall_coverage_reached
-            - self.bs_evaluator.evaluated_modules_coverage[evaluated_coverage.name].overall_coverage_reached
-        )
+        baseline_group = self.bs_evaluator.evaluated_groups_coverage[evaluated_coverage.name]
+        has_overall_data = (
+            baseline_group.overall_coverage.covered + baseline_group.overall_coverage.missed
+        ) > 0 or baseline_group.overall_coverage_reached > 0.0
+        has_changed_data = (
+            baseline_group.avg_changed_files_coverage.covered + baseline_group.avg_changed_files_coverage.missed
+        ) > 0 or baseline_group.avg_changed_files_coverage_reached > 0.0
+        if not has_overall_data and not has_changed_data:
+            return 0.0, 0.0
+
+        diff_o = evaluated_coverage.overall_coverage_reached - baseline_group.overall_coverage_reached
         diff_ch = (
-            evaluated_coverage.avg_changed_files_coverage_reached
-            - self.bs_evaluator.evaluated_modules_coverage[evaluated_coverage.name].avg_changed_files_coverage_reached
+            evaluated_coverage.avg_changed_files_coverage_reached - baseline_group.avg_changed_files_coverage_reached
         )
 
         return diff_o, diff_ch
@@ -296,10 +364,12 @@ class PRCommentGenerator:
         """
         Generate a table with changed files without baseline. The table contains the files from all reports.
         """
-        s = dedent("""
+        s = dedent(
+            """
             | File Path | Coverage | Threshold | Status |
             |-----------|----------|-----------|--------|
-        """).strip()
+        """
+        ).strip()
 
         if evaluated_reports_coverage is None:
             evaluated_reports_coverage = self.evaluator.evaluated_reports_coverage
@@ -333,7 +403,7 @@ class PRCommentGenerator:
         if len(self.evaluator.evaluated_reports_coverage.keys()) == 0:
             return "\nNo changed file in reports."
 
-        if not ActionInputs.get_baseline_paths():
+        if not self._has_baseline_data():
             return self.generate_changed_files_table_without_baseline(p, f)
 
         return self.generate_changed_files_table_with_baseline(p, f)
@@ -341,10 +411,12 @@ class PRCommentGenerator:
     def generate_changed_files_table_with_baseline(
         self, p: str, f: str, evaluated_reports_coverage: Optional[dict[str, EvaluatedReportCoverage]] = None
     ) -> str:
-        s = dedent("""
+        s = dedent(
+            """
             | File Path | Coverage | Threshold | Δ Coverage | Status |
             |-----------|----------|-----------|------------|--------|
-        """).strip()
+        """
+        ).strip()
 
         if evaluated_reports_coverage is None:
             evaluated_reports_coverage = self.evaluator.evaluated_reports_coverage

@@ -39,8 +39,7 @@ def _make_run_mocks(mocker: MockerFixture, *, skip_unchanged: bool, reports: lis
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_file_threshold", return_value=0.0)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_comment_level", return_value=CommentLevelEnum.FULL)
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_modules", return_value={})
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_modules_thresholds", return_value={})
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups", return_value=[])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_title", return_value="JaCoCo")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=False)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_pass_symbol", return_value="✅")
@@ -123,7 +122,7 @@ def test_skip_unchanged_all_filtered_exits_cleanly(mocker: MockerFixture, make_r
     assert jr.total_overall_coverage_passed is True
     assert jr.total_changed_files_coverage_passed is True
     assert jr.evaluated_coverage_reports == "{}"
-    assert jr.evaluated_coverage_modules == "{}"
+    assert jr.evaluated_coverage_groups == "{}"
 
 
 def test_skip_unchanged_all_filtered_deletes_stale_comment(mocker: MockerFixture, make_report_file_coverage, caplog):
@@ -213,8 +212,7 @@ def test_comment_level_x_skip_unchanged_comment_posted(
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_threshold", return_value=0.0)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_files_average_threshold", return_value=0.0)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=[])
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_modules", return_value={})
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_modules_thresholds", return_value={})
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups", return_value=[])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=False)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_repository", return_value="owner/repo")
 
@@ -242,8 +240,7 @@ def test_minimal_comment_contains_only_global_table(
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_threshold", return_value=0.0)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_files_average_threshold", return_value=0.0)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=[])
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_modules", return_value={})
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_modules_thresholds", return_value={})
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups", return_value=[])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=False)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_repository", return_value="owner/repo")
 

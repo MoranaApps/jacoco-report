@@ -9,7 +9,6 @@ from typing import Optional
 
 from jacoco_report.model.counter import Counter
 from jacoco_report.model.coverage import Coverage
-from jacoco_report.model.module import Module
 from jacoco_report.model.report_file_coverage import ReportFileCoverage
 from jacoco_report.model.file_coverage import FileCoverage
 
@@ -21,19 +20,19 @@ class JaCoCoReportParser:
     A class for parsing JaCoCo XML reports and creating CoverageReport instances.
     """
 
-    def __init__(self, changed_files: list[str], modules: dict[str, Module]):
+    def __init__(self, changed_files: list[str]):
         self._changed_files: list[str] = changed_files
-        self._modules: dict[str, Module] = modules
 
-    def parse(self, report_path: str) -> ReportFileCoverage:
+    def parse(self, report_path: str, group_name: Optional[str] = None) -> ReportFileCoverage:
         """
-        Parses the JaCoCo XML report and creates a CoverageReport instance.
+        Parses the JaCoCo XML report and creates a ReportFileCoverage instance.
 
         Parameters:
             report_path: The path to the JaCoCo XML report.
+            group_name: The report group this report belongs to (None if no groups configured).
 
         Returns:
-            A CoverageReport instance.
+            A ReportFileCoverage instance.
         """
         logger.debug("Parsing JaCoCo XML report: %s", report_path)
         tree: ET.ElementTree[ET.Element] = ET.parse(report_path)
@@ -50,13 +49,7 @@ class JaCoCoReportParser:
         overall_stats: Coverage = self._extract_overall_stats(root)
         changed_files_stats: dict[str, FileCoverage] = self._extract_changed_files_stats(root)
 
-        # detect module name
-        if self._modules != {}:
-            module_name = self._detect_module_name(report_path)
-        else:
-            module_name = None
-
-        return ReportFileCoverage(report_path, name, overall_stats, changed_files_stats, module_name)
+        return ReportFileCoverage(report_path, name, overall_stats, changed_files_stats, group_name)
 
     def _extract_overall_stats(self, root: Optional[ET.Element]) -> Coverage:
         """
@@ -203,22 +196,3 @@ class JaCoCoReportParser:
                         logger.debug("File '%s' is not in the list of changed files.", key)
 
         return changed_files_stats
-
-    def _detect_module_name(self, report_path: str) -> str:
-        """
-        Detects the module name from the report path.
-
-        Parameters:
-            report_path: The path to the JaCoCo XML report.
-
-        Returns:
-            The module name. If report path does not match any module, returns 'Unknown'.
-        """
-        logger.debug("Detecting module name from report path.")
-
-        for module_name, module in self._modules.items():
-            if f"/{module.root_path}/" in report_path:
-                return module_name
-
-        logger.error("No module name detected for module path: %s. Using 'Unknown' module name.", report_path)
-        return "Unknown"

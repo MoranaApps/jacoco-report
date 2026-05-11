@@ -2,7 +2,6 @@ import logging
 
 import pytest
 
-from jacoco_report.model.module import Module
 from jacoco_report.parser.jacoco_report_parser import JaCoCoReportParser
 from jacoco_report.model.counter import Counter
 from jacoco_report.model.report_file_coverage import ReportFileCoverage
@@ -35,16 +34,7 @@ def sample_jacoco_report(tmp_path):
 
 @pytest.fixture
 def parser():
-    return JaCoCoReportParser(changed_files=["com/example/Example.java"], modules={})
-
-@pytest.fixture
-def parser_with_modules():
-    module: Module = Module("module_a", "path/to/module_a", 50, 50, 50)
-    modules = {
-        "module_a": module,
-    }
-
-    return JaCoCoReportParser(changed_files=["com/example/Example.java"], modules=modules)
+    return JaCoCoReportParser(changed_files=["com/example/Example.java"])
 
 
 def test_parse_overall_stats(parser, sample_jacoco_report):
@@ -60,11 +50,12 @@ def test_parse_overall_stats(parser, sample_jacoco_report):
     assert report_coverage.overall_coverage.clazz == Counter(missed=0, covered=5)
 
 
-def test_parse_overall_stats_with_modules(parser_with_modules, sample_jacoco_report):
-    report_coverage = parser_with_modules.parse(report_path := sample_jacoco_report)
+def test_parse_overall_stats_with_group_name(parser, sample_jacoco_report):
+    report_coverage = parser.parse(report_path := sample_jacoco_report, group_name="my-group")
     assert isinstance(report_coverage, ReportFileCoverage)
     assert report_coverage.path == report_path
     assert report_coverage.name == "Example Report Name"
+    assert report_coverage.group_name == "my-group"
     assert report_coverage.overall_coverage.instruction == Counter(missed=5, covered=10)
     assert report_coverage.overall_coverage.branch == Counter(missed=3, covered=7)
     assert report_coverage.overall_coverage.line == Counter(missed=2, covered=8)
@@ -86,7 +77,7 @@ def test_parse_changed_files_stats(parser, sample_jacoco_report):
 
 
 def test_file_not_in_changed_files(sample_jacoco_report, caplog):
-    non_matching_parser = JaCoCoReportParser(changed_files=["com/example/NonExistent.java"], modules={})
+    non_matching_parser = JaCoCoReportParser(changed_files=["com/example/NonExistent.java"])
 
     with caplog.at_level(logging.DEBUG):
         non_matching_parser.parse(sample_jacoco_report)

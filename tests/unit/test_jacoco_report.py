@@ -1918,6 +1918,156 @@ def test_run_no_jacoco_xml_files(jacoco_report, caplog, mocker):
         assert jacoco_report.violations[0] == "No input JaCoCo xml file found."
         mock_add_comment.assert_not_called()
 
+
+def test_run_with_report_groups_allows_empty_top_level_paths(jacoco_report, mocker):
+    from jacoco_report.model.report_group import ReportGroup
+
+    group = ReportGroup(name="backend", paths=["tests/data/backend/**/jacoco.xml"])
+
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value="pull_request")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_token", return_value="fake_token")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=[])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_exclude_paths", return_value=[])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups", return_value=[group])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_unchanged", return_value=False)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=False)
+    mocker.patch("jacoco_report.utils.github.GitHub.get_pr_number", return_value=1)
+    mocker.patch("jacoco_report.utils.github.GitHub.get_pr_changed_files", return_value=[])
+    mocker.patch(
+        "jacoco_report.jacoco_report.JaCoCoReport.scan_jacoco_xml_files",
+        side_effect=[
+            ["group-a.xml"],
+        ],
+    )
+    mocker.patch(
+        "jacoco_report.parser.jacoco_report_parser.JaCoCoReportParser.parse",
+        return_value=mocker.Mock(name="report_file_coverage"),
+    )
+    mocker.patch("jacoco_report.evaluator.coverage_evaluator.CoverageEvaluator.evaluate", return_value=None)
+    mocker.patch("jacoco_report.generator.pr_comment_generator.PRCommentGenerator.generate", return_value=None)
+
+    jacoco_report.run()
+
+    assert "No input JaCoCo xml file found." not in jacoco_report.violations
+
+
+def test_run_with_report_groups_no_baseline_paths_no_group_warnings(jacoco_report, caplog, mocker):
+    from jacoco_report.model.report_group import ReportGroup
+
+    group = ReportGroup(name="backend", paths=["tests/data/backend/**/jacoco.xml"])
+
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value="pull_request")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_token", return_value="fake_token")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=[])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_exclude_paths", return_value=[])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=[])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups", return_value=[group])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_unchanged", return_value=False)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=False)
+    mocker.patch("jacoco_report.utils.github.GitHub.get_pr_number", return_value=1)
+    mocker.patch("jacoco_report.utils.github.GitHub.get_pr_changed_files", return_value=[])
+    mocker.patch(
+        "jacoco_report.jacoco_report.JaCoCoReport.scan_jacoco_xml_files",
+        side_effect=[
+            ["group-a.xml"],
+        ],
+    )
+    mocker.patch(
+        "jacoco_report.parser.jacoco_report_parser.JaCoCoReportParser.parse",
+        return_value=mocker.Mock(name="report_file_coverage"),
+    )
+    mocker.patch("jacoco_report.evaluator.coverage_evaluator.CoverageEvaluator.evaluate", return_value=None)
+    mocker.patch("jacoco_report.generator.pr_comment_generator.PRCommentGenerator.generate", return_value=None)
+
+    with caplog.at_level(logging.WARNING):
+        jacoco_report.run()
+
+    assert "No baseline JaCoCo xml file found for group" not in caplog.text
+
+
+def test_run_with_report_groups_ambiguous_global_baseline_inheritance_skips_groups(jacoco_report, caplog, mocker):
+    from jacoco_report.model.report_group import ReportGroup
+
+    group1 = ReportGroup(name="group-a", paths=["group-a/**/*.xml"], baseline_paths=None)
+    group2 = ReportGroup(name="group-b", paths=["group-b/**/*.xml"], baseline_paths=None)
+
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value="pull_request")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_token", return_value="fake_token")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=[])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_exclude_paths", return_value=[])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["baseline/**/*.xml"])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups", return_value=[group1, group2])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_unchanged", return_value=False)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=False)
+    mocker.patch("jacoco_report.utils.github.GitHub.get_pr_number", return_value=1)
+    mocker.patch("jacoco_report.utils.github.GitHub.get_pr_changed_files", return_value=[])
+    scan_mock = mocker.patch(
+        "jacoco_report.jacoco_report.JaCoCoReport.scan_jacoco_xml_files",
+        side_effect=[
+            ["group-a.xml"],
+            ["group-b.xml"],
+        ],
+    )
+    parse_mock = mocker.patch(
+        "jacoco_report.parser.jacoco_report_parser.JaCoCoReportParser.parse",
+        return_value=mocker.Mock(name="report_file_coverage"),
+    )
+    mocker.patch("jacoco_report.evaluator.coverage_evaluator.CoverageEvaluator.evaluate", return_value=None)
+    mocker.patch("jacoco_report.generator.pr_comment_generator.PRCommentGenerator.generate", return_value=None)
+
+    with caplog.at_level(logging.WARNING):
+        jacoco_report.run()
+
+    assert scan_mock.call_count == 2
+    baseline_scan_calls = [c for c in scan_mock.call_args_list if c.kwargs.get("paths") == ["baseline/**/*.xml"]]
+    assert len(baseline_scan_calls) == 0
+
+    assert "Ambiguous baseline configuration" in caplog.text
+
+
+def test_run_with_report_groups_explicit_empty_baseline_does_not_inherit_global(jacoco_report, mocker):
+    from jacoco_report.model.report_group import ReportGroup
+
+    group1 = ReportGroup(name="group-a", paths=["group-a/**/*.xml"], baseline_paths=[])
+    group2 = ReportGroup(name="group-b", paths=["group-b/**/*.xml"], baseline_paths=None)
+
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value="pull_request")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_token", return_value="fake_token")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=[])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_exclude_paths", return_value=[])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["baseline/**/*.xml"])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups", return_value=[group1, group2])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_unchanged", return_value=False)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=False)
+    mocker.patch("jacoco_report.utils.github.GitHub.get_pr_number", return_value=1)
+    mocker.patch("jacoco_report.utils.github.GitHub.get_pr_changed_files", return_value=[])
+    scan_mock = mocker.patch(
+        "jacoco_report.jacoco_report.JaCoCoReport.scan_jacoco_xml_files",
+        side_effect=[
+            ["group-a.xml"],
+            ["group-b.xml"],
+            ["baseline-only-group-b.xml"],
+        ],
+    )
+    parse_mock = mocker.patch(
+        "jacoco_report.parser.jacoco_report_parser.JaCoCoReportParser.parse",
+        return_value=mocker.Mock(name="report_file_coverage"),
+    )
+    mocker.patch("jacoco_report.evaluator.coverage_evaluator.CoverageEvaluator.evaluate", return_value=None)
+    mocker.patch("jacoco_report.generator.pr_comment_generator.PRCommentGenerator.generate", return_value=None)
+
+    jacoco_report.run()
+
+    assert scan_mock.call_count == 3
+    baseline_scan_calls = [c for c in scan_mock.call_args_list if c.kwargs.get("paths") == ["baseline/**/*.xml"]]
+    assert len(baseline_scan_calls) == 1
+
+    baseline_parse_calls = [
+        c for c in parse_mock.call_args_list if c.args and c.args[0] == "baseline-only-group-b.xml"
+    ]
+    assert len(baseline_parse_calls) == 1
+    assert baseline_parse_calls[0].kwargs.get("group_name") == "group-b"
+
 def test_run_successful_empty_no_baseline(jacoco_report, mocker):
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value='pull_request')
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_token", return_value='fake_token')
@@ -1993,37 +2143,22 @@ def test_successful_one_source_file (jacoco_report, metric, comment, ov_cov, ch_
 # MORE FILES
 
 more_source_files_scenarios = [
-    ("1", CommentLevelEnum.FULL, {}, {}, changed_files, [comment_more_files_single_detailed_instruction_no_modules], 9, 0, [], False, False),
-    ("2", CommentLevelEnum.FULL, {}, {}, changed_files, [comment_more_files_single_detailed_instruction_no_modules_with_bs], 9, 0, [], False, True),
-    # TODO comment with modules and thresholds
-    # failing module and reports without changed files
-    # ("3", CommentLevelEnum.FULL, modules, modules_thresholds_100, changed_files, [comment_more_files_single_detailed_instruction_with_modules_with_bs_fail_module], 9, 4, ["Module 'module_large' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Large Report' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Large Report' changed file 'com/example/module_large/BigClass.java' coverage 90.0 is below the threshold 90.5."], True, True),
-    # only partial set of modules
-    # ("4", CommentLevelEnum.FULL, modules_partial_definition_1_report, modules_thresholds_100_partial_definition_1_report, changed_files, [comment_more_files_single_detailed_instruction_with_partial_modules_1], 9, 4, [], True, True),
-    # ("5", CommentLevelEnum.FULL, modules_partial_definition_2_reports, modules_thresholds_100_partial_definition_2_reports, changed_files, [comment_more_files_single_detailed_instruction_with_partial_modules_2], 9, 4, ["Module 'module_large' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Large Report' changed files coverage 90.0 is below the threshold 91.0.", "Report 'Module Large Report' changed file 'com/example/module_large/BigClass.java' coverage 90.0 is below the threshold 90.5."], True, True),
-    # ("6", CommentLevelEnum.FULL, modules_partial_definition_3_reports, modules_thresholds_100_partial_definition_3_reports, changed_files, [comment_more_files_single_detailed_instruction_with_partial_modules_3], 9, 3, [], True, True),
-    # multiple changed files per report file
-    # ("7", CommentLevelEnum.FULL, modules, modules_thresholds, changed_files_two_in_report, [comment_single_detailed_two_changed_files_in_report], 9, 4, ["Module 'module_large' changed files coverage 90.25 is below the threshold 91.0.", "Report 'Module Large Report' changed files coverage 90.41 is below the threshold 91.0.", "Report 'Module Large Report' changed file 'com/example/module_large/BigClass.java' coverage 90.0 is below the threshold 90.5."], True, False),
-    # no changed files in report files = evaluation passed without any violation
-    # ("8",CommentLevelEnum.MINIMAL, modules, modules_thresholds_100_all, changed_files_none_in_report, [], 9, 4, [], True, False),
-    # ("9", CommentLevelEnum.FULL, modules, modules_thresholds_100_all, changed_files_none_in_report, [], 9, 4, [], True, False),
+    ("1", CommentLevelEnum.FULL, changed_files, [comment_more_files_single_detailed_instruction_no_modules], 9, 0, [], False, False),
+    ("2", CommentLevelEnum.FULL, changed_files, [comment_more_files_single_detailed_instruction_no_modules_with_bs], 9, 0, [], False, True),
 ]
 
-@pytest.mark.parametrize("id, level, modules, modules_thresholds, changed_files, expected_comments, evaluated_cov_reports, evaluated_cov_modules, violations, skip_unchanged, use_baseline", more_source_files_scenarios)
-def test_successful_more_source_files(jacoco_report, id, level, modules, modules_thresholds, changed_files, expected_comments, evaluated_cov_reports, evaluated_cov_modules, violations, skip_unchanged, use_baseline, mocker):
+@pytest.mark.parametrize("id, level, changed_files, expected_comments, evaluated_cov_reports, evaluated_cov_groups, violations, skip_unchanged, use_baseline", more_source_files_scenarios)
+def test_successful_more_source_files(jacoco_report, id, level, changed_files, expected_comments, evaluated_cov_reports, evaluated_cov_groups, violations, skip_unchanged, use_baseline, mocker):
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value='pull_request')
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_token", return_value='fake_token')
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_comment_level", return_value=level)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=["tests/data/test_project/**/jacoco.xml"])
-    # mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=["data/test_project/**/jacoco.xml"])
     if use_baseline:
-        # mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["data_baseline/**/*.xml"])
         mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["tests/data_baseline/**/*.xml"])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_threshold", return_value=75.0)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_files_average_threshold", return_value=80.0)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_file_threshold", return_value=65.0)
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_modules", return_value=modules)
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_modules_thresholds", return_value=modules_thresholds)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups", return_value=[])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_repository", return_value="MoranaApps/jacoco-report")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_unchanged", return_value=skip_unchanged)
     mocker.patch("jacoco_report.utils.github.GitHub.get_pr_number", return_value=35)
@@ -2033,9 +2168,6 @@ def test_successful_more_source_files(jacoco_report, id, level, modules, modules
 
     jacoco_report.run()
 
-    # for item in mock_add_comment.call_args_list:
-    #     print(item)
-
     assert mock_add_comment.call_count == len(expected_comments)
 
     if len(expected_comments):
@@ -2043,10 +2175,10 @@ def test_successful_more_source_files(jacoco_report, id, level, modules, modules
 
     # Parse the JSON strings
     dict_evaluated_coverage_reports: dict = json.loads(jacoco_report.evaluated_coverage_reports)
-    dict_evaluated_coverage_modules: dict = json.loads(jacoco_report.evaluated_coverage_modules)
+    dict_evaluated_coverage_groups: dict = json.loads(jacoco_report.evaluated_coverage_groups)
 
     assert evaluated_cov_reports == len(dict_evaluated_coverage_reports)
-    assert evaluated_cov_modules == len(dict_evaluated_coverage_modules)
+    assert evaluated_cov_groups == len(dict_evaluated_coverage_groups)
 
     actual_merger_violations = " ".join(jacoco_report.violations)
     assert len(jacoco_report.violations) == len(violations)
@@ -2234,15 +2366,12 @@ module_detail_violations = [
 
 # Note: used min 100% coverage for overall and changed files to test the violations
 # Violations are independent of comment level — MINIMAL and FULL produce the same violation list.
-more_source_files_scenarios = [
-    ("1", CommentLevelEnum.MINIMAL, {}, {}, changed_files, single_detail_violations),
-    ("2", CommentLevelEnum.FULL, {}, {}, changed_files, single_detail_violations),
-    # Depends on task 16 (E2): _get_modules() must be restored before module violations are produced
-    # ("101", CommentLevelEnum.MINIMAL, modules, modules_thresholds_100_all, changed_files, single_detail_violations_with_modules),
-    # ("102", CommentLevelEnum.FULL, modules, modules_thresholds_100_all, changed_files, single_detail_violations_with_modules),
+violations_scenarios = [
+    ("1", CommentLevelEnum.MINIMAL, changed_files, single_detail_violations),
+    ("2", CommentLevelEnum.FULL, changed_files, single_detail_violations),
 ]
-@pytest.mark.parametrize("id, level, modules, modules_thresholds, changed_files, violations", more_source_files_scenarios)
-def test_violations(jacoco_report, id, level, modules, modules_thresholds, changed_files, violations, mocker):
+@pytest.mark.parametrize("id, level, changed_files, violations", violations_scenarios)
+def test_violations(jacoco_report, id, level, changed_files, violations, mocker):
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value='pull_request')
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_token", return_value='fake_token')
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_comment_level", return_value=level)
@@ -2250,8 +2379,7 @@ def test_violations(jacoco_report, id, level, modules, modules_thresholds, chang
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_threshold", return_value=100.0)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_files_average_threshold", return_value=100.0)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_file_threshold", return_value=100.0)
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_modules", return_value=modules)
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_modules_thresholds", return_value=modules_thresholds)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups", return_value=[])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_repository", return_value="MoranaApps/jacoco-report")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_unchanged", return_value=False)
     mocker.patch("jacoco_report.utils.github.GitHub.get_pr_number", return_value=35)
@@ -2261,12 +2389,6 @@ def test_violations(jacoco_report, id, level, modules, modules_thresholds, chang
 
     jacoco_report.run()
 
-    # for comment in mock_add_comment.call_args_list:
-    #     print(f"\ncomment: \n{comment[0][1]}")
-
-    # print(f"Violations: \n")
-    # for violation in jacoco_report.violations:
-    #     print(f"{violation}")
 
     actual_merger_violations = " ".join(jacoco_report.violations)
     assert len(jacoco_report.violations) == len(violations)
@@ -2277,17 +2399,13 @@ def test_filtered_out_all_from_changed_file(jacoco_report, mocker):
     changed_files = [
         'com/example/ExampleClass.java'
     ]
-
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value='pull_request')
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_token", return_value='fake_token')
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_comment_level", return_value=CommentLevelEnum.FULL)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=["tests/data/module_d/**/jacoco*.xml"])
     # mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=["data/module_d/**/jacoco*.xml"])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_threshold", return_value=100.0)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_files_average_threshold", return_value=100.0)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_file_threshold", return_value=100.0)
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_modules", return_value={})
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_modules_thresholds", return_value={})
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups", return_value=[])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_repository", return_value="MoranaApps/jacoco-report")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_unchanged", return_value=False)
     mocker.patch("jacoco_report.utils.github.GitHub.get_pr_number", return_value=35)
@@ -2297,16 +2415,97 @@ def test_filtered_out_all_from_changed_file(jacoco_report, mocker):
 
     jacoco_report.run()
 
-    print("hello")
 
-    for item in mock_add_comment.call_args_list:
-        print(item)
+# --- Issue 3: Duplicate report files when group paths overlap ---
 
-    print("bye")
+def test_scan_groups_no_overlap_deduplication(jacoco_report, mocker):
+    """Test that each report appears once when groups have non-overlapping paths"""
+    from jacoco_report.model.report_group import ReportGroup
+
+    changed_files = ["com/example/user-info/implementation/ImplementationClass.java"]
+
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value="pull_request")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_token", return_value="fake_token")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=["tests/data/**/**/jacoco*.xml"])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_exclude_paths", return_value=[])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_comment_level", return_value=CommentLevelEnum.FULL)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_threshold", return_value=0.0)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_files_average_threshold", return_value=0.0)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_file_threshold", return_value=0.0)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=False)
+
+    group1 = ReportGroup(name="app", paths=["tests/data/context/notification/**/jacoco*.xml"])
+    group2 = ReportGroup(name="test", paths=["tests/data/context/user-info/**/jacoco*.xml"])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups", return_value=[group1, group2])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_repository", return_value="MoranaApps/jacoco-report")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_unchanged", return_value=False)
+    mocker.patch("jacoco_report.utils.github.GitHub.get_pr_number", return_value=35)
+    mocker.patch("jacoco_report.utils.github.GitHub.get_pr_changed_files", return_value=changed_files)
+    mocker.patch("jacoco_report.utils.github.GitHub.add_comment", return_value=None)
+    mocker.patch(
+        "jacoco_report.jacoco_report.JaCoCoReport.scan_jacoco_xml_files",
+        side_effect=[
+            ["group-a.xml"],
+            ["group-b.xml"],
+        ],
+    )
+    parse_mock = mocker.patch(
+        "jacoco_report.parser.jacoco_report_parser.JaCoCoReportParser.parse",
+        return_value=mocker.Mock(name="report_file_coverage"),
+    )
+    mocker.patch("jacoco_report.evaluator.coverage_evaluator.CoverageEvaluator.evaluate", return_value=None)
+    mocker.patch("jacoco_report.generator.pr_comment_generator.PRCommentGenerator.generate", return_value=None)
+
+    jacoco_report.run()
+
+    assert parse_mock.call_count == 2
+    parsed_paths = [call.args[0] for call in parse_mock.call_args_list]
+    assert parsed_paths == ["group-a.xml", "group-b.xml"]
 
 
-    # for comment in mock_add_comment.call_args_list:
-    #     print(f"\ncomment: \n{comment[0][1]}")
+def test_scan_groups_with_overlap_deduplication(jacoco_report, mocker):
+    """Test that overlapping paths in groups are deduplicated"""
+    from jacoco_report.model.report_group import ReportGroup
+
+    changed_files = ["com/example/user-info/implementation/ImplementationClass.java"]
+
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value="pull_request")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_token", return_value="fake_token")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=["tests/data/**/**/jacoco*.xml"])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_exclude_paths", return_value=[])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_comment_level", return_value=CommentLevelEnum.FULL)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_threshold", return_value=0.0)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_files_average_threshold", return_value=0.0)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_file_threshold", return_value=0.0)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=False)
+
+    group1 = ReportGroup(name="all", paths=["tests/data/**/**/jacoco*.xml"])
+    group2 = ReportGroup(name="user-info", paths=["tests/data/context/user-info/**/jacoco*.xml"])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups", return_value=[group1, group2])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_repository", return_value="MoranaApps/jacoco-report")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_unchanged", return_value=False)
+    mocker.patch("jacoco_report.utils.github.GitHub.get_pr_number", return_value=35)
+    mocker.patch("jacoco_report.utils.github.GitHub.get_pr_changed_files", return_value=changed_files)
+    mocker.patch("jacoco_report.utils.github.GitHub.add_comment", return_value=None)
+    mocker.patch(
+        "jacoco_report.jacoco_report.JaCoCoReport.scan_jacoco_xml_files",
+        side_effect=[
+            ["shared.xml", "other.xml"],
+            ["shared.xml"],
+        ],
+    )
+    parse_mock = mocker.patch(
+        "jacoco_report.parser.jacoco_report_parser.JaCoCoReportParser.parse",
+        return_value=mocker.Mock(name="report_file_coverage"),
+    )
+    mocker.patch("jacoco_report.evaluator.coverage_evaluator.CoverageEvaluator.evaluate", return_value=None)
+    mocker.patch("jacoco_report.generator.pr_comment_generator.PRCommentGenerator.generate", return_value=None)
+
+    jacoco_report.run()
+
+    assert parse_mock.call_count == 2
+    parsed_paths = [call.args[0] for call in parse_mock.call_args_list]
+    assert parsed_paths == ["shared.xml", "other.xml"]
 
     # assert mock_add_comment.call_count == len(expected_comments)
 
@@ -2315,4 +2514,3 @@ def test_filtered_out_all_from_changed_file(jacoco_report, mocker):
 
     # Parse the JSON strings
     # dict_evaluated_coverage_reports: dict = json.loads(jacoco_report.evaluated_coverage_reports)
-    # dict_evaluated_coverage_modules: dict = json.loads(jacoco_report.evaluated_coverage_modules)

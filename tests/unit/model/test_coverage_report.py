@@ -30,6 +30,6 @@ def test_initialization():
         changed_files_coverage=changed_files_coverage)
 
     assert coverage_report.path == "path/to/report"
-    assert coverage_report.module_name == "Unknown"
+    assert coverage_report.group_name == "Unknown"
     assert coverage_report.overall_coverage == overall_coverage
     assert coverage_report.changed_files_coverage == changed_files_coverage

@@ -5,8 +5,8 @@ inputs:
     description: 'GitHub token for authentication. TODO improve'
     required: true
   paths:
-    description: 'Paths to JaCoCo reports.'
-    required: true
+    description: 'Paths to JaCoCo reports. Can be omitted when report-groups is provided.'
+    required: false
   exclude-paths:
     description: 'Paths to exclude from JaCoCo reports.'
     required: false
@@ -29,16 +29,15 @@ inputs:
     description: 'Level of the comment.'
     required: false
     default: 'full'
-  modules:
-    description: 'Identify the modules to be included in the report.'
-    required: false
-    default: ''
-  modules-thresholds:
-    description: 'Identify the modules and their thresholds.'
+  report-groups:
+    description: >
+      Define named report groups. When provided, paths can be omitted and groups define their own paths.
+      YAML list; each entry: name (required), paths (required list of globs),
+      thresholds (optional O*A*P string), baseline-paths (optional list).
     required: false
     default: ''
   skip-unchanged:
-    description: 'Reduce module table and comments to ones with changed files in PR.'
+    description: 'Skip reports with no changed files in PR.'
     required: false
     default: 'false'
   baseline-paths:
@@ -83,9 +82,9 @@ outputs:
   reports-coverage:
     description: 'Coverage for each report.'
     value: ${{ steps.jacoco-report-to-pr-comment.outputs.reports-coverage }}
-  modules-coverage:
-    description: 'Coverage for each module.'
-    value: ${{ steps.jacoco-report-to-pr-comment.outputs.modules-coverage }}
+  groups-coverage:
+    description: 'Coverage for each report group.'
+    value: ${{ steps.jacoco-report-to-pr-comment.outputs.groups-coverage }}
 
 branding:
   icon: 'book-open'
@@ -97,7 +96,7 @@ runs:
     - name: Install Python dependencies
       run: |
         python_version=$(python --version 2>&1 | grep -oP '\d+\.\d+\.\d+')
-        minimal_required_version="3.14.0"
+        minimal_required_version="3.13.0"
         
         function version { echo "$@" | awk -F. '{ printf("%d%03d%03d\n", $1,$2,$3); }'; }
         
@@ -124,40 +123,39 @@ runs:
 
     - name: Prepare environment based on mining regimes
       run: |
-        echo "INPUT_TOKEN=${{ inputs.token }}" >> $GITHUB_ENV
-        
-        echo "INPUT_PATHS<<EOF" >> $GITHUB_ENV
-        echo "${{ inputs.paths }}" >> $GITHUB_ENV
-        echo "EOF" >> $GITHUB_ENV
+        write_multiline_env() {
+          local key="$1"
+          local value="$2"
+          local delimiter="EOF_${key}_$(date +%s%N)_$RANDOM"
+          {
+            echo "${key}<<${delimiter}"
+            printf '%s\n' "$value"
+            echo "$delimiter"
+          } >> "$GITHUB_ENV"
+        }
 
-        echo "INPUT_EXCLUDE_PATHS<<EOF" >> $GITHUB_ENV
-        echo "${{ inputs.exclude-paths }}" >> $GITHUB_ENV
-        echo "EOF" >> $GITHUB_ENV
+        write_multiline_env "INPUT_TOKEN" "${{ inputs.token }}"
 
-        echo "INPUT_GLOBAL_THRESHOLDS=${{ inputs.global-thresholds }}" >> $GITHUB_ENV
-        echo "INPUT_TITLE=${{ inputs.title }}" >> $GITHUB_ENV
-        echo "INPUT_PR_NUMBER=${{ inputs.pr-number }}" >> $GITHUB_ENV
-        echo "INPUT_METRIC=${{ inputs.metric }}" >> $GITHUB_ENV
-        echo "INPUT_COMMENT_LEVEL=${{ inputs.comment-level }}" >> $GITHUB_ENV
+        write_multiline_env "INPUT_PATHS" "${{ inputs.paths }}"
+        write_multiline_env "INPUT_EXCLUDE_PATHS" "${{ inputs.exclude-paths }}"
 
-        echo "INPUT_MODULES<<EOF" >> $GITHUB_ENV
-        echo "${{ inputs.modules }}" >> $GITHUB_ENV
-        echo "EOF" >> $GITHUB_ENV
-        echo "INPUT_MODULES_THRESHOLDS<<EOF" >> $GITHUB_ENV
-        echo "${{ inputs.modules-thresholds }}" >> $GITHUB_ENV
-        echo "EOF" >> $GITHUB_ENV
-    
-        echo "INPUT_SKIP_UNCHANGED=${{ inputs.skip-unchanged }}" >> $GITHUB_ENV
-        
-        echo "INPUT_BASELINE_PATHS<<EOF" >> $GITHUB_ENV
-        echo "${{ inputs.baseline-paths }}" >> $GITHUB_ENV
-        echo "EOF" >> $GITHUB_ENV
-        
-        echo "INPUT_UPDATE_COMMENT=${{ inputs.update-comment }}" >> $GITHUB_ENV
-        echo "INPUT_PASS_SYMBOL=${{ inputs.pass-symbol }}" >> $GITHUB_ENV
-        echo "INPUT_FAIL_SYMBOL=${{ inputs.fail-symbol }}" >> $GITHUB_ENV
-        echo "INPUT_FAIL_ON_THRESHOLD=${{ inputs.fail-on-threshold }}" >> $GITHUB_ENV
-        echo "INPUT_DEBUG=${{ inputs.debug }}" >> $GITHUB_ENV
+        write_multiline_env "INPUT_GLOBAL_THRESHOLDS" "${{ inputs.global-thresholds }}"
+        write_multiline_env "INPUT_TITLE" "${{ inputs.title }}"
+        write_multiline_env "INPUT_PR_NUMBER" "${{ inputs.pr-number }}"
+        write_multiline_env "INPUT_METRIC" "${{ inputs.metric }}"
+        write_multiline_env "INPUT_COMMENT_LEVEL" "${{ inputs.comment-level }}"
+
+        write_multiline_env "INPUT_REPORT_GROUPS" "${{ inputs.report-groups }}"
+
+        write_multiline_env "INPUT_SKIP_UNCHANGED" "${{ inputs.skip-unchanged }}"
+
+        write_multiline_env "INPUT_BASELINE_PATHS" "${{ inputs.baseline-paths }}"
+
+        write_multiline_env "INPUT_UPDATE_COMMENT" "${{ inputs.update-comment }}"
+        write_multiline_env "INPUT_PASS_SYMBOL" "${{ inputs.pass-symbol }}"
+        write_multiline_env "INPUT_FAIL_SYMBOL" "${{ inputs.fail-symbol }}"
+        write_multiline_env "INPUT_FAIL_ON_THRESHOLD" "${{ inputs.fail-on-threshold }}"
+        write_multiline_env "INPUT_DEBUG" "${{ inputs.debug }}"
       shell: bash
 
     - name: Run JaCoCo Report to PR Comment
@@ -171,9 +169,8 @@ runs:
         INPUT_PR_NUMBER: ${{ env.INPUT_PR_NUMBER }}
         INPUT_METRIC: ${{ env.INPUT_METRIC }}
         INPUT_COMMENT_LEVEL: ${{ env.INPUT_COMMENT_LEVEL }}
-        INPUT_MODULES: ${{ env.INPUT_MODULES }}
-        INPUT_MODULES_THRESHOLDS: ${{ env.INPUT_MODULES_THRESHOLDS }}
-        INPUT_SKIP_NOT_CHANGED: ${{ env.INPUT_SKIP_NOT_CHANGED }}
+        INPUT_REPORT_GROUPS: ${{ env.INPUT_REPORT_GROUPS }}
+        INPUT_SKIP_UNCHANGED: ${{ env.INPUT_SKIP_UNCHANGED }}
         INPUT_BASELINE_PATHS: ${{ env.INPUT_BASELINE_PATHS }}
         INPUT_UPDATE_COMMENT: ${{ env.INPUT_UPDATE_COMMENT }}
         INPUT_PASS_SYMBOL: ${{ env.INPUT_PASS_SYMBOL }}
