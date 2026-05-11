@@ -40,9 +40,6 @@ class PRCommentGenerator:
         The method that generates the comment for a single generator.
         """
         title, pr_body = self._get_comment_content()
-        if ActionInputs.get_comment_level() == CommentLevelEnum.NONE:
-            return
-
         # Get all comments on the pull request
         comments = self.gh.get_comments(self.pr_number)
 
@@ -52,6 +49,11 @@ class PRCommentGenerator:
             if len(title) > 0 and comment["body"].startswith(title):  # Detects if it starts with the title
                 existing_comment = comment
                 break
+
+        if ActionInputs.get_comment_level() == CommentLevelEnum.NONE:
+            if existing_comment and ActionInputs.get_update_comment():
+                self.gh.delete_comment(existing_comment["id"])
+            return
 
         if existing_comment and ActionInputs.get_update_comment():
             self.gh.update_comment(existing_comment["id"], pr_body)

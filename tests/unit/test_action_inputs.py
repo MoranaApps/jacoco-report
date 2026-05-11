@@ -127,6 +127,26 @@ def test_validate_inputs_accepts_all_comment_levels(comment_level, mocker):
         stop_mocks(patchers)
 
 
+@pytest.mark.parametrize("comment_level", ["failing", "change and failing", "detailed"])
+def test_validate_inputs_rejects_noncanonical_comment_level_aliases(comment_level, mocker):
+    case = success_case.copy()
+    case["get_comment_level"] = comment_level
+    patchers = apply_mocks(case, mocker)
+    try:
+        mock_error = mocker.patch("jacoco_report.action_inputs.logger.error")
+        mock_exit = mocker.patch("sys.exit")
+
+        ActionInputs.validate_inputs()
+
+        mock_error.assert_called_with(
+            "'comment-level' must be a string from these options: "
+            "'none', 'minimal', 'full', 'changed', 'failed', 'failed-or-changed'."
+        )
+        mock_exit.assert_called_once_with(1)
+    finally:
+        stop_mocks(patchers)
+
+
 @pytest.mark.parametrize("method, value, expected_error", failure_cases)
 def test_validate_inputs_failure(method, value, expected_error, mocker):
     case = success_case.copy()
