@@ -2,6 +2,7 @@ import pytest
 
 from jacoco_report.evaluator.coverage_evaluator import CoverageEvaluator
 from jacoco_report.generator.pr_comment_generator import PRCommentGenerator
+from jacoco_report.model.counter import Counter
 from jacoco_report.model.evaluated_report_coverage import EvaluatedReportCoverage
 from jacoco_report.utils.enums import MetricTypeEnum
 
@@ -27,6 +28,67 @@ def test_evaluator(mocker):
 @pytest.fixture
 def pr_comment_generator(mock_github, test_evaluator):
     return PRCommentGenerator(mock_github, test_evaluator, None, 1)
+
+
+def _make_evaluated_coverage(
+    name,
+    *,
+    group_name="Unknown",
+    overall_passed=True,
+    changed_passed=True,
+    overall_coverage=85.0,
+    changed_coverage=80.0,
+    overall_threshold=75.0,
+    changed_threshold=70.0,
+    changed_files=None,
+):
+    coverage = EvaluatedReportCoverage(name, group_name=group_name)
+    coverage.overall_passed = overall_passed
+    coverage.avg_changed_files_passed = changed_passed
+    coverage.overall_coverage_reached = overall_coverage
+    coverage.avg_changed_files_coverage_reached = changed_coverage
+    coverage.overall_coverage_threshold = overall_threshold
+    coverage.changed_files_threshold = changed_threshold
+    coverage.per_changed_file_threshold = changed_threshold
+    coverage.avg_changed_files_coverage = Counter(0, len(changed_files or {}))
+    coverage.changed_files_coverage_reached = changed_files or {}
+    coverage.changed_files_passed = {
+        path: changed_passed if score >= changed_threshold else False
+        for path, score in (changed_files or {}).items()
+    }
+    return coverage
+
+
+def _configure_generator_for_comment_tests(generator, mocker, *, comment_level):
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_comment_level", return_value=comment_level)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_title", return_value="JaCoCo")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_pass_symbol", return_value="✅")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_fail_symbol", return_value="❌")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_threshold", return_value=80.0)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_files_average_threshold", return_value=80.0)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=False)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_repository", return_value="owner/repo")
+    generator.gh.get_comments.return_value = []
+
+
+def _set_mixed_comment_level_fixture(pr_comment_generator):
+    pr_comment_generator.evaluator.evaluated_groups_coverage = {
+        "changed-group": _make_evaluated_coverage("changed-group", changed_files={"src/Foo.java": 82.0}),
+        "failing-group": _make_evaluated_coverage("failing-group", overall_passed=False, changed_files={}),
+        "unchanged-group": _make_evaluated_coverage("unchanged-group", changed_files={}),
+    }
+    pr_comment_generator.evaluator.evaluated_reports_coverage = {
+        "changed-report": _make_evaluated_coverage("changed-report", changed_files={"src/Foo.java": 82.0}),
+        "failing-report": _make_evaluated_coverage(
+            "failing-report",
+            overall_passed=False,
+            changed_passed=False,
+            changed_files={"src/Bar.java": 60.0},
+            changed_threshold=80.0,
+        ),
+        "unchanged-report": _make_evaluated_coverage("unchanged-report", changed_files={}),
+    }
 
 def testget_basic_table(pr_comment_generator, mocker):
     table = pr_comment_generator.get_basic_table(
@@ -465,3 +527,254 @@ def test_calculate_baseline_group_diffs_no_data_returns_zero(pr_comment_generato
 
     assert diff_o == 0.0
     assert diff_ch == 0.0
+
+
+# --- comment-level expansion ---
+
+def test_generate_skips_github_comment_for_none(pr_comment_generator, mocker):
+    _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="none")
+
+    pr_comment_generator.generate()
+
+    pr_comment_generator.gh.get_comments.assert_not_called()
+    pr_comment_generator.gh.add_comment.assert_not_called()
+    pr_comment_generator.gh.update_comment.assert_not_called()
+
+
+def test_none_deletes_existing_comment_when_update_comment_enabled(pr_comment_generator, mocker):
+    _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="none")
+    pr_comment_generator.gh.get_comments.return_value = [{"id": 123, "body": "**JaCoCo**\n\nold body"}]
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=True)
+
+    pr_comment_generator.generate()
+
+    pr_comment_generator.gh.get_comments.assert_called_once_with(1)
+    pr_comment_generator.gh.add_comment.assert_not_called()
+    pr_comment_generator.gh.update_comment.assert_not_called()
+    pr_comment_generator.gh.delete_comment.assert_called_once_with(123)
+
+
+def test_none_leaves_existing_comment_when_update_comment_disabled(pr_comment_generator, mocker):
+    _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="none")
+    pr_comment_generator.gh.get_comments.return_value = [{"id": 123, "body": "**JaCoCo**\n\nold body"}]
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=False)
+
+    pr_comment_generator.generate()
+
+    pr_comment_generator.gh.get_comments.assert_not_called()
+    pr_comment_generator.gh.add_comment.assert_not_called()
+    pr_comment_generator.gh.update_comment.assert_not_called()
+    pr_comment_generator.gh.delete_comment.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("comment_level", "expected_fragments", "absent_fragments"),
+    [
+        (
+            "minimal",
+            ["| Metric (instruction) |"],
+            ["| Group |", "| Report |", "| File Path |", "`changed-group`", "[Foo.java]"],
+        ),
+        (
+            "full",
+            [
+                "| Metric (instruction) |",
+                "| Group |",
+                "| Report |",
+                "| File Path |",
+                "`changed-group`",
+                "`failing-group`",
+                "`unchanged-group`",
+                "`changed-report`",
+                "`failing-report`",
+                "`unchanged-report`",
+                "[Foo.java]",
+                "[Bar.java]",
+            ],
+            [],
+        ),
+        (
+            "changed",
+            ["| Metric (instruction) |", "| Group |", "| Report |", "| File Path |", "`changed-group`", "`changed-report`", "`failing-report`", "[Foo.java]", "[Bar.java]"],
+            ["`unchanged-group`", "`unchanged-report`", "`failing-group`"],
+        ),
+        (
+            "failed",
+            ["| Metric (instruction) |", "| Group |", "| Report |", "| File Path |", "`failing-group`", "`failing-report`", "[Bar.java]"],
+            ["`changed-group`", "`changed-report`", "`unchanged-group`", "`unchanged-report`", "[Foo.java]"],
+        ),
+        (
+            "failed-or-changed",
+            ["| Metric (instruction) |", "| Group |", "| Report |", "| File Path |", "`changed-group`", "`failing-group`", "`changed-report`", "`failing-report`", "[Foo.java]", "[Bar.java]"],
+            ["`unchanged-group`", "`unchanged-report`"],
+        ),
+    ],
+)
+def test_comment_level_final_pr_body_matrix(
+    pr_comment_generator,
+    mocker,
+    comment_level,
+    expected_fragments,
+    absent_fragments,
+):
+    _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level=comment_level)
+    _set_mixed_comment_level_fixture(pr_comment_generator)
+
+    pr_comment_generator.generate()
+
+    body = pr_comment_generator.gh.add_comment.call_args[0][1]
+    for fragment in expected_fragments:
+        assert fragment in body
+    for fragment in absent_fragments:
+        assert fragment not in body
+
+
+def test_full_comment_contains_all_tables(pr_comment_generator, mocker):
+    _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="full")
+    pr_comment_generator.evaluator.evaluated_groups_coverage = {
+        "backend": _make_evaluated_coverage("backend", changed_files={"src/Foo.java": 82.0})
+    }
+    pr_comment_generator.evaluator.evaluated_reports_coverage = {
+        "backend-report": _make_evaluated_coverage(
+            "backend-report",
+            group_name="backend",
+            changed_files={"src/Foo.java": 82.0},
+        )
+    }
+
+    pr_comment_generator.generate()
+
+    body = pr_comment_generator.gh.add_comment.call_args[0][1]
+    assert "| Metric (instruction) |" in body
+    assert "| Group |" in body
+    assert "| Report |" in body
+    assert "| File Path |" in body
+
+
+def test_changed_filters_group_report_and_file_rows_without_changes(pr_comment_generator, mocker):
+    _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="changed")
+    pr_comment_generator.evaluator.evaluated_groups_coverage = {
+        "changed-group": _make_evaluated_coverage("changed-group", changed_files={"src/Foo.java": 82.0}),
+        "unchanged-group": _make_evaluated_coverage("unchanged-group", changed_files={}),
+    }
+    pr_comment_generator.evaluator.evaluated_reports_coverage = {
+        "changed-report": _make_evaluated_coverage("changed-report", changed_files={"src/Foo.java": 82.0}),
+        "unchanged-report": _make_evaluated_coverage("unchanged-report", changed_files={}),
+    }
+
+    pr_comment_generator.generate()
+
+    body = pr_comment_generator.gh.add_comment.call_args[0][1]
+    assert "`changed-group`" in body
+    assert "`unchanged-group`" not in body
+    assert "`changed-report`" in body
+    assert "`unchanged-report`" not in body
+    assert "[Foo.java]" in body
+
+
+def test_failed_filters_only_failing_rows(pr_comment_generator, mocker):
+    _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="failed")
+    pr_comment_generator.evaluator.evaluated_groups_coverage = {
+        "passing-group": _make_evaluated_coverage("passing-group", changed_files={"src/Foo.java": 82.0}),
+        "failing-group": _make_evaluated_coverage(
+            "failing-group",
+            overall_passed=False,
+            changed_passed=False,
+            changed_files={},
+        ),
+    }
+    pr_comment_generator.evaluator.evaluated_reports_coverage = {
+        "passing-report": _make_evaluated_coverage("passing-report", changed_files={"src/Foo.java": 82.0}),
+        "failing-report": _make_evaluated_coverage(
+            "failing-report",
+            overall_passed=False,
+            changed_passed=False,
+            changed_files={"src/Bar.java": 60.0},
+            changed_threshold=80.0,
+        ),
+    }
+
+    pr_comment_generator.generate()
+
+    body = pr_comment_generator.gh.add_comment.call_args[0][1]
+    assert "`failing-group`" in body
+    assert "`passing-group`" not in body
+    assert "`failing-report`" in body
+    assert "`passing-report`" not in body
+    assert "[Bar.java]" in body
+    assert "[Foo.java]" not in body
+
+
+def test_failed_or_changed_filters_union_of_rows(pr_comment_generator, mocker):
+    _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="failed-or-changed")
+    pr_comment_generator.evaluator.evaluated_groups_coverage = {
+        "changed-group": _make_evaluated_coverage("changed-group", changed_files={"src/Foo.java": 82.0}),
+        "failing-group": _make_evaluated_coverage("failing-group", overall_passed=False, changed_files={}),
+        "hidden-group": _make_evaluated_coverage("hidden-group", changed_files={}),
+    }
+    pr_comment_generator.evaluator.evaluated_reports_coverage = {
+        "changed-report": _make_evaluated_coverage("changed-report", changed_files={"src/Foo.java": 82.0}),
+        "failing-report": _make_evaluated_coverage(
+            "failing-report",
+            overall_passed=False,
+            changed_passed=False,
+            changed_files={"src/Bar.java": 60.0},
+            changed_threshold=80.0,
+        ),
+        "hidden-report": _make_evaluated_coverage("hidden-report", changed_files={}),
+    }
+
+    pr_comment_generator.generate()
+
+    body = pr_comment_generator.gh.add_comment.call_args[0][1]
+    assert "`changed-group`" in body
+    assert "`failing-group`" in body
+    assert "`hidden-group`" not in body
+    assert "`changed-report`" in body
+    assert "`failing-report`" in body
+    assert "`hidden-report`" not in body
+    assert "[Foo.java]" in body
+    assert "[Bar.java]" in body
+
+
+@pytest.mark.parametrize("comment_level", ["changed", "failed", "failed-or-changed"])
+def test_filtered_comment_levels_handle_empty_result_gracefully(pr_comment_generator, mocker, comment_level):
+    _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level=comment_level)
+    pr_comment_generator.evaluator.evaluated_groups_coverage = {
+        "hidden-group": _make_evaluated_coverage("hidden-group", changed_files={})
+    }
+    pr_comment_generator.evaluator.evaluated_reports_coverage = {
+        "hidden-report": _make_evaluated_coverage("hidden-report", changed_files={})
+    }
+
+    pr_comment_generator.generate()
+
+    body = pr_comment_generator.gh.add_comment.call_args[0][1]
+    assert "| Metric (instruction) |" in body
+    assert "No rows match the selected comment level." in body
+    assert "`hidden-group`" not in body
+    assert "`hidden-report`" not in body
+
+
+@pytest.mark.parametrize("comment_level", ["changed", "failed", "failed-or-changed"])
+def test_filtered_comment_levels_empty_result_do_not_render_detail_table_headers(
+    pr_comment_generator,
+    mocker,
+    comment_level,
+):
+    _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level=comment_level)
+    pr_comment_generator.evaluator.evaluated_groups_coverage = {
+        "hidden-group": _make_evaluated_coverage("hidden-group", changed_files={})
+    }
+    pr_comment_generator.evaluator.evaluated_reports_coverage = {
+        "hidden-report": _make_evaluated_coverage("hidden-report", changed_files={})
+    }
+
+    pr_comment_generator.generate()
+
+    body = pr_comment_generator.gh.add_comment.call_args[0][1]
+    assert "| Metric (instruction) |" in body
+    assert "No rows match the selected comment level." in body
+    assert "| Group |" not in body
+    assert "| Report |" not in body
+    assert "| File Path |" not in body

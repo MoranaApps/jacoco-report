@@ -597,7 +597,10 @@ class ActionInputs:
 
         comment_level = ActionInputs.get_comment_level()
         if not isinstance(comment_level, str) or comment_level not in CommentLevelEnum:
-            errors.append("'comment-level' must be a string from these options: 'minimal', 'full'.")
+            errors.append(
+                "'comment-level' must be a string from these options: "
+                "'none', 'minimal', 'full', 'changed', 'failed', 'failed-or-changed'."
+            )
 
         errors.extend(ActionInputs.validate_report_groups(report_groups_raw))
 

@@ -5,7 +5,7 @@ Covers:
 - Filter removes reports with no changed files before evaluation
 - INFO log emitted per filtered report
 - All-reports-filtered → clean exit, no comment, no violations
-- comment-level × skip-unchanged combinations (minimal / full × true / false)
+- comment-level × skip-unchanged combinations across all supported levels
 - fail-on-threshold boolean deprecation warning
 """
 import logging
@@ -165,8 +165,7 @@ def test_skip_unchanged_false_does_not_filter(mocker: MockerFixture, make_report
 
 # --- comment-level × skip-unchanged combinations ---
 #
-# 2 (skip-unchanged: true / false) × 2 (comment-level: minimal / full) = 4 current cases.
-# The remaining 8 cases (none / changed / failed / failed-or-changed) land with Task 30.
+# 2 (skip-unchanged: true / false) × 6 comment levels = 12 cases.
 
 @pytest.fixture
 def evaluator_with_changed(make_report_file_coverage, make_file_coverage):
@@ -190,19 +189,27 @@ def gh_mock(mocker: MockerFixture):
 
 
 @pytest.mark.parametrize("skip_unchanged,comment_level", [
-    (False, CommentLevelEnum.MINIMAL),
-    (False, CommentLevelEnum.FULL),
-    (True,  CommentLevelEnum.MINIMAL),
-    (True,  CommentLevelEnum.FULL),
+    (False, "none"),
+    (False, "minimal"),
+    (False, "full"),
+    (False, "changed"),
+    (False, "failed"),
+    (False, "failed-or-changed"),
+    (True, "none"),
+    (True, "minimal"),
+    (True, "full"),
+    (True, "changed"),
+    (True, "failed"),
+    (True, "failed-or-changed"),
 ])
 def test_comment_level_x_skip_unchanged_comment_posted(
     mocker: MockerFixture,
     gh_mock,
     evaluator_with_changed,
     skip_unchanged: bool,
-    comment_level: CommentLevelEnum,
+    comment_level: str,
 ):
-    """When reports with changed files are present, a comment is always posted regardless of level."""
+    """When changed reports exist, only the NONE level suppresses comment posting."""
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_unchanged", return_value=skip_unchanged)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_comment_level", return_value=comment_level)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_title", return_value="JaCoCo")
@@ -221,7 +228,41 @@ def test_comment_level_x_skip_unchanged_comment_posted(
     generator = PRCommentGenerator(gh_mock, evaluator_with_changed, bs_evaluator, pr_number=1)
     generator.generate()
 
-    gh_mock.add_comment.assert_called_once()
+    if comment_level == "none":
+        gh_mock.add_comment.assert_not_called()
+    else:
+        gh_mock.add_comment.assert_called_once()
+
+
+@pytest.mark.parametrize("skip_unchanged", [False, True])
+def test_comment_level_none_still_suppresses_comment(
+    mocker: MockerFixture,
+    gh_mock,
+    evaluator_with_changed,
+    skip_unchanged: bool,
+):
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_unchanged", return_value=skip_unchanged)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_comment_level", return_value="none")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_title", return_value="JaCoCo")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_pass_symbol", return_value="✅")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_fail_symbol", return_value="❌")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_threshold", return_value=0.0)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_files_average_threshold", return_value=0.0)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=[])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups", return_value=[])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=True)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_repository", return_value="owner/repo")
+
+    gh_mock.get_comments.return_value = [{"id": 99, "body": "**JaCoCo**\n\nold content"}]
+
+    bs_evaluator = CoverageEvaluator(report_files_coverage=[], global_min_coverage_overall=0.0,
+                                     global_min_coverage_changed_files=0.0, global_min_coverage_changed_per_file=0.0)
+    generator = PRCommentGenerator(gh_mock, evaluator_with_changed, bs_evaluator, pr_number=1)
+    generator.generate()
+
+    gh_mock.add_comment.assert_not_called()
+    gh_mock.update_comment.assert_not_called()
 
 
 @pytest.mark.parametrize("comment_level", [CommentLevelEnum.MINIMAL, CommentLevelEnum.FULL])

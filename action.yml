@@ -33,7 +33,7 @@ inputs:
     required: false
     default: 'instruction'
   comment-level:
-    description: 'Level of the comment.'
+    description: 'Comment output level: none, minimal, full, changed, failed, or failed-or-changed.'
     required: false
     default: 'full'
   report-groups:

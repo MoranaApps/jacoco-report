@@ -10,8 +10,12 @@ class CommentLevelEnum(StrEnum):
     A class representing the comment mode enum.
     """
 
+    NONE = "none"
     MINIMAL = "minimal"
     FULL = "full"
+    CHANGED = "changed"
+    FAILED = "failed"
+    FAILED_OR_CHANGED = "failed-or-changed"
 
 
 class MetricTypeEnum(StrEnum):

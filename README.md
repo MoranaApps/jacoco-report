@@ -66,7 +66,7 @@ jobs:
 | `title`             | Title for the coverage report comment added to the Pull Request.                                                                                                                                                               | No       | `JaCoCo Coverage Report`                         |
 | `pr-number`         | Number of the pull request. If not provided, the action will attempt to determine <br> the PR number from the GitHub context.                                                                                                  | No       | `''`                                             |
 | `metric`            | Coverage metric to use (`instruction`, `line`, `branch`, `complexity`, `method`, `class`).                                                                                                                                     | No       | `instruction`                                    |
-| `comment-level`     | Detail level of the PR comment (`minimal`, `full`).                                                                                                                                                                            | No       | `full`                                           |
+| `comment-level`     | Comment output level: `none`, `minimal`, `full`, `changed`, `failed`, or `failed-or-changed`. `changed`, `failed`, and `failed-or-changed` keep the global summary table and filter lower tables by row.                     | No       | `full`                                           |
 | `report-groups`     | Named report groups as a YAML list. Each entry: `name` (required), `paths` (required list of globs), `thresholds` (optional `O*A*P`, e.g. `80*70*60`), `baseline-paths` (optional list). When set, group `paths` are used. | No       | `''`                                             |
 | `skip-unchanged`    | If `true`, skips entire reports with no changed files in the PR, reducing comment noise.                                                                                                                                       | No       | `false`                                          |
 | `baseline-paths`    | Paths to baseline coverage reports for comparison. Supports wildcard glob patterns.                                                                                                                                            | No       | `''`                                             |
@@ -98,8 +98,12 @@ threshold.
 - [Customizing the Report Title](#customizing-the-report-title)
 - [Customizing the Report Groups](#customizing-the-report-groups)
 - [Customizing the Comment Level](#customizing-the-comment-level)
+  - [No Comment](#no-comment)
   - [Minimal Level](#minimal-level)
   - [Full Level](#full-level)
+  - [Changed Level](#changed-level)
+  - [Failed Level](#failed-level)
+  - [Failed-or-Changed Level](#failed-or-changed-level)
 - [Customizing the Skip Unchanged Option and Update Comment](#customizing-the-skip-unchanged-option-and-update-comment)
 - [Customizing the Baseline Paths](#customizing-the-baseline-paths)
 - [Customizing the Symbols and Metric Type](#customizing-the-symbols-and-metric-type)
@@ -232,6 +236,11 @@ Each entry is a YAML mapping with:
 
 #### Customizing the Comment Level
 
+##### No Comment
+
+- When the `comment-level` is set to `none`, no PR comment is posted.
+- If `update-comment: true` and a previous JaCoCo comment with the same title exists, that stale comment is deleted.
+
 ##### Minimal Level
 
 - When the `comment-level` is set to `minimal`, one comment is added to the pull request representing the overall and
@@ -277,11 +286,22 @@ changed files coverage for all detected report files.
 > - The groups table is visible when `report-groups` is defined.
 > - `global-thresholds` is always evaluated independently as a separate pass over aggregated totals and is never part of the group fallback chain.
 
+##### Changed Level
+
+- When the `comment-level` is set to `changed`, the global summary table is kept and only group, report, and file rows with changed files are shown.
+
+##### Failed Level
+
+- When the `comment-level` is set to `failed`, the global summary table is kept and only rows failing their threshold are shown.
+
+##### Failed-or-Changed Level
+
+- When the `comment-level` is set to `failed-or-changed`, the global summary table is kept and rows are shown when they either have changed files or fail a threshold.
+
 #### Customizing the Skip Unchanged Option and Update Comment
 
-The `skip-unchanged` input, when set to true, optimizes JaCoCo-related comments by focusing only on relevant changes
-in the pull request. It removes unchanged lines from the modules table and reduces the number of generated comments by
-skipping entire modules and reports with no modified files.
+The `skip-unchanged` input, when set to true, filters reports with no changed files before evaluation and comment
+generation. This reduces comment noise by removing unchanged reports entirely.
 
 The `update-comment` input, when set to true, updates an existing comment with the latest coverage data instead of
 creating a new comment.
