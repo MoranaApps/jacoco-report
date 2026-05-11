@@ -295,3 +295,72 @@ def test_evaluate_populates_evaluated_groups_coverage():
     group_cov = evaluator.evaluated_groups_coverage["team-a"]
     assert group_cov.overall_coverage_threshold == 80.0
     assert group_cov.overall_passed is True
+
+
+# --- Issue 2: EvaluatedReportCoverage group_name initialization ---
+
+def test_group_name_populated_in_evaluated_coverage():
+    """Test that EvaluatedReportCoverage properly initializes group_name field"""
+    overall_coverage = Coverage(
+        instruction=Counter(missed=0, covered=10),
+        branch=Counter(missed=0, covered=10),
+        line=Counter(missed=0, covered=10),
+        complexity=Counter(missed=0, covered=10),
+        method=Counter(missed=0, covered=10),
+        clazz=Counter(missed=0, covered=10),
+    )
+    report = ReportFileCoverage(
+        path="report.xml",
+        name="My Report",
+        overall_coverage=overall_coverage,
+        changed_files_coverage={},
+        group_name="integration-tests",
+    )
+    group = ReportGroup(name="integration-tests", paths=[])
+    evaluator = CoverageEvaluator(
+        report_files_coverage=[report],
+        global_min_coverage_overall=50.0,
+        global_min_coverage_changed_files=50.0,
+        global_min_coverage_changed_per_file=50.0,
+        report_groups=[group],
+    )
+    evaluator.evaluate()
+
+    group_cov = evaluator.evaluated_groups_coverage["integration-tests"]
+    # group_name should be set to group.name, not "Unknown"
+    assert group_cov.group_name == "integration-tests"
+    assert group_cov.group_name != "Unknown"
+
+
+def test_group_name_in_serialized_output():
+    """Test that group_name is correctly serialized to JSON output"""
+    overall_coverage = Coverage(
+        instruction=Counter(missed=0, covered=10),
+        branch=Counter(missed=0, covered=10),
+        line=Counter(missed=0, covered=10),
+        complexity=Counter(missed=0, covered=10),
+        method=Counter(missed=0, covered=10),
+        clazz=Counter(missed=0, covered=10),
+    )
+    report = ReportFileCoverage(
+        path="report.xml",
+        name="My Report",
+        overall_coverage=overall_coverage,
+        changed_files_coverage={},
+        group_name="backend",
+    )
+    group = ReportGroup(name="backend", paths=[])
+    evaluator = CoverageEvaluator(
+        report_files_coverage=[report],
+        global_min_coverage_overall=50.0,
+        global_min_coverage_changed_files=50.0,
+        global_min_coverage_changed_per_file=50.0,
+        report_groups=[group],
+    )
+    evaluator.evaluate()
+
+    group_cov = evaluator.evaluated_groups_coverage["backend"]
+    group_dict = group_cov.to_dict()
+    # to_dict() should include group_name field with correct value
+    assert group_dict["group_name"] == "backend"
+    assert group_dict["group_name"] != "Unknown"

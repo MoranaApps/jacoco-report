@@ -429,12 +429,17 @@ class ActionInputs:
         elif not ActionInputs.is_valid_github_token(token):
             errors.append("'token' must be a valid GitHub token.")
 
+        # Validate paths: required unless report-groups is configured
+        report_groups_raw: str = ActionInputs.get_report_groups(raw=True)
+        has_report_groups = report_groups_raw and report_groups_raw.strip()
+        
         paths = ActionInputs.get_paths(raw=True)
         if paths is None:
             errors.append("'paths' must be defined.")
         elif not isinstance(paths, str):
             errors.append("'paths' must be a list of strings.")
-        elif len(paths) == 0:
+        elif len(paths) == 0 and not has_report_groups:
+            # paths is required only if report-groups is not configured
             errors.append("'paths' must be a non-empty list of strings.")
 
         global_thresholds = ActionInputs.get_global_thresholds(raw=True)
@@ -474,7 +479,6 @@ class ActionInputs:
         if not isinstance(comment_level, str) or comment_level not in CommentLevelEnum:
             errors.append("'comment-level' must be a string from these options: 'minimal', 'full'.")
 
-        report_groups_raw: str = ActionInputs.get_report_groups(raw=True)
         errors.extend(ActionInputs.validate_report_groups(report_groups_raw))
 
         skip_unchanged = ActionInputs.get_skip_unchanged()

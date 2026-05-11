@@ -102,7 +102,9 @@ class CoverageEvaluator:
 
         # evaluation of all groups (group == named set of reports with common paths/thresholds)
         for group in self._report_groups:
-            evaluated_coverage_group: EvaluatedReportCoverage = EvaluatedReportCoverage(group.name)
+            evaluated_coverage_group: EvaluatedReportCoverage = EvaluatedReportCoverage(
+                group.name, group_name=group.name
+            )
 
             # aggregate all reports belonging to this group
             for evaluated_report_coverage in self.evaluated_reports_coverage.values():

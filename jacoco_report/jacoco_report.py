@@ -77,14 +77,23 @@ class JaCoCoReport:
         logger.info("Analyzing JaCoCo (xml) reports.")
         report_files_coverage: list[ReportFileCoverage] = []
         parser = JaCoCoReportParser(all_changed_files_in_pr)
+        seen_report_paths: set[str] = set()
         if report_groups:
             # scan each group's paths independently and tag reports with group name
+            # deduplicate by report path to avoid double-counting when groups have overlapping globs
             for group in report_groups:
                 group_paths = self.scan_jacoco_xml_files(
                     paths=group.paths, exclude_paths=ActionInputs.get_exclude_paths()
                 )
                 for report_path in group_paths:
-                    report_files_coverage.append(parser.parse(report_path, group_name=group.name))
+                    if report_path not in seen_report_paths:
+                        report_files_coverage.append(parser.parse(report_path, group_name=group.name))
+                        seen_report_paths.add(report_path)
+                    else:
+                        logger.info(
+                            "Skipping duplicate report '%s' (already assigned to a group).",
+                            report_path,
+                        )
         else:
             for report_path in input_report_paths_to_analyse:
                 report_files_coverage.append(parser.parse(report_path))

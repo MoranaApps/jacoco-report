@@ -422,3 +422,34 @@ def test_validate_inputs_default(method, expected_value, mocker):
         assert getattr(ActionInputs, method)() == expected_value
     finally:
         stop_mocks(patchers)
+
+
+def test_validate_inputs_allows_empty_paths_when_report_groups_configured(mocker):
+    case = success_case.copy()
+    case["get_paths"] = ""
+    case["get_report_groups"] = "- name: group1\n  paths: ['**/jacoco.xml']"
+
+    patchers = apply_mocks(case, mocker)
+    try:
+        mock_exit = mocker.patch("sys.exit")
+        ActionInputs.validate_inputs()
+        mock_exit.assert_not_called()
+    finally:
+        stop_mocks(patchers)
+
+
+def test_validate_inputs_requires_paths_when_report_groups_not_configured(mocker):
+    case = success_case.copy()
+    case["get_paths"] = ""
+    case["get_report_groups"] = ""
+
+    patchers = apply_mocks(case, mocker)
+    try:
+        mock_error = mocker.patch("jacoco_report.action_inputs.logger.error")
+        mock_exit = mocker.patch("sys.exit")
+        ActionInputs.validate_inputs()
+
+        mock_error.assert_any_call("'paths' must be a non-empty list of strings.")
+        mock_exit.assert_called_once_with(1)
+    finally:
+        stop_mocks(patchers)

@@ -5,8 +5,8 @@ inputs:
     description: 'GitHub token for authentication. TODO improve'
     required: true
   paths:
-    description: 'Paths to JaCoCo reports.'
-    required: true
+    description: 'Paths to JaCoCo reports. Can be omitted when report-groups is provided.'
+    required: false
   exclude-paths:
     description: 'Paths to exclude from JaCoCo reports.'
     required: false
@@ -31,7 +31,8 @@ inputs:
     default: 'full'
   report-groups:
     description: >
-      Define named report groups. YAML list; each entry: name (required), paths (required list of globs),
+      Define named report groups. When provided, paths can be omitted and groups define their own paths.
+      YAML list; each entry: name (required), paths (required list of globs),
       thresholds (optional O*A*P string), baseline-paths (optional list).
     required: false
     default: ''
@@ -122,15 +123,21 @@ runs:
 
     - name: Prepare environment based on mining regimes
       run: |
-        echo "INPUT_TOKEN=${{ inputs.token }}" >> $GITHUB_ENV
-        
-        echo "INPUT_PATHS<<EOF" >> $GITHUB_ENV
-        echo "${{ inputs.paths }}" >> $GITHUB_ENV
-        echo "EOF" >> $GITHUB_ENV
+        write_multiline_env() {
+          local key="$1"
+          local value="$2"
+          local delimiter="EOF_${key}_$(date +%s%N)_$RANDOM"
+          {
+            echo "${key}<<${delimiter}"
+            printf '%s\n' "$value"
+            echo "$delimiter"
+          } >> "$GITHUB_ENV"
+        }
 
-        echo "INPUT_EXCLUDE_PATHS<<EOF" >> $GITHUB_ENV
-        echo "${{ inputs.exclude-paths }}" >> $GITHUB_ENV
-        echo "EOF" >> $GITHUB_ENV
+        echo "INPUT_TOKEN=${{ inputs.token }}" >> $GITHUB_ENV
+
+        write_multiline_env "INPUT_PATHS" "${{ inputs.paths }}"
+        write_multiline_env "INPUT_EXCLUDE_PATHS" "${{ inputs.exclude-paths }}"
 
         echo "INPUT_GLOBAL_THRESHOLDS=${{ inputs.global-thresholds }}" >> $GITHUB_ENV
         echo "INPUT_TITLE=${{ inputs.title }}" >> $GITHUB_ENV
@@ -138,15 +145,11 @@ runs:
         echo "INPUT_METRIC=${{ inputs.metric }}" >> $GITHUB_ENV
         echo "INPUT_COMMENT_LEVEL=${{ inputs.comment-level }}" >> $GITHUB_ENV
 
-        echo "INPUT_REPORT_GROUPS<<EOF" >> $GITHUB_ENV
-        echo "${{ inputs.report-groups }}" >> $GITHUB_ENV
-        echo "EOF" >> $GITHUB_ENV
+        write_multiline_env "INPUT_REPORT_GROUPS" "${{ inputs.report-groups }}"
     
         echo "INPUT_SKIP_UNCHANGED=${{ inputs.skip-unchanged }}" >> $GITHUB_ENV
         
-        echo "INPUT_BASELINE_PATHS<<EOF" >> $GITHUB_ENV
-        echo "${{ inputs.baseline-paths }}" >> $GITHUB_ENV
-        echo "EOF" >> $GITHUB_ENV
+        write_multiline_env "INPUT_BASELINE_PATHS" "${{ inputs.baseline-paths }}"
         
         echo "INPUT_UPDATE_COMMENT=${{ inputs.update-comment }}" >> $GITHUB_ENV
         echo "INPUT_PASS_SYMBOL=${{ inputs.pass-symbol }}" >> $GITHUB_ENV

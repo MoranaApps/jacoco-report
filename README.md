@@ -59,14 +59,14 @@ jobs:
 | Name                | Description                                                                                                                                                                                                                    | Required | Default                                          |
 |---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------|--------------------------------------------------|
 | `token`             | GitHub token for authentication with the repository.                                                                                                                                                                           | **Yes**  |                                                  |
-| `paths`             | Newline-separated paths to JaCoCo XML files. Supports wildcard glob patterns.                                                                                                                                                  | **Yes**  |                                                  |
+| `paths`             | Newline-separated paths to JaCoCo XML files. Supports wildcard glob patterns. Required when `report-groups` is not set.                                                                                                        | No       | `''`                                             |
 | `exclude-paths`     | Newline-separated paths to exclude from coverage analysis. Supports glob patterns.                                                                                                                                             | No       | `''`                                             |
 | `global-thresholds` | Global coverage thresholds in `overall*average-changed-files*changed-file` format.                                                                                                                                             | No       | `0.0*0.0*0.0`                                    |
 | `title`             | Title for the coverage report comment added to the Pull Request.                                                                                                                                                               | No       | `JaCoCo Coverage Report`                         |
 | `pr-number`         | Number of the pull request. If not provided, the action will attempt to determine <br> the PR number from the GitHub context.                                                                                                  | No       | `''`                                             |
 | `metric`            | Coverage metric to use (`instruction`, `line`, `branch`, `complexity`, `method`, `class`).                                                                                                                                     | No       | `instruction`                                    |
 | `comment-level`     | Detail level of the PR comment (`minimal`, `full`).                                                                                                                                                                            | No       | `full`                                           |
-| `report-groups`     | Named report groups as a YAML list. Each entry: `name` (required), `paths` (required list of globs), `thresholds` (optional `O*A*P`, e.g. `80*70*60`), `baseline-paths` (optional list). Replaces `paths` when defined.     | No       | `''`                                             |
+| `report-groups`     | Named report groups as a YAML list. Each entry: `name` (required), `paths` (required list of globs), `thresholds` (optional `O*A*P`, e.g. `80*70*60`), `baseline-paths` (optional list). When set, group `paths` are used. | No       | `''`                                             |
 | `skip-unchanged`    | If `true`, skips entire reports with no changed files in the PR, reducing comment noise.                                                                                                                                       | No       | `false`                                          |
 | `baseline-paths`    | Paths to baseline coverage reports for comparison. Supports wildcard glob patterns.                                                                                                                                            | No       | `''`                                             |
 | `update-comment`    | If `true`, updates an existing comment instead of creating a new one, preventing clutter.                                                                                                                                      | No       | `true`                                           |
@@ -107,7 +107,7 @@ threshold.
 #### Customizing Paths and Exclude Paths
 
 The `paths` input allows you to specify the paths to the JaCoCo XML files that should be included in the code coverage
-analysis.
+analysis. This input is required only when `report-groups` is not provided.
 
 - You can use wildcard glob patterns to match multiple files:
   - `**/*.xml` will match all XML files in the repository.
@@ -194,7 +194,7 @@ The `title` input lets you specify a `custom title` for the JaCoCo coverage repo
 #### Customizing the Report Groups
 
 The `report-groups` input groups JaCoCo reports under named groups with optional per-group coverage thresholds and
-baseline paths. When defined, each group's `paths` is used instead of the top-level `paths` input for scanning.
+baseline paths. When defined, each group's `paths` is used for scanning and the top-level `paths` input can be omitted.
 
 Each entry is a YAML mapping with:
 - `name` (required): Group name shown in the PR comment groups table.

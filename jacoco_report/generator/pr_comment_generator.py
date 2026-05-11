@@ -186,7 +186,13 @@ class PRCommentGenerator:
         if not self.evaluator.evaluated_groups_coverage:
             return ""
 
-        if not ActionInputs.get_baseline_paths():
+        # Check if baseline data is available: either global baseline-paths OR per-group baseline-paths
+        # Per-group baseline data is indicated by bs_evaluator having evaluated_groups_coverage
+        has_baseline = ActionInputs.get_baseline_paths() or (
+            self.bs_evaluator and self.bs_evaluator.evaluated_groups_coverage
+        )
+
+        if not has_baseline:
             s = dedent("""
                 | Group | Coverage (O/Ch) | Threshold (O/Ch) | Status (O/Ch) |
                 |-------|----------|-----------|--------|
