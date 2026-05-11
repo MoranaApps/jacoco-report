@@ -257,6 +257,11 @@ def test_validate_report_groups_missing_paths(mocker):
     assert any("non-empty 'paths'" in e for e in errors)
 
 
+def test_validate_report_groups_whitespace_only_paths_item(mocker):
+    errors = ActionInputs.validate_report_groups("- name: group1\n  paths: ['  ']")
+    assert any("non-empty 'paths'" in e for e in errors)
+
+
 def test_validate_report_groups_invalid_threshold_format(mocker):
     errors = ActionInputs.validate_report_groups("- name: g\n  paths: ['**']\n  thresholds: '80'")
     assert any("O*A*P" in e for e in errors)
@@ -275,6 +280,11 @@ def test_validate_report_groups_invalid_baseline_paths_item_type(mocker):
 def test_validate_report_groups_invalid_baseline_paths_empty_item(mocker):
     errors = ActionInputs.validate_report_groups("- name: g\n  paths: ['**']\n  baseline-paths: ['']")
     assert any("baseline-paths" in e and "non-empty strings" in e for e in errors)
+
+
+def test_validate_report_groups_invalid_baseline_paths_null(mocker):
+    errors = ActionInputs.validate_report_groups("- name: g\n  paths: ['**']\n  baseline-paths: null")
+    assert any("baseline-paths" in e and "must be a list" in e for e in errors)
 
 
 def test_get_skip_unchanged_true(mocker):
@@ -495,6 +505,16 @@ def test_get_report_groups_empty_paths_raises_value_error(mocker):
         ActionInputs.get_report_groups(raw=False)
 
     assert "non-empty" in str(exc_info.value).lower() or "empty" in str(exc_info.value).lower()
+
+
+def test_get_report_groups_invalid_threshold_format_raises_value_error(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="- name: g1\n  paths: ['**']\n  thresholds: '80'")
+
+    with pytest.raises(ValueError) as exc_info:
+        ActionInputs.get_report_groups(raw=False)
+
+    assert "thresholds" in str(exc_info.value).lower()
+    assert "o*a*p" in str(exc_info.value).lower()
 
 
 failure_cases_defaults = [

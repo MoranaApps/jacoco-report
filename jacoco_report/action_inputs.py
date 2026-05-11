@@ -231,37 +231,24 @@ class ActionInputs:
         if not raw_input:
             return []
 
-        try:
-            data = yaml.safe_load(raw_input)
-        except yaml.YAMLError as e:
-            raise ValueError(f"'report-groups' is not valid YAML: {e}") from e
+        errors = ActionInputs.validate_report_groups(raw_input)
+        if errors:
+            raise ValueError("; ".join(errors))
 
+        data = yaml.safe_load(raw_input)
         if not isinstance(data, list):
+            # Defensive guard; validate_report_groups already enforces this.
             raise ValueError("'report-groups' must be a YAML list.")
 
         groups: list[ReportGroup] = []
         for i, entry in enumerate(data):
-            # Validate entry is a dict
             if not isinstance(entry, dict):
+                # Defensive guard; validate_report_groups already enforces this.
                 raise ValueError(
                     f"'report-groups' entry #{i + 1} must be a YAML mapping (dict), got {type(entry).__name__}."
                 )
 
-            # Validate required keys
-            if "name" not in entry or not entry.get("name"):
-                raise ValueError(f"'report-groups' entry #{i + 1} must have a non-empty 'name' key.")
-
-            if "paths" not in entry:
-                raise ValueError(f"'report-groups' entry #{i + 1} must have a 'paths' key.")
-
             paths = entry["paths"]
-            if not isinstance(paths, list):
-                raise ValueError(f"'report-groups' entry #{i + 1} 'paths' must be a list, got {type(paths).__name__}.")
-
-            if not paths or not all(isinstance(p, str) and p for p in paths):
-                raise ValueError(
-                    f"'report-groups' entry #{i + 1} 'paths' must be a non-empty list of non-empty strings."
-                )
 
             name = entry["name"]
             baseline_paths = entry["baseline-paths"] if "baseline-paths" in entry else None
@@ -272,9 +259,9 @@ class ActionInputs:
             per_file: Optional[float] = None
             if thresholds_str:
                 parts = str(thresholds_str).split("*")
-                overall = float(parts[0]) if len(parts) > 0 and parts[0] else None
-                changed = float(parts[1]) if len(parts) > 1 and parts[1] else None
-                per_file = float(parts[2]) if len(parts) > 2 and parts[2] else None
+                overall = float(parts[0]) if parts[0] else None
+                changed = float(parts[1]) if parts[1] else None
+                per_file = float(parts[2]) if parts[2] else None
 
             groups.append(ReportGroup(name, paths, overall, changed, per_file, baseline_paths))
 
@@ -398,7 +385,7 @@ class ActionInputs:
             if not entry.get("name"):
                 errors.append(f"{prefix} must have a non-empty 'name'.")
             paths = entry.get("paths")
-            if not paths or not isinstance(paths, list) or not all(isinstance(p, str) and p for p in paths):
+            if not paths or not isinstance(paths, list) or not all(isinstance(p, str) and p.strip() for p in paths):
                 errors.append(f"{prefix} must have a non-empty 'paths' list of non-empty strings.")
             thresholds_str = entry.get("thresholds", "")
             if thresholds_str:
@@ -409,10 +396,13 @@ class ActionInputs:
                     for label, v in zip(("overall", "avg-changed", "per-file"), parts):
                         if v and not _is_valid_threshold_float(v):
                             errors.append(f"{prefix} 'thresholds' {label} value '{v}' must be a float in [0, 100).")
+            has_baseline_paths = "baseline-paths" in entry
             baseline_paths = entry.get("baseline-paths", [])
-            if baseline_paths is not None and not isinstance(baseline_paths, list):
+            if has_baseline_paths and baseline_paths is None:
                 errors.append(f"{prefix} 'baseline-paths' must be a list.")
-            elif baseline_paths is not None and not all(isinstance(p, str) and p for p in baseline_paths):
+            elif baseline_paths is not None and not isinstance(baseline_paths, list):
+                errors.append(f"{prefix} 'baseline-paths' must be a list.")
+            elif baseline_paths is not None and not all(isinstance(p, str) and p.strip() for p in baseline_paths):
                 errors.append(f"{prefix} 'baseline-paths' must be a list of non-empty strings.")
         return errors
 
