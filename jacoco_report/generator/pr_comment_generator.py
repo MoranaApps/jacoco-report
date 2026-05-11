@@ -42,6 +42,10 @@ class PRCommentGenerator:
         comment_level = ActionInputs.get_comment_level()
         update_comment = ActionInputs.get_update_comment()
 
+        # No comment operation is needed in this mode, so skip the API read call entirely.
+        if comment_level == CommentLevelEnum.NONE and not update_comment:
+            return
+
         title, pr_body = self._get_comment_content(comment_level)
         # Get all comments on the pull request
         comments = self.gh.get_comments(self.pr_number)

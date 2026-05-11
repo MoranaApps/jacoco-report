@@ -536,7 +536,7 @@ def test_generate_skips_github_comment_for_none(pr_comment_generator, mocker):
 
     pr_comment_generator.generate()
 
-    pr_comment_generator.gh.get_comments.assert_called_once_with(1)
+    pr_comment_generator.gh.get_comments.assert_not_called()
     pr_comment_generator.gh.add_comment.assert_not_called()
     pr_comment_generator.gh.update_comment.assert_not_called()
 
@@ -548,6 +548,7 @@ def test_none_deletes_existing_comment_when_update_comment_enabled(pr_comment_ge
 
     pr_comment_generator.generate()
 
+    pr_comment_generator.gh.get_comments.assert_called_once_with(1)
     pr_comment_generator.gh.add_comment.assert_not_called()
     pr_comment_generator.gh.update_comment.assert_not_called()
     pr_comment_generator.gh.delete_comment.assert_called_once_with(123)
@@ -560,6 +561,7 @@ def test_none_leaves_existing_comment_when_update_comment_disabled(pr_comment_ge
 
     pr_comment_generator.generate()
 
+    pr_comment_generator.gh.get_comments.assert_not_called()
     pr_comment_generator.gh.add_comment.assert_not_called()
     pr_comment_generator.gh.update_comment.assert_not_called()
     pr_comment_generator.gh.delete_comment.assert_not_called()
