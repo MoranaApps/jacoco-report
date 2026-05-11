@@ -387,6 +387,8 @@ class ActionInputs:
             baseline_paths = entry.get("baseline-paths", [])
             if baseline_paths is not None and not isinstance(baseline_paths, list):
                 errors.append(f"{prefix} 'baseline-paths' must be a list.")
+            elif baseline_paths is not None and not all(isinstance(p, str) and p for p in baseline_paths):
+                errors.append(f"{prefix} 'baseline-paths' must be a list of non-empty strings.")
         return errors
 
     @staticmethod

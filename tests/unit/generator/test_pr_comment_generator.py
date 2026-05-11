@@ -277,6 +277,27 @@ def test_reports_table_uses_group_thresholds_when_groups_configured(pr_comment_g
     assert "75.0% / 70.0%" in table
     assert "50.0%" not in table
 
+
+def test_reports_table_does_not_call_get_report_groups_per_row(pr_comment_generator, mocker):
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_threshold", return_value=50.0)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_files_average_threshold", return_value=50.0)
+    get_groups_mock = mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups")
+
+    ev = EvaluatedReportCoverage("backend-report")
+    ev.overall_coverage_reached = 90.0
+    ev.avg_changed_files_coverage_reached = 85.0
+    ev.overall_coverage_threshold = 75.0
+    ev.changed_files_threshold = 70.0
+    ev.overall_passed = True
+    ev.avg_changed_files_passed = True
+    pr_comment_generator.evaluator.evaluated_reports_coverage = {"backend-report": ev}
+    pr_comment_generator.evaluator.evaluated_groups_coverage = {"backend": EvaluatedReportCoverage("backend")}
+
+    table = pr_comment_generator._generate_reports_table_without_baseline("✅", "❌")
+
+    assert "75.0% / 70.0%" in table
+    get_groups_mock.assert_not_called()
+
 # --- Issue 1: _get_groups_table baseline decision logic ---
 
 def test_get_groups_table_baseline_decision_global_only(pr_comment_generator, mocker):

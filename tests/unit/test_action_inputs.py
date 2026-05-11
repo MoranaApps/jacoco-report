@@ -267,6 +267,16 @@ def test_validate_report_groups_invalid_threshold_value(mocker):
     assert any("overall value" in e and "[0, 100)" in e for e in errors)
 
 
+def test_validate_report_groups_invalid_baseline_paths_item_type(mocker):
+    errors = ActionInputs.validate_report_groups("- name: g\n  paths: ['**']\n  baseline-paths: [123]")
+    assert any("baseline-paths" in e and "non-empty strings" in e for e in errors)
+
+
+def test_validate_report_groups_invalid_baseline_paths_empty_item(mocker):
+    errors = ActionInputs.validate_report_groups("- name: g\n  paths: ['**']\n  baseline-paths: ['']")
+    assert any("baseline-paths" in e and "non-empty strings" in e for e in errors)
+
+
 def test_get_skip_unchanged_true(mocker):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="true")
     assert ActionInputs.get_skip_unchanged()
