@@ -291,6 +291,31 @@ def test_validate_report_groups_invalid_threshold_value(mocker):
     assert any("overall value" in e and "[0, 100)" in e for e in errors)
 
 
+def test_validate_report_groups_thresholds_non_string_number(mocker):
+    errors = ActionInputs.validate_report_groups("- name: g\n  paths: ['**']\n  thresholds: 0")
+    assert any("'thresholds' must be a non-empty string" in e for e in errors)
+
+
+def test_validate_report_groups_thresholds_non_string_boolean(mocker):
+    errors = ActionInputs.validate_report_groups("- name: g\n  paths: ['**']\n  thresholds: false")
+    assert any("'thresholds' must be a non-empty string" in e for e in errors)
+
+
+def test_validate_report_groups_thresholds_empty_string(mocker):
+    errors = ActionInputs.validate_report_groups("- name: g\n  paths: ['**']\n  thresholds: ''")
+    assert any("'thresholds' must be a non-empty string" in e for e in errors)
+
+
+def test_validate_report_groups_thresholds_whitespace_only(mocker):
+    errors = ActionInputs.validate_report_groups("- name: g\n  paths: ['**']\n  thresholds: '   '")
+    assert any("'thresholds' must be a non-empty string" in e for e in errors)
+
+
+def test_validate_report_groups_thresholds_missing_key_is_allowed(mocker):
+    errors = ActionInputs.validate_report_groups("- name: g\n  paths: ['**']")
+    assert not any("'thresholds'" in e for e in errors)
+
+
 def test_validate_report_groups_invalid_baseline_paths_item_type(mocker):
     errors = ActionInputs.validate_report_groups("- name: g\n  paths: ['**']\n  baseline-paths: [123]")
     assert any("baseline-paths" in e and "non-empty strings" in e for e in errors)

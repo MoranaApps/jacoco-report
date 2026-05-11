@@ -395,9 +395,15 @@ class ActionInputs:
             paths = entry.get("paths")
             if not paths or not isinstance(paths, list) or not all(isinstance(p, str) and p.strip() for p in paths):
                 errors.append(f"{prefix} must have a non-empty 'paths' list of non-empty strings.")
-            thresholds_str = entry.get("thresholds", "")
-            if thresholds_str:
-                parts = str(thresholds_str).split("*")
+            has_thresholds = "thresholds" in entry
+            thresholds_str = entry.get("thresholds")
+            if has_thresholds and (not isinstance(thresholds_str, str) or not thresholds_str.strip()):
+                errors.append(
+                    f"{prefix} 'thresholds' must be a non-empty string in format 'O*A*P' "
+                    "(e.g. '80*70*60')."
+                )
+            elif isinstance(thresholds_str, str):
+                parts = thresholds_str.split("*")
                 if len(parts) != 3:
                     errors.append(f"{prefix} 'thresholds' must be in format 'O*A*P' (e.g. '80*70*60').")
                 else:
