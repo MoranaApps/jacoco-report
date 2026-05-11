@@ -427,3 +427,25 @@ def test_get_groups_table_baseline_decision_no_baseline(pr_comment_generator, mo
     # Should NOT show baseline Δ
     assert "Δ Coverage" not in table
     assert "| Group |" in table
+
+
+def test_get_groups_table_hides_baseline_when_paths_set_but_no_evaluated_data(pr_comment_generator, mocker):
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["baseline.xml"])
+
+    ev = EvaluatedReportCoverage("backend")
+    ev.overall_coverage_reached = 85.0
+    ev.avg_changed_files_coverage_reached = 80.0
+    ev.overall_coverage_threshold = 75.0
+    ev.changed_files_threshold = 70.0
+    ev.overall_passed = True
+    ev.avg_changed_files_passed = True
+    pr_comment_generator.evaluator.evaluated_groups_coverage = {"backend": ev}
+
+    bs_evaluator = mocker.Mock()
+    bs_evaluator.evaluated_reports_coverage = {}
+    bs_evaluator.evaluated_groups_coverage = {}
+    pr_comment_generator.bs_evaluator = bs_evaluator
+
+    table = pr_comment_generator._get_groups_table("✅", "❌")
+
+    assert "Δ Coverage" not in table

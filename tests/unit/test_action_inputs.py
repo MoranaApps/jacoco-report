@@ -562,3 +562,20 @@ def test_validate_inputs_requires_paths_when_report_groups_not_configured(mocker
         mock_exit.assert_called_once_with(1)
     finally:
         stop_mocks(patchers)
+
+
+def test_validate_inputs_requires_paths_when_report_groups_is_empty_yaml_list(mocker):
+    case = success_case.copy()
+    case["get_paths"] = ""
+    case["get_report_groups"] = "[]"
+
+    patchers = apply_mocks(case, mocker)
+    try:
+        mock_error = mocker.patch("jacoco_report.action_inputs.logger.error")
+        mock_exit = mocker.patch("sys.exit")
+        ActionInputs.validate_inputs()
+
+        mock_error.assert_any_call("'paths' must be a non-empty list of strings.")
+        mock_exit.assert_called_once_with(1)
+    finally:
+        stop_mocks(patchers)

@@ -25,4 +25,4 @@ class ReportGroup:
         self.min_coverage_overall = min_coverage_overall
         self.min_coverage_changed_files = min_coverage_changed_files
         self.min_coverage_per_changed_file = min_coverage_per_changed_file
-        self.baseline_paths = baseline_paths or []
+        self.baseline_paths = baseline_paths

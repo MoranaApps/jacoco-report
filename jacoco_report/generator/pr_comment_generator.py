@@ -78,9 +78,6 @@ class PRCommentGenerator:
         return title, body
 
     def _has_baseline_data(self) -> bool:
-        if ActionInputs.get_baseline_paths():
-            return True
-
         if not self.bs_evaluator:
             return False
 

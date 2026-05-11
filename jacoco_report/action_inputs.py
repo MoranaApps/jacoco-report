@@ -264,7 +264,7 @@ class ActionInputs:
                 )
 
             name = entry["name"]
-            baseline_paths = entry.get("baseline-paths", [])
+            baseline_paths = entry["baseline-paths"] if "baseline-paths" in entry else None
 
             thresholds_str = entry.get("thresholds", "")
             overall: Optional[float] = None
@@ -458,7 +458,14 @@ class ActionInputs:
 
         # Validate paths: required unless report-groups is configured
         report_groups_raw: str = ActionInputs.get_report_groups(raw=True)
-        has_report_groups = report_groups_raw and report_groups_raw.strip()
+        has_report_groups = False
+        if report_groups_raw and report_groups_raw.strip():
+            try:
+                report_groups_data = yaml.safe_load(report_groups_raw)
+                has_report_groups = isinstance(report_groups_data, list) and len(report_groups_data) > 0
+            except yaml.YAMLError:
+                # Invalid YAML is reported by validate_report_groups below.
+                has_report_groups = False
 
         paths = ActionInputs.get_paths(raw=True)
         if paths is None:

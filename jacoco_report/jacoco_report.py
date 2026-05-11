@@ -134,12 +134,23 @@ class JaCoCoReport:
         bs_report_files_coverage: list[ReportFileCoverage] = []
         if report_groups:
             global_baseline_paths = ActionInputs.get_baseline_paths()
+            baseline_scan_cache: dict[tuple[str, ...], list[str]] = {}
+            seen_baseline_report_paths: set[str] = set()
             for group in report_groups:
-                group_baseline_paths = group.baseline_paths if group.baseline_paths else global_baseline_paths
+                # Inherit global baseline paths only when group-level baseline-paths is omitted (None).
+                # Explicit [] means baseline is intentionally disabled for this group.
+                group_baseline_paths = global_baseline_paths if group.baseline_paths is None else group.baseline_paths
                 if not group_baseline_paths:
                     continue
 
-                group_baseline_report_paths = self.scan_jacoco_xml_files(paths=group_baseline_paths, exclude_paths=[])
+                baseline_paths_key = tuple(group_baseline_paths)
+                if baseline_paths_key not in baseline_scan_cache:
+                    baseline_scan_cache[baseline_paths_key] = self.scan_jacoco_xml_files(
+                        paths=group_baseline_paths,
+                        exclude_paths=[],
+                    )
+
+                group_baseline_report_paths = baseline_scan_cache[baseline_paths_key]
                 if len(group_baseline_report_paths) == 0:
                     logger.warning(
                         "No baseline JaCoCo xml file found for group '%s'. No difference will be calculated.",
@@ -148,7 +159,14 @@ class JaCoCoReport:
                 else:
                     logger.info("Analyzing baseline JaCoCo (xml) reports for group '%s'.", group.name)
                     for report_path in group_baseline_report_paths:
+                        if report_path in seen_baseline_report_paths:
+                            logger.info(
+                                "Skipping duplicate baseline report '%s' (already assigned to a group).",
+                                report_path,
+                            )
+                            continue
                         bs_report_files_coverage.append(parser.parse(report_path, group_name=group.name))
+                        seen_baseline_report_paths.add(report_path)
         else:
             baseline_paths = ActionInputs.get_baseline_paths()
             if baseline_paths:
