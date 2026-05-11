@@ -353,11 +353,9 @@ class PRCommentGenerator:
         """
         ).strip()
 
-        provided_reports = 0
         keys: list[str] = sorted(list(evaluated_reports_coverage.keys()))
         for key in keys:
             evaluated_report = evaluated_reports_coverage[key]
-            provided_reports += 1
             o_thres = evaluated_report.overall_coverage_threshold
             ch_thres = evaluated_report.changed_files_threshold
 
@@ -368,9 +366,6 @@ class PRCommentGenerator:
             status_o = p if evaluated_report.overall_passed else f
             status_ch = p if evaluated_report.avg_changed_files_passed else f
             s += f"\n| `{name}` | {cov} | {thres} | {status_o}/{status_ch} |"
-
-        if provided_reports == 0:
-            s += "\n\nNo changed file in reports."
 
         return s
 
@@ -393,12 +388,9 @@ class PRCommentGenerator:
         """
         ).strip()
 
-        provided_reports = 0
         keys: list[str] = sorted(list(evaluated_reports_coverage.keys()))
         for key in keys:
             evaluated_report = evaluated_reports_coverage[key]
-
-            provided_reports += 1
             diff_o, diff_ch = self._calculate_baseline_report_diffs(evaluated_report)
 
             o_thres = evaluated_report.overall_coverage_threshold
@@ -415,9 +407,6 @@ class PRCommentGenerator:
             status_o = p if evaluated_report.overall_passed else f
             status_ch = p if evaluated_report.avg_changed_files_passed else f
             s += f"\n| `{name}` | {cov} | {thres} | {delta} | {status_o}/{status_ch} |"
-
-        if provided_reports == 0:
-            s += "\n\nNo changed file in reports."
 
         return s
 
