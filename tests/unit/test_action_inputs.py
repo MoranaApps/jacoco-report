@@ -45,6 +45,12 @@ failure_cases = [
     ("get_global_thresholds", "101*0*0", "'global-thresholds' overall value must be a float between 0 and 100."),
     ("get_global_thresholds", "0*101*0", "'global-thresholds' changed-files-average value must be a float between 0 and 100."),
     ("get_global_thresholds", "0*0*101", "'global-thresholds' changed-file value must be a float between 0 and 100."),
+    (
+        "get_global_thresholds",
+        "1*2*3*4",
+        "'global-thresholds' must be in the format 'overall*changed-files-average*changed-file' "
+        "with exactly three components.",
+    ),
     ("get_global_thresholds", True, "'global-thresholds' must be a string or not defined."),
     ("get_report_thresholds_default", "x", "'report-thresholds-default' must be in the format 'overall*changed-files-average*per-changed-file'."),
     ("get_report_thresholds_default", "1*2*3*4", "'report-thresholds-default' must be in the format 'overall*changed-files-average*per-changed-file' with exactly three components."),
@@ -216,6 +222,38 @@ def test_get_report_thresholds_default_missing_uses_zeros(mocker):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="0.0*0.0*0.0")
     result = ActionInputs.get_report_thresholds_default()
     assert result == (0.0, 0.0, 0.0)
+
+
+def test_get_report_thresholds_default_two_components_warns_per_changed_file(mocker):
+    mock_warning = mocker.patch("jacoco_report.action_inputs.logger.warning")
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="80*70")
+
+    result = ActionInputs.get_report_thresholds_default()
+
+    assert result == (80.0, 70.0, 0.0)
+    warning_messages = [
+        (str(call.args[0]) % tuple(call.args[1:])) if len(call.args) > 1 else str(call.args[0])
+        for call in mock_warning.call_args_list
+    ]
+    assert any(
+        "Adding default value for per-changed-file threshold." in message for message in warning_messages
+    )
+
+
+def test_get_global_thresholds_two_components_warns_changed_file(mocker):
+    mock_warning = mocker.patch("jacoco_report.action_inputs.logger.warning")
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="80*70")
+
+    result = ActionInputs.get_global_thresholds()
+
+    assert result == (80.0, 70.0, 0.0)
+    warning_messages = [
+        (str(call.args[0]) % tuple(call.args[1:])) if len(call.args) > 1 else str(call.args[0])
+        for call in mock_warning.call_args_list
+    ]
+    assert any(
+        "Adding default value for changed file threshold." in message for message in warning_messages
+    )
 
 
 failure_cases_modes = [

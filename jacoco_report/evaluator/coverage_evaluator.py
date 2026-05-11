@@ -280,7 +280,9 @@ class CoverageEvaluator:
     ) -> EvaluatedReportCoverage:
         """
         Evaluates the coverage of the one report.
-        Evaluation uses group thresholds if defined, otherwise global thresholds.
+        Evaluation uses group thresholds when set, otherwise falls back to
+        report-thresholds-default (then 0.0). global-thresholds is a separate
+        evaluation pass and is never in this fallback chain.
 
         Parameters:
             report_coverage (ReportFileCoverage): The coverage of the report
