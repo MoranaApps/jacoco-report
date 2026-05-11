@@ -1985,7 +1985,7 @@ def test_run_with_report_groups_no_baseline_paths_no_group_warnings(jacoco_repor
     assert "No baseline JaCoCo xml file found for group" not in caplog.text
 
 
-def test_run_with_report_groups_global_baseline_scanned_once(jacoco_report, mocker):
+def test_run_with_report_groups_ambiguous_global_baseline_inheritance_skips_groups(jacoco_report, caplog, mocker):
     from jacoco_report.model.report_group import ReportGroup
 
     group1 = ReportGroup(name="group-a", paths=["group-a/**/*.xml"], baseline_paths=None)
@@ -2006,7 +2006,6 @@ def test_run_with_report_groups_global_baseline_scanned_once(jacoco_report, mock
         side_effect=[
             ["group-a.xml"],
             ["group-b.xml"],
-            ["baseline-a.xml", "baseline-b.xml"],
         ],
     )
     parse_mock = mocker.patch(
@@ -2016,18 +2015,14 @@ def test_run_with_report_groups_global_baseline_scanned_once(jacoco_report, mock
     mocker.patch("jacoco_report.evaluator.coverage_evaluator.CoverageEvaluator.evaluate", return_value=None)
     mocker.patch("jacoco_report.generator.pr_comment_generator.PRCommentGenerator.generate", return_value=None)
 
-    jacoco_report.run()
+    with caplog.at_level(logging.WARNING):
+        jacoco_report.run()
 
-    assert scan_mock.call_count == 3
+    assert scan_mock.call_count == 2
     baseline_scan_calls = [c for c in scan_mock.call_args_list if c.kwargs.get("paths") == ["baseline/**/*.xml"]]
-    assert len(baseline_scan_calls) == 1
+    assert len(baseline_scan_calls) == 0
 
-    baseline_group_names = [
-        c.kwargs.get("group_name")
-        for c in parse_mock.call_args_list
-        if c.args and c.args[0] in ["baseline-a.xml", "baseline-b.xml"]
-    ]
-    assert baseline_group_names == ["group-a", "group-a"]
+    assert "Ambiguous baseline configuration" in caplog.text
 
 
 def test_run_with_report_groups_explicit_empty_baseline_does_not_inherit_global(jacoco_report, mocker):

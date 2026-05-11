@@ -449,3 +449,23 @@ def test_get_groups_table_hides_baseline_when_paths_set_but_no_evaluated_data(pr
     table = pr_comment_generator._get_groups_table("✅", "❌")
 
     assert "Δ Coverage" not in table
+
+
+def test_calculate_baseline_group_diffs_no_data_returns_zero(pr_comment_generator, mocker):
+    ev = EvaluatedReportCoverage("backend")
+    ev.overall_coverage_reached = 85.0
+    ev.avg_changed_files_coverage_reached = 80.0
+
+    bs_ev = EvaluatedReportCoverage("backend")
+    # Keep baseline counters at zero to represent "group entry exists but no baseline reports"
+    bs_ev.overall_coverage_reached = 0.0
+    bs_ev.avg_changed_files_coverage_reached = 0.0
+
+    bs_evaluator = mocker.Mock()
+    bs_evaluator.evaluated_groups_coverage = {"backend": bs_ev}
+    pr_comment_generator.bs_evaluator = bs_evaluator
+
+    diff_o, diff_ch = pr_comment_generator.calculate_baseline_group_diffs(ev)
+
+    assert diff_o == 0.0
+    assert diff_ch == 0.0

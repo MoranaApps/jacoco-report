@@ -319,13 +319,19 @@ class PRCommentGenerator:
         if evaluated_coverage.name not in self.bs_evaluator.evaluated_groups_coverage.keys():
             return 0.0, 0.0
 
-        diff_o = (
-            evaluated_coverage.overall_coverage_reached
-            - self.bs_evaluator.evaluated_groups_coverage[evaluated_coverage.name].overall_coverage_reached
-        )
+        baseline_group = self.bs_evaluator.evaluated_groups_coverage[evaluated_coverage.name]
+        has_overall_data = (
+            baseline_group.overall_coverage.covered + baseline_group.overall_coverage.missed
+        ) > 0 or baseline_group.overall_coverage_reached > 0.0
+        has_changed_data = (
+            baseline_group.avg_changed_files_coverage.covered + baseline_group.avg_changed_files_coverage.missed
+        ) > 0 or baseline_group.avg_changed_files_coverage_reached > 0.0
+        if not has_overall_data and not has_changed_data:
+            return 0.0, 0.0
+
+        diff_o = evaluated_coverage.overall_coverage_reached - baseline_group.overall_coverage_reached
         diff_ch = (
-            evaluated_coverage.avg_changed_files_coverage_reached
-            - self.bs_evaluator.evaluated_groups_coverage[evaluated_coverage.name].avg_changed_files_coverage_reached
+            evaluated_coverage.avg_changed_files_coverage_reached - baseline_group.avg_changed_files_coverage_reached
         )
 
         return diff_o, diff_ch

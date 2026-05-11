@@ -136,7 +136,27 @@ class JaCoCoReport:
             global_baseline_paths = ActionInputs.get_baseline_paths()
             baseline_scan_cache: dict[tuple[str, ...], list[str]] = {}
             seen_baseline_report_paths: set[str] = set()
+            groups_inheriting_global = [
+                group for group in report_groups if not getattr(group, "baseline_paths_configured", False)
+            ]
+            ambiguous_global_inheritance = bool(global_baseline_paths) and len(groups_inheriting_global) > 1
+            ambiguous_group_names = {group.name for group in groups_inheriting_global}
+
+            if ambiguous_global_inheritance:
+                logger.warning(
+                    "Ambiguous baseline configuration: multiple report groups omit 'baseline-paths' while global "
+                    "'baseline-paths' is set. Define explicit 'baseline-paths' per group to enable grouped baseline "
+                    "diffs for those groups."
+                )
+
             for group in report_groups:
+                if ambiguous_global_inheritance and group.name in ambiguous_group_names:
+                    logger.info(
+                        "Skipping baseline scan for group '%s' due to ambiguous global baseline inheritance.",
+                        group.name,
+                    )
+                    continue
+
                 # Inherit global baseline paths only when group-level baseline-paths is omitted (None).
                 # Explicit [] means baseline is intentionally disabled for this group.
                 group_baseline_paths = (
