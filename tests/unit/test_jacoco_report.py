@@ -2284,70 +2284,97 @@ def test_filtered_out_all_from_changed_file(jacoco_report, mocker):
 def test_scan_groups_no_overlap_deduplication(jacoco_report, mocker):
     """Test that each report appears once when groups have non-overlapping paths"""
     from jacoco_report.model.report_group import ReportGroup
-    
-    changed_files = ['com/example/user-info/implementation/ImplementationClass.java']
-    
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value='pull_request')
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_token", return_value='fake_token')
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=[])
+
+    changed_files = ["com/example/user-info/implementation/ImplementationClass.java"]
+
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value="pull_request")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_token", return_value="fake_token")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=["tests/data/**/**/jacoco*.xml"])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_exclude_paths", return_value=[])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_comment_level", return_value=CommentLevelEnum.FULL)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_threshold", return_value=0.0)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_files_average_threshold", return_value=0.0)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_file_threshold", return_value=0.0)
-    
-    # Two groups with non-overlapping paths
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=False)
+
     group1 = ReportGroup(name="app", paths=["tests/data/context/notification/**/jacoco*.xml"])
     group2 = ReportGroup(name="test", paths=["tests/data/context/user-info/**/jacoco*.xml"])
-    
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups", return_value=[group1, group2])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_repository", return_value="MoranaApps/jacoco-report")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_unchanged", return_value=False)
     mocker.patch("jacoco_report.utils.github.GitHub.get_pr_number", return_value=35)
     mocker.patch("jacoco_report.utils.github.GitHub.get_pr_changed_files", return_value=changed_files)
-    mocker.patch('jacoco_report.utils.github.GitHub.add_comment', return_value=None)
-    
+    mocker.patch("jacoco_report.utils.github.GitHub.add_comment", return_value=None)
+    mocker.patch(
+        "jacoco_report.jacoco_report.JaCoCoReport.scan_jacoco_xml_files",
+        side_effect=[
+            ["input-any.xml"],
+            ["group-a.xml"],
+            ["group-b.xml"],
+            [],
+            [],
+        ],
+    )
+    parse_mock = mocker.patch(
+        "jacoco_report.parser.jacoco_report_parser.JaCoCoReportParser.parse",
+        return_value=mocker.Mock(name="report_file_coverage"),
+    )
+    mocker.patch("jacoco_report.evaluator.coverage_evaluator.CoverageEvaluator.evaluate", return_value=None)
+    mocker.patch("jacoco_report.generator.pr_comment_generator.PRCommentGenerator.generate", return_value=None)
+
     jacoco_report.run()
-    
-    # Count the number of reports in evaluated_coverage_reports
-    evaluated_reports = json.loads(jacoco_report.evaluated_coverage_reports)
-    # Each group should have one report, total 2
-    assert len(evaluated_reports) == 2, f"Expected 2 reports, got {len(evaluated_reports)}"
+
+    assert parse_mock.call_count == 2
+    parsed_paths = [call.args[0] for call in parse_mock.call_args_list]
+    assert parsed_paths == ["group-a.xml", "group-b.xml"]
 
 
 def test_scan_groups_with_overlap_deduplication(jacoco_report, mocker):
     """Test that overlapping paths in groups are deduplicated"""
     from jacoco_report.model.report_group import ReportGroup
-    
-    changed_files = ['com/example/user-info/implementation/ImplementationClass.java']
-    
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value='pull_request')
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_token", return_value='fake_token')
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=[])
+
+    changed_files = ["com/example/user-info/implementation/ImplementationClass.java"]
+
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value="pull_request")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_token", return_value="fake_token")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=["tests/data/**/**/jacoco*.xml"])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_exclude_paths", return_value=[])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_comment_level", return_value=CommentLevelEnum.FULL)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_threshold", return_value=0.0)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_files_average_threshold", return_value=0.0)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_file_threshold", return_value=0.0)
-    
-    # Two groups with overlapping paths (both match context/user-info reports)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=False)
+
     group1 = ReportGroup(name="all", paths=["tests/data/**/**/jacoco*.xml"])
     group2 = ReportGroup(name="user-info", paths=["tests/data/context/user-info/**/jacoco*.xml"])
-    
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups", return_value=[group1, group2])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_repository", return_value="MoranaApps/jacoco-report")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_unchanged", return_value=False)
     mocker.patch("jacoco_report.utils.github.GitHub.get_pr_number", return_value=35)
     mocker.patch("jacoco_report.utils.github.GitHub.get_pr_changed_files", return_value=changed_files)
-    mocker.patch('jacoco_report.utils.github.GitHub.add_comment', return_value=None)
-    
+    mocker.patch("jacoco_report.utils.github.GitHub.add_comment", return_value=None)
+    mocker.patch(
+        "jacoco_report.jacoco_report.JaCoCoReport.scan_jacoco_xml_files",
+        side_effect=[
+            ["input-any.xml"],
+            ["shared.xml", "other.xml"],
+            ["shared.xml"],
+            [],
+            [],
+        ],
+    )
+    parse_mock = mocker.patch(
+        "jacoco_report.parser.jacoco_report_parser.JaCoCoReportParser.parse",
+        return_value=mocker.Mock(name="report_file_coverage"),
+    )
+    mocker.patch("jacoco_report.evaluator.coverage_evaluator.CoverageEvaluator.evaluate", return_value=None)
+    mocker.patch("jacoco_report.generator.pr_comment_generator.PRCommentGenerator.generate", return_value=None)
+
     jacoco_report.run()
-    
-    # The same file should not be parsed twice into report_files_coverage
-    evaluated_reports = json.loads(jacoco_report.evaluated_coverage_reports)
-    # Should have exactly one entry per unique report file
-    # (no duplicates due to overlap)
-    assert len(evaluated_reports) >= 1, "Should have at least 1 report"
+
+    assert parse_mock.call_count == 2
+    parsed_paths = [call.args[0] for call in parse_mock.call_args_list]
+    assert parsed_paths == ["shared.xml", "other.xml"]
 
     # assert mock_add_comment.call_count == len(expected_comments)
 

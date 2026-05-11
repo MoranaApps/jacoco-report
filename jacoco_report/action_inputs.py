@@ -432,7 +432,7 @@ class ActionInputs:
         # Validate paths: required unless report-groups is configured
         report_groups_raw: str = ActionInputs.get_report_groups(raw=True)
         has_report_groups = report_groups_raw and report_groups_raw.strip()
-        
+
         paths = ActionInputs.get_paths(raw=True)
         if paths is None:
             errors.append("'paths' must be defined.")
