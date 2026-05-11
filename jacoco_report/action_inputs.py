@@ -526,14 +526,14 @@ class ActionInputs:
             errors.append("'global-thresholds' must be a string or not defined.")
         elif "*" not in global_thresholds:
             errors.append(
-                "'global-thresholds' must be in the format 'overall*changed_files_average*changed_file'. "
-                "Where overall is the minimum coverage overall, changed_files_average is the minimum average coverage "
-                "of changed files and changed_file is the minimum coverage per changed file."
+                "'global-thresholds' must be in the format 'overall*changed-files-average*changed-file'. "
+                "Where overall is the minimum coverage overall, changed-files-average is the minimum average coverage "
+                "of changed files and changed-file is the minimum coverage per changed file."
             )
         else:
             if global_thresholds.count("*") == 1:
                 logger.warning(
-                    "'global-thresholds' should be in the format 'overall*changed_files_average*changed_file'. "
+                    "'global-thresholds' should be in the format 'overall*changed-files-average*changed-file'. "
                     "Adding default value for changed file threshold."
                 )
                 global_thresholds += "*0.0"
@@ -542,7 +542,7 @@ class ActionInputs:
                 errors.append("'global-thresholds' overall value must be a float between 0 and 100.")
             if not is_float(parts[1]) or float(parts[1]) < 0 or float(parts[1]) >= 100:
                 errors.append(
-                    "'global-thresholds' changed_files_average files value must be a float between 0 and 100."
+                    "'global-thresholds' changed-files-average value must be a float between 0 and 100."
                 )
             if not is_float(parts[2]) or float(parts[2]) < 0 or float(parts[2]) >= 100:
                 errors.append("'global-thresholds' changed-file value must be a float between 0 and 100.")
@@ -552,20 +552,20 @@ class ActionInputs:
             errors.append("'report-thresholds-default' must be a string or not defined.")
         elif "*" not in report_thresholds_default:
             errors.append(
-                "'report-thresholds-default' must be in the format 'overall*changed_files_average*changed_file'."
+                "'report-thresholds-default' must be in the format 'overall*changed-files-average*per-changed-file'."
             )
         else:
             if report_thresholds_default.count("*") == 1:
                 logger.warning(
                     "'report-thresholds-default' should be in the format "
-                    "'overall*changed_files_average*changed_file'. "
+                    "'overall*changed-files-average*per-changed-file'. "
                     "Adding default value for changed file threshold."
                 )
                 report_thresholds_default += "*0.0"
             rtd_parts = report_thresholds_default.split("*")
             if len(rtd_parts) != 3:
                 errors.append(
-                    "'report-thresholds-default' must be in the format 'overall*changed_files_average*changed_file' "
+                    "'report-thresholds-default' must be in the format 'overall*changed-files-average*per-changed-file' "
                     "with exactly three components."
                 )
             else:
@@ -573,10 +573,10 @@ class ActionInputs:
                     errors.append("'report-thresholds-default' overall value must be a float between 0 and 100.")
                 if not is_float(rtd_parts[1]) or float(rtd_parts[1]) < 0 or float(rtd_parts[1]) >= 100:
                     errors.append(
-                        "'report-thresholds-default' changed_files_average value must be a float between 0 and 100."
+                        "'report-thresholds-default' changed-files-average value must be a float between 0 and 100."
                     )
                 if not is_float(rtd_parts[2]) or float(rtd_parts[2]) < 0 or float(rtd_parts[2]) >= 100:
-                    errors.append("'report-thresholds-default' changed-file value must be a float between 0 and 100.")
+                    errors.append("'report-thresholds-default' per-changed-file value must be a float between 0 and 100.")
 
         metric = ActionInputs.get_metric()
         if not isinstance(metric, str) or metric not in MetricTypeEnum:
