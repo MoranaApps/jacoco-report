@@ -407,7 +407,7 @@ class ActionInputs:
                 if len(parts) != 3:
                     errors.append(f"{prefix} 'thresholds' must be in format 'O*A*P' (e.g. '80*70*60').")
                 else:
-                    for label, v in zip(("overall", "avg-changed", "per-file"), parts):
+                    for label, v in zip(("overall", "changed-files-average", "changed-file"), parts):
                         if v and not _is_valid_threshold_float(v):
                             errors.append(f"{prefix} 'thresholds' {label} value '{v}' must be a float in [0, 100).")
             has_baseline_paths = "baseline-paths" in entry

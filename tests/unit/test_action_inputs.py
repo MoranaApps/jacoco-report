@@ -286,9 +286,19 @@ def test_validate_report_groups_invalid_threshold_format(mocker):
     assert any("O*A*P" in e for e in errors)
 
 
-def test_validate_report_groups_invalid_threshold_value(mocker):
+def test_validate_report_groups_invalid_threshold_value_overall_label(mocker):
     errors = ActionInputs.validate_report_groups("- name: g\n  paths: ['**']\n  thresholds: 'x*70*60'")
     assert any("overall value" in e and "[0, 100)" in e for e in errors)
+
+
+def test_validate_report_groups_invalid_threshold_value_changed_files_average_label(mocker):
+    errors = ActionInputs.validate_report_groups("- name: g\n  paths: ['**']\n  thresholds: '80*x*60'")
+    assert any("changed-files-average value" in e and "[0, 100)" in e for e in errors)
+
+
+def test_validate_report_groups_invalid_threshold_value_changed_file_label(mocker):
+    errors = ActionInputs.validate_report_groups("- name: g\n  paths: ['**']\n  thresholds: '80*70*x'")
+    assert any("changed-file value" in e and "[0, 100)" in e for e in errors)
 
 
 def test_validate_report_groups_thresholds_non_string_number(mocker):
