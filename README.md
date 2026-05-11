@@ -68,7 +68,8 @@ jobs:
 | `metric`            | Coverage metric to use (`instruction`, `line`, `branch`, `complexity`, `method`, `class`).                                                                                                                                     | No       | `instruction`                                    |
 | `comment-level`     | Comment output level: `none`, `minimal`, `full`, `changed`, `failed`, or `failed-or-changed`. `changed`, `failed`, and `failed-or-changed` keep the global summary table and filter lower tables by row.                     | No       | `full`                                           |
 | `report-groups`     | Named report groups as a YAML list. Each entry: `name` (required), `paths` (required list of globs), `thresholds` (optional `O*A*P`, e.g. `80*70*60`), `baseline-paths` (optional list). When set, group `paths` are used. | No       | `''`                                             |
-| `skip-unchanged`    | If `true`, skips entire reports with no changed files in the PR, reducing comment noise.                                                                                                                                       | No       | `false`                                          |
+| `skip-unchanged`    | If `true`, reports with no changed files are filtered out from comment rows. Whether they still affect action success/failure is controlled by `evaluate-unchanged`.                                                           | No       | `false`                                          |
+| `evaluate-unchanged`| Applies only when `skip-unchanged=true`. If `true`, filtered unchanged reports can still fail overall thresholds (result-only). If `false`, they are excluded from threshold evaluation as well.                               | No       | `true`                                           |
 | `baseline-paths`    | Paths to baseline coverage reports for comparison. Supports wildcard glob patterns.                                                                                                                                            | No       | `''`                                             |
 | `update-comment`    | If `true`, updates an existing comment instead of creating a new one, preventing clutter.                                                                                                                                      | No       | `true`                                           |
 | `pass-symbol`       | Symbol for passing checks in PR comments (e.g., ✅, **Passed**).                                                                                                                                                               | No       | `✅`                                              |
@@ -300,8 +301,15 @@ changed files coverage for all detected report files.
 
 #### Customizing the Skip Unchanged Option and Update Comment
 
-The `skip-unchanged` input, when set to true, filters reports with no changed files before evaluation and comment
-generation. This reduces comment noise by removing unchanged reports entirely.
+`skip-unchanged` and `evaluate-unchanged` are related:
+
+| `skip-unchanged` | `evaluate-unchanged` | Comment rows for unchanged reports | Can unchanged reports fail the action? |
+|---|---|---|---|
+| `false` | `true` or `false` | Shown (normal flow) | Yes (normal evaluation flow) |
+| `true` | `false` | Hidden | No |
+| `true` | `true` | Hidden | Yes (overall threshold only; result-only check) |
+
+Use this when you want a clean comment but still enforce unchanged-module quality in the action result.
 
 The `update-comment` input, when set to true, updates an existing comment with the latest coverage data instead of
 creating a new comment.
@@ -315,6 +323,31 @@ The comment is identified by the title.
     paths: **/jacoco/**/*.xml
     skip-unchanged: true  # Skip commenting for unchanged files
     update-comment: true  # Update the existing comment with the latest coverage data
+```
+
+Example: hide unchanged reports and also ignore them for pass/fail
+
+```yaml
+- name: Publish JaCoCo Report
+  uses: MoranaApps/jacoco-report@v3
+  with:
+    token: '${{ secrets.TOKEN }}'
+    paths: **/jacoco/**/*.xml
+    skip-unchanged: true
+    evaluate-unchanged: false
+```
+
+Example: hide unchanged reports but still enforce unchanged overall thresholds
+
+```yaml
+- name: Publish JaCoCo Report
+  uses: MoranaApps/jacoco-report@v3
+  with:
+    token: '${{ secrets.TOKEN }}'
+    paths: **/jacoco/**/*.xml
+    report-thresholds-default: 80*70*0
+    skip-unchanged: true
+    evaluate-unchanged: true
 ```
 
 #### Customizing the Baseline Paths

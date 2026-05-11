@@ -108,18 +108,67 @@ class JaCoCoReport:
             self.violations.append("No input JaCoCo xml file found.")
             return
 
+        skip_unchanged = ActionInputs.get_skip_unchanged()
+        evaluate_unchanged = ActionInputs.get_evaluate_unchanged()
+        filtered_unchanged_reports: list[ReportFileCoverage] = []
+
         # scan-stage filter: remove reports with no changed files before evaluation
-        if ActionInputs.get_skip_unchanged():
+        if skip_unchanged:
             for report in report_files_coverage:
                 if not report.changed_files_coverage:
                     logger.info("Skipping report '%s': no changed files.", report.name)
+                    filtered_unchanged_reports.append(report)
+
             report_files_coverage = [r for r in report_files_coverage if r.changed_files_coverage]
-            if not report_files_coverage:
+            if not report_files_coverage and not evaluate_unchanged:
                 logger.info("All reports filtered out by skip-unchanged. No comment will be generated.")
                 self.total_overall_coverage_passed = True
                 self.total_changed_files_coverage_passed = True
                 self.evaluated_coverage_reports = "{}"
                 self.evaluated_coverage_groups = "{}"
+                if ActionInputs.get_update_comment():
+                    title = f"**{ActionInputs.get_title()}**"
+                    for comment in gh.get_comments(pr_number):
+                        if comment["body"].startswith(title):
+                            gh.delete_comment(comment["id"])
+                            logger.info("Deleted stale comment from previous run.")
+                            break
+                return
+            if not report_files_coverage and evaluate_unchanged:
+                logger.info(
+                    "All reports filtered out by skip-unchanged. Evaluating unchanged reports for threshold result only."
+                )
+                report_thresholds_default = ActionInputs.get_report_thresholds_default()
+                filtered_evaluator = CoverageEvaluator(
+                    report_files_coverage=[],
+                    global_min_coverage_overall=ActionInputs.get_global_overall_threshold(),
+                    global_min_coverage_changed_files=ActionInputs.get_global_changed_files_average_threshold(),
+                    global_min_coverage_changed_per_file=ActionInputs.get_global_changed_file_threshold(),
+                    report_groups=report_groups,
+                    report_thresholds_default=report_thresholds_default,
+                )
+                filtered_evaluator.evaluate()
+                self._append_unchanged_overall_violations(
+                    evaluator=filtered_evaluator,
+                    reports=filtered_unchanged_reports,
+                    report_groups=report_groups,
+                    report_thresholds_default=report_thresholds_default,
+                )
+
+                self.total_overall_coverage = filtered_evaluator.total_coverage_overall
+                self.total_overall_coverage_passed = filtered_evaluator.total_coverage_overall_passed
+                self.total_changed_files_coverage = filtered_evaluator.total_coverage_changed_files
+                self.total_changed_files_coverage_passed = filtered_evaluator.total_coverage_changed_files_passed
+
+                self.evaluated_coverage_reports = "{}"
+                self.evaluated_coverage_groups = "{}"
+                self.violations = filtered_evaluator.violations
+                self.reached_threshold_overall = filtered_evaluator.reached_threshold_overall
+                self.reached_threshold_changed_files_average = (
+                    filtered_evaluator.reached_threshold_changed_files_average
+                )
+                self.reached_threshold_per_change_file = filtered_evaluator.reached_threshold_per_change_file
+
                 if ActionInputs.get_update_comment():
                     title = f"**{ActionInputs.get_title()}**"
                     for comment in gh.get_comments(pr_number):
@@ -215,6 +264,14 @@ class JaCoCoReport:
         )
         evaluator.evaluate()
 
+        if skip_unchanged and evaluate_unchanged and filtered_unchanged_reports:
+            self._append_unchanged_overall_violations(
+                evaluator=evaluator,
+                reports=filtered_unchanged_reports,
+                report_groups=report_groups,
+                report_thresholds_default=report_thresholds_default,
+            )
+
         bs_evaluator: CoverageEvaluator = CoverageEvaluator(
             report_files_coverage=bs_report_files_coverage,
             global_min_coverage_overall=ActionInputs.get_global_overall_threshold(),
@@ -248,6 +305,32 @@ class JaCoCoReport:
         generator = PRCommentGenerator(gh, evaluator, bs_evaluator, pr_number)
         generator.generate()
         logger.info("PR comment(s) generated successfully.")
+
+    def _append_unchanged_overall_violations(
+        self,
+        evaluator: CoverageEvaluator,
+        reports: list[ReportFileCoverage],
+        report_groups: list[ReportGroup],
+        report_thresholds_default: tuple[float, float, float],
+    ) -> None:
+        """Append overall-threshold violations for unchanged reports filtered by skip-unchanged."""
+        metric = ActionInputs.get_metric()
+
+        group_overall_thresholds: dict[str, float] = {
+            group.name: (
+                group.min_coverage_overall if group.min_coverage_overall is not None else report_thresholds_default[0]
+            )
+            for group in report_groups
+        }
+
+        for report in reports:
+            threshold = group_overall_thresholds.get(report.group_name, report_thresholds_default[0])
+            reached = report.overall_coverage.get_coverage_by_metric(metric)
+            if reached < threshold:
+                evaluator.violations.append(
+                    f"Report '{report.name}' overall coverage {reached} is below the threshold {threshold}."
+                )
+                evaluator.reached_threshold_overall = False
 
     def scan_jacoco_xml_files(self, paths: list[str], exclude_paths: list[str]) -> list[str]:
         # get files jacoco xml files for analysis

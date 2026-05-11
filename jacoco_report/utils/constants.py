@@ -22,6 +22,7 @@ COMMENT_LEVEL = "comment-level"
 REPORT_GROUPS = "report-groups"
 
 SKIP_UNCHANGED = "skip-unchanged"
+EVALUATE_UNCHANGED = "evaluate-unchanged"
 UPDATE_COMMENT = "update-comment"
 PASS_SYMBOL = "pass-symbol"
 FAIL_SYMBOL = "fail-symbol"

@@ -21,6 +21,7 @@ from jacoco_report.utils.constants import (
     COMMENT_LEVEL,
     REPORT_GROUPS,
     SKIP_UNCHANGED,
+    EVALUATE_UNCHANGED,
     UPDATE_COMMENT,
     PASS_SYMBOL,
     FAIL_SYMBOL,
@@ -319,6 +320,11 @@ class ActionInputs:
         return get_action_input(SKIP_UNCHANGED, "false") == "true"
 
     @staticmethod
+    def get_evaluate_unchanged() -> bool:
+        """Get whether unchanged reports should still be evaluated when skip-unchanged is enabled."""
+        return get_action_input(EVALUATE_UNCHANGED, "true") == "true"
+
+    @staticmethod
     def get_update_comment() -> bool:
         """
         Get the update comment from the action inputs.
@@ -608,6 +614,10 @@ class ActionInputs:
         if not isinstance(skip_unchanged, bool):
             errors.append("'skip-unchanged' must be a boolean.")
 
+        evaluate_unchanged = ActionInputs.get_evaluate_unchanged()
+        if not isinstance(evaluate_unchanged, bool):
+            errors.append("'evaluate-unchanged' must be a boolean.")
+
         update_comment = ActionInputs.get_update_comment()
         if not isinstance(update_comment, bool):
             errors.append("'update-comment' must be a boolean.")
@@ -645,6 +655,7 @@ class ActionInputs:
             "Comment level: %s\n"
             "\n"
             "Skip unchanged: %s\n"
+            "Evaluate unchanged: %s\n"
             "Update comment: %s\n"
             "Fail on threshold: %s\n"
             "Debug logging enabled: %s\n"
@@ -662,6 +673,7 @@ class ActionInputs:
             ActionInputs.get_title(),
             ActionInputs.get_comment_level(),
             ActionInputs.get_skip_unchanged(),
+            ActionInputs.get_evaluate_unchanged(),
             ActionInputs.get_update_comment(),
             fail_on_threshold if fail_on_threshold else [],
             ActionInputs.get_debug(),

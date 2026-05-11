@@ -20,6 +20,7 @@ success_case = {
     "get_comment_level": "full",
     "get_report_groups": "",
     "get_skip_unchanged": True,
+    "get_evaluate_unchanged": True,
     "get_update_comment": True,
     "get_pass_symbol": "**Passed**",
     "get_fail_symbol": "❗",
@@ -79,6 +80,8 @@ failure_cases = [
     ("get_report_groups", "- name: group1\n  paths: ['**']\n  thresholds: 'x*70*60'", "'report-groups' entry #1 'thresholds' overall value 'x' must be a float in [0, 100)."),
     ("get_skip_unchanged", "", "'skip-unchanged' must be a boolean."),
     ("get_skip_unchanged", 1, "'skip-unchanged' must be a boolean."),
+    ("get_evaluate_unchanged", "", "'evaluate-unchanged' must be a boolean."),
+    ("get_evaluate_unchanged", 1, "'evaluate-unchanged' must be a boolean."),
     ("get_update_comment", "", "'update-comment' must be a boolean."),
     ("get_update_comment", 1, "'update-comment' must be a boolean."),
     ("get_pass_symbol", "", "'pass-symbol' must be a non-empty string and have a length from 1."),
@@ -515,6 +518,16 @@ def test_get_skip_unchanged_false(mocker):
     assert not ActionInputs.get_skip_unchanged()
 
 
+def test_get_evaluate_unchanged_true(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="true")
+    assert ActionInputs.get_evaluate_unchanged()
+
+
+def test_get_evaluate_unchanged_false(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="false")
+    assert not ActionInputs.get_evaluate_unchanged()
+
+
 def test_get_update_comment_true(mocker):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="true")
     assert True == ActionInputs.get_update_comment()
@@ -771,6 +784,7 @@ failure_cases_defaults = [
     ("get_comment_level", CommentLevelEnum.FULL),
     ("get_report_groups", []),
     ("get_skip_unchanged", False),
+    ("get_evaluate_unchanged", True),
     ("get_update_comment", True),
     ("get_pass_symbol", "✅"),
     ("get_fail_symbol", "❌"),

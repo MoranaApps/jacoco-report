@@ -2,16 +2,16 @@ name: 'JaCoCo Report to PR Comment'
 description: 'Add JaCoCo report to PR comment.'
 inputs:
   token:
-    description: 'GitHub token for authentication. TODO improve'
+    description: 'GitHub token used to read PR data and create/update PR comments.'
     required: true
   paths:
-    description: 'Paths to JaCoCo reports. Can be omitted when report-groups is provided.'
+    description: 'Newline-separated paths or glob patterns to JaCoCo XML reports. Optional when report-groups is set.'
     required: false
   exclude-paths:
-    description: 'Paths to exclude from JaCoCo reports.'
+    description: 'Newline-separated paths or globs to exclude from scanning.'
     required: false
   global-thresholds:
-    description: 'Define global coverage thresholds: overall*changed-files-average*changed-file.'
+    description: 'Global thresholds in format overall*changed-files-average*changed-file (for aggregated totals).'
     required: false
     default: '0*0*0'
   report-thresholds-default:
@@ -22,14 +22,14 @@ inputs:
     required: false
     default: '0*0*0'
   title:
-    description: 'Title of the PR comment.'
+    description: 'Title used for the PR comment body and comment update matching.'
     required: false
   pr-number:
     description: 'PR number.'
     required: false
     default: ''
   metric:
-    description: 'Type of metric to be used.'
+    description: 'Coverage metric used for evaluation: instruction, line, branch, complexity, method, or class.'
     required: false
     default: 'instruction'
   comment-level:
@@ -44,14 +44,21 @@ inputs:
     required: false
     default: ''
   skip-unchanged:
-    description: 'Skip reports with no changed files in PR.'
+    description: 'If true, reports with no changed files are removed from comment rows.'
     required: false
     default: 'false'
+  evaluate-unchanged:
+    description: >
+      Applies only when skip-unchanged is true.
+      If true, filtered unchanged reports are still checked for overall threshold failures (result only, no comment rows).
+      If false, filtered unchanged reports are excluded from both comment rows and threshold evaluation.
+    required: false
+    default: 'true'
   baseline-paths:
     description: 'Paths to JaCoCo baseline reports.'
     required: false
   update-comment:
-    description: 'Update the existing comment.'
+    description: 'If true, update an existing action comment with the same title instead of creating a new one.'
     required: false
     default: 'true'
   pass-symbol:
@@ -64,8 +71,9 @@ inputs:
     default: '❌'
   fail-on-threshold:
     description: >
-      Fail the action on threshold breach.
-      Comma- or newline-separated list: overall, changed-files-average, per-changed-file. Leave empty to disable.
+      Controls which threshold breaches fail the action.
+      Use a comma- or newline-separated list: overall, changed-files-average, per-changed-file.
+      Leave empty to disable failing on threshold breaches.
     required: false
     default: 'overall,changed-files-average,per-changed-file'
   debug:
@@ -156,6 +164,7 @@ runs:
         write_multiline_env "INPUT_REPORT_GROUPS" "${{ inputs.report-groups }}"
 
         write_multiline_env "INPUT_SKIP_UNCHANGED" "${{ inputs.skip-unchanged }}"
+        write_multiline_env "INPUT_EVALUATE_UNCHANGED" "${{ inputs.evaluate-unchanged }}"
 
         write_multiline_env "INPUT_BASELINE_PATHS" "${{ inputs.baseline-paths }}"
 
@@ -180,6 +189,7 @@ runs:
         INPUT_COMMENT_LEVEL: ${{ env.INPUT_COMMENT_LEVEL }}
         INPUT_REPORT_GROUPS: ${{ env.INPUT_REPORT_GROUPS }}
         INPUT_SKIP_UNCHANGED: ${{ env.INPUT_SKIP_UNCHANGED }}
+        INPUT_EVALUATE_UNCHANGED: ${{ env.INPUT_EVALUATE_UNCHANGED }}
         INPUT_BASELINE_PATHS: ${{ env.INPUT_BASELINE_PATHS }}
         INPUT_UPDATE_COMMENT: ${{ env.INPUT_UPDATE_COMMENT }}
         INPUT_PASS_SYMBOL: ${{ env.INPUT_PASS_SYMBOL }}

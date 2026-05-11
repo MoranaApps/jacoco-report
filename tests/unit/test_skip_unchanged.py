@@ -25,7 +25,13 @@ from jacoco_report.utils.enums import CommentLevelEnum
 
 # --- helpers ---
 
-def _make_run_mocks(mocker: MockerFixture, *, skip_unchanged: bool, reports: list[ReportFileCoverage]) -> dict:
+def _make_run_mocks(
+    mocker: MockerFixture,
+    *,
+    skip_unchanged: bool,
+    evaluate_unchanged: bool,
+    reports: list[ReportFileCoverage],
+) -> dict:
     """Patch the minimum surface needed to exercise JaCoCoReport.run()."""
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value="pull_request")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_token", return_value="token")
@@ -33,6 +39,7 @@ def _make_run_mocks(mocker: MockerFixture, *, skip_unchanged: bool, reports: lis
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=["**/jacoco.xml"])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_exclude_paths", return_value=[])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_unchanged", return_value=skip_unchanged)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_evaluate_unchanged", return_value=evaluate_unchanged)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=[])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_threshold", return_value=0.0)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_files_average_threshold", return_value=0.0)
@@ -81,7 +88,7 @@ def test_skip_unchanged_filters_report_with_no_changed_files(
     unchanged = _report_without_changes("Report A", make_report_file_coverage)
     changed = _report_with_changes("Report B", make_report_file_coverage)
 
-    _make_run_mocks(mocker, skip_unchanged=True, reports=[unchanged, changed])
+    _make_run_mocks(mocker, skip_unchanged=True, evaluate_unchanged=False, reports=[unchanged, changed])
 
     with caplog.at_level(logging.INFO, logger="jacoco_report.jacoco_report"):
         JaCoCoReport().run()
@@ -95,7 +102,7 @@ def test_skip_unchanged_logs_each_filtered_report(mocker: MockerFixture, make_re
     unchanged_b = _report_without_changes("Beta Report", make_report_file_coverage)
     changed = _report_with_changes("Gamma Report", make_report_file_coverage)
 
-    _make_run_mocks(mocker, skip_unchanged=True, reports=[unchanged_a, unchanged_b, changed])
+    _make_run_mocks(mocker, skip_unchanged=True, evaluate_unchanged=False, reports=[unchanged_a, unchanged_b, changed])
 
     with caplog.at_level(logging.INFO, logger="jacoco_report.jacoco_report"):
         JaCoCoReport().run()
@@ -110,7 +117,7 @@ def test_skip_unchanged_all_filtered_exits_cleanly(mocker: MockerFixture, make_r
     unchanged_a = _report_without_changes("Report A", make_report_file_coverage)
     unchanged_b = _report_without_changes("Report B", make_report_file_coverage)
 
-    mocks = _make_run_mocks(mocker, skip_unchanged=True, reports=[unchanged_a, unchanged_b])
+    mocks = _make_run_mocks(mocker, skip_unchanged=True, evaluate_unchanged=False, reports=[unchanged_a, unchanged_b])
 
     with caplog.at_level(logging.INFO, logger="jacoco_report.jacoco_report"):
         jr = JaCoCoReport()
@@ -127,7 +134,7 @@ def test_skip_unchanged_all_filtered_exits_cleanly(mocker: MockerFixture, make_r
 
 def test_skip_unchanged_all_filtered_deletes_stale_comment(mocker: MockerFixture, make_report_file_coverage, caplog):
     unchanged = _report_without_changes("Report A", make_report_file_coverage)
-    mocks = _make_run_mocks(mocker, skip_unchanged=True, reports=[unchanged])
+    mocks = _make_run_mocks(mocker, skip_unchanged=True, evaluate_unchanged=False, reports=[unchanged])
 
     mocks["gh"].get_comments.return_value = [{"id": 99, "body": "**JaCoCo**\n\nsome old content"}]
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=True)
@@ -143,7 +150,7 @@ def test_skip_unchanged_all_filtered_no_delete_when_update_comment_false(
     mocker: MockerFixture, make_report_file_coverage
 ):
     unchanged = _report_without_changes("Report A", make_report_file_coverage)
-    mocks = _make_run_mocks(mocker, skip_unchanged=True, reports=[unchanged])
+    mocks = _make_run_mocks(mocker, skip_unchanged=True, evaluate_unchanged=False, reports=[unchanged])
 
     mocks["gh"].get_comments.return_value = [{"id": 99, "body": "**JaCoCo**\n\nsome old content"}]
 
@@ -154,12 +161,85 @@ def test_skip_unchanged_all_filtered_no_delete_when_update_comment_false(
 
 def test_skip_unchanged_false_does_not_filter(mocker: MockerFixture, make_report_file_coverage):
     unchanged = _report_without_changes("Report A", make_report_file_coverage)
-    _make_run_mocks(mocker, skip_unchanged=False, reports=[unchanged])
+    _make_run_mocks(mocker, skip_unchanged=False, evaluate_unchanged=False, reports=[unchanged])
 
     jr = JaCoCoReport()
     jr.run()
 
     # run completed without early exit; unchanged report was evaluated (no violations at 0% thresholds)
+    assert jr.violations == []
+
+
+def test_skip_unchanged_all_filtered_evaluate_unchanged_true_checks_overall_threshold(
+    mocker: MockerFixture,
+    make_report_file_coverage,
+    make_coverage,
+):
+    low_overall = make_coverage(instruction=Counter(missed=10, covered=0))
+    unchanged = make_report_file_coverage(
+        name="Low Report",
+        overall_coverage=low_overall,
+        changed_files_coverage={},
+    )
+    mocks = _make_run_mocks(
+        mocker,
+        skip_unchanged=True,
+        evaluate_unchanged=True,
+        reports=[unchanged],
+    )
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_thresholds_default", return_value=(50.0, 0.0, 0.0))
+
+    jr = JaCoCoReport()
+    jr.run()
+
+    assert any("Report 'Low Report' overall coverage 0.0 is below the threshold 50.0." in v for v in jr.violations)
+    mocks["gh"].add_comment.assert_not_called()
+
+
+def test_skip_unchanged_evaluate_unchanged_true_checks_filtered_report_in_mixed_input(
+    mocker: MockerFixture,
+    make_report_file_coverage,
+    make_coverage,
+):
+    low_overall = make_coverage(instruction=Counter(missed=10, covered=0))
+    unchanged = make_report_file_coverage(
+        name="Low Report",
+        overall_coverage=low_overall,
+        changed_files_coverage={},
+    )
+    changed = _report_with_changes("Changed Report", make_report_file_coverage)
+    mocks = _make_run_mocks(
+        mocker,
+        skip_unchanged=True,
+        evaluate_unchanged=True,
+        reports=[unchanged, changed],
+    )
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_thresholds_default", return_value=(50.0, 0.0, 0.0))
+
+    jr = JaCoCoReport()
+    jr.run()
+
+    assert any("Report 'Low Report' overall coverage 0.0 is below the threshold 50.0." in v for v in jr.violations)
+    mocks["gh"].add_comment.assert_called_once()
+
+
+@pytest.mark.parametrize("evaluate_unchanged", [False, True])
+def test_skip_unchanged_false_no_regression_when_toggling_evaluate_unchanged(
+    mocker: MockerFixture,
+    make_report_file_coverage,
+    evaluate_unchanged: bool,
+):
+    unchanged = _report_without_changes("Report A", make_report_file_coverage)
+    _make_run_mocks(
+        mocker,
+        skip_unchanged=False,
+        evaluate_unchanged=evaluate_unchanged,
+        reports=[unchanged],
+    )
+
+    jr = JaCoCoReport()
+    jr.run()
+
     assert jr.violations == []
 
 
