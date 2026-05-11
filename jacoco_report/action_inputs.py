@@ -571,14 +571,20 @@ class ActionInputs:
                 )
                 report_thresholds_default += "*0.0"
             rtd_parts = report_thresholds_default.split("*")
-            if not is_float(rtd_parts[0]) or float(rtd_parts[0]) < 0 or float(rtd_parts[0]) >= 100:
-                errors.append("'report-thresholds-default' overall value must be a float between 0 and 100.")
-            if not is_float(rtd_parts[1]) or float(rtd_parts[1]) < 0 or float(rtd_parts[1]) >= 100:
+            if len(rtd_parts) != 3:
                 errors.append(
-                    "'report-thresholds-default' changed_files_average value must be a float between 0 and 100."
+                    "'report-thresholds-default' must be in the format 'overall*changed_files_average*changed_file' "
+                    "with exactly three components."
                 )
-            if not is_float(rtd_parts[2]) or float(rtd_parts[2]) < 0 or float(rtd_parts[2]) >= 100:
-                errors.append("'report-thresholds-default' changed-file value must be a float between 0 and 100.")
+            else:
+                if not is_float(rtd_parts[0]) or float(rtd_parts[0]) < 0 or float(rtd_parts[0]) >= 100:
+                    errors.append("'report-thresholds-default' overall value must be a float between 0 and 100.")
+                if not is_float(rtd_parts[1]) or float(rtd_parts[1]) < 0 or float(rtd_parts[1]) >= 100:
+                    errors.append(
+                        "'report-thresholds-default' changed_files_average value must be a float between 0 and 100."
+                    )
+                if not is_float(rtd_parts[2]) or float(rtd_parts[2]) < 0 or float(rtd_parts[2]) >= 100:
+                    errors.append("'report-thresholds-default' changed-file value must be a float between 0 and 100.")
 
         metric = ActionInputs.get_metric()
         if not isinstance(metric, str) or metric not in MetricTypeEnum:

@@ -47,6 +47,7 @@ failure_cases = [
     ("get_global_thresholds", "0*0*101", "'global-thresholds' changed-file value must be a float between 0 and 100."),
     ("get_global_thresholds", True, "'global-thresholds' must be a string or not defined."),
     ("get_report_thresholds_default", "x", "'report-thresholds-default' must be in the format 'overall*changed_files_average*changed_file'."),
+    ("get_report_thresholds_default", "1*2*3*4", "'report-thresholds-default' must be in the format 'overall*changed_files_average*changed_file' with exactly three components."),
     ("get_report_thresholds_default", "x*0*0", "'report-thresholds-default' overall value must be a float between 0 and 100."),
     ("get_report_thresholds_default", "0*x*0", "'report-thresholds-default' changed_files_average value must be a float between 0 and 100."),
     ("get_report_thresholds_default", "0*0*x", "'report-thresholds-default' changed-file value must be a float between 0 and 100."),

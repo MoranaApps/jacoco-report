@@ -239,17 +239,12 @@ class PRCommentGenerator:
         """).strip()
 
         provided_reports = 0
-        has_groups = bool(ActionInputs.get_report_groups())
         keys: list[str] = sorted(list(self.evaluator.evaluated_reports_coverage.keys()))
         for key in keys:
             evaluated_report = self.evaluator.evaluated_reports_coverage[key]
             provided_reports += 1
-            o_thres = ActionInputs.get_global_overall_threshold()
-            ch_thres = ActionInputs.get_global_changed_files_average_threshold()
-
-            if has_groups:
-                o_thres = evaluated_report.overall_coverage_threshold
-                ch_thres = evaluated_report.changed_files_threshold
+            o_thres = evaluated_report.overall_coverage_threshold
+            ch_thres = evaluated_report.changed_files_threshold
 
             name = evaluated_report.name
             overall_cov = evaluated_report.overall_coverage_reached
@@ -271,7 +266,6 @@ class PRCommentGenerator:
         """).strip()
 
         provided_reports = 0
-        has_groups = bool(ActionInputs.get_report_groups())
         keys: list[str] = sorted(list(self.evaluator.evaluated_reports_coverage.keys()))
         for key in keys:
             evaluated_report = self.evaluator.evaluated_reports_coverage[key]
@@ -279,12 +273,8 @@ class PRCommentGenerator:
             provided_reports += 1
             diff_o, diff_ch = self._calculate_baseline_report_diffs(evaluated_report)
 
-            o_thres = ActionInputs.get_global_overall_threshold()
-            ch_thres = ActionInputs.get_global_changed_files_average_threshold()
-
-            if has_groups:
-                o_thres = evaluated_report.overall_coverage_threshold
-                ch_thres = evaluated_report.changed_files_threshold
+            o_thres = evaluated_report.overall_coverage_threshold
+            ch_thres = evaluated_report.changed_files_threshold
 
             name = evaluated_report.name
             overall_cov = evaluated_report.overall_coverage_reached
