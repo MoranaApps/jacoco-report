@@ -202,6 +202,14 @@ Each entry is a YAML mapping with:
 - `thresholds` (optional): `overall*average-changed-files*changed-file` (e.g. `80*70*60`). Falls back to `global-thresholds`.
 - `baseline-paths` (optional): List of glob patterns for baseline reports for this group. Falls back to `baseline-paths`.
 
+> **YAML quoting note**: Any `paths`, `baseline-paths`, or `thresholds` value that begins with `*` (e.g. `**/jacoco.xml` or `*70*60`) must be quoted, otherwise YAML interprets the leading `*` as an alias and raises an "undefined alias" error.
+> ```yaml
+> paths:
+>   - '**/jacoco.xml'     # quoted — safe
+>   - module/**/jacoco.xml  # no leading * — safe without quotes
+> thresholds: '80*70*60'    # quoted — safe
+> ```
+
 ```yaml
 - name: Publish JaCoCo Report
   uses: MoranaApps/jacoco-report@v3

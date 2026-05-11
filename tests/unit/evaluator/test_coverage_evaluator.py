@@ -212,57 +212,80 @@ def test_evaluate_group_with_zero_coverage(mocker):
     evaluated_coverage.overall_coverage.covered = 0
     evaluated_coverage.overall_coverage.missed = 0
 
-    group = ReportGroup(name="module-a", paths=[])
+    group = ReportGroup(name="module-a", paths=["**"])
     evaluated_coverage = evaluator.evaluate_group(evaluated_coverage, group)
 
     assert evaluated_coverage.overall_coverage_reached == 0.0
     assert evaluated_coverage.overall_passed is True
 
 
-def test_set_thresholds_uses_group_when_matched():
-    group = ReportGroup(name="team-a", paths=[], min_coverage_overall=70.0,
+def _make_minimal_report(name: str, group_name: str) -> ReportFileCoverage:
+    overall = Coverage(
+        instruction=Counter(missed=0, covered=10),
+        branch=Counter(missed=0, covered=10),
+        line=Counter(missed=0, covered=10),
+        complexity=Counter(missed=0, covered=10),
+        method=Counter(missed=0, covered=10),
+        clazz=Counter(missed=0, covered=10),
+    )
+    return ReportFileCoverage(path=f"{name}.xml", name=name, overall_coverage=overall,
+                              changed_files_coverage={}, group_name=group_name)
+
+
+def test_threshold_uses_group_when_matched(mocker):
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
+    group = ReportGroup(name="team-a", paths=["**"], min_coverage_overall=70.0,
                         min_coverage_changed_files=60.0, min_coverage_per_changed_file=50.0)
+    report = _make_minimal_report("report-a", "team-a")
     evaluator = CoverageEvaluator(
-        report_files_coverage=[],
+        report_files_coverage=[report],
         global_min_coverage_overall=80.0,
         global_min_coverage_changed_files=75.0,
         global_min_coverage_changed_per_file=65.0,
         report_groups=[group],
     )
-    o, ch, pf = evaluator._set_thresholds("team-a")
-    assert o == 70.0
-    assert ch == 60.0
-    assert pf == 50.0
+    evaluator.evaluate()
+    ev = evaluator.evaluated_reports_coverage["report-a"]
+    assert ev.overall_coverage_threshold == 70.0
+    assert ev.changed_files_threshold == 60.0
+    assert ev.per_changed_file_threshold == 50.0
 
 
-def test_set_thresholds_falls_back_to_global_when_no_match():
-    group = ReportGroup(name="team-a", paths=[])
+def test_threshold_falls_back_to_global_when_no_group_matches(mocker):
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
+    group = ReportGroup(name="team-a", paths=["**"])
+    # report belongs to no group (group_name not set / doesn't match any ReportGroup)
+    report = _make_minimal_report("report-b", "unknown-group")
     evaluator = CoverageEvaluator(
-        report_files_coverage=[],
+        report_files_coverage=[report],
         global_min_coverage_overall=80.0,
         global_min_coverage_changed_files=75.0,
         global_min_coverage_changed_per_file=65.0,
         report_groups=[group],
     )
-    o, ch, pf = evaluator._set_thresholds("unknown-group")
-    assert o == 80.0
-    assert ch == 75.0
-    assert pf == 65.0
+    evaluator.evaluate()
+    ev = evaluator.evaluated_reports_coverage["report-b"]
+    assert ev.overall_coverage_threshold == 80.0
+    assert ev.changed_files_threshold == 75.0
+    assert ev.per_changed_file_threshold == 65.0
 
 
-def test_set_thresholds_partial_group_thresholds_fall_back_to_global():
-    group = ReportGroup(name="team-a", paths=[], min_coverage_overall=70.0)
+def test_threshold_partial_group_thresholds_fall_back_to_global(mocker):
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
+    group = ReportGroup(name="team-a", paths=["**"], min_coverage_overall=70.0)
+    report = _make_minimal_report("report-c", "team-a")
     evaluator = CoverageEvaluator(
-        report_files_coverage=[],
+        report_files_coverage=[report],
         global_min_coverage_overall=80.0,
         global_min_coverage_changed_files=75.0,
         global_min_coverage_changed_per_file=65.0,
         report_groups=[group],
     )
-    o, ch, pf = evaluator._set_thresholds("team-a")
-    assert o == 70.0
-    assert ch == 75.0
-    assert pf == 65.0
+    evaluator.evaluate()
+    ev = evaluator.evaluated_reports_coverage["report-c"]
+    assert ev.overall_coverage_threshold == 70.0
+    assert ev.changed_files_threshold == 75.0
+    assert ev.per_changed_file_threshold == 65.0
 
 
 def test_evaluate_populates_evaluated_groups_coverage():
@@ -281,7 +304,7 @@ def test_evaluate_populates_evaluated_groups_coverage():
         changed_files_coverage={},
         group_name="team-a",
     )
-    group = ReportGroup(name="team-a", paths=[], min_coverage_overall=80.0)
+    group = ReportGroup(name="team-a", paths=["**"], min_coverage_overall=80.0)
     evaluator = CoverageEvaluator(
         report_files_coverage=[report],
         global_min_coverage_overall=50.0,
@@ -316,7 +339,7 @@ def test_group_name_populated_in_evaluated_coverage():
         changed_files_coverage={},
         group_name="integration-tests",
     )
-    group = ReportGroup(name="integration-tests", paths=[])
+    group = ReportGroup(name="integration-tests", paths=["**"])
     evaluator = CoverageEvaluator(
         report_files_coverage=[report],
         global_min_coverage_overall=50.0,
@@ -349,7 +372,7 @@ def test_group_name_in_serialized_output():
         changed_files_coverage={},
         group_name="backend",
     )
-    group = ReportGroup(name="backend", paths=[])
+    group = ReportGroup(name="backend", paths=["**"])
     evaluator = CoverageEvaluator(
         report_files_coverage=[report],
         global_min_coverage_overall=50.0,
