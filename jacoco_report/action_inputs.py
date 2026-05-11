@@ -105,36 +105,12 @@ class ActionInputs:
     def get_global_thresholds(raw: bool = False) -> tuple[float, float, float] | str:
         """Return the global coverage thresholds as a tuple."""
 
-        def safe_float(value: str, label: str) -> float:
-            try:
-                return float(value) if value else 0.0
-            except ValueError:
-                logger.error("Warning: Cannot convert '%s' part ('%s') to float. Defaulting to 0.0.", label, value)
-                return 0.0
-
-        raw_value = get_action_input(GLOBAL_THRESHOLDS, DEFAULT_GLOBAL_THRESHOLDS).strip()
-        cleaned = ActionInputs.__clean_from_comment(raw_value)
-
-        if raw:
-            return cleaned
-
-        if "*" not in cleaned:
-            logger.warning("'global-thresholds' input is not formatted correctly. ")
-            cleaned = DEFAULT_GLOBAL_THRESHOLDS
-
-        if cleaned.count("*") == 1:
-            logger.warning(
-                "'global-thresholds' input is not formatted correctly. "
-                "Adding default value for changed file threshold."
-            )
-            cleaned += "*0.0"
-
-        parts = cleaned.split("*")
-        overall = safe_float(parts[0], "overall")
-        changed = safe_float(parts[1], "changed files average")
-        per_file = safe_float(parts[2], "changed file")
-
-        return overall, changed, per_file
+        return ActionInputs.__get_thresholds_input(
+            input_name=GLOBAL_THRESHOLDS,
+            default_value=DEFAULT_GLOBAL_THRESHOLDS,
+            warning_input_label="global-thresholds",
+            raw=raw,
+        )
 
     @staticmethod
     def _get_global_threshold_component(index: int, component_name: str) -> float:
@@ -183,6 +159,22 @@ class ActionInputs:
         global-thresholds is a separate evaluation pass and is never in this chain.
         """
 
+        return ActionInputs.__get_thresholds_input(
+            input_name=REPORT_THRESHOLDS_DEFAULT,
+            default_value=DEFAULT_REPORT_THRESHOLDS_DEFAULT,
+            warning_input_label="report-thresholds-default",
+            raw=raw,
+        )
+
+    @staticmethod
+    def __get_thresholds_input(
+        input_name: str,
+        default_value: str,
+        warning_input_label: str,
+        raw: bool = False,
+    ) -> tuple[float, float, float] | str:
+        """Normalize O*A*P threshold input and parse it into three float components."""
+
         def safe_float(value: str, label: str) -> float:
             try:
                 return float(value) if value else 0.0
@@ -190,20 +182,20 @@ class ActionInputs:
                 logger.error("Warning: Cannot convert '%s' part ('%s') to float. Defaulting to 0.0.", label, value)
                 return 0.0
 
-        raw_value = get_action_input(REPORT_THRESHOLDS_DEFAULT, DEFAULT_REPORT_THRESHOLDS_DEFAULT).strip()
+        raw_value = get_action_input(input_name, default_value).strip()
         cleaned = ActionInputs.__clean_from_comment(raw_value)
 
         if raw:
             return cleaned
 
         if "*" not in cleaned:
-            logger.warning("'report-thresholds-default' input is not formatted correctly.")
-            cleaned = DEFAULT_REPORT_THRESHOLDS_DEFAULT
+            logger.warning("'%s' input is not formatted correctly.", warning_input_label)
+            cleaned = default_value
 
         if cleaned.count("*") == 1:
             logger.warning(
-                "'report-thresholds-default' input is not formatted correctly. "
-                "Adding default value for changed file threshold."
+                "'%s' input is not formatted correctly. Adding default value for changed file threshold.",
+                warning_input_label,
             )
             cleaned += "*0.0"
 
