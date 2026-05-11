@@ -251,7 +251,7 @@ def test_threshold_uses_group_when_matched(mocker):
     assert ev.per_changed_file_threshold == 50.0
 
 
-def test_threshold_falls_back_to_global_when_no_group_matches(mocker):
+def test_threshold_falls_back_to_report_thresholds_default_when_no_group_matches(mocker):
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
     group = ReportGroup(name="team-a", paths=["**"])
     # report belongs to no group (group_name not set / doesn't match any ReportGroup)
@@ -262,15 +262,17 @@ def test_threshold_falls_back_to_global_when_no_group_matches(mocker):
         global_min_coverage_changed_files=75.0,
         global_min_coverage_changed_per_file=65.0,
         report_groups=[group],
+        report_thresholds_default=(55.0, 45.0, 35.0),
     )
     evaluator.evaluate()
     ev = evaluator.evaluated_reports_coverage["report-b"]
-    assert ev.overall_coverage_threshold == 80.0
-    assert ev.changed_files_threshold == 75.0
-    assert ev.per_changed_file_threshold == 65.0
+    # fallback chain: group field → report-thresholds-default → 0.0 (global NOT in chain)
+    assert ev.overall_coverage_threshold == 55.0
+    assert ev.changed_files_threshold == 45.0
+    assert ev.per_changed_file_threshold == 35.0
 
 
-def test_threshold_partial_group_thresholds_fall_back_to_global(mocker):
+def test_threshold_partial_group_thresholds_fall_back_to_report_thresholds_default(mocker):
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
     group = ReportGroup(name="team-a", paths=["**"], min_coverage_overall=70.0)
     report = _make_minimal_report("report-c", "team-a")
@@ -280,12 +282,132 @@ def test_threshold_partial_group_thresholds_fall_back_to_global(mocker):
         global_min_coverage_changed_files=75.0,
         global_min_coverage_changed_per_file=65.0,
         report_groups=[group],
+        report_thresholds_default=(55.0, 45.0, 35.0),
     )
     evaluator.evaluate()
     ev = evaluator.evaluated_reports_coverage["report-c"]
+    # overall is set on the group; changed_files and per_file fall back to report_thresholds_default
     assert ev.overall_coverage_threshold == 70.0
-    assert ev.changed_files_threshold == 75.0
-    assert ev.per_changed_file_threshold == 65.0
+    assert ev.changed_files_threshold == 45.0
+    assert ev.per_changed_file_threshold == 35.0
+
+
+# --- Task 29: report-thresholds-default fallback chain tests ---
+
+def test_report_thresholds_default_fallback_all_explicit(mocker):
+    """All three threshold fields set on the group — report_thresholds_default is never used."""
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
+    group = ReportGroup(
+        name="team-a",
+        paths=["**"],
+        min_coverage_overall=80.0,
+        min_coverage_changed_files=70.0,
+        min_coverage_per_changed_file=60.0,
+    )
+    report = _make_minimal_report("report-a", "team-a")
+    evaluator = CoverageEvaluator(
+        report_files_coverage=[report],
+        global_min_coverage_overall=50.0,
+        global_min_coverage_changed_files=50.0,
+        global_min_coverage_changed_per_file=50.0,
+        report_groups=[group],
+        report_thresholds_default=(55.0, 45.0, 35.0),
+    )
+    evaluator.evaluate()
+    ev = evaluator.evaluated_reports_coverage["report-a"]
+    assert ev.overall_coverage_threshold == 80.0
+    assert ev.changed_files_threshold == 70.0
+    assert ev.per_changed_file_threshold == 60.0
+
+
+def test_report_thresholds_default_fallback_from_default(mocker):
+    """Group has no thresholds — all three fields fall back to report_thresholds_default."""
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
+    group = ReportGroup(name="team-b", paths=["**"])
+    report = _make_minimal_report("report-b", "team-b")
+    evaluator = CoverageEvaluator(
+        report_files_coverage=[report],
+        global_min_coverage_overall=50.0,
+        global_min_coverage_changed_files=50.0,
+        global_min_coverage_changed_per_file=50.0,
+        report_groups=[group],
+        report_thresholds_default=(75.0, 60.0, 40.0),
+    )
+    evaluator.evaluate()
+    ev = evaluator.evaluated_reports_coverage["report-b"]
+    assert ev.overall_coverage_threshold == 75.0
+    assert ev.changed_files_threshold == 60.0
+    assert ev.per_changed_file_threshold == 40.0
+
+
+def test_report_thresholds_default_fallback_to_zero(mocker):
+    """Group has no thresholds and report_thresholds_default is (0,0,0) — effective threshold is 0.0."""
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
+    group = ReportGroup(name="team-c", paths=["**"])
+    report = _make_minimal_report("report-c", "team-c")
+    evaluator = CoverageEvaluator(
+        report_files_coverage=[report],
+        global_min_coverage_overall=50.0,
+        global_min_coverage_changed_files=50.0,
+        global_min_coverage_changed_per_file=50.0,
+        report_groups=[group],
+        report_thresholds_default=(0.0, 0.0, 0.0),
+    )
+    evaluator.evaluate()
+    ev = evaluator.evaluated_reports_coverage["report-c"]
+    assert ev.overall_coverage_threshold == 0.0
+    assert ev.changed_files_threshold == 0.0
+    assert ev.per_changed_file_threshold == 0.0
+
+
+def test_report_thresholds_default_field_level_mix(mocker):
+    """Group sets overall only; avg and per-file fall back to report_thresholds_default fields."""
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
+    group = ReportGroup(name="team-d", paths=["**"], min_coverage_overall=80.0)
+    report = _make_minimal_report("report-d", "team-d")
+    evaluator = CoverageEvaluator(
+        report_files_coverage=[report],
+        global_min_coverage_overall=50.0,
+        global_min_coverage_changed_files=50.0,
+        global_min_coverage_changed_per_file=50.0,
+        report_groups=[group],
+        report_thresholds_default=(75.0, 60.0, 0.0),
+    )
+    evaluator.evaluate()
+    ev = evaluator.evaluated_reports_coverage["report-d"]
+    assert ev.overall_coverage_threshold == 80.0   # from group
+    assert ev.changed_files_threshold == 60.0       # from report_thresholds_default
+    assert ev.per_changed_file_threshold == 0.0     # from report_thresholds_default
+
+
+def test_global_thresholds_unaffected_by_report_thresholds_default(mocker):
+    """global-thresholds evaluation uses only global values; report_thresholds_default has no effect on it."""
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
+    overall_coverage = Coverage(
+        instruction=Counter(missed=5, covered=5),
+        branch=Counter(missed=0, covered=10),
+        line=Counter(missed=0, covered=10),
+        complexity=Counter(missed=0, covered=10),
+        method=Counter(missed=0, covered=10),
+        clazz=Counter(missed=0, covered=10),
+    )
+    report = ReportFileCoverage(
+        path="report.xml",
+        name="report",
+        overall_coverage=overall_coverage,
+        changed_files_coverage={},
+    )
+    evaluator = CoverageEvaluator(
+        report_files_coverage=[report],
+        global_min_coverage_overall=60.0,
+        global_min_coverage_changed_files=0.0,
+        global_min_coverage_changed_per_file=0.0,
+        report_thresholds_default=(90.0, 90.0, 90.0),
+    )
+    evaluator.evaluate()
+    # Global check uses 60.0; 50% coverage < 60.0 → should fail
+    assert evaluator.total_coverage_overall_passed is False
+    assert evaluator.total_coverage_overall == pytest.approx(50.0, 0.01)
 
 
 def test_evaluate_populates_evaluated_groups_coverage():

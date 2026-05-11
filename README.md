@@ -61,7 +61,8 @@ jobs:
 | `token`             | GitHub token for authentication with the repository.                                                                                                                                                                           | **Yes**  |                                                  |
 | `paths`             | Newline-separated paths to JaCoCo XML files. Supports wildcard glob patterns. Required when `report-groups` is not set.                                                                                                        | No       | `''`                                             |
 | `exclude-paths`     | Newline-separated paths to exclude from coverage analysis. Supports glob patterns.                                                                                                                                             | No       | `''`                                             |
-| `global-thresholds` | Global coverage thresholds in `overall*average-changed-files*changed-file` format.                                                                                                                                             | No       | `0.0*0.0*0.0`                                    |
+| `global-thresholds` | Global coverage thresholds in `overall*changed-files-average*changed-file` format. Evaluated independently as a separate pass over aggregated totals.                                                                         | No       | `0.0*0.0*0.0`                                    |
+| `report-thresholds-default` | Default thresholds for reports/groups when a group omits a threshold field. Format: `overall*changed-files-average*per-changed-file` (e.g. `75*60*0`). Field-level fallback chain: per-group → this default → 0.0.        | No       | `0.0*0.0*0.0`                                    |
 | `title`             | Title for the coverage report comment added to the Pull Request.                                                                                                                                                               | No       | `JaCoCo Coverage Report`                         |
 | `pr-number`         | Number of the pull request. If not provided, the action will attempt to determine <br> the PR number from the GitHub context.                                                                                                  | No       | `''`                                             |
 | `metric`            | Coverage metric to use (`instruction`, `line`, `branch`, `complexity`, `method`, `class`).                                                                                                                                     | No       | `instruction`                                    |
@@ -136,12 +137,12 @@ analysis.
 The `global-thresholds` input allows you to define global coverage thresholds for the overall, average changed files,
 and each changed file coverage. This input is a string in the format:
 
-- `overall*average-changed-files*changed-file`
+- `overall*changed-files-average*changed-file`
 
 Where:
 
 - `overall`: Minimum overall coverage percentage required.
-- `average-changed-files`: Minimum average coverage percentage required for changed files.
+- `changed-files-average`: Minimum average coverage percentage required for changed files.
 - `changed-file`: Minimum coverage percentage required for each individual changed file.
 
 ```yaml
@@ -199,7 +200,7 @@ baseline paths. When defined, each group's `paths` is used for scanning and the 
 Each entry is a YAML mapping with:
 - `name` (required): Group name shown in the PR comment groups table.
 - `paths` (required): List of glob patterns for JaCoCo XML reports in this group.
-- `thresholds` (optional): `overall*average-changed-files*changed-file` (e.g. `80*70*60`). Falls back to `global-thresholds`.
+- `thresholds` (optional): `overall*changed-files-average*per-changed-file` (e.g. `80*70*60`). Missing fields fall back to `report-thresholds-default`, then to 0.0. Global thresholds are a separate evaluation pass.
 - `baseline-paths` (optional): List of glob patterns for baseline reports for this group. Falls back to `baseline-paths`.
 
 > **YAML quoting note**: Any `paths`, `baseline-paths`, or `thresholds` value that begins with `*` (e.g. `**/jacoco.xml` or `*70*60`) must be quoted, otherwise YAML interprets the leading `*` as an alias and raises an "undefined alias" error.
@@ -272,8 +273,9 @@ changed files coverage for all detected report files.
 > - **(O)** - Overall coverage.
 > - **(Ch)** - Coverage for changed files.
 > - **Δ Coverage** is visible when `baseline-paths` are defined and data is available.
-> - The report table is always visible. When `report-groups` is defined, each group's thresholds are used; otherwise, `global-thresholds` are applied.
+> - The report table is always visible. When `report-groups` is defined, each group's thresholds are used (with field-level fallback to `report-thresholds-default`); otherwise, reports use `report-thresholds-default` (per-field fallback to 0.0).
 > - The groups table is visible when `report-groups` is defined.
+> - `global-thresholds` is always evaluated independently as a separate pass over aggregated totals and is never part of the group fallback chain.
 
 #### Customizing the Skip Unchanged Option and Update Comment
 
