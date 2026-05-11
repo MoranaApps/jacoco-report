@@ -77,8 +77,23 @@ class PRCommentGenerator:
 
         return title, body
 
+    def _has_baseline_data(self) -> bool:
+        if ActionInputs.get_baseline_paths():
+            return True
+
+        if not self.bs_evaluator:
+            return False
+
+        reports_coverage = getattr(self.bs_evaluator, "evaluated_reports_coverage", {})
+        groups_coverage = getattr(self.bs_evaluator, "evaluated_groups_coverage", {})
+
+        has_report_baseline = isinstance(reports_coverage, dict) and len(reports_coverage) > 0
+        has_group_baseline = isinstance(groups_coverage, dict) and len(groups_coverage) > 0
+
+        return has_report_baseline or has_group_baseline
+
     def get_basic_table_for_all(self, p: str, f: str) -> str:
-        if not ActionInputs.get_baseline_paths():
+        if not self._has_baseline_data():
             return self.get_basic_table(
                 p,
                 f,
@@ -190,11 +205,7 @@ class PRCommentGenerator:
         if not self.evaluator.evaluated_groups_coverage:
             return ""
 
-        # Check if baseline data is available: either global baseline-paths OR per-group baseline-paths
-        # Per-group baseline data is indicated by bs_evaluator having evaluated_groups_coverage
-        has_baseline = ActionInputs.get_baseline_paths() or (
-            self.bs_evaluator and self.bs_evaluator.evaluated_groups_coverage
-        )
+        has_baseline = self._has_baseline_data()
 
         if not has_baseline:
             s = dedent(
@@ -227,7 +238,7 @@ class PRCommentGenerator:
         return s
 
     def _get_reports_table(self, p: str, f: str) -> str:
-        if not ActionInputs.get_baseline_paths():
+        if not self._has_baseline_data():
             return self._generate_reports_table_without_baseline(p, f)
 
         return self._generate_reports_table_with_baseline(p, f)
@@ -241,7 +252,7 @@ class PRCommentGenerator:
         ).strip()
 
         provided_reports = 0
-        has_groups = bool(self.evaluator.evaluated_groups_coverage)
+        has_groups = bool(ActionInputs.get_report_groups())
         keys: list[str] = sorted(list(self.evaluator.evaluated_reports_coverage.keys()))
         for key in keys:
             evaluated_report = self.evaluator.evaluated_reports_coverage[key]
@@ -275,7 +286,7 @@ class PRCommentGenerator:
         ).strip()
 
         provided_reports = 0
-        has_groups = bool(self.evaluator.evaluated_groups_coverage)
+        has_groups = bool(ActionInputs.get_report_groups())
         keys: list[str] = sorted(list(self.evaluator.evaluated_reports_coverage.keys()))
         for key in keys:
             evaluated_report = self.evaluator.evaluated_reports_coverage[key]
@@ -389,7 +400,7 @@ class PRCommentGenerator:
         if len(self.evaluator.evaluated_reports_coverage.keys()) == 0:
             return "\nNo changed file in reports."
 
-        if not ActionInputs.get_baseline_paths():
+        if not self._has_baseline_data():
             return self.generate_changed_files_table_without_baseline(p, f)
 
         return self.generate_changed_files_table_with_baseline(p, f)

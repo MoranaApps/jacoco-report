@@ -281,7 +281,7 @@ def test_reports_table_uses_group_thresholds_when_groups_configured(pr_comment_g
 def test_reports_table_does_not_call_get_report_groups_per_row(pr_comment_generator, mocker):
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_threshold", return_value=50.0)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_files_average_threshold", return_value=50.0)
-    get_groups_mock = mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups")
+    get_groups_mock = mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups", return_value=[])
 
     ev = EvaluatedReportCoverage("backend-report")
     ev.overall_coverage_reached = 90.0
@@ -295,8 +295,8 @@ def test_reports_table_does_not_call_get_report_groups_per_row(pr_comment_genera
 
     table = pr_comment_generator._generate_reports_table_without_baseline("✅", "❌")
 
-    assert "75.0% / 70.0%" in table
-    get_groups_mock.assert_not_called()
+    assert "50.0% / 50.0%" in table
+    get_groups_mock.assert_called_once()
 
 # --- Issue 1: _get_groups_table baseline decision logic ---
 
@@ -350,6 +350,57 @@ def test_get_groups_table_baseline_decision_group_only(pr_comment_generator, moc
     table = pr_comment_generator._get_groups_table("✅", "❌")
 
     # Should show baseline Δ when bs_evaluator has data, even if global baseline-paths is empty
+    assert "Δ Coverage" in table
+
+
+def test_get_reports_table_baseline_decision_group_only(pr_comment_generator, mocker):
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=[])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_threshold", return_value=50.0)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_files_average_threshold", return_value=50.0)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups", return_value=[])
+
+    ev = EvaluatedReportCoverage("backend-report")
+    ev.overall_coverage_reached = 90.0
+    ev.avg_changed_files_coverage_reached = 85.0
+    ev.overall_coverage_threshold = 75.0
+    ev.changed_files_threshold = 70.0
+    ev.overall_passed = True
+    ev.avg_changed_files_passed = True
+    pr_comment_generator.evaluator.evaluated_reports_coverage = {"backend-report": ev}
+
+    bs_ev = EvaluatedReportCoverage("backend-report")
+    bs_ev.overall_coverage_reached = 80.0
+    bs_ev.avg_changed_files_coverage_reached = 75.0
+    bs_evaluator = mocker.Mock()
+    bs_evaluator.evaluated_reports_coverage = {"backend-report": bs_ev}
+    bs_evaluator.evaluated_groups_coverage = {}
+    pr_comment_generator.bs_evaluator = bs_evaluator
+
+    table = pr_comment_generator._get_reports_table("✅", "❌")
+
+    assert "Δ Coverage (O/Ch)" in table
+
+
+def test_get_basic_table_baseline_decision_group_only(pr_comment_generator, mocker):
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=[])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value=MetricTypeEnum.INSTRUCTION)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_threshold", return_value=50.0)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_files_average_threshold", return_value=50.0)
+
+    pr_comment_generator.evaluator.total_coverage_overall = 85.0
+    pr_comment_generator.evaluator.total_coverage_overall_passed = True
+    pr_comment_generator.evaluator.total_coverage_changed_files = 80.0
+    pr_comment_generator.evaluator.total_coverage_changed_files_passed = True
+
+    bs_evaluator = mocker.Mock()
+    bs_evaluator.total_coverage_overall = 80.0
+    bs_evaluator.total_coverage_changed_files = 75.0
+    bs_evaluator.evaluated_reports_coverage = {"backend-report": EvaluatedReportCoverage("backend-report")}
+    bs_evaluator.evaluated_groups_coverage = {}
+    pr_comment_generator.bs_evaluator = bs_evaluator
+
+    table = pr_comment_generator.get_basic_table_for_all("✅", "❌")
+
     assert "Δ Coverage" in table
 
 
