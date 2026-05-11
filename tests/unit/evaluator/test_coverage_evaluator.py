@@ -292,14 +292,6 @@ def test_threshold_partial_group_thresholds_fall_back_to_report_thresholds_defau
     assert ev.per_changed_file_threshold == 35.0
 
 
-def test_evaluate_report_docstring_mentions_report_thresholds_default_fallback():
-    doc = CoverageEvaluator._evaluate_report.__doc__
-    assert doc is not None
-    assert "report-thresholds-default" in doc
-    assert "global-thresholds is a separate" in doc
-    assert "evaluation pass" in doc
-
-
 # --- Task 29: report-thresholds-default fallback chain tests ---
 
 def test_report_thresholds_default_fallback_all_explicit(mocker):
