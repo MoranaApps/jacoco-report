@@ -9,7 +9,6 @@ from jacoco_report.model.coverage import Coverage
 from jacoco_report.model.evaluated_report_coverage import EvaluatedReportCoverage
 from jacoco_report.model.file_coverage import FileCoverage
 from jacoco_report.model.report_file_coverage import ReportFileCoverage
-from jacoco_report.model.report_group import ReportGroup
 from jacoco_report.utils.github import GitHub
 
 
@@ -110,28 +109,6 @@ def make_report_file_coverage() -> Callable[..., ReportFileCoverage]:
             overall_coverage=overall_coverage,
             changed_files_coverage=changed_files_coverage if changed_files_coverage is not None else {},
             group_name=group_name,
-        )
-
-    return factory
-
-
-@pytest.fixture
-def make_report_group() -> Callable[..., ReportGroup]:
-    def factory(
-        name: str = "test-group",
-        paths: Optional[list[str]] = None,
-        min_coverage_overall: Optional[float] = 80.0,
-        min_coverage_changed_files: Optional[float] = 70.0,
-        min_coverage_per_changed_file: Optional[float] = 60.0,
-        baseline_paths: Optional[list[str]] = None,
-    ) -> ReportGroup:
-        return ReportGroup(
-            name=name,
-            paths=paths if paths is not None else ["**/jacoco.xml"],
-            min_coverage_overall=min_coverage_overall,
-            min_coverage_changed_files=min_coverage_changed_files,
-            min_coverage_per_changed_file=min_coverage_per_changed_file,
-            baseline_paths=baseline_paths,
         )
 
     return factory
