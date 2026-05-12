@@ -90,6 +90,13 @@ class PRCommentGenerator:
             for k, v in self.evaluator.evaluated_reports_coverage.items()
             if k not in self.skip_report_names
         }
+        if self.skip_report_names:
+            visible_group_names: frozenset[str] = frozenset(
+                v.group_name
+                for k, v in self.evaluator.evaluated_reports_coverage.items()
+                if k not in self.skip_report_names
+            )
+            filtered_groups = {k: v for k, v in filtered_groups.items() if k in visible_group_names}
 
         if comment_level != CommentLevelEnum.FULL:
             filtered_groups = self._filter_evaluated_coverage_rows(filtered_groups, comment_level)

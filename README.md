@@ -1,7 +1,7 @@
 # Jacoco Report GitHub Action
 
 ![GitHub tag](https://img.shields.io/github/v/tag/MoranaApps/jacoco-report?label=latest&style=flat-square&color=blue)
-![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/MoranaApps/jacoco-report?utm_source=oss&utm_medium=github&utm_campaign=MoranaApps%2Fjacoco-report&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)
+[![CodeRabbit Pull Request Reviews](https://coderabbit.ai/badges/github/MoranaApps/jacoco-report)](https://coderabbit.ai/github/MoranaApps/jacoco-report)
 
 - [Usage](#usage)
   - [Action Inputs](#action-inputs)
@@ -155,7 +155,7 @@ Where:
   uses: MoranaApps/jacoco-report@v3
   with:
     token: '${{ secrets.TOKEN }}'
-    paths: **/jacoco/**/*.xml
+    paths: '**/jacoco/**/*.xml'
     global-thresholds: 80*70*60  # Min coverage: 80% overall, 70% changed avg, 60% per file
 
     fail-on-threshold: true  # Fail the GitHub action if any of the thresholds is not reached
@@ -180,7 +180,7 @@ to determine the PR number from the GitHub context.
   uses: MoranaApps/jacoco-report@v3
   with:
     token: '${{ secrets.TOKEN }}'
-    paths: **/jacoco/**/*.xml
+    paths: '**/jacoco/**/*.xml'
     pr-number: ${{ github.event.pull_request.number }}
  ```
 
@@ -193,7 +193,7 @@ The `title` input lets you specify a `custom title` for the JaCoCo coverage repo
   uses: MoranaApps/jacoco-report@v3
   with:
     token: '${{ secrets.TOKEN }}'
-    paths: **/jacoco/**/*.xml
+    paths: '**/jacoco/**/*.xml'
     title: 'Custom Coverage Report Title'
 ```
 
@@ -320,7 +320,7 @@ The comment is identified by the title.
   uses: MoranaApps/jacoco-report@v3
   with:
     token: '${{ secrets.TOKEN }}'
-    paths: **/jacoco/**/*.xml
+    paths: '**/jacoco/**/*.xml'
     skip-unchanged: true  # Skip commenting for unchanged files
     update-comment: true  # Update the existing comment with the latest coverage data
 ```
@@ -332,7 +332,7 @@ Example: hide unchanged reports and also ignore them for pass/fail
   uses: MoranaApps/jacoco-report@v3
   with:
     token: '${{ secrets.TOKEN }}'
-    paths: **/jacoco/**/*.xml
+    paths: '**/jacoco/**/*.xml'
     skip-unchanged: true
     evaluate-unchanged: false
 ```
@@ -344,7 +344,7 @@ Example: hide unchanged reports but still enforce unchanged overall thresholds
   uses: MoranaApps/jacoco-report@v3
   with:
     token: '${{ secrets.TOKEN }}'
-    paths: **/jacoco/**/*.xml
+    paths: '**/jacoco/**/*.xml'
     report-thresholds-default: 80*70*0
     skip-unchanged: true
     evaluate-unchanged: true
@@ -379,7 +379,7 @@ pull request comments.
   uses: MoranaApps/jacoco-report@v3
   with:
     token: '${{ secrets.TOKEN }}'
-    paths: **/jacoco/**/*.xml
+    paths: '**/jacoco/**/*.xml'
     metric: 'LINE'            # Select 'line' coverage metric
     pass-symbol: '✔️'         # Custom symbol for passing checks
     fail-symbol: '❗'         # Custom symbol for failing checks
@@ -395,7 +395,7 @@ The `debug` input enables detailed logging for debugging. This is automatically 
   uses: MoranaApps/jacoco-report@v3
   with:
     token: '${{ secrets.TOKEN }}'
-    paths: **/jacoco/**/*.xml
+    paths: '**/jacoco/**/*.xml'
     debug: true  # Enable detailed logging
 ```
 

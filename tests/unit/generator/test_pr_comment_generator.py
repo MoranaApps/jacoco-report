@@ -832,3 +832,29 @@ def test_skip_report_names_empty_set_does_not_hide_any_reports(pr_comment_genera
     body = pr_comment_generator.gh.add_comment.call_args[0][1]
     assert "`report-a`" in body
     assert "`report-b`" in body
+
+
+def test_skip_report_names_hides_group_when_all_group_reports_are_skipped(pr_comment_generator, mocker):
+    _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="full")
+    # group "backend" has one report that is skipped; group "frontend" has one visible report
+    pr_comment_generator.evaluator.evaluated_groups_coverage = {
+        "backend": _make_evaluated_coverage("backend"),
+        "frontend": _make_evaluated_coverage("frontend"),
+    }
+    pr_comment_generator.evaluator.evaluated_reports_coverage = {
+        "backend-report": _make_evaluated_coverage(
+            "backend-report", group_name="backend", changed_files={}
+        ),
+        "frontend-report": _make_evaluated_coverage(
+            "frontend-report", group_name="frontend", changed_files={"src/Foo.java": 80.0}
+        ),
+    }
+    pr_comment_generator.skip_report_names = frozenset({"backend-report"})
+
+    pr_comment_generator.generate()
+
+    body = pr_comment_generator.gh.add_comment.call_args[0][1]
+    assert "`frontend`" in body
+    assert "`backend`" not in body
+    assert "`frontend-report`" in body
+    assert "`backend-report`" not in body

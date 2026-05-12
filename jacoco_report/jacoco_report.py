@@ -158,8 +158,14 @@ class JaCoCoReport:
                 self.total_changed_files_coverage = filtered_evaluator.total_coverage_changed_files
                 self.total_changed_files_coverage_passed = filtered_evaluator.total_coverage_changed_files_passed
 
-                self.evaluated_coverage_reports = "{}"
-                self.evaluated_coverage_groups = "{}"
+                evaluated_coverage_reports = {
+                    k: v.to_dict() for k, v in filtered_evaluator.evaluated_reports_coverage.items()
+                }
+                evaluated_coverage_groups = {
+                    k: v.to_dict() for k, v in filtered_evaluator.evaluated_groups_coverage.items()
+                }
+                self.evaluated_coverage_reports = json.dumps(evaluated_coverage_reports, indent=4)
+                self.evaluated_coverage_groups = json.dumps(evaluated_coverage_groups, indent=4)
                 self.violations = filtered_evaluator.violations
                 self.reached_threshold_overall = filtered_evaluator.reached_threshold_overall
                 self.reached_threshold_changed_files_average = (
@@ -285,8 +291,8 @@ class JaCoCoReport:
         self.total_changed_files_coverage = evaluator_for_results.total_coverage_changed_files
         self.total_changed_files_coverage_passed = evaluator_for_results.total_coverage_changed_files_passed
 
-        evaluated_coverage_reports = {k: v.to_dict() for k, v in evaluator_for_render.evaluated_reports_coverage.items()}
-        evaluated_coverage_groups = {k: v.to_dict() for k, v in evaluator_for_render.evaluated_groups_coverage.items()}
+        evaluated_coverage_reports = {k: v.to_dict() for k, v in evaluator_for_results.evaluated_reports_coverage.items()}
+        evaluated_coverage_groups = {k: v.to_dict() for k, v in evaluator_for_results.evaluated_groups_coverage.items()}
 
         self.evaluated_coverage_reports = json.dumps(evaluated_coverage_reports, indent=4)
         self.evaluated_coverage_groups = json.dumps(evaluated_coverage_groups, indent=4)
