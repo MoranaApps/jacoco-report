@@ -289,7 +289,9 @@ class JaCoCoReport:
         self.total_changed_files_coverage = evaluator_for_results.total_coverage_changed_files
         self.total_changed_files_coverage_passed = evaluator_for_results.total_coverage_changed_files_passed
 
-        evaluated_coverage_reports = {k: v.to_dict() for k, v in evaluator_for_results.evaluated_reports_coverage.items()}
+        evaluated_coverage_reports = {
+            k: v.to_dict() for k, v in evaluator_for_results.evaluated_reports_coverage.items()
+        }
         evaluated_coverage_groups = {k: v.to_dict() for k, v in evaluator_for_results.evaluated_groups_coverage.items()}
 
         self.evaluated_coverage_reports = json.dumps(evaluated_coverage_reports, indent=4)

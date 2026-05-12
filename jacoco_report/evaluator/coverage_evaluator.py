@@ -157,13 +157,9 @@ class CoverageEvaluator:
             if (
                 evaluated_coverage_group.overall_coverage.covered == 0
                 and evaluated_coverage_group.overall_coverage.missed == 0
-                and not any(
-                    ev.group_name == group.name for ev in self.evaluated_reports_coverage.values()
-                )
+                and not any(ev.group_name == group.name for ev in self.evaluated_reports_coverage.values())
             ):
-                logger.info(
-                    "Group '%s' has no reports contributing after filtering.", group.name
-                )
+                logger.info("Group '%s' has no reports contributing after filtering.", group.name)
 
             # save the evaluated group
             self.evaluated_groups_coverage[group.name] = self.evaluate_group(evaluated_coverage_group, group)

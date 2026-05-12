@@ -39,7 +39,7 @@ class PRCommentGenerator:
     ):
         self.gh: GitHub = gh
         self.evaluator: CoverageEvaluator = evaluator
-        self.bs_evaluator: CoverageEvaluator = bs_evaluator
+        self.bs_evaluator: Optional[CoverageEvaluator] = bs_evaluator
         self.pr_number: int = pr_number
         self.skip_report_names: frozenset[str] = skip_report_names
         self.github_repository: str = ActionInputs.get_repository()
@@ -93,9 +93,7 @@ class PRCommentGenerator:
 
         filtered_groups = self.evaluator.evaluated_groups_coverage
         filtered_reports = {
-            k: v
-            for k, v in self.evaluator.evaluated_reports_coverage.items()
-            if k not in self.skip_report_names
+            k: v for k, v in self.evaluator.evaluated_reports_coverage.items() if k not in self.skip_report_names
         }
         if self.skip_report_names:
             visible_group_names: frozenset[str] = frozenset(
@@ -204,6 +202,9 @@ class PRCommentGenerator:
                 ActionInputs.get_global_changed_files_average_threshold(),
             )
 
+        # bs_evaluator is guaranteed non-None here due to _has_baseline_data() check
+        bs_evaluator = self.bs_evaluator
+        assert bs_evaluator is not None
         return self.get_basic_table_with_baseline(
             p,
             f,
@@ -214,8 +215,8 @@ class PRCommentGenerator:
             self.evaluator.total_coverage_changed_files,
             self.evaluator.total_coverage_changed_files_passed,
             ActionInputs.get_global_changed_files_average_threshold(),
-            self.bs_evaluator.total_coverage_overall,
-            self.bs_evaluator.total_coverage_changed_files,
+            bs_evaluator.total_coverage_overall,
+            bs_evaluator.total_coverage_changed_files,
         )
 
     # Full example of the table
@@ -436,7 +437,7 @@ class PRCommentGenerator:
 
     def calculate_baseline_group_diffs(self, evaluated_coverage: EvaluatedReportCoverage) -> tuple[float, float]:
         """Calculate baseline deltas for one rendered group row."""
-        if evaluated_coverage.name not in self.bs_evaluator.evaluated_groups_coverage.keys():
+        if not self.bs_evaluator or evaluated_coverage.name not in self.bs_evaluator.evaluated_groups_coverage.keys():
             return 0.0, 0.0
 
         baseline_group = self.bs_evaluator.evaluated_groups_coverage[evaluated_coverage.name]
@@ -458,7 +459,7 @@ class PRCommentGenerator:
 
     def _calculate_baseline_report_diffs(self, evaluated_coverage: EvaluatedReportCoverage) -> tuple[float, float]:
         """Calculate baseline deltas for one rendered report row."""
-        if evaluated_coverage.name not in self.bs_evaluator.evaluated_reports_coverage.keys():
+        if not self.bs_evaluator or evaluated_coverage.name not in self.bs_evaluator.evaluated_reports_coverage.keys():
             return 0.0, 0.0
 
         diff_o = (
@@ -573,6 +574,9 @@ class PRCommentGenerator:
         self, p: str, f: str, evaluated_reports_coverage: Optional[dict[str, EvaluatedReportCoverage]] = None
     ) -> str:
         """Generate a changed-files table that includes baseline deltas."""
+        if not self.bs_evaluator:
+            return ""
+
         s = dedent(
             """
             | File Path | Coverage | Threshold | Δ Coverage | Status |

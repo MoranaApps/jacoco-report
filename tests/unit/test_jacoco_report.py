@@ -1903,6 +1903,20 @@ def test_run_no_pr_number(jacoco_report):
                 jacoco_report.run()
                 assert "No pull request number found." in jacoco_report.violations
 
+def test_run_failed_to_retrieve_changed_files(jacoco_report, mocker):
+    """Test that action fails gracefully when GitHub API fails to return changed files."""
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value='pull_request')
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_token", return_value='fake_token')
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=['**/jacoco.xml'])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_exclude_paths", return_value=[])
+    mocker.patch("jacoco_report.utils.github.GitHub.get_pr_number", return_value=1)
+    mocker.patch("jacoco_report.utils.github.GitHub.get_pr_changed_files", return_value=None)
+    mocker.patch("jacoco_report.jacoco_report.JaCoCoReport.scan_jacoco_xml_files", return_value=['jacoco.xml'])
+    
+    jacoco_report.run()
+    
+    assert "Failed to retrieve changed files from GitHub API." in jacoco_report.violations
+
 def test_run_no_jacoco_xml_files(jacoco_report, caplog, mocker):
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value='pull_request')
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_token", return_value='fake_token')

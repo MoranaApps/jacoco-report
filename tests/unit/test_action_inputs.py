@@ -739,6 +739,14 @@ def test_get_pr_number(mocker):
     assert ActionInputs.get_pr_number(gh) is None
     mock_logger.error.assert_called_once_with("The PR number not detected.")
 
+    # Test invalid non-numeric pr_input
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="not_a_number")
+    gh = mocker.Mock(spec=GitHub)
+    gh.get_pr_number.return_value = None
+    mock_logger = mocker.patch("jacoco_report.action_inputs.logger")
+    assert ActionInputs.get_pr_number(gh) is None
+    mock_logger.error.assert_called_once_with("'pr-number' input '%s' is not a valid integer.", "not_a_number")
+
 def test_get_metric(mocker):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="branch")
     assert ActionInputs.get_metric() == "branch"
