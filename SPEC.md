@@ -69,6 +69,10 @@ Two output verbosity levels controlled by `sensitivity`: `detail` / `summary` / 
 | `test_run_failed_to_retrieve_changed_files_marks_threshold_flags_failed` | Ensure operational failure path marks threshold flags as failed | `GitHub.get_pr_changed_files()` returns `None` | Violation is added and all `reached_threshold_*` flags are `False` |
 | `test_run_failed_to_retrieve_changed_files` | Keep existing failure-message assertion while adding threshold assertions | Same as above | Existing violation assertion remains valid and threshold flags are `False` |
 | `test_run_failed_to_retrieve_changed_files` formatting cleanup | Remove trailing whitespace-only lines in the new test block | N/A (format-only change) | No lint/format noise from trailing whitespace |
+| `test_capture_run_clears_preexisting_ci_env_keys` | Ensure stale CI/action env vars do not leak into integration helper execution | Pre-existing `INPUT_*`/`GITHUB_*` vars in `os.environ`, call `capture_run()` with partial overrides | Stale `INPUT_*`/`GITHUB_*` vars are absent during `main.run()` |
+| `test_capture_run_closes_handlers_added_during_run` | Ensure handlers attached during the run are closed during teardown | `main.run()` adds a custom root logger handler | Handler is removed and its `close()` is called in `capture_run()` finally block |
+| `test_capture_run_forces_temp_github_output` | Ensure capture_run never writes action outputs to external files | `env_overrides` includes `GITHUB_OUTPUT` external path | `main.run()` receives a temp path and external path remains untouched |
+| `test_make_env_base_includes_default_pr_number` | Ensure base offline env can run without extra PR-number overrides | Call `make_env_base()` with no overrides | Returned env includes `INPUT_PR_NUMBER` default value |
 
 ---
 
