@@ -351,6 +351,9 @@ Confirmed test-case table for `skip-unchanged=true` + `evaluate-unchanged=true` 
 | Test name | Intent | Input summary | Expected output |
 |---|---|---|---|
 | `test_skip_unchanged_evaluate_unchanged_true_mixed_input_uses_all_reports_for_global_result` | Ensure global totals and threshold pass/fail are computed from changed+unchanged reports in mixed input flow | One unchanged low-coverage report + one changed high-coverage report, `skip-unchanged=true`, `evaluate-unchanged=true`, global overall threshold above changed-only total and above union total boundary | Global overall equals union total, global threshold failure/violation is reported from union; unchanged report remains absent from rendered report rows |
+| `test_skip_report_names_hides_specified_reports_from_rendered_rows` | Verify that a report named in `skip_report_names` is absent from rendered report rows in the PR comment body | `PRCommentGenerator` constructed with one report in `skip_report_names`; evaluator has two reports | Comment body contains the non-skipped report row, does not contain the skipped report row |
+| `test_skip_report_names_global_summary_still_shows_evaluator_totals` | Verify global summary table in comment reflects the evaluator totals even when report rows are filtered | Evaluator has specific `total_coverage_overall`; one report in `skip_report_names` | Global summary contains the evaluator's total, not the value it would have without the skipped report |
+| `test_skip_report_names_empty_set_does_not_hide_any_reports` | Confirm default empty `skip_report_names` leaves all report rows visible | `PRCommentGenerator` with default `skip_report_names`; two reports in evaluator | Both report names appear in the comment body |
 
 ---
 

@@ -28,11 +28,13 @@ class PRCommentGenerator:
         evaluator: CoverageEvaluator,
         bs_evaluator: CoverageEvaluator,
         pr_number: int,
+        skip_report_names: frozenset[str] = frozenset(),
     ):
         self.gh: GitHub = gh
         self.evaluator: CoverageEvaluator = evaluator
         self.bs_evaluator: CoverageEvaluator = bs_evaluator
         self.pr_number: int = pr_number
+        self.skip_report_names: frozenset[str] = skip_report_names
         self.github_repository: str = ActionInputs.get_repository()
 
     def generate(self) -> None:
@@ -83,7 +85,11 @@ class PRCommentGenerator:
             return title, body
 
         filtered_groups = self.evaluator.evaluated_groups_coverage
-        filtered_reports = self.evaluator.evaluated_reports_coverage
+        filtered_reports = {
+            k: v
+            for k, v in self.evaluator.evaluated_reports_coverage.items()
+            if k not in self.skip_report_names
+        }
 
         if comment_level != CommentLevelEnum.FULL:
             filtered_groups = self._filter_evaluated_coverage_rows(filtered_groups, comment_level)

@@ -298,7 +298,12 @@ class JaCoCoReport:
 
         # generate the comment(s)
         logger.info("Generating PR comment(s).")
-        generator = PRCommentGenerator(gh, evaluator_for_render, bs_evaluator, pr_number)
+        skip_report_names: frozenset[str] = (
+            frozenset(r.name for r in filtered_unchanged_reports)
+            if skip_unchanged and evaluate_unchanged and filtered_unchanged_reports
+            else frozenset()
+        )
+        generator = PRCommentGenerator(gh, evaluator_for_results, bs_evaluator, pr_number, skip_report_names)
         generator.generate()
         logger.info("PR comment(s) generated successfully.")
 

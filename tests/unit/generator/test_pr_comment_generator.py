@@ -778,3 +778,57 @@ def test_filtered_comment_levels_empty_result_do_not_render_detail_table_headers
     assert "| Group |" not in body
     assert "| Report |" not in body
     assert "| File Path |" not in body
+
+
+# --- skip_report_names row-filtering ---
+
+def test_skip_report_names_hides_specified_reports_from_rendered_rows(pr_comment_generator, mocker):
+    _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="full")
+    pr_comment_generator.evaluator.evaluated_groups_coverage = {}
+    pr_comment_generator.evaluator.evaluated_reports_coverage = {
+        "changed-report": _make_evaluated_coverage("changed-report", changed_files={"src/Foo.java": 82.0}),
+        "unchanged-report": _make_evaluated_coverage("unchanged-report", changed_files={}),
+    }
+    pr_comment_generator.skip_report_names = frozenset({"unchanged-report"})
+
+    pr_comment_generator.generate()
+
+    body = pr_comment_generator.gh.add_comment.call_args[0][1]
+    assert "`changed-report`" in body
+    assert "`unchanged-report`" not in body
+
+
+def test_skip_report_names_global_summary_still_shows_evaluator_totals(pr_comment_generator, mocker):
+    _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="full")
+    pr_comment_generator.evaluator.total_coverage_overall = 50.0
+    pr_comment_generator.evaluator.total_coverage_overall_passed = False
+    pr_comment_generator.evaluator.total_coverage_changed_files = 60.0
+    pr_comment_generator.evaluator.total_coverage_changed_files_passed = True
+    pr_comment_generator.evaluator.evaluated_groups_coverage = {}
+    pr_comment_generator.evaluator.evaluated_reports_coverage = {
+        "changed-report": _make_evaluated_coverage("changed-report", changed_files={"src/Foo.java": 82.0}),
+        "unchanged-report": _make_evaluated_coverage("unchanged-report", changed_files={}),
+    }
+    pr_comment_generator.skip_report_names = frozenset({"unchanged-report"})
+
+    pr_comment_generator.generate()
+
+    body = pr_comment_generator.gh.add_comment.call_args[0][1]
+    assert "50.0%" in body
+    assert "`unchanged-report`" not in body
+
+
+def test_skip_report_names_empty_set_does_not_hide_any_reports(pr_comment_generator, mocker):
+    _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="full")
+    pr_comment_generator.evaluator.evaluated_groups_coverage = {}
+    pr_comment_generator.evaluator.evaluated_reports_coverage = {
+        "report-a": _make_evaluated_coverage("report-a", changed_files={"src/Foo.java": 82.0}),
+        "report-b": _make_evaluated_coverage("report-b", changed_files={}),
+    }
+    # skip_report_names defaults to frozenset() — no explicit assignment
+
+    pr_comment_generator.generate()
+
+    body = pr_comment_generator.gh.add_comment.call_args[0][1]
+    assert "`report-a`" in body
+    assert "`report-b`" in body
