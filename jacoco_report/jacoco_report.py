@@ -246,7 +246,7 @@ class JaCoCoReport:
         # evaluate the coverage
         logger.info("Evaluating the coverage of the reports.")
         report_thresholds_default = ActionInputs.get_report_thresholds_default()
-        evaluator: CoverageEvaluator = CoverageEvaluator(
+        evaluator_for_render: CoverageEvaluator = CoverageEvaluator(
             report_files_coverage=report_files_coverage,
             global_min_coverage_overall=ActionInputs.get_global_overall_threshold(),
             global_min_coverage_changed_files=ActionInputs.get_global_changed_files_average_threshold(),
@@ -254,15 +254,19 @@ class JaCoCoReport:
             report_groups=report_groups,
             report_thresholds_default=report_thresholds_default,
         )
-        evaluator.evaluate()
+        evaluator_for_render.evaluate()
 
+        evaluator_for_results = evaluator_for_render
         if skip_unchanged and evaluate_unchanged and filtered_unchanged_reports:
-            self._append_unchanged_overall_violations(
-                evaluator=evaluator,
-                reports=filtered_unchanged_reports,
+            evaluator_for_results = CoverageEvaluator(
+                report_files_coverage=report_files_coverage + filtered_unchanged_reports,
+                global_min_coverage_overall=ActionInputs.get_global_overall_threshold(),
+                global_min_coverage_changed_files=ActionInputs.get_global_changed_files_average_threshold(),
+                global_min_coverage_changed_per_file=ActionInputs.get_global_changed_file_threshold(),
                 report_groups=report_groups,
                 report_thresholds_default=report_thresholds_default,
             )
+            evaluator_for_results.evaluate()
 
         bs_evaluator: CoverageEvaluator = CoverageEvaluator(
             report_files_coverage=bs_report_files_coverage,
@@ -276,53 +280,27 @@ class JaCoCoReport:
         if bs_report_files_coverage:
             bs_evaluator.evaluate()
 
-        self.total_overall_coverage = evaluator.total_coverage_overall
-        self.total_overall_coverage_passed = evaluator.total_coverage_overall_passed
-        self.total_changed_files_coverage = evaluator.total_coverage_changed_files
-        self.total_changed_files_coverage_passed = evaluator.total_coverage_changed_files_passed
+        self.total_overall_coverage = evaluator_for_results.total_coverage_overall
+        self.total_overall_coverage_passed = evaluator_for_results.total_coverage_overall_passed
+        self.total_changed_files_coverage = evaluator_for_results.total_coverage_changed_files
+        self.total_changed_files_coverage_passed = evaluator_for_results.total_coverage_changed_files_passed
 
-        evaluated_coverage_reports = {k: v.to_dict() for k, v in evaluator.evaluated_reports_coverage.items()}
-        evaluated_coverage_groups = {k: v.to_dict() for k, v in evaluator.evaluated_groups_coverage.items()}
+        evaluated_coverage_reports = {k: v.to_dict() for k, v in evaluator_for_render.evaluated_reports_coverage.items()}
+        evaluated_coverage_groups = {k: v.to_dict() for k, v in evaluator_for_render.evaluated_groups_coverage.items()}
 
         self.evaluated_coverage_reports = json.dumps(evaluated_coverage_reports, indent=4)
         self.evaluated_coverage_groups = json.dumps(evaluated_coverage_groups, indent=4)
 
-        self.violations = evaluator.violations
-        self.reached_threshold_overall = evaluator.reached_threshold_overall
-        self.reached_threshold_changed_files_average = evaluator.reached_threshold_changed_files_average
-        self.reached_threshold_per_change_file = evaluator.reached_threshold_per_change_file
+        self.violations = evaluator_for_results.violations
+        self.reached_threshold_overall = evaluator_for_results.reached_threshold_overall
+        self.reached_threshold_changed_files_average = evaluator_for_results.reached_threshold_changed_files_average
+        self.reached_threshold_per_change_file = evaluator_for_results.reached_threshold_per_change_file
 
         # generate the comment(s)
         logger.info("Generating PR comment(s).")
-        generator = PRCommentGenerator(gh, evaluator, bs_evaluator, pr_number)
+        generator = PRCommentGenerator(gh, evaluator_for_render, bs_evaluator, pr_number)
         generator.generate()
         logger.info("PR comment(s) generated successfully.")
-
-    def _append_unchanged_overall_violations(
-        self,
-        evaluator: CoverageEvaluator,
-        reports: list[ReportFileCoverage],
-        report_groups: list[ReportGroup],
-        report_thresholds_default: tuple[float, float, float],
-    ) -> None:
-        """Append overall-threshold violations for unchanged reports filtered by skip-unchanged."""
-        metric = ActionInputs.get_metric()
-
-        group_overall_thresholds: dict[str, float] = {
-            group.name: (
-                group.min_coverage_overall if group.min_coverage_overall is not None else report_thresholds_default[0]
-            )
-            for group in report_groups
-        }
-
-        for report in reports:
-            threshold = group_overall_thresholds.get(report.group_name, report_thresholds_default[0])
-            reached = report.overall_coverage.get_coverage_by_metric(metric)
-            if reached < threshold:
-                evaluator.violations.append(
-                    f"Report '{report.name}' overall coverage {reached} is below the threshold {threshold}."
-                )
-                evaluator.reached_threshold_overall = False
 
     def scan_jacoco_xml_files(self, paths: list[str], exclude_paths: list[str]) -> list[str]:
         # get files jacoco xml files for analysis

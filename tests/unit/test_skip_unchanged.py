@@ -311,6 +311,52 @@ def test_skip_unchanged_evaluate_unchanged_true_checks_filtered_report_in_mixed_
     mocks["gh"].add_comment.assert_called_once()
 
 
+def test_skip_unchanged_evaluate_unchanged_true_mixed_input_uses_all_reports_for_global_result(
+    mocker: MockerFixture,
+    make_report_file_coverage,
+    make_coverage,
+):
+    unchanged_low = make_report_file_coverage(
+        name="Unchanged Low",
+        overall_coverage=make_coverage(instruction=Counter(missed=10, covered=0)),
+        changed_files_coverage={},
+    )
+    changed_high = make_report_file_coverage(
+        name="Changed High",
+        overall_coverage=make_coverage(instruction=Counter(missed=0, covered=10)),
+        changed_files_coverage={
+            "src/Foo.java": FileCoverage(
+                "Foo.java",
+                "src",
+                Counter(0, 10),
+                Counter(0, 10),
+                Counter(0, 10),
+                Counter(0, 10),
+                Counter(0, 10),
+                Counter(0, 10),
+            )
+        },
+    )
+
+    _make_run_mocks(
+        mocker,
+        skip_unchanged=True,
+        evaluate_unchanged=True,
+        reports=[unchanged_low, changed_high],
+    )
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_threshold", return_value=80.0)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_thresholds_default", return_value=(0.0, 0.0, 0.0))
+
+    jr = JaCoCoReport()
+    jr.run()
+
+    assert jr.total_overall_coverage == 50.0
+    assert jr.total_overall_coverage_passed is False
+    assert any("Global overall coverage 50.0 is below the threshold 80.0." in v for v in jr.violations)
+    assert "Unchanged Low" not in jr.evaluated_coverage_reports
+    assert "Changed High" in jr.evaluated_coverage_reports
+
+
 @pytest.mark.parametrize("evaluate_unchanged", [False, True])
 def test_skip_unchanged_false_no_regression_when_toggling_evaluate_unchanged(
     mocker: MockerFixture,
