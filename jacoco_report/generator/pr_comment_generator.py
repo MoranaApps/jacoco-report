@@ -538,9 +538,6 @@ class PRCommentGenerator:
         if comment_level == CommentLevelEnum.FAILED:
             evaluated_reports_coverage = self._filter_reports_for_failed_files(evaluated_reports_coverage)
 
-        if not evaluated_reports_coverage:
-            return ""
-
         if not self._has_baseline_data():
             return self.generate_changed_files_table_without_baseline(p, f, evaluated_reports_coverage)
 
@@ -574,9 +571,6 @@ class PRCommentGenerator:
         self, p: str, f: str, evaluated_reports_coverage: Optional[dict[str, EvaluatedReportCoverage]] = None
     ) -> str:
         """Generate a changed-files table that includes baseline deltas."""
-        if not self.bs_evaluator:
-            return ""
-
         s = dedent(
             """
             | File Path | Coverage | Threshold | Δ Coverage | Status |
@@ -596,7 +590,9 @@ class PRCommentGenerator:
                     f"https://github.com/{self.github_repository}/pull/{self.pr_number}/files#diff-{file_hash}"
                 )
 
-                if ecr_key not in self.bs_evaluator.evaluated_reports_coverage.keys():
+                if not self.bs_evaluator:
+                    diff = 0.0
+                elif ecr_key not in self.bs_evaluator.evaluated_reports_coverage.keys():
                     diff = 0.0
                 elif (
                     file_key
