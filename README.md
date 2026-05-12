@@ -1,7 +1,7 @@
 # Jacoco Report GitHub Action
 
 ![GitHub tag](https://img.shields.io/github/v/tag/MoranaApps/jacoco-report?label=latest&style=flat-square&color=blue)
-![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/MoranaApps/jacoco-report?utm_source=oss&utm_medium=github&utm_campaign=MoranaApps%2Fjacoco-report&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)
+[![CodeRabbit Pull Request Reviews](https://coderabbit.ai/badges/github/MoranaApps/jacoco-report)](https://coderabbit.ai/github/MoranaApps/jacoco-report)
 
 - [Usage](#usage)
   - [Action Inputs](#action-inputs)
@@ -68,7 +68,8 @@ jobs:
 | `metric`            | Coverage metric to use (`instruction`, `line`, `branch`, `complexity`, `method`, `class`).                                                                                                                                     | No       | `instruction`                                    |
 | `comment-level`     | Comment output level: `none`, `minimal`, `full`, `changed`, `failed`, or `failed-or-changed`. `changed`, `failed`, and `failed-or-changed` keep the global summary table and filter lower tables by row.                     | No       | `full`                                           |
 | `report-groups`     | Named report groups as a YAML list. Each entry: `name` (required), `paths` (required list of globs), `thresholds` (optional `O*A*P`, e.g. `80*70*60`), `baseline-paths` (optional list). When set, group `paths` are used. | No       | `''`                                             |
-| `skip-unchanged`    | If `true`, skips entire reports with no changed files in the PR, reducing comment noise.                                                                                                                                       | No       | `false`                                          |
+| `skip-unchanged`    | If `true`, reports with no changed files are filtered out from comment rows. Whether they still affect action success/failure is controlled by `evaluate-unchanged`.                                                           | No       | `false`                                          |
+| `evaluate-unchanged` | Applies only when `skip-unchanged=true`. If `true`, filtered unchanged reports can still fail overall thresholds (result-only). If `false`, they are excluded from threshold evaluation as well.                               | No       | `true`                                           |
 | `baseline-paths`    | Paths to baseline coverage reports for comparison. Supports wildcard glob patterns.                                                                                                                                            | No       | `''`                                             |
 | `update-comment`    | If `true`, updates an existing comment instead of creating a new one, preventing clutter.                                                                                                                                      | No       | `true`                                           |
 | `pass-symbol`       | Symbol for passing checks in PR comments (e.g., ✅, **Passed**).                                                                                                                                                               | No       | `✅`                                              |
@@ -154,7 +155,7 @@ Where:
   uses: MoranaApps/jacoco-report@v3
   with:
     token: '${{ secrets.TOKEN }}'
-    paths: **/jacoco/**/*.xml
+    paths: '**/jacoco/**/*.xml'
     global-thresholds: 80*70*60  # Min coverage: 80% overall, 70% changed avg, 60% per file
 
     fail-on-threshold: true  # Fail the GitHub action if any of the thresholds is not reached
@@ -179,7 +180,7 @@ to determine the PR number from the GitHub context.
   uses: MoranaApps/jacoco-report@v3
   with:
     token: '${{ secrets.TOKEN }}'
-    paths: **/jacoco/**/*.xml
+    paths: '**/jacoco/**/*.xml'
     pr-number: ${{ github.event.pull_request.number }}
  ```
 
@@ -192,7 +193,7 @@ The `title` input lets you specify a `custom title` for the JaCoCo coverage repo
   uses: MoranaApps/jacoco-report@v3
   with:
     token: '${{ secrets.TOKEN }}'
-    paths: **/jacoco/**/*.xml
+    paths: '**/jacoco/**/*.xml'
     title: 'Custom Coverage Report Title'
 ```
 
@@ -300,8 +301,15 @@ changed files coverage for all detected report files.
 
 #### Customizing the Skip Unchanged Option and Update Comment
 
-The `skip-unchanged` input, when set to true, filters reports with no changed files before evaluation and comment
-generation. This reduces comment noise by removing unchanged reports entirely.
+`skip-unchanged` and `evaluate-unchanged` are related:
+
+| `skip-unchanged` | `evaluate-unchanged` | Comment rows for unchanged reports | Can unchanged reports fail the action? |
+|---|---|---|---|
+| `false` | `true` or `false` | Shown (normal flow) | Yes (normal evaluation flow) |
+| `true` | `false` | Hidden | No |
+| `true` | `true` | Hidden | Yes (overall threshold only; result-only check) |
+
+Use this when you want a clean comment but still enforce unchanged-module quality in the action result.
 
 The `update-comment` input, when set to true, updates an existing comment with the latest coverage data instead of
 creating a new comment.
@@ -312,9 +320,34 @@ The comment is identified by the title.
   uses: MoranaApps/jacoco-report@v3
   with:
     token: '${{ secrets.TOKEN }}'
-    paths: **/jacoco/**/*.xml
+    paths: '**/jacoco/**/*.xml'
     skip-unchanged: true  # Skip commenting for unchanged files
     update-comment: true  # Update the existing comment with the latest coverage data
+```
+
+Example: hide unchanged reports and also ignore them for pass/fail
+
+```yaml
+- name: Publish JaCoCo Report
+  uses: MoranaApps/jacoco-report@v3
+  with:
+    token: '${{ secrets.TOKEN }}'
+    paths: '**/jacoco/**/*.xml'
+    skip-unchanged: true
+    evaluate-unchanged: false
+```
+
+Example: hide unchanged reports but still enforce unchanged overall thresholds
+
+```yaml
+- name: Publish JaCoCo Report
+  uses: MoranaApps/jacoco-report@v3
+  with:
+    token: '${{ secrets.TOKEN }}'
+    paths: '**/jacoco/**/*.xml'
+    report-thresholds-default: 80*70*0
+    skip-unchanged: true
+    evaluate-unchanged: true
 ```
 
 #### Customizing the Baseline Paths
@@ -346,7 +379,7 @@ pull request comments.
   uses: MoranaApps/jacoco-report@v3
   with:
     token: '${{ secrets.TOKEN }}'
-    paths: **/jacoco/**/*.xml
+    paths: '**/jacoco/**/*.xml'
     metric: 'LINE'            # Select 'line' coverage metric
     pass-symbol: '✔️'         # Custom symbol for passing checks
     fail-symbol: '❗'         # Custom symbol for failing checks
@@ -362,7 +395,7 @@ The `debug` input enables detailed logging for debugging. This is automatically 
   uses: MoranaApps/jacoco-report@v3
   with:
     token: '${{ secrets.TOKEN }}'
-    paths: **/jacoco/**/*.xml
+    paths: '**/jacoco/**/*.xml'
     debug: true  # Enable detailed logging
 ```
 

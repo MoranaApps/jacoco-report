@@ -75,7 +75,15 @@ class JaCoCoReport:
 
         # get changed files in PR
         logger.info("Getting changed files in PR.")
-        all_changed_files_in_pr: list[str] = gh.get_pr_changed_files() or []
+        changed_files_result: list[str] | None = gh.get_pr_changed_files()
+        if changed_files_result is None:
+            logger.error("Failed to retrieve changed files from GitHub API. Ending run.")
+            self.violations.append("Failed to retrieve changed files from GitHub API.")
+            self.reached_threshold_overall = False
+            self.reached_threshold_changed_files_average = False
+            self.reached_threshold_per_change_file = False
+            return
+        all_changed_files_in_pr: list[str] = changed_files_result
 
         # analyse received xml report files
         logger.info("Analyzing JaCoCo (xml) reports.")
@@ -108,25 +116,72 @@ class JaCoCoReport:
             self.violations.append("No input JaCoCo xml file found.")
             return
 
+        skip_unchanged = ActionInputs.get_skip_unchanged()
+        evaluate_unchanged = ActionInputs.get_evaluate_unchanged()
+        filtered_unchanged_reports: list[ReportFileCoverage] = []
+
         # scan-stage filter: remove reports with no changed files before evaluation
-        if ActionInputs.get_skip_unchanged():
+        if skip_unchanged:
             for report in report_files_coverage:
                 if not report.changed_files_coverage:
-                    logger.info("Skipping report '%s': no changed files.", report.name)
+                    if evaluate_unchanged:
+                        logger.info(
+                            "Filtering report '%s' from comment rows and changed-files evaluation: "
+                            "no changed files (overall threshold checks may still apply).",
+                            report.name,
+                        )
+                    else:
+                        logger.info(
+                            "Filtering report '%s' from evaluation and comment rows: no changed files.",
+                            report.name,
+                        )
+                    filtered_unchanged_reports.append(report)
+
             report_files_coverage = [r for r in report_files_coverage if r.changed_files_coverage]
-            if not report_files_coverage:
+            if not report_files_coverage and not evaluate_unchanged:
                 logger.info("All reports filtered out by skip-unchanged. No comment will be generated.")
                 self.total_overall_coverage_passed = True
                 self.total_changed_files_coverage_passed = True
                 self.evaluated_coverage_reports = "{}"
                 self.evaluated_coverage_groups = "{}"
-                if ActionInputs.get_update_comment():
-                    title = f"**{ActionInputs.get_title()}**"
-                    for comment in gh.get_comments(pr_number):
-                        if comment["body"].startswith(title):
-                            gh.delete_comment(comment["id"])
-                            logger.info("Deleted stale comment from previous run.")
-                            break
+                self._delete_stale_comment_if_update_enabled(gh=gh, pr_number=pr_number)
+                return
+            if not report_files_coverage and evaluate_unchanged:
+                logger.info(
+                    "All reports filtered out by skip-unchanged. Evaluating unchanged reports for threshold result only."
+                )
+                report_thresholds_default = ActionInputs.get_report_thresholds_default()
+                filtered_evaluator = CoverageEvaluator(
+                    report_files_coverage=filtered_unchanged_reports,
+                    global_min_coverage_overall=ActionInputs.get_global_overall_threshold(),
+                    global_min_coverage_changed_files=ActionInputs.get_global_changed_files_average_threshold(),
+                    global_min_coverage_changed_per_file=ActionInputs.get_global_changed_file_threshold(),
+                    report_groups=report_groups,
+                    report_thresholds_default=report_thresholds_default,
+                )
+                filtered_evaluator.evaluate()
+
+                self.total_overall_coverage = filtered_evaluator.total_coverage_overall
+                self.total_overall_coverage_passed = filtered_evaluator.total_coverage_overall_passed
+                self.total_changed_files_coverage = filtered_evaluator.total_coverage_changed_files
+                self.total_changed_files_coverage_passed = filtered_evaluator.total_coverage_changed_files_passed
+
+                evaluated_coverage_reports = {
+                    k: v.to_dict() for k, v in filtered_evaluator.evaluated_reports_coverage.items()
+                }
+                evaluated_coverage_groups = {
+                    k: v.to_dict() for k, v in filtered_evaluator.evaluated_groups_coverage.items()
+                }
+                self.evaluated_coverage_reports = json.dumps(evaluated_coverage_reports, indent=4)
+                self.evaluated_coverage_groups = json.dumps(evaluated_coverage_groups, indent=4)
+                self.violations = filtered_evaluator.violations
+                self.reached_threshold_overall = filtered_evaluator.reached_threshold_overall
+                self.reached_threshold_changed_files_average = (
+                    filtered_evaluator.reached_threshold_changed_files_average
+                )
+                self.reached_threshold_per_change_file = filtered_evaluator.reached_threshold_per_change_file
+
+                self._delete_stale_comment_if_update_enabled(gh=gh, pr_number=pr_number)
                 return
 
         # get baseline files for comparison
@@ -205,15 +260,20 @@ class JaCoCoReport:
         # evaluate the coverage
         logger.info("Evaluating the coverage of the reports.")
         report_thresholds_default = ActionInputs.get_report_thresholds_default()
-        evaluator: CoverageEvaluator = CoverageEvaluator(
-            report_files_coverage=report_files_coverage,
+        reports_for_evaluation = (
+            report_files_coverage + filtered_unchanged_reports
+            if skip_unchanged and evaluate_unchanged and filtered_unchanged_reports
+            else report_files_coverage
+        )
+        evaluator_for_results: CoverageEvaluator = CoverageEvaluator(
+            report_files_coverage=reports_for_evaluation,
             global_min_coverage_overall=ActionInputs.get_global_overall_threshold(),
             global_min_coverage_changed_files=ActionInputs.get_global_changed_files_average_threshold(),
             global_min_coverage_changed_per_file=ActionInputs.get_global_changed_file_threshold(),
             report_groups=report_groups,
             report_thresholds_default=report_thresholds_default,
         )
-        evaluator.evaluate()
+        evaluator_for_results.evaluate()
 
         bs_evaluator: CoverageEvaluator = CoverageEvaluator(
             report_files_coverage=bs_report_files_coverage,
@@ -227,25 +287,32 @@ class JaCoCoReport:
         if bs_report_files_coverage:
             bs_evaluator.evaluate()
 
-        self.total_overall_coverage = evaluator.total_coverage_overall
-        self.total_overall_coverage_passed = evaluator.total_coverage_overall_passed
-        self.total_changed_files_coverage = evaluator.total_coverage_changed_files
-        self.total_changed_files_coverage_passed = evaluator.total_coverage_changed_files_passed
+        self.total_overall_coverage = evaluator_for_results.total_coverage_overall
+        self.total_overall_coverage_passed = evaluator_for_results.total_coverage_overall_passed
+        self.total_changed_files_coverage = evaluator_for_results.total_coverage_changed_files
+        self.total_changed_files_coverage_passed = evaluator_for_results.total_coverage_changed_files_passed
 
-        evaluated_coverage_reports = {k: v.to_dict() for k, v in evaluator.evaluated_reports_coverage.items()}
-        evaluated_coverage_groups = {k: v.to_dict() for k, v in evaluator.evaluated_groups_coverage.items()}
+        evaluated_coverage_reports = {
+            k: v.to_dict() for k, v in evaluator_for_results.evaluated_reports_coverage.items()
+        }
+        evaluated_coverage_groups = {k: v.to_dict() for k, v in evaluator_for_results.evaluated_groups_coverage.items()}
 
         self.evaluated_coverage_reports = json.dumps(evaluated_coverage_reports, indent=4)
         self.evaluated_coverage_groups = json.dumps(evaluated_coverage_groups, indent=4)
 
-        self.violations = evaluator.violations
-        self.reached_threshold_overall = evaluator.reached_threshold_overall
-        self.reached_threshold_changed_files_average = evaluator.reached_threshold_changed_files_average
-        self.reached_threshold_per_change_file = evaluator.reached_threshold_per_change_file
+        self.violations = evaluator_for_results.violations
+        self.reached_threshold_overall = evaluator_for_results.reached_threshold_overall
+        self.reached_threshold_changed_files_average = evaluator_for_results.reached_threshold_changed_files_average
+        self.reached_threshold_per_change_file = evaluator_for_results.reached_threshold_per_change_file
 
         # generate the comment(s)
         logger.info("Generating PR comment(s).")
-        generator = PRCommentGenerator(gh, evaluator, bs_evaluator, pr_number)
+        skip_report_names: frozenset[str] = (
+            frozenset(r.name for r in filtered_unchanged_reports)
+            if skip_unchanged and evaluate_unchanged and filtered_unchanged_reports
+            else frozenset()
+        )
+        generator = PRCommentGenerator(gh, evaluator_for_results, bs_evaluator, pr_number, skip_report_names)
         generator.generate()
         logger.info("PR comment(s) generated successfully.")
 
@@ -254,3 +321,15 @@ class JaCoCoReport:
         paths_to_analyse: list[str] = JaCoCoReportInputScanner(paths=paths, exclude_paths=exclude_paths).scan()
         logger.info("Found %s JaCoCo reports.", len(paths_to_analyse))
         return paths_to_analyse
+
+    def _delete_stale_comment_if_update_enabled(self, gh: GitHub, pr_number: int) -> None:
+        """Delete the previous JaCoCo PR comment when update-comment is enabled."""
+        if not ActionInputs.get_update_comment():
+            return
+
+        title = f"**{ActionInputs.get_title()}**"
+        for comment in gh.get_comments(pr_number):
+            if comment["body"].startswith(title):
+                gh.delete_comment(comment["id"])
+                logger.info("Deleted stale comment from previous run.")
+                break

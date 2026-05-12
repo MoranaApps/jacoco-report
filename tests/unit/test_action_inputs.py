@@ -20,10 +20,11 @@ success_case = {
     "get_comment_level": "full",
     "get_report_groups": "",
     "get_skip_unchanged": True,
+    "get_evaluate_unchanged": True,
     "get_update_comment": True,
     "get_pass_symbol": "**Passed**",
     "get_fail_symbol": "❗",
-    "get_fail_on_threshold": True,
+    "get_fail_on_threshold": ["overall", "changed-files-average", "per-changed-file"],
     "get_debug": True,
 }
 
@@ -77,15 +78,10 @@ failure_cases = [
     ("get_report_groups", "- name: group1\n  paths: []", "'report-groups' entry #1 must have a non-empty 'paths' list of non-empty strings."),
     ("get_report_groups", "- name: group1\n  paths: ['**']\n  thresholds: '80'", "'report-groups' entry #1 'thresholds' must be in format 'O*A*P' (e.g. '80*70*60')."),
     ("get_report_groups", "- name: group1\n  paths: ['**']\n  thresholds: 'x*70*60'", "'report-groups' entry #1 'thresholds' overall value 'x' must be a float in [0, 100)."),
-    ("get_skip_unchanged", "", "'skip-unchanged' must be a boolean."),
-    ("get_skip_unchanged", 1, "'skip-unchanged' must be a boolean."),
-    ("get_update_comment", "", "'update-comment' must be a boolean."),
-    ("get_update_comment", 1, "'update-comment' must be a boolean."),
     ("get_pass_symbol", "", "'pass-symbol' must be a non-empty string and have a length from 1."),
     ("get_pass_symbol", 1, "'pass-symbol' must be a non-empty string and have a length from 1."),
     ("get_fail_symbol", "", "'fail-symbol' must be a non-empty string and have a length from 1."),
     ("get_fail_symbol", 1, "'fail-symbol' must be a non-empty string and have a length from 1."),
-    ("get_debug", "", "'debug' must be a boolean."),
 ]
 
 
@@ -138,7 +134,8 @@ def test_validate_inputs_rejects_noncanonical_comment_level_aliases(comment_leve
 
         ActionInputs.validate_inputs()
 
-        mock_error.assert_called_with(
+        mock_error.assert_any_call(
+            "%s",
             "'comment-level' must be a string from these options: "
             "'none', 'minimal', 'full', 'changed', 'failed', 'failed-or-changed'."
         )
@@ -158,7 +155,7 @@ def test_validate_inputs_failure(method, value, expected_error, mocker):
 
         ActionInputs.validate_inputs()
 
-        mock_error.assert_called_with(expected_error)
+        mock_error.assert_any_call("%s", expected_error)
         mock_exit.assert_called_once_with(1)
 
     finally:
@@ -171,7 +168,7 @@ def test_get_token(mocker):
 
 
 def test_get_paths(mocker):
-    data = f"""
+    data = """
     test/path1
     test/path2
     """
@@ -180,7 +177,7 @@ def test_get_paths(mocker):
 
 
 def test_get_paths_with_comment(mocker):
-    data = f"""
+    data = """
     test/path1
     test/path2      # another comment
     # test/path3    
@@ -190,7 +187,7 @@ def test_get_paths_with_comment(mocker):
 
 
 def test_get_paths_raw(mocker):
-    data = f"""
+    data = """
     test/path1
     test/path2
     """
@@ -204,7 +201,7 @@ def test_get_paths_none(mocker):
 
 
 def test_get_exclude_paths(mocker):
-    data = f"""
+    data = """
     test/path1
     test/path2
     """
@@ -213,7 +210,7 @@ def test_get_exclude_paths(mocker):
 
 
 def test_get_exclude_paths_with_comment(mocker):
-    data = f"""
+    data = """
     test/path1
     test/path2      # another comment
     #test/path3    
@@ -223,7 +220,7 @@ def test_get_exclude_paths_with_comment(mocker):
 
 
 def test_get_exclude_paths_raw(mocker):
-    data = f"""
+    data = """
     test/path1
     test/path2
     """
@@ -353,6 +350,7 @@ def test_get_global_thresholds_invalid_third_component_logs_changed_file_label(m
 
 failure_cases_modes = [
     ("", "JaCoCo Coverage Report"),
+    ("   ", "JaCoCo Coverage Report"),
     ("Custom title", "Custom title"),
 ]
 
@@ -515,6 +513,39 @@ def test_get_skip_unchanged_false(mocker):
     assert not ActionInputs.get_skip_unchanged()
 
 
+def test_get_skip_unchanged_mixed_case_true(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value=" TrUe ")
+    assert ActionInputs.get_skip_unchanged() is True
+
+
+def test_get_skip_unchanged_invalid_literal_raises_value_error(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="yes")
+
+    with pytest.raises(ValueError) as exc_info:
+        ActionInputs.get_skip_unchanged()
+
+    assert "'skip-unchanged' must be a boolean ('true' or 'false')." in str(exc_info.value)
+
+
+def test_get_evaluate_unchanged_true(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="true")
+    assert ActionInputs.get_evaluate_unchanged()
+
+
+def test_get_evaluate_unchanged_false(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="false")
+    assert not ActionInputs.get_evaluate_unchanged()
+
+
+def test_get_evaluate_unchanged_invalid_literal_raises_value_error(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="on")
+
+    with pytest.raises(ValueError) as exc_info:
+        ActionInputs.get_evaluate_unchanged()
+
+    assert "'evaluate-unchanged' must be a boolean ('true' or 'false')." in str(exc_info.value)
+
+
 def test_get_update_comment_true(mocker):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="true")
     assert True == ActionInputs.get_update_comment()
@@ -523,6 +554,15 @@ def test_get_update_comment_true(mocker):
 def test_get_update_comment_false(mocker):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="false")
     assert False == ActionInputs.get_update_comment()
+
+
+def test_get_update_comment_invalid_literal_raises_value_error(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="enabled")
+
+    with pytest.raises(ValueError) as exc_info:
+        ActionInputs.get_update_comment()
+
+    assert "'update-comment' must be a boolean ('true' or 'false')." in str(exc_info.value)
 
 
 def test_get_pass_symbol(mocker):
@@ -575,8 +615,90 @@ def test_get_debug_false(mocker):
     assert False == ActionInputs.get_debug()
 
 
+def test_get_debug_invalid_literal_raises_value_error(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="1")
+
+    with pytest.raises(ValueError) as exc_info:
+        ActionInputs.get_debug()
+
+    assert "'debug' must be a boolean ('true' or 'false')." in str(exc_info.value)
+
+
+def test_validate_inputs_rejects_invalid_skip_unchanged_literal(mocker):
+    case = success_case.copy()
+    patchers = apply_mocks(case, mocker)
+    try:
+        mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_unchanged", side_effect=ValueError("'skip-unchanged' must be a boolean ('true' or 'false')."))
+        mock_error = mocker.patch("jacoco_report.action_inputs.logger.error")
+        mock_exit = mocker.patch("sys.exit")
+
+        ActionInputs.validate_inputs()
+
+        mock_error.assert_any_call("%s", "'skip-unchanged' must be a boolean ('true' or 'false').")
+        mock_exit.assert_called_once_with(1)
+    finally:
+        stop_mocks(patchers)
+
+
+def test_validate_inputs_rejects_invalid_evaluate_unchanged_literal(mocker):
+    case = success_case.copy()
+    patchers = apply_mocks(case, mocker)
+    try:
+        mocker.patch(
+            "jacoco_report.action_inputs.ActionInputs.get_evaluate_unchanged",
+            side_effect=ValueError("'evaluate-unchanged' must be a boolean ('true' or 'false')."),
+        )
+        mock_error = mocker.patch("jacoco_report.action_inputs.logger.error")
+        mock_exit = mocker.patch("sys.exit")
+
+        ActionInputs.validate_inputs()
+
+        mock_error.assert_any_call("%s", "'evaluate-unchanged' must be a boolean ('true' or 'false').")
+        mock_exit.assert_called_once_with(1)
+    finally:
+        stop_mocks(patchers)
+
+
+def test_validate_inputs_rejects_invalid_update_comment_literal(mocker):
+    case = success_case.copy()
+    patchers = apply_mocks(case, mocker)
+    try:
+        mocker.patch(
+            "jacoco_report.action_inputs.ActionInputs.get_update_comment",
+            side_effect=ValueError("'update-comment' must be a boolean ('true' or 'false')."),
+        )
+        mock_error = mocker.patch("jacoco_report.action_inputs.logger.error")
+        mock_exit = mocker.patch("sys.exit")
+
+        ActionInputs.validate_inputs()
+
+        mock_error.assert_any_call("%s", "'update-comment' must be a boolean ('true' or 'false').")
+        mock_exit.assert_called_once_with(1)
+    finally:
+        stop_mocks(patchers)
+
+
+def test_validate_inputs_rejects_invalid_debug_literal(mocker):
+    case = success_case.copy()
+    patchers = apply_mocks(case, mocker)
+    try:
+        mocker.patch(
+            "jacoco_report.action_inputs.ActionInputs.get_debug",
+            side_effect=ValueError("'debug' must be a boolean ('true' or 'false')."),
+        )
+        mock_error = mocker.patch("jacoco_report.action_inputs.logger.error")
+        mock_exit = mocker.patch("sys.exit")
+
+        ActionInputs.validate_inputs()
+
+        mock_error.assert_any_call("%s", "'debug' must be a boolean ('true' or 'false').")
+        mock_exit.assert_called_once_with(1)
+    finally:
+        stop_mocks(patchers)
+
+
 def test_get_baseline_paths(mocker):
-    data = f"""
+    data = """
     test/path1
     test/path2
     """
@@ -585,7 +707,7 @@ def test_get_baseline_paths(mocker):
 
 
 def test_get_baseline_paths_with_comment(mocker):
-    data = f"""
+    data = """
     test/path1
     test/path2      # another comment
     #test/path3
@@ -595,7 +717,7 @@ def test_get_baseline_paths_with_comment(mocker):
 
 
 def test_get_baseline_paths_raw(mocker):
-    data = f"""
+    data = """
     test/path1
     test/path2
     """
@@ -616,6 +738,14 @@ def test_get_pr_number(mocker):
     mock_logger = mocker.patch("jacoco_report.action_inputs.logger")
     assert ActionInputs.get_pr_number(gh) is None
     mock_logger.error.assert_called_once_with("The PR number not detected.")
+
+    # Test invalid non-numeric pr_input
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="not_a_number")
+    gh = mocker.Mock(spec=GitHub)
+    gh.get_pr_number.return_value = None
+    mock_logger = mocker.patch("jacoco_report.action_inputs.logger")
+    assert ActionInputs.get_pr_number(gh) is None
+    mock_logger.error.assert_called_once_with("'pr-number' input '%s' is not a valid integer.", "not_a_number")
 
 def test_get_metric(mocker):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="branch")
@@ -643,7 +773,7 @@ def test_validate_inputs_paths_whitespace_only_requires_error_without_groups(moc
 
         ActionInputs.validate_inputs()
 
-        mock_error.assert_any_call("'paths' must be a non-empty list of strings.")
+        mock_error.assert_any_call("%s", "'paths' must be a non-empty list of strings.")
         mock_exit.assert_called_once_with(1)
     finally:
         stop_mocks(patchers)
@@ -771,6 +901,7 @@ failure_cases_defaults = [
     ("get_comment_level", CommentLevelEnum.FULL),
     ("get_report_groups", []),
     ("get_skip_unchanged", False),
+    ("get_evaluate_unchanged", True),
     ("get_update_comment", True),
     ("get_pass_symbol", "✅"),
     ("get_fail_symbol", "❌"),
@@ -823,7 +954,7 @@ def test_validate_inputs_requires_paths_when_report_groups_not_configured(mocker
         mock_exit = mocker.patch("sys.exit")
         ActionInputs.validate_inputs()
 
-        mock_error.assert_any_call("'paths' must be a non-empty list of strings.")
+        mock_error.assert_any_call("%s", "'paths' must be a non-empty list of strings.")
         mock_exit.assert_called_once_with(1)
     finally:
         stop_mocks(patchers)
@@ -840,7 +971,7 @@ def test_validate_inputs_requires_paths_when_report_groups_is_empty_yaml_list(mo
         mock_exit = mocker.patch("sys.exit")
         ActionInputs.validate_inputs()
 
-        mock_error.assert_any_call("'paths' must be a non-empty list of strings.")
+        mock_error.assert_any_call("%s", "'paths' must be a non-empty list of strings.")
         mock_exit.assert_called_once_with(1)
     finally:
         stop_mocks(patchers)

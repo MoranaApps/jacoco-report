@@ -16,6 +16,13 @@ from jacoco_report.utils.github import GitHub
 
 logger = logging.getLogger(__name__)
 
+_MD_LINK_TEXT_UNSAFE = str.maketrans({"[": "\\[", "]": "\\]", "`": "\\`", "|": "\\|"})
+
+
+def _escape_md_link_text(text: str) -> str:
+    """Escape characters that break Markdown inline-link text."""
+    return text.translate(_MD_LINK_TEXT_UNSAFE)
+
 
 class PRCommentGenerator:
     """
@@ -26,13 +33,15 @@ class PRCommentGenerator:
         self,
         gh: GitHub,
         evaluator: CoverageEvaluator,
-        bs_evaluator: CoverageEvaluator,
+        bs_evaluator: Optional[CoverageEvaluator],
         pr_number: int,
+        skip_report_names: frozenset[str] = frozenset(),
     ):
         self.gh: GitHub = gh
         self.evaluator: CoverageEvaluator = evaluator
-        self.bs_evaluator: CoverageEvaluator = bs_evaluator
+        self.bs_evaluator: Optional[CoverageEvaluator] = bs_evaluator
         self.pr_number: int = pr_number
+        self.skip_report_names: frozenset[str] = skip_report_names
         self.github_repository: str = ActionInputs.get_repository()
 
     def generate(self) -> None:
@@ -83,7 +92,16 @@ class PRCommentGenerator:
             return title, body
 
         filtered_groups = self.evaluator.evaluated_groups_coverage
-        filtered_reports = self.evaluator.evaluated_reports_coverage
+        filtered_reports = {
+            k: v for k, v in self.evaluator.evaluated_reports_coverage.items() if k not in self.skip_report_names
+        }
+        if self.skip_report_names:
+            visible_group_names: frozenset[str] = frozenset(
+                v.group_name
+                for k, v in self.evaluator.evaluated_reports_coverage.items()
+                if k not in self.skip_report_names
+            )
+            filtered_groups = {k: v for k, v in filtered_groups.items() if k in visible_group_names}
 
         if comment_level != CommentLevelEnum.FULL:
             filtered_groups = self._filter_evaluated_coverage_rows(filtered_groups, comment_level)
@@ -184,6 +202,9 @@ class PRCommentGenerator:
                 ActionInputs.get_global_changed_files_average_threshold(),
             )
 
+        # bs_evaluator is guaranteed non-None here due to _has_baseline_data() check
+        bs_evaluator = self.bs_evaluator
+        assert bs_evaluator is not None
         return self.get_basic_table_with_baseline(
             p,
             f,
@@ -194,8 +215,8 @@ class PRCommentGenerator:
             self.evaluator.total_coverage_changed_files,
             self.evaluator.total_coverage_changed_files_passed,
             ActionInputs.get_global_changed_files_average_threshold(),
-            self.bs_evaluator.total_coverage_overall,
-            self.bs_evaluator.total_coverage_changed_files,
+            bs_evaluator.total_coverage_overall,
+            bs_evaluator.total_coverage_changed_files,
         )
 
     # Full example of the table
@@ -416,7 +437,7 @@ class PRCommentGenerator:
 
     def calculate_baseline_group_diffs(self, evaluated_coverage: EvaluatedReportCoverage) -> tuple[float, float]:
         """Calculate baseline deltas for one rendered group row."""
-        if evaluated_coverage.name not in self.bs_evaluator.evaluated_groups_coverage.keys():
+        if not self.bs_evaluator or evaluated_coverage.name not in self.bs_evaluator.evaluated_groups_coverage.keys():
             return 0.0, 0.0
 
         baseline_group = self.bs_evaluator.evaluated_groups_coverage[evaluated_coverage.name]
@@ -438,7 +459,7 @@ class PRCommentGenerator:
 
     def _calculate_baseline_report_diffs(self, evaluated_coverage: EvaluatedReportCoverage) -> tuple[float, float]:
         """Calculate baseline deltas for one rendered report row."""
-        if evaluated_coverage.name not in self.bs_evaluator.evaluated_reports_coverage.keys():
+        if not self.bs_evaluator or evaluated_coverage.name not in self.bs_evaluator.evaluated_reports_coverage.keys():
             return 0.0, 0.0
 
         diff_o = (
@@ -478,7 +499,7 @@ class PRCommentGenerator:
         lines = []
         for ecr_key in evaluated_reports_coverage.keys():
             for file_key in evaluated_reports_coverage[ecr_key].changed_files_coverage_reached.keys():
-                filename = os.path.basename(file_key)
+                filename = _escape_md_link_text(os.path.basename(file_key))
                 file_hash = hashlib.sha256(file_key.encode("utf-8")).hexdigest()
                 file_as_link_to_diff = (
                     f"https://github.com/{self.github_repository}/pull/{self.pr_number}/files#diff-{file_hash}"
@@ -516,9 +537,6 @@ class PRCommentGenerator:
 
         if comment_level == CommentLevelEnum.FAILED:
             evaluated_reports_coverage = self._filter_reports_for_failed_files(evaluated_reports_coverage)
-
-        if not evaluated_reports_coverage:
-            return ""
 
         if not self._has_baseline_data():
             return self.generate_changed_files_table_without_baseline(p, f, evaluated_reports_coverage)
@@ -566,13 +584,15 @@ class PRCommentGenerator:
         lines = []
         for ecr_key in evaluated_reports_coverage.keys():
             for file_key in evaluated_reports_coverage[ecr_key].changed_files_coverage_reached.keys():
-                filename = os.path.basename(file_key)
+                filename = _escape_md_link_text(os.path.basename(file_key))
                 file_hash = hashlib.sha256(file_key.encode("utf-8")).hexdigest()
                 file_as_link_to_diff = (
                     f"https://github.com/{self.github_repository}/pull/{self.pr_number}/files#diff-{file_hash}"
                 )
 
-                if ecr_key not in self.bs_evaluator.evaluated_reports_coverage.keys():
+                if not self.bs_evaluator:
+                    diff = 0.0
+                elif ecr_key not in self.bs_evaluator.evaluated_reports_coverage.keys():
                     diff = 0.0
                 elif (
                     file_key
