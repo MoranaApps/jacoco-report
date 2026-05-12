@@ -68,7 +68,7 @@ def capture_run(env_overrides: dict[str, str]) -> ActionResult:
             del os.environ[key]
 
         os.environ.update(env_overrides)
-        os.environ.setdefault("GITHUB_OUTPUT", tmp_output_path)
+        os.environ["GITHUB_OUTPUT"] = tmp_output_path
 
         with redirect_stdout(stdout_buf), redirect_stderr(stderr_buf):
             try:
@@ -118,6 +118,7 @@ def make_env_base(**overrides: str) -> dict[str, str]:
         "INPUT_GLOBAL_THRESHOLDS": "0.0*0.0*0.0",
         "INPUT_REPORT_THRESHOLDS_DEFAULT": "0.0*0.0*0.0",
         "INPUT_METRIC": "instruction",
+        "INPUT_PR_NUMBER": "1",
         "INPUT_TITLE": "JaCoCo Coverage Report",
         "INPUT_COMMENT_LEVEL": "full",
         "INPUT_SKIP_UNCHANGED": "false",

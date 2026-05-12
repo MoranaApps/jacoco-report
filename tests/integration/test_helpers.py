@@ -3,7 +3,7 @@ import os
 
 from pytest_mock import MockerFixture
 
-from tests.integration.helpers import capture_run
+from tests.integration.helpers import capture_run, make_env_base
 
 
 class TrackingHandler(logging.Handler):
@@ -61,3 +61,32 @@ def test_capture_run_closes_handlers_added_during_run(mocker: MockerFixture) -> 
             root_logger.removeHandler(saved_handler)
 
     assert runtime_handler.was_closed is True
+
+
+def test_capture_run_forces_temp_github_output(mocker: MockerFixture, tmp_path) -> None:
+    """Ensure capture_run ignores external GITHUB_OUTPUT overrides."""
+    external_output = tmp_path / "external-output.txt"
+
+    observed_output_path: dict[str, str | None] = {}
+
+    def fake_run() -> None:
+        output_path = os.getenv("GITHUB_OUTPUT")
+        observed_output_path["value"] = output_path
+        if output_path is not None:
+            with open(output_path, "a", encoding="utf-8") as fh:
+                fh.write("written-by-run\n")
+
+    mocker.patch("main.run", side_effect=fake_run)
+
+    capture_run({"INPUT_PATHS": "tests/data/test_project/**/jacoco.xml", "GITHUB_OUTPUT": str(external_output)})
+
+    assert observed_output_path["value"] is not None
+    assert observed_output_path["value"] != str(external_output)
+    assert external_output.exists() is False
+
+
+def test_make_env_base_includes_default_pr_number() -> None:
+    """Ensure make_env_base provides PR number fallback for offline runs."""
+    env = make_env_base()
+
+    assert env["INPUT_PR_NUMBER"] == "1"
