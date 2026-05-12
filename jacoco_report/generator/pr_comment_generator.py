@@ -33,7 +33,7 @@ class PRCommentGenerator:
         self,
         gh: GitHub,
         evaluator: CoverageEvaluator,
-        bs_evaluator: CoverageEvaluator,
+        bs_evaluator: Optional[CoverageEvaluator],
         pr_number: int,
         skip_report_names: frozenset[str] = frozenset(),
     ):

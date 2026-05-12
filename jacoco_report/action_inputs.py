@@ -29,6 +29,7 @@ from jacoco_report.utils.constants import (
     DEBUG,
     METRIC,
     PR_NUMBER,
+    BASELINE_PATHS,
 )
 
 from jacoco_report.model.report_group import ReportGroup
@@ -434,7 +435,7 @@ class ActionInputs:
         """
         Get the baseline paths from the action inputs.
         """
-        baseline_paths = get_action_input("baseline-paths")
+        baseline_paths = get_action_input(BASELINE_PATHS)
 
         if raw:
             return baseline_paths
@@ -687,7 +688,7 @@ class ActionInputs:
         # Log errors if any
         if errors:
             for error in errors:
-                logger.error(error)
+                logger.error("%s", error)
             sys.exit(1)
 
         logger.info("Action inputs validated successfully.")

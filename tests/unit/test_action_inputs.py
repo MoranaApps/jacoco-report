@@ -24,7 +24,7 @@ success_case = {
     "get_update_comment": True,
     "get_pass_symbol": "**Passed**",
     "get_fail_symbol": "❗",
-    "get_fail_on_threshold": True,
+    "get_fail_on_threshold": ["overall", "changed-files-average", "per-changed-file"],
     "get_debug": True,
 }
 
@@ -134,7 +134,8 @@ def test_validate_inputs_rejects_noncanonical_comment_level_aliases(comment_leve
 
         ActionInputs.validate_inputs()
 
-        mock_error.assert_called_with(
+        mock_error.assert_any_call(
+            "%s",
             "'comment-level' must be a string from these options: "
             "'none', 'minimal', 'full', 'changed', 'failed', 'failed-or-changed'."
         )
@@ -154,7 +155,7 @@ def test_validate_inputs_failure(method, value, expected_error, mocker):
 
         ActionInputs.validate_inputs()
 
-        mock_error.assert_called_with(expected_error)
+        mock_error.assert_any_call("%s", expected_error)
         mock_exit.assert_called_once_with(1)
 
     finally:
@@ -633,7 +634,7 @@ def test_validate_inputs_rejects_invalid_skip_unchanged_literal(mocker):
 
         ActionInputs.validate_inputs()
 
-        mock_error.assert_any_call("'skip-unchanged' must be a boolean ('true' or 'false').")
+        mock_error.assert_any_call("%s", "'skip-unchanged' must be a boolean ('true' or 'false').")
         mock_exit.assert_called_once_with(1)
     finally:
         stop_mocks(patchers)
@@ -652,7 +653,7 @@ def test_validate_inputs_rejects_invalid_evaluate_unchanged_literal(mocker):
 
         ActionInputs.validate_inputs()
 
-        mock_error.assert_any_call("'evaluate-unchanged' must be a boolean ('true' or 'false').")
+        mock_error.assert_any_call("%s", "'evaluate-unchanged' must be a boolean ('true' or 'false').")
         mock_exit.assert_called_once_with(1)
     finally:
         stop_mocks(patchers)
@@ -671,7 +672,7 @@ def test_validate_inputs_rejects_invalid_update_comment_literal(mocker):
 
         ActionInputs.validate_inputs()
 
-        mock_error.assert_any_call("'update-comment' must be a boolean ('true' or 'false').")
+        mock_error.assert_any_call("%s", "'update-comment' must be a boolean ('true' or 'false').")
         mock_exit.assert_called_once_with(1)
     finally:
         stop_mocks(patchers)
@@ -690,7 +691,7 @@ def test_validate_inputs_rejects_invalid_debug_literal(mocker):
 
         ActionInputs.validate_inputs()
 
-        mock_error.assert_any_call("'debug' must be a boolean ('true' or 'false').")
+        mock_error.assert_any_call("%s", "'debug' must be a boolean ('true' or 'false').")
         mock_exit.assert_called_once_with(1)
     finally:
         stop_mocks(patchers)
@@ -764,7 +765,7 @@ def test_validate_inputs_paths_whitespace_only_requires_error_without_groups(moc
 
         ActionInputs.validate_inputs()
 
-        mock_error.assert_any_call("'paths' must be a non-empty list of strings.")
+        mock_error.assert_any_call("%s", "'paths' must be a non-empty list of strings.")
         mock_exit.assert_called_once_with(1)
     finally:
         stop_mocks(patchers)
@@ -945,7 +946,7 @@ def test_validate_inputs_requires_paths_when_report_groups_not_configured(mocker
         mock_exit = mocker.patch("sys.exit")
         ActionInputs.validate_inputs()
 
-        mock_error.assert_any_call("'paths' must be a non-empty list of strings.")
+        mock_error.assert_any_call("%s", "'paths' must be a non-empty list of strings.")
         mock_exit.assert_called_once_with(1)
     finally:
         stop_mocks(patchers)
@@ -962,7 +963,7 @@ def test_validate_inputs_requires_paths_when_report_groups_is_empty_yaml_list(mo
         mock_exit = mocker.patch("sys.exit")
         ActionInputs.validate_inputs()
 
-        mock_error.assert_any_call("'paths' must be a non-empty list of strings.")
+        mock_error.assert_any_call("%s", "'paths' must be a non-empty list of strings.")
         mock_exit.assert_called_once_with(1)
     finally:
         stop_mocks(patchers)
