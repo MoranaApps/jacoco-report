@@ -72,7 +72,7 @@ Group 0 (deps) → Task 20 🔝 → Tasks 17/18/21 → Group F (design decisions
 | **30** | G | Expand `comment-level` full option set | ✅ | `feature/102-comment-level-full-option-set` | #102 |
 | **31** | G | `fail-on-threshold` boolean deprecation impl | ✅ | `feature/103-fail-on-threshold-deprecation-evaluate-unchanged` | #103 |
 | **32** | H | Integration test helpers module | ✅ | `chore/integration-test-helpers` | new |
-| **33** | H | Golden snapshot tests | 🔒 ⬜ | `chore/golden-snapshot-tests` | new |
+| **33** | H | Golden snapshot tests | ✅ | `chore/golden-snapshot-tests` | new |
 | **34** | H | skip-unchanged × comment-level matrix tests | 🔒 ⬜ | `chore/skip-unchanged-comment-level-matrix-tests` | new |
 | **35** | H | Live integration smoke test | 🔒 ⬜ | `chore/live-integration-smoke-test` | new |
 | **36** | I | Enhanced logging (thresholds + reached values) | 🔒 ⬜ | `feature/101-enhance-threshold-logging` | #101 |
