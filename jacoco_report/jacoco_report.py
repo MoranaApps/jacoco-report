@@ -126,13 +126,7 @@ class JaCoCoReport:
                 self.total_changed_files_coverage_passed = True
                 self.evaluated_coverage_reports = "{}"
                 self.evaluated_coverage_groups = "{}"
-                if ActionInputs.get_update_comment():
-                    title = f"**{ActionInputs.get_title()}**"
-                    for comment in gh.get_comments(pr_number):
-                        if comment["body"].startswith(title):
-                            gh.delete_comment(comment["id"])
-                            logger.info("Deleted stale comment from previous run.")
-                            break
+                self._delete_stale_comment_if_update_enabled(gh=gh, pr_number=pr_number)
                 return
             if not report_files_coverage and evaluate_unchanged:
                 logger.info(
@@ -140,7 +134,7 @@ class JaCoCoReport:
                 )
                 report_thresholds_default = ActionInputs.get_report_thresholds_default()
                 filtered_evaluator = CoverageEvaluator(
-                    report_files_coverage=[],
+                    report_files_coverage=filtered_unchanged_reports,
                     global_min_coverage_overall=ActionInputs.get_global_overall_threshold(),
                     global_min_coverage_changed_files=ActionInputs.get_global_changed_files_average_threshold(),
                     global_min_coverage_changed_per_file=ActionInputs.get_global_changed_file_threshold(),
@@ -148,12 +142,6 @@ class JaCoCoReport:
                     report_thresholds_default=report_thresholds_default,
                 )
                 filtered_evaluator.evaluate()
-                self._append_unchanged_overall_violations(
-                    evaluator=filtered_evaluator,
-                    reports=filtered_unchanged_reports,
-                    report_groups=report_groups,
-                    report_thresholds_default=report_thresholds_default,
-                )
 
                 self.total_overall_coverage = filtered_evaluator.total_coverage_overall
                 self.total_overall_coverage_passed = filtered_evaluator.total_coverage_overall_passed
@@ -169,13 +157,7 @@ class JaCoCoReport:
                 )
                 self.reached_threshold_per_change_file = filtered_evaluator.reached_threshold_per_change_file
 
-                if ActionInputs.get_update_comment():
-                    title = f"**{ActionInputs.get_title()}**"
-                    for comment in gh.get_comments(pr_number):
-                        if comment["body"].startswith(title):
-                            gh.delete_comment(comment["id"])
-                            logger.info("Deleted stale comment from previous run.")
-                            break
+                self._delete_stale_comment_if_update_enabled(gh=gh, pr_number=pr_number)
                 return
 
         # get baseline files for comparison
@@ -337,3 +319,15 @@ class JaCoCoReport:
         paths_to_analyse: list[str] = JaCoCoReportInputScanner(paths=paths, exclude_paths=exclude_paths).scan()
         logger.info("Found %s JaCoCo reports.", len(paths_to_analyse))
         return paths_to_analyse
+
+    def _delete_stale_comment_if_update_enabled(self, gh: GitHub, pr_number: int) -> None:
+        """Delete the previous JaCoCo PR comment when update-comment is enabled."""
+        if not ActionInputs.get_update_comment():
+            return
+
+        title = f"**{ActionInputs.get_title()}**"
+        for comment in gh.get_comments(pr_number):
+            if comment["body"].startswith(title):
+                gh.delete_comment(comment["id"])
+                logger.info("Deleted stale comment from previous run.")
+                break
