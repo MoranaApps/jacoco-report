@@ -559,6 +559,36 @@ def test_fail_on_threshold_false_emits_deprecation_warning(mocker: MockerFixture
     assert "empty string" in caplog.text
 
 
+# --- skip-unchanged with report groups ---
+
+def test_skip_unchanged_with_report_groups_filters_groupless_unchanged_report(
+    mocker: MockerFixture, make_report_file_coverage, make_file_coverage, caplog
+):
+    """Reports with no changed files inside a group are filtered; reports with changes proceed."""
+    from jacoco_report.model.report_group import ReportGroup
+
+    fc = make_file_coverage(instruction=Counter(missed=0, covered=10))
+    changed = make_report_file_coverage(
+        name="Changed Report", changed_files_coverage={"src/Foo.java": fc}, group_name="team-a"
+    )
+    unchanged = make_report_file_coverage(
+        name="Unchanged Report", changed_files_coverage={}, group_name="team-a"
+    )
+
+    group = ReportGroup(name="team-a", paths=["**/jacoco.xml"])
+
+    mocks = _make_run_mocks(mocker, skip_unchanged=True, evaluate_unchanged=False, reports=[changed, unchanged])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups", return_value=[group])
+
+    with caplog.at_level(logging.INFO, logger="jacoco_report.jacoco_report"):
+        jr = JaCoCoReport()
+        jr.run()
+
+    assert "Filtering report 'Unchanged Report' from evaluation and comment rows: no changed files." in caplog.text
+    assert "Filtering report 'Changed Report'" not in caplog.text
+    assert jr.violations == []
+
+
 def test_fail_on_threshold_list_form_no_warning(mocker: MockerFixture, caplog):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="overall")
     with caplog.at_level(logging.WARNING, logger="jacoco_report.action_inputs"):

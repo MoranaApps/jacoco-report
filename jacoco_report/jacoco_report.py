@@ -75,7 +75,12 @@ class JaCoCoReport:
 
         # get changed files in PR
         logger.info("Getting changed files in PR.")
-        all_changed_files_in_pr: list[str] = gh.get_pr_changed_files() or []
+        changed_files_result: list[str] | None = gh.get_pr_changed_files()
+        if changed_files_result is None:
+            logger.error("Failed to retrieve changed files from GitHub API. Ending run.")
+            self.violations.append("Failed to retrieve changed files from GitHub API.")
+            return
+        all_changed_files_in_pr: list[str] = changed_files_result
 
         # analyse received xml report files
         logger.info("Analyzing JaCoCo (xml) reports.")
@@ -252,27 +257,20 @@ class JaCoCoReport:
         # evaluate the coverage
         logger.info("Evaluating the coverage of the reports.")
         report_thresholds_default = ActionInputs.get_report_thresholds_default()
-        evaluator_for_render: CoverageEvaluator = CoverageEvaluator(
-            report_files_coverage=report_files_coverage,
+        reports_for_evaluation = (
+            report_files_coverage + filtered_unchanged_reports
+            if skip_unchanged and evaluate_unchanged and filtered_unchanged_reports
+            else report_files_coverage
+        )
+        evaluator_for_results: CoverageEvaluator = CoverageEvaluator(
+            report_files_coverage=reports_for_evaluation,
             global_min_coverage_overall=ActionInputs.get_global_overall_threshold(),
             global_min_coverage_changed_files=ActionInputs.get_global_changed_files_average_threshold(),
             global_min_coverage_changed_per_file=ActionInputs.get_global_changed_file_threshold(),
             report_groups=report_groups,
             report_thresholds_default=report_thresholds_default,
         )
-        evaluator_for_render.evaluate()
-
-        evaluator_for_results = evaluator_for_render
-        if skip_unchanged and evaluate_unchanged and filtered_unchanged_reports:
-            evaluator_for_results = CoverageEvaluator(
-                report_files_coverage=report_files_coverage + filtered_unchanged_reports,
-                global_min_coverage_overall=ActionInputs.get_global_overall_threshold(),
-                global_min_coverage_changed_files=ActionInputs.get_global_changed_files_average_threshold(),
-                global_min_coverage_changed_per_file=ActionInputs.get_global_changed_file_threshold(),
-                report_groups=report_groups,
-                report_thresholds_default=report_thresholds_default,
-            )
-            evaluator_for_results.evaluate()
+        evaluator_for_results.evaluate()
 
         bs_evaluator: CoverageEvaluator = CoverageEvaluator(
             report_files_coverage=bs_report_files_coverage,

@@ -16,6 +16,13 @@ from jacoco_report.utils.github import GitHub
 
 logger = logging.getLogger(__name__)
 
+_MD_LINK_TEXT_UNSAFE = str.maketrans({"[": "\\[", "]": "\\]", "`": "\\`", "|": "\\|"})
+
+
+def _escape_md_link_text(text: str) -> str:
+    """Escape characters that break Markdown inline-link text."""
+    return text.translate(_MD_LINK_TEXT_UNSAFE)
+
 
 class PRCommentGenerator:
     """
@@ -491,7 +498,7 @@ class PRCommentGenerator:
         lines = []
         for ecr_key in evaluated_reports_coverage.keys():
             for file_key in evaluated_reports_coverage[ecr_key].changed_files_coverage_reached.keys():
-                filename = os.path.basename(file_key)
+                filename = _escape_md_link_text(os.path.basename(file_key))
                 file_hash = hashlib.sha256(file_key.encode("utf-8")).hexdigest()
                 file_as_link_to_diff = (
                     f"https://github.com/{self.github_repository}/pull/{self.pr_number}/files#diff-{file_hash}"
@@ -579,7 +586,7 @@ class PRCommentGenerator:
         lines = []
         for ecr_key in evaluated_reports_coverage.keys():
             for file_key in evaluated_reports_coverage[ecr_key].changed_files_coverage_reached.keys():
-                filename = os.path.basename(file_key)
+                filename = _escape_md_link_text(os.path.basename(file_key))
                 file_hash = hashlib.sha256(file_key.encode("utf-8")).hexdigest()
                 file_as_link_to_diff = (
                     f"https://github.com/{self.github_repository}/pull/{self.pr_number}/files#diff-{file_hash}"

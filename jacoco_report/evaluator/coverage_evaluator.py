@@ -122,6 +122,12 @@ class CoverageEvaluator:
             )
 
             # save the evaluated report
+            if report.name in self.evaluated_reports_coverage:
+                logger.warning(
+                    "Duplicate report name '%s' detected; earlier evaluation data will be overwritten."
+                    " Ensure each report has a unique name to avoid incorrect threshold results.",
+                    report.name,
+                )
             self.evaluated_reports_coverage[report.name] = self._evaluate_report(report, evaluated_coverage_report)
 
         # evaluation of all groups (group == named set of reports with common paths/thresholds)
@@ -147,6 +153,17 @@ class CoverageEvaluator:
             evaluated_coverage_group.avg_changed_files_coverage_reached = (
                 evaluated_coverage_group.avg_changed_files_coverage.coverage()
             )
+
+            if (
+                evaluated_coverage_group.overall_coverage.covered == 0
+                and evaluated_coverage_group.overall_coverage.missed == 0
+                and not any(
+                    ev.group_name == group.name for ev in self.evaluated_reports_coverage.values()
+                )
+            ):
+                logger.info(
+                    "Group '%s' has no reports contributing after filtering.", group.name
+                )
 
             # save the evaluated group
             self.evaluated_groups_coverage[group.name] = self.evaluate_group(evaluated_coverage_group, group)
@@ -322,12 +339,6 @@ class CoverageEvaluator:
                 evaluated_coverage_report.changed_files_passed[key] = True
 
         else:
-            evaluated_coverage_report.avg_changed_files_coverage_reached = round(
-                sum(evaluated_coverage_report.changed_files_coverage_reached.values())
-                / len(evaluated_coverage_report.changed_files_coverage_reached.values()),
-                2,
-            )
-
             evaluated_coverage_report.avg_changed_files_passed = (
                 evaluated_coverage_report.avg_changed_files_coverage_reached >= changed_files_threshold
             )

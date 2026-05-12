@@ -90,7 +90,7 @@ def _set_mixed_comment_level_fixture(pr_comment_generator):
         "unchanged-report": _make_evaluated_coverage("unchanged-report", changed_files={}),
     }
 
-def testget_basic_table(pr_comment_generator, mocker):
+def test_get_basic_table(pr_comment_generator, mocker):
     table = pr_comment_generator.get_basic_table(
         "✅", "❌", MetricTypeEnum.INSTRUCTION,
         85.2, True, 80.0,
@@ -148,7 +148,7 @@ def test_calculate_group_diff_no_group_in_baseline(pr_comment_generator, mocker)
     assert diff_o == 0.0
     assert diff_ch == 0.0
 
-def testgenerate_changed_files_table_with_baseline(pr_comment_generator, mocker):
+def test_generate_changed_files_table_with_baseline(pr_comment_generator, mocker):
     # Mock the necessary methods and attributes
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["baseline.xml"])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups", return_value=[])
@@ -188,7 +188,7 @@ def testgenerate_changed_files_table_with_baseline(pr_comment_generator, mocker)
 | [file1.java](https://github.com/fake_repo/pull/1/files#diff-fakehash) | 80.0% | 0.0% | +10.0% | ✅ |"""
     assert table == expected_table
 
-def testgenerate_changed_files_table_with_baseline_no_evaluated_report_coverage(pr_comment_generator, mocker):
+def test_generate_changed_files_table_with_baseline_no_evaluated_report_coverage(pr_comment_generator, mocker):
     # Mock the necessary methods and attributes
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["baseline.xml"])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups", return_value=[])
@@ -228,7 +228,7 @@ def testgenerate_changed_files_table_with_baseline_no_evaluated_report_coverage(
 | [file1.java](https://github.com/fake_repo/pull/1/files#diff-fakehash) | 80.0% | 0.0% | 0.0% | ✅ |"""
     assert table == expected_table
 
-def testgenerate_changed_files_table_with_baseline_no_changed_file(pr_comment_generator, mocker):
+def test_generate_changed_files_table_with_baseline_no_changed_file(pr_comment_generator, mocker):
     # Mock the necessary methods and attributes
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["baseline.xml"])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups", return_value=[])

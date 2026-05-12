@@ -216,7 +216,7 @@ class ActionInputs:
         """
         Get the title from the action inputs.
         """
-        title = get_action_input(TITLE, "")
+        title = get_action_input(TITLE, "").strip()
         if len(title) > 0:
             return title
 
@@ -229,7 +229,11 @@ class ActionInputs:
         """
         pr_input = get_action_input(PR_NUMBER)
         if pr_input:
-            return int(pr_input)
+            try:
+                return int(pr_input)
+            except ValueError:
+                logger.error("'pr-number' input '%s' is not a valid integer.", pr_input)
+                return None
 
         pr_number: Optional[int] = gh.get_pr_number()
         if pr_number:
@@ -508,10 +512,7 @@ class ActionInputs:
 
         # Check if the token format matches GitHub patterns
         token_pattern = r"^(gh[ps]_[a-zA-Z0-9]{36}|github_pat_[a-zA-Z0-9]{22}_[a-zA-Z0-9]{59})$"
-        # token_pattern = r"^ghp_[a-zA-Z0-9]{36}$"
-        if bool(re.match(token_pattern, token)):
-            return True
-        return False
+        return bool(re.match(token_pattern, token))
 
     @staticmethod
     def validate_inputs() -> None:
@@ -639,24 +640,18 @@ class ActionInputs:
         skip_unchanged: Optional[bool] = None
         try:
             skip_unchanged = ActionInputs.get_skip_unchanged()
-            if not isinstance(skip_unchanged, bool):
-                errors.append("'skip-unchanged' must be a boolean.")
         except ValueError as e:
             errors.append(str(e))
 
         evaluate_unchanged: Optional[bool] = None
         try:
             evaluate_unchanged = ActionInputs.get_evaluate_unchanged()
-            if not isinstance(evaluate_unchanged, bool):
-                errors.append("'evaluate-unchanged' must be a boolean.")
         except ValueError as e:
             errors.append(str(e))
 
         update_comment: Optional[bool] = None
         try:
             update_comment = ActionInputs.get_update_comment()
-            if not isinstance(update_comment, bool):
-                errors.append("'update-comment' must be a boolean.")
         except ValueError as e:
             errors.append(str(e))
 
@@ -668,6 +663,7 @@ class ActionInputs:
         if not isinstance(fail_symbol, str) or not fail_symbol.strip() or len(fail_symbol) < 1:
             errors.append("'fail-symbol' must be a non-empty string and have a length from 1.")
 
+        fail_on_threshold: list[str] = []
         try:
             fail_on_threshold = ActionInputs.get_fail_on_threshold()
         except ValueError as e:
@@ -676,11 +672,38 @@ class ActionInputs:
         debug: Optional[bool] = None
         try:
             debug = ActionInputs.get_debug()
-            if not isinstance(debug, bool):
-                errors.append("'debug' must be a boolean.")
         except ValueError as e:
             errors.append(str(e))
 
+        ActionInputs._log_configuration(
+            report_groups_raw=report_groups_raw,
+            skip_unchanged=skip_unchanged,
+            evaluate_unchanged=evaluate_unchanged,
+            update_comment=update_comment,
+            fail_on_threshold=fail_on_threshold,
+            debug=debug,
+        )
+
+        # Log errors if any
+        if errors:
+            for error in errors:
+                logger.error(error)
+            sys.exit(1)
+
+        logger.info("Action inputs validated successfully.")
+
+    @staticmethod
+    def _log_configuration(
+        *,
+        report_groups_raw: str,
+        skip_unchanged: Optional[bool],
+        evaluate_unchanged: Optional[bool],
+        update_comment: Optional[bool],
+        fail_on_threshold: list[str],
+        debug: Optional[bool],
+    ) -> None:
+        """Log all resolved configuration values. Do not add token to this method."""
+        # Do not add token here — token must never appear in logs.
         logger.info(
             "[CONFIGURATION] Received input values:\n"
             "Paths: %s\n"
@@ -722,14 +745,6 @@ class ActionInputs:
             ActionInputs.get_pass_symbol(),
             ActionInputs.get_fail_symbol(),
         )
-
-        # Log errors if any
-        if errors:
-            for error in errors:
-                logger.error(error)
-            sys.exit(1)
-
-        logger.info("Action inputs validated successfully.")
 
     # methods for getting the inputs not provided by the user but expected from GitHub
     @staticmethod
