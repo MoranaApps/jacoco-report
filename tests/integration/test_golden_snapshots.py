@@ -13,7 +13,6 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-import pytest
 from pytest_mock import MockerFixture
 
 from tests.integration.helpers import (
@@ -101,6 +100,7 @@ def test_snapshot_no_groups(mocker: MockerFixture) -> None:
     captured = _mock_github(mocker, _CHANGED_FILES_NO_GROUPS)
 
     env = make_env_base(
+        INPUT_PATHS=TEST_PROJECT_GLOB,
         INPUT_COMMENT_LEVEL="full",
         INPUT_SKIP_UNCHANGED="false",
     )
@@ -155,6 +155,7 @@ def test_snapshot_skip_unchanged(mocker: MockerFixture) -> None:
     captured = _mock_github(mocker, _CHANGED_FILES_SKIP_UNCHANGED)
 
     env = make_env_base(
+        INPUT_PATHS=TEST_PROJECT_GLOB,
         INPUT_COMMENT_LEVEL="full",
         INPUT_SKIP_UNCHANGED="true",
         INPUT_EVALUATE_UNCHANGED="true",
