@@ -60,6 +60,13 @@ def capture_run(env_overrides: dict[str, str]) -> ActionResult:
         with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as tmp:
             tmp_output_path = tmp.name
 
+        for key in [
+            env_key
+            for env_key in os.environ
+            if env_key.startswith("INPUT_") or env_key.startswith("GITHUB_")
+        ]:
+            del os.environ[key]
+
         os.environ.update(env_overrides)
         os.environ.setdefault("GITHUB_OUTPUT", tmp_output_path)
 
@@ -69,8 +76,12 @@ def capture_run(env_overrides: dict[str, str]) -> ActionResult:
             except SystemExit as exc:
                 exit_code = int(exc.code) if exc.code is not None else 0
     finally:
-        for h in root_logger.handlers[:]:
+        captured_handlers: list[logging.Handler] = root_logger.handlers[:]
+        for h in captured_handlers:
             root_logger.removeHandler(h)
+        for h in captured_handlers:
+            if h not in saved_handlers:
+                h.close()
         for h in saved_handlers:
             root_logger.addHandler(h)
         root_logger.setLevel(saved_level)
