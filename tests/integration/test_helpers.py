@@ -3,7 +3,7 @@ import os
 
 from pytest_mock import MockerFixture
 
-from tests.integration.helpers import capture_run, make_env_base
+from tests.integration.helpers import TEST_PROJECT_GLOB, capture_run, make_env_base
 
 
 class TrackingHandler(logging.Handler):
@@ -34,7 +34,7 @@ def test_capture_run_clears_preexisting_ci_env_keys(mocker: MockerFixture, monke
 
     mocker.patch("main.run", side_effect=fake_run)
 
-    capture_run({"INPUT_PATHS": "tests/data/test_project/**/jacoco.xml"})
+    capture_run({"INPUT_PATHS": TEST_PROJECT_GLOB})
 
     assert observed_env["INPUT_STALE"] is None
     assert observed_env["GITHUB_EVENT_NAME"] is None
@@ -55,7 +55,7 @@ def test_capture_run_closes_handlers_added_during_run(mocker: MockerFixture) -> 
     mocker.patch("main.run", side_effect=fake_run)
 
     try:
-        capture_run({"INPUT_PATHS": "tests/data/test_project/**/jacoco.xml"})
+        capture_run({"INPUT_PATHS": TEST_PROJECT_GLOB})
     finally:
         if saved_handler in root_logger.handlers:
             root_logger.removeHandler(saved_handler)
@@ -78,7 +78,7 @@ def test_capture_run_forces_temp_github_output(mocker: MockerFixture, tmp_path) 
 
     mocker.patch("main.run", side_effect=fake_run)
 
-    capture_run({"INPUT_PATHS": "tests/data/test_project/**/jacoco.xml", "GITHUB_OUTPUT": str(external_output)})
+    capture_run({**make_env_base(), "GITHUB_OUTPUT": str(external_output)})
 
     assert observed_output_path["value"] is not None
     assert observed_output_path["value"] != str(external_output)

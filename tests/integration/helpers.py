@@ -38,9 +38,16 @@ def capture_run(env_overrides: dict[str, str]) -> ActionResult:
     """
     Run the full action pipeline with env_overrides applied to os.environ.
 
+    Environment isolation performed before each run:
+    - All pre-existing INPUT_* and GITHUB_* keys are deleted from os.environ
+      so that ambient CI variables cannot bleed into the run.
+    - GITHUB_OUTPUT is always set to an internally managed temp file,
+      regardless of any value supplied in env_overrides, so that action-output
+      side effects are fully contained and cleaned up after the call.
+
     Redirects stdout/stderr and resets root-logger handlers so that
     setup_logging() emits to the captured stream. Catches SystemExit and
-    records its code. Manages a temporary GITHUB_OUTPUT file internally.
+    records its code.
 
     GitHub API calls must be mocked by the caller (via pytest-mock) before
     invoking this function for offline tests.
