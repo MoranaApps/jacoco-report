@@ -90,7 +90,7 @@ def _set_mixed_comment_level_fixture(pr_comment_generator):
         "unchanged-report": _make_evaluated_coverage("unchanged-report", changed_files={}),
     }
 
-def testget_basic_table(pr_comment_generator, mocker):
+def test_get_basic_table(pr_comment_generator, mocker):
     table = pr_comment_generator.get_basic_table(
         "✅", "❌", MetricTypeEnum.INSTRUCTION,
         85.2, True, 80.0,
@@ -148,7 +148,7 @@ def test_calculate_group_diff_no_group_in_baseline(pr_comment_generator, mocker)
     assert diff_o == 0.0
     assert diff_ch == 0.0
 
-def testgenerate_changed_files_table_with_baseline(pr_comment_generator, mocker):
+def test_generate_changed_files_table_with_baseline(pr_comment_generator, mocker):
     # Mock the necessary methods and attributes
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["baseline.xml"])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups", return_value=[])
@@ -188,7 +188,7 @@ def testgenerate_changed_files_table_with_baseline(pr_comment_generator, mocker)
 | [file1.java](https://github.com/fake_repo/pull/1/files#diff-fakehash) | 80.0% | 0.0% | +10.0% | ✅ |"""
     assert table == expected_table
 
-def testgenerate_changed_files_table_with_baseline_no_evaluated_report_coverage(pr_comment_generator, mocker):
+def test_generate_changed_files_table_with_baseline_no_evaluated_report_coverage(pr_comment_generator, mocker):
     # Mock the necessary methods and attributes
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["baseline.xml"])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups", return_value=[])
@@ -228,7 +228,7 @@ def testgenerate_changed_files_table_with_baseline_no_evaluated_report_coverage(
 | [file1.java](https://github.com/fake_repo/pull/1/files#diff-fakehash) | 80.0% | 0.0% | 0.0% | ✅ |"""
     assert table == expected_table
 
-def testgenerate_changed_files_table_with_baseline_no_changed_file(pr_comment_generator, mocker):
+def test_generate_changed_files_table_with_baseline_no_changed_file(pr_comment_generator, mocker):
     # Mock the necessary methods and attributes
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["baseline.xml"])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups", return_value=[])
@@ -778,3 +778,83 @@ def test_filtered_comment_levels_empty_result_do_not_render_detail_table_headers
     assert "| Group |" not in body
     assert "| Report |" not in body
     assert "| File Path |" not in body
+
+
+# --- skip_report_names row-filtering ---
+
+def test_skip_report_names_hides_specified_reports_from_rendered_rows(pr_comment_generator, mocker):
+    _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="full")
+    pr_comment_generator.evaluator.evaluated_groups_coverage = {}
+    pr_comment_generator.evaluator.evaluated_reports_coverage = {
+        "changed-report": _make_evaluated_coverage("changed-report", changed_files={"src/Foo.java": 82.0}),
+        "unchanged-report": _make_evaluated_coverage("unchanged-report", changed_files={}),
+    }
+    pr_comment_generator.skip_report_names = frozenset({"unchanged-report"})
+
+    pr_comment_generator.generate()
+
+    body = pr_comment_generator.gh.add_comment.call_args[0][1]
+    assert "`changed-report`" in body
+    assert "`unchanged-report`" not in body
+
+
+def test_skip_report_names_global_summary_still_shows_evaluator_totals(pr_comment_generator, mocker):
+    _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="full")
+    pr_comment_generator.evaluator.total_coverage_overall = 50.0
+    pr_comment_generator.evaluator.total_coverage_overall_passed = False
+    pr_comment_generator.evaluator.total_coverage_changed_files = 60.0
+    pr_comment_generator.evaluator.total_coverage_changed_files_passed = True
+    pr_comment_generator.evaluator.evaluated_groups_coverage = {}
+    pr_comment_generator.evaluator.evaluated_reports_coverage = {
+        "changed-report": _make_evaluated_coverage("changed-report", changed_files={"src/Foo.java": 82.0}),
+        "unchanged-report": _make_evaluated_coverage("unchanged-report", changed_files={}),
+    }
+    pr_comment_generator.skip_report_names = frozenset({"unchanged-report"})
+
+    pr_comment_generator.generate()
+
+    body = pr_comment_generator.gh.add_comment.call_args[0][1]
+    assert "50.0%" in body
+    assert "`unchanged-report`" not in body
+
+
+def test_skip_report_names_empty_set_does_not_hide_any_reports(pr_comment_generator, mocker):
+    _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="full")
+    pr_comment_generator.evaluator.evaluated_groups_coverage = {}
+    pr_comment_generator.evaluator.evaluated_reports_coverage = {
+        "report-a": _make_evaluated_coverage("report-a", changed_files={"src/Foo.java": 82.0}),
+        "report-b": _make_evaluated_coverage("report-b", changed_files={}),
+    }
+    # skip_report_names defaults to frozenset() — no explicit assignment
+
+    pr_comment_generator.generate()
+
+    body = pr_comment_generator.gh.add_comment.call_args[0][1]
+    assert "`report-a`" in body
+    assert "`report-b`" in body
+
+
+def test_skip_report_names_hides_group_when_all_group_reports_are_skipped(pr_comment_generator, mocker):
+    _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="full")
+    # group "backend" has one report that is skipped; group "frontend" has one visible report
+    pr_comment_generator.evaluator.evaluated_groups_coverage = {
+        "backend": _make_evaluated_coverage("backend"),
+        "frontend": _make_evaluated_coverage("frontend"),
+    }
+    pr_comment_generator.evaluator.evaluated_reports_coverage = {
+        "backend-report": _make_evaluated_coverage(
+            "backend-report", group_name="backend", changed_files={}
+        ),
+        "frontend-report": _make_evaluated_coverage(
+            "frontend-report", group_name="frontend", changed_files={"src/Foo.java": 80.0}
+        ),
+    }
+    pr_comment_generator.skip_report_names = frozenset({"backend-report"})
+
+    pr_comment_generator.generate()
+
+    body = pr_comment_generator.gh.add_comment.call_args[0][1]
+    assert "`frontend`" in body
+    assert "`backend`" not in body
+    assert "`frontend-report`" in body
+    assert "`backend-report`" not in body
