@@ -3,6 +3,10 @@ Integration test helpers for jacoco-report action tests.
 
 Provides capture_run() for running the full action pipeline in-process
 and fixture-assembly helpers for constructing canonical env var inputs.
+
+Fixture roots used by this module:
+- TEST_PROJECT_GLOB reads main fixtures from tests/data/test_project/**/jacoco.xml
+- BASELINE_PROJECT_GLOB reads baseline fixtures from tests/data_baseline/test_project/**/jacoco.xml
 """
 
 from __future__ import annotations
