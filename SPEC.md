@@ -9,6 +9,7 @@
 - [5. Design Decisions Log](#5-design-decisions-log)
 - [6. Ordered Task List](#6-ordered-task-list)
 - [7. Reference Standards Gap Analysis](#7-reference-standards-gap-analysis)
+- [8. Confirmed Test Cases (2026-05-12)](#8-confirmed-test-cases-2026-05-12)
 
 ---
 
@@ -58,6 +59,16 @@ Two output verbosity levels controlled by `sensitivity`: `detail` / `summary` / 
 
 `coverage-overall`, `coverage-changed-files`, `coverage-overall-passed`, `coverage-changed-files-passed`,
 `reports-coverage`, `modules-coverage`, `violations`
+
+---
+
+## 8. Confirmed Test Cases (2026-05-12)
+
+| Test name | Intent | Input summary | Expected output |
+|---|---|---|---|
+| `test_run_failed_to_retrieve_changed_files_marks_threshold_flags_failed` | Ensure operational failure path marks threshold flags as failed | `GitHub.get_pr_changed_files()` returns `None` | Violation is added and all `reached_threshold_*` flags are `False` |
+| `test_run_failed_to_retrieve_changed_files` | Keep existing failure-message assertion while adding threshold assertions | Same as above | Existing violation assertion remains valid and threshold flags are `False` |
+| `test_run_failed_to_retrieve_changed_files` formatting cleanup | Remove trailing whitespace-only lines in the new test block | N/A (format-only change) | No lint/format noise from trailing whitespace |
 
 ---
 

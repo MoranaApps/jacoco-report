@@ -79,6 +79,9 @@ class JaCoCoReport:
         if changed_files_result is None:
             logger.error("Failed to retrieve changed files from GitHub API. Ending run.")
             self.violations.append("Failed to retrieve changed files from GitHub API.")
+            self.reached_threshold_overall = False
+            self.reached_threshold_changed_files_average = False
+            self.reached_threshold_per_change_file = False
             return
         all_changed_files_in_pr: list[str] = changed_files_result
 
