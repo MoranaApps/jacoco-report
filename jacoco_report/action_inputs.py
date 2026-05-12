@@ -317,19 +317,31 @@ class ActionInputs:
         """
         Get the skip unchanged from the action inputs.
         """
-        return get_action_input(SKIP_UNCHANGED, "false") == "true"
+        return ActionInputs._get_strict_boolean_input(
+            input_name=SKIP_UNCHANGED,
+            default_value="false",
+            display_name="skip-unchanged",
+        )
 
     @staticmethod
     def get_evaluate_unchanged() -> bool:
         """Get whether unchanged reports should still be evaluated when skip-unchanged is enabled."""
-        return get_action_input(EVALUATE_UNCHANGED, "true") == "true"
+        return ActionInputs._get_strict_boolean_input(
+            input_name=EVALUATE_UNCHANGED,
+            default_value="true",
+            display_name="evaluate-unchanged",
+        )
 
     @staticmethod
     def get_update_comment() -> bool:
         """
         Get the update comment from the action inputs.
         """
-        return get_action_input(UPDATE_COMMENT, "true") == "true"
+        return ActionInputs._get_strict_boolean_input(
+            input_name=UPDATE_COMMENT,
+            default_value="true",
+            display_name="update-comment",
+        )
 
     @staticmethod
     def get_pass_symbol() -> str:
@@ -391,7 +403,21 @@ class ActionInputs:
         """
         Get the debug from the action inputs.
         """
-        return get_action_input(DEBUG, "false") == "true"
+        return ActionInputs._get_strict_boolean_input(
+            input_name=DEBUG,
+            default_value="false",
+            display_name="debug",
+        )
+
+    @staticmethod
+    def _get_strict_boolean_input(input_name: str, default_value: str, display_name: str) -> bool:
+        """Parse a boolean action input and require literal true/false values."""
+        raw_value = str(get_action_input(input_name, default_value)).strip().lower()
+        if raw_value == "true":
+            return True
+        if raw_value == "false":
+            return False
+        raise ValueError(f"'{display_name}' must be a boolean ('true' or 'false').")
 
     @overload
     @staticmethod
@@ -610,17 +636,29 @@ class ActionInputs:
 
         errors.extend(ActionInputs.validate_report_groups(report_groups_raw))
 
-        skip_unchanged = ActionInputs.get_skip_unchanged()
-        if not isinstance(skip_unchanged, bool):
-            errors.append("'skip-unchanged' must be a boolean.")
+        skip_unchanged: Optional[bool] = None
+        try:
+            skip_unchanged = ActionInputs.get_skip_unchanged()
+            if not isinstance(skip_unchanged, bool):
+                errors.append("'skip-unchanged' must be a boolean.")
+        except ValueError as e:
+            errors.append(str(e))
 
-        evaluate_unchanged = ActionInputs.get_evaluate_unchanged()
-        if not isinstance(evaluate_unchanged, bool):
-            errors.append("'evaluate-unchanged' must be a boolean.")
+        evaluate_unchanged: Optional[bool] = None
+        try:
+            evaluate_unchanged = ActionInputs.get_evaluate_unchanged()
+            if not isinstance(evaluate_unchanged, bool):
+                errors.append("'evaluate-unchanged' must be a boolean.")
+        except ValueError as e:
+            errors.append(str(e))
 
-        update_comment = ActionInputs.get_update_comment()
-        if not isinstance(update_comment, bool):
-            errors.append("'update-comment' must be a boolean.")
+        update_comment: Optional[bool] = None
+        try:
+            update_comment = ActionInputs.get_update_comment()
+            if not isinstance(update_comment, bool):
+                errors.append("'update-comment' must be a boolean.")
+        except ValueError as e:
+            errors.append(str(e))
 
         pass_symbol = ActionInputs.get_pass_symbol()
         if not isinstance(pass_symbol, str) or not pass_symbol.strip() or len(pass_symbol) < 1:
@@ -635,9 +673,13 @@ class ActionInputs:
         except ValueError as e:
             errors.append(str(e))
 
-        debug = ActionInputs.get_debug()
-        if not isinstance(debug, bool):
-            errors.append("'debug' must be a boolean.")
+        debug: Optional[bool] = None
+        try:
+            debug = ActionInputs.get_debug()
+            if not isinstance(debug, bool):
+                errors.append("'debug' must be a boolean.")
+        except ValueError as e:
+            errors.append(str(e))
 
         logger.info(
             "[CONFIGURATION] Received input values:\n"
@@ -672,11 +714,11 @@ class ActionInputs:
             ActionInputs.get_metric(),
             ActionInputs.get_title(),
             ActionInputs.get_comment_level(),
-            ActionInputs.get_skip_unchanged(),
-            ActionInputs.get_evaluate_unchanged(),
-            ActionInputs.get_update_comment(),
+            skip_unchanged,
+            evaluate_unchanged,
+            update_comment,
             fail_on_threshold if fail_on_threshold else [],
-            ActionInputs.get_debug(),
+            debug,
             ActionInputs.get_pass_symbol(),
             ActionInputs.get_fail_symbol(),
         )

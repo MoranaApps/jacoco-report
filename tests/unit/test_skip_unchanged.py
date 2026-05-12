@@ -93,8 +93,8 @@ def test_skip_unchanged_filters_report_with_no_changed_files(
     with caplog.at_level(logging.INFO, logger="jacoco_report.jacoco_report"):
         JaCoCoReport().run()
 
-    assert "Skipping report 'Report A': no changed files." in caplog.text
-    assert "Skipping report 'Report B'" not in caplog.text
+    assert "Filtering report 'Report A' from evaluation and comment rows: no changed files." in caplog.text
+    assert "Filtering report 'Report B'" not in caplog.text
 
 
 def test_skip_unchanged_logs_each_filtered_report(mocker: MockerFixture, make_report_file_coverage, caplog):
@@ -108,9 +108,24 @@ def test_skip_unchanged_logs_each_filtered_report(mocker: MockerFixture, make_re
         JaCoCoReport().run()
 
     messages = caplog.text
-    assert "Skipping report 'Alpha Report': no changed files." in messages
-    assert "Skipping report 'Beta Report': no changed files." in messages
-    assert "Skipping report 'Gamma Report'" not in messages
+    assert "Filtering report 'Alpha Report' from evaluation and comment rows: no changed files." in messages
+    assert "Filtering report 'Beta Report' from evaluation and comment rows: no changed files." in messages
+    assert "Filtering report 'Gamma Report'" not in messages
+
+
+def test_skip_unchanged_evaluate_unchanged_true_logs_threshold_result_clarification(
+    mocker: MockerFixture, make_report_file_coverage, caplog
+):
+    unchanged = _report_without_changes("Report A", make_report_file_coverage)
+    _make_run_mocks(mocker, skip_unchanged=True, evaluate_unchanged=True, reports=[unchanged])
+
+    with caplog.at_level(logging.INFO, logger="jacoco_report.jacoco_report"):
+        JaCoCoReport().run()
+
+    assert (
+        "Filtering report 'Report A' from comment rows and changed-files evaluation: no changed files "
+        "(overall threshold checks may still apply)." in caplog.text
+    )
 
 
 def test_skip_unchanged_all_filtered_exits_cleanly(mocker: MockerFixture, make_report_file_coverage, caplog):

@@ -518,6 +518,20 @@ def test_get_skip_unchanged_false(mocker):
     assert not ActionInputs.get_skip_unchanged()
 
 
+def test_get_skip_unchanged_mixed_case_true(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value=" TrUe ")
+    assert ActionInputs.get_skip_unchanged() is True
+
+
+def test_get_skip_unchanged_invalid_literal_raises_value_error(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="yes")
+
+    with pytest.raises(ValueError) as exc_info:
+        ActionInputs.get_skip_unchanged()
+
+    assert "'skip-unchanged' must be a boolean ('true' or 'false')." in str(exc_info.value)
+
+
 def test_get_evaluate_unchanged_true(mocker):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="true")
     assert ActionInputs.get_evaluate_unchanged()
@@ -528,6 +542,15 @@ def test_get_evaluate_unchanged_false(mocker):
     assert not ActionInputs.get_evaluate_unchanged()
 
 
+def test_get_evaluate_unchanged_invalid_literal_raises_value_error(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="on")
+
+    with pytest.raises(ValueError) as exc_info:
+        ActionInputs.get_evaluate_unchanged()
+
+    assert "'evaluate-unchanged' must be a boolean ('true' or 'false')." in str(exc_info.value)
+
+
 def test_get_update_comment_true(mocker):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="true")
     assert True == ActionInputs.get_update_comment()
@@ -536,6 +559,15 @@ def test_get_update_comment_true(mocker):
 def test_get_update_comment_false(mocker):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="false")
     assert False == ActionInputs.get_update_comment()
+
+
+def test_get_update_comment_invalid_literal_raises_value_error(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="enabled")
+
+    with pytest.raises(ValueError) as exc_info:
+        ActionInputs.get_update_comment()
+
+    assert "'update-comment' must be a boolean ('true' or 'false')." in str(exc_info.value)
 
 
 def test_get_pass_symbol(mocker):
@@ -586,6 +618,31 @@ def test_get_debug_true(mocker):
 def test_get_debug_false(mocker):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="false")
     assert False == ActionInputs.get_debug()
+
+
+def test_get_debug_invalid_literal_raises_value_error(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="1")
+
+    with pytest.raises(ValueError) as exc_info:
+        ActionInputs.get_debug()
+
+    assert "'debug' must be a boolean ('true' or 'false')." in str(exc_info.value)
+
+
+def test_validate_inputs_rejects_invalid_skip_unchanged_literal(mocker):
+    case = success_case.copy()
+    patchers = apply_mocks(case, mocker)
+    try:
+        mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_unchanged", side_effect=ValueError("'skip-unchanged' must be a boolean ('true' or 'false')."))
+        mock_error = mocker.patch("jacoco_report.action_inputs.logger.error")
+        mock_exit = mocker.patch("sys.exit")
+
+        ActionInputs.validate_inputs()
+
+        mock_error.assert_any_call("'skip-unchanged' must be a boolean ('true' or 'false').")
+        mock_exit.assert_called_once_with(1)
+    finally:
+        stop_mocks(patchers)
 
 
 def test_get_baseline_paths(mocker):

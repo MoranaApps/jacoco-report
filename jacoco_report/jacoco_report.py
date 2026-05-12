@@ -116,7 +116,17 @@ class JaCoCoReport:
         if skip_unchanged:
             for report in report_files_coverage:
                 if not report.changed_files_coverage:
-                    logger.info("Skipping report '%s': no changed files.", report.name)
+                    if evaluate_unchanged:
+                        logger.info(
+                            "Filtering report '%s' from comment rows and changed-files evaluation: "
+                            "no changed files (overall threshold checks may still apply).",
+                            report.name,
+                        )
+                    else:
+                        logger.info(
+                            "Filtering report '%s' from evaluation and comment rows: no changed files.",
+                            report.name,
+                        )
                     filtered_unchanged_reports.append(report)
 
             report_files_coverage = [r for r in report_files_coverage if r.changed_files_coverage]
