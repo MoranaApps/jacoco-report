@@ -73,7 +73,7 @@ Group 0 (deps) → Task 20 🔝 → Tasks 17/18/21 → Group F (design decisions
 | **31** | G | `fail-on-threshold` boolean deprecation impl | ✅ | `feature/103-fail-on-threshold-deprecation-evaluate-unchanged` | #103 |
 | **32** | H | Integration test helpers module | ✅ | `chore/integration-test-helpers` | new |
 | **33** | H | Golden snapshot tests | ✅ | `chore/golden-snapshot-tests` | new |
-| **34** | H | skip-unchanged × comment-level matrix tests | 🔒 ⬜ | `chore/skip-unchanged-comment-level-matrix-tests` | new |
+| **34** | H | skip-unchanged × comment-level matrix tests | ✅ | `chore/skip-unchanged-comment-level-matrix-tests` | new |
 | **35** | H | Live integration smoke test | 🔒 ⬜ | `chore/live-integration-smoke-test` | new |
 | **36** | I | Enhanced logging (thresholds + reached values) | 🔒 ⬜ | `feature/101-enhance-threshold-logging` | #101 |
 | **37** | I | PR comment metadata | 🔒 ⬜ | `feature/94-pr-comment-metadata` | #94 |
@@ -447,7 +447,7 @@ All Group H tasks depend on at least one Group G task being complete.
 
 ---
 
-#### Task 34 — skip-unchanged × comment-level matrix tests ⬜
+#### Task 34 — skip-unchanged × comment-level matrix tests ✅
 
 **Branch:** `chore/skip-unchanged-comment-level-matrix-tests`
 **Issue:** new | **Depends on:** Tasks 20, 27, 30
