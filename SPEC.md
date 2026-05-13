@@ -73,6 +73,12 @@ Two output verbosity levels controlled by `sensitivity`: `detail` / `summary` / 
 | `test_capture_run_closes_handlers_added_during_run` | Ensure handlers attached during the run are closed during teardown | `main.run()` adds a custom root logger handler | Handler is removed and its `close()` is called in `capture_run()` finally block |
 | `test_capture_run_forces_temp_github_output` | Ensure capture_run never writes action outputs to external files | `env_overrides` includes `GITHUB_OUTPUT` external path | `main.run()` receives a temp path and external path remains untouched |
 | `test_make_env_base_includes_default_pr_number` | Ensure base offline env can run without extra PR-number overrides | Call `make_env_base()` with no overrides | Returned env includes `INPUT_PR_NUMBER` default value |
+| `test_snapshot_no_groups` | Freeze canonical full-comment output without report groups | `INPUT_PATHS=TEST_PROJECT_GLOB`, `comment-level=full`, `skip-unchanged=false`, changed files in module_large | Exactly one comment is posted and matches `fixtures/snapshot_no_groups.md` |
+| `test_snapshot_with_groups` | Freeze canonical full-comment output when report groups are configured | `INPUT_REPORT_GROUPS` with notification+user-info, `comment-level=full`, `skip-unchanged=false` | Exactly one comment is posted and matches `fixtures/snapshot_with_groups.md` |
+| `test_snapshot_skip_unchanged` | Freeze canonical full-comment output when scan-stage filtering is active | `INPUT_PATHS=TEST_PROJECT_GLOB`, `comment-level=full`, `skip-unchanged=true`, `evaluate-unchanged=true` | Exactly one comment is posted and matches `fixtures/snapshot_skip_unchanged.md` |
+| `test_skip_unchanged_false_all_comment_levels` | Cover all 6 comment levels with skip filter disabled | `skip-unchanged=false`, `comment-level` in `none/minimal/full/changed/failed/failed-or-changed` | Run succeeds for each level; `none` suppresses comment; other levels post one comment with level-specific assertions |
+| `test_skip_unchanged_true_all_comment_levels` | Cover all 6 comment levels with scan-stage skip filter enabled | `skip-unchanged=true`, `evaluate-unchanged=false`, `comment-level` in 6-level matrix | Run succeeds for each level; logs filtering; unchanged report rows excluded in `full`; level-specific assertions hold |
+| `test_filter_before_evaluation_changes_global_coverage` | Prove skip-unchanged filtering occurs before evaluator aggregation | Compare `minimal` comment for `skip-unchanged=false` vs `skip-unchanged=true,evaluate-unchanged=false` | Comment bodies differ because evaluator input set changes after scan-stage filtering |
 
 ---
 
@@ -1200,9 +1206,9 @@ Three items that form the integration test layer:
    evaluation semantics from task 27.
 
 ## Acceptance criteria
-- [ ] `helpers.py` exists with typed `capture_run`
-- [ ] At least 3 golden snapshot fixtures cover: no-groups, with-groups, skip-unchanged
-- [ ] All 12 skip-unchanged × comment-level matrix cases covered and green
+- [x] `helpers.py` exists with typed `capture_run`
+- [x] At least 3 golden snapshot fixtures cover: no-groups, with-groups, skip-unchanged
+- [x] All 12 skip-unchanged × comment-level matrix cases covered and green
 ```
 
 ---

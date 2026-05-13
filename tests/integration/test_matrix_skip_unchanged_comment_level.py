@@ -1,3 +1,6 @@
+# Copyright (c) MoranaApps
+# SPDX-License-Identifier: Apache-2.0
+
 """
 Integration tests: skip-unchanged × comment-level matrix (Task 34).
 
