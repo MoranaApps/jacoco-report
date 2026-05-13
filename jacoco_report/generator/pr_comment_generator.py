@@ -147,9 +147,9 @@ class PRCommentGenerator:
         if event:
             parts.append(f"Event: `{event}`")
         if action_ref:
-            parts.append(f"`{action_ref}`")
+            parts.append(f"Action: `{action_ref}`")
         if started_at:
-            parts.append(started_at)
+            parts.append(f"Started: `{started_at}`")
 
         if not parts:
             return ""
