@@ -106,6 +106,17 @@ def _delete_comment(comment_id: int) -> None:
     )
 
 
+def _is_comment_write_forbidden(output: str) -> bool:
+    """Return whether output indicates 403 forbidden on PR issue-comments API writes."""
+    normalized = output.lower()
+    return (
+        "403" in normalized
+        and "forbidden" in normalized
+        and "/issues/" in normalized
+        and "/comments" in normalized
+    )
+
+
 @pytest.fixture
 def cleanup_comments() -> Generator[list[int], None, None]:
     """Yield a list; append comment IDs to it and they will be deleted on teardown."""
@@ -149,6 +160,13 @@ def test_comment_creation(cleanup_comments: list[int]) -> None:
     )
     result = capture_run(env)
 
+    combined = result.stdout + result.stderr
+    if _is_comment_write_forbidden(combined):
+        pytest.skip(
+            "Skipping live comment-creation check: token cannot write PR issue comments "
+            "in this workflow context (HTTP 403)."
+        )
+
     assert result.exit_code == 0, (
         f"Action exited with code {result.exit_code}.\n"
         f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}"
@@ -184,7 +202,15 @@ def test_pagination_handling(cleanup_comments: list[int]) -> None:
             json={"body": f"{marker} #{i}"},
             timeout=30,
         )
-        resp.raise_for_status()
+        try:
+            resp.raise_for_status()
+        except requests.HTTPError:
+            if resp.status_code == 403:
+                pytest.skip(
+                    "Skipping live pagination check: token cannot write PR issue comments "
+                    "in this workflow context (HTTP 403)."
+                )
+            raise
         comment_id = resp.json()["id"]
         posted_ids.append(comment_id)
         cleanup_comments.append(comment_id)
