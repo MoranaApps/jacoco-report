@@ -2117,6 +2117,9 @@ def test_run_with_report_groups_explicit_empty_baseline_does_not_inherit_global(
 
 def test_run_successful_empty_no_baseline(jacoco_report, mocker):
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value='pull_request')
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_run_id", return_value='')
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_action_ref", return_value='')
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_run_started_at", return_value='')
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_token", return_value='fake_token')
     mocker.patch("jacoco_report.utils.github.GitHub.get_pr_number", return_value=35)
     mocker.patch("jacoco_report.jacoco_report.JaCoCoReport.scan_jacoco_xml_files", return_value=[f'{os.getcwd()}/tests/data/module_b/target/jacoco_no_data.xml'])
@@ -2135,6 +2138,9 @@ def test_run_successful_empty_no_baseline(jacoco_report, mocker):
 
 def test_run_successful_empty_with_baseline(jacoco_report, mocker):
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value='pull_request')
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_run_id", return_value='')
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_action_ref", return_value='')
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_run_started_at", return_value='')
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_token", return_value='fake_token')
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=['fake/path'])
     mocker.patch("jacoco_report.utils.github.GitHub.get_pr_number", return_value=35)
@@ -2165,6 +2171,9 @@ one_source_file_scenarios = [
 @pytest.mark.parametrize("metric, comment, ov_cov, ch_cov, ov_cov_b, ch_cov_b", one_source_file_scenarios)
 def test_successful_one_source_file (jacoco_report, metric, comment, ov_cov, ch_cov, ov_cov_b, ch_cov_b, mocker):
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value='pull_request')
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_run_id", return_value='')
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_action_ref", return_value='')
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_run_started_at", return_value='')
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_token", return_value='fake_token')
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_title", return_value='Custom Title')
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value=metric)
@@ -2197,6 +2206,9 @@ more_source_files_scenarios = [
 @pytest.mark.parametrize("id, level, changed_files, expected_comments, evaluated_cov_reports, evaluated_cov_groups, violations, skip_unchanged, use_baseline", more_source_files_scenarios)
 def test_successful_more_source_files(jacoco_report, id, level, changed_files, expected_comments, evaluated_cov_reports, evaluated_cov_groups, violations, skip_unchanged, use_baseline, mocker):
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value='pull_request')
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_run_id", return_value='')
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_action_ref", return_value='')
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_run_started_at", return_value='')
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_token", return_value='fake_token')
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_comment_level", return_value=level)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=["tests/data/test_project/**/jacoco.xml"])
