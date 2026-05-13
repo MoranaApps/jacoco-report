@@ -1,24 +1,30 @@
-# Jacoco Report GitHub Action - Developer Guide
+# Jacoco Report GitHub Action — Developer Guide
 
 - [Project Setup](#project-setup)
+- [Branch Naming Convention](#branch-naming-convention)
 - [Run Scripts Locally](#run-scripts-locally)
 - [Run Pylint Check Locally](#run-pylint-check-locally)
 - [Run Black Tool Locally](#run-black-tool-locally)
-- [Run Unit Test](#run-unit-test)
+- [Run Mypy Locally](#run-mypy-locally)
+- [Run Tests](#run-tests)
+  - [Unit Tests](#unit-tests)
+  - [Integration Tests (offline)](#integration-tests-offline)
+  - [Live Integration Tests](#live-integration-tests)
+  - [Regenerate Golden Snapshots](#regenerate-golden-snapshots)
 - [Code Coverage](#code-coverage)
 - [Releasing](#releasing)
 
-## Project Setup
+---
 
-If you need to build the action locally, follow these steps for project setup:
+## Project Setup
 
 ### Prepare the Environment
 
 ```shell
-python3 --version
+python3 --version   # Python 3.13+ required
 ```
 
-### Set Up Python Environment
+### Set Up Python Virtual Environment
 
 ```shell
 python3 -m venv .venv
@@ -28,68 +34,93 @@ pip install -r requirements.txt
 
 ---
 
+## Branch Naming Convention
+
+| Type | Pattern | Example |
+|------|---------|---------|
+| Feature | `feature/<issue-number>-<short-description>` | `feature/112-skip-unchanged-filter` |
+| Bug fix | `fix/<issue-number>-<short-description>` | `fix/95-remove-pylint-disables` |
+| Docs | `docs/<short-description>` | `docs/update-developer-md` |
+| Chore | `chore/<short-description>` | `chore/add-fixture-factories` |
+| Spike | `spike/<issue-number>-<short-description>` | `spike/71-auto-detect-modules` |
+
+---
+
 ## Run Scripts Locally
 
-If you need to run the scripts locally, follow these steps:
+Create a shell script in the project root to simulate a GitHub Actions run locally.
 
 ### Create the Shell Script
 
-Create the shell file in the root directory. We will use `run_script.sh`.
-
 ```shell
 touch run_script.sh
+chmod +x run_script.sh
 ```
 
-Add the shebang line at the top of the sh script file.
+### Minimal script (no groups)
 
 ```bash
 #!/bin/sh
 
-# Essential environment variables for GitHub Action functionality
-export INPUT_PATHS="jacoco.xml"
-export INPUT_EXCLUDES="tests/*"
-export INPUT_BASELINE_PATHS='
-tests/data_baseline/**/*.xml
-'
-
-export INPUT_TITLE="Code Coverage Report"
-
-export INPUT_GLOBAL_THRESHOLDS="80*80*80"
-
-export INPUT_PR_NUMBER="1"                  # Required to add the PR number to receive the comments
-
-export INPUT_METRICS="instruction"
+export INPUT_TOKEN="ghp_your_personal_access_token"
+export INPUT_PATHS="**/jacoco.xml"
+export INPUT_EXCLUDE_PATHS=""
+export INPUT_GLOBAL_THRESHOLDS="80*70*60"
+export INPUT_REPORT_THRESHOLDS_DEFAULT="0*0*0"
+export INPUT_TITLE="JaCoCo Coverage Report"
+export INPUT_PR_NUMBER="1"
+export INPUT_METRIC="instruction"
 export INPUT_COMMENT_LEVEL="full"
-
-export INPUT_MODULES='
-module_large: test_project/module_large
-'
-export INPUT_MODULES_THRESHOLDS='
-module_large:80.0*95.0
-'
-
-export INPUT_SKIP_NOT_CHANGED="false"
+export INPUT_REPORT_GROUPS=""
+export INPUT_SKIP_UNCHANGED="false"
+export INPUT_EVALUATE_UNCHANGED="true"
+export INPUT_BASELINE_PATHS=""
 export INPUT_UPDATE_COMMENT="false"
-export INPUT_FAIL_ON_THRESHOLD="false"
-export INPUT_DEBUG="false"
-
+export INPUT_FAIL_ON_THRESHOLD="overall,changed-files-average,per-changed-file"
 export INPUT_PASS_SYMBOL="✅"
 export INPUT_FAIL_SYMBOL="❌"
+export INPUT_DEBUG="false"
 
-# Required Variables defined by GitHub - extras for local testing
+# Required GitHub context variables
 export GITHUB_REPOSITORY="MoranaApps/jacoco-report-dev"
 export GITHUB_EVENT_NAME="pull_request"
-export GITHUB_REF="refs/pull/35/merge"
+export GITHUB_REF="refs/pull/1/merge"
 
 python3 main.py
 ```
 
-### Make the Script Executable
+### Script with report groups
 
-From the terminal that is in the root of this project, make the script executable:
+```bash
+#!/bin/sh
 
-```shell
-chmod +x run_script.sh
+export INPUT_TOKEN="ghp_your_personal_access_token"
+export INPUT_GLOBAL_THRESHOLDS="80*70*60"
+export INPUT_REPORT_THRESHOLDS_DEFAULT="75*60*0"
+export INPUT_COMMENT_LEVEL="full"
+export INPUT_REPORT_GROUPS="
+- name: backend
+  paths:
+    - backend/**/jacoco.xml
+  thresholds: '80*70*60'
+- name: frontend
+  paths:
+    - frontend/**/jacoco.xml
+  thresholds: '75*65*50'
+"
+export INPUT_SKIP_UNCHANGED="false"
+export INPUT_EVALUATE_UNCHANGED="true"
+export INPUT_UPDATE_COMMENT="false"
+export INPUT_FAIL_ON_THRESHOLD="overall,changed-files-average,per-changed-file"
+export INPUT_PASS_SYMBOL="✅"
+export INPUT_FAIL_SYMBOL="❌"
+export INPUT_DEBUG="true"
+
+export GITHUB_REPOSITORY="MoranaApps/jacoco-report-dev"
+export GITHUB_EVENT_NAME="pull_request"
+export GITHUB_REF="refs/pull/1/merge"
+
+python3 main.py
 ```
 
 ### Run the Script
@@ -102,154 +133,153 @@ chmod +x run_script.sh
 
 ## Run Pylint Check Locally
 
-This project uses [Pylint](https://pypi.org/project/pylint/) tool for static code analysis.
-Pylint analyses your code without actually running it.
-It checks for errors, enforces, coding standards, looks for code smells etc.
-We do exclude the `tests/` file from the pylint check.
-
-Pylint displays a global evaluation score for the code, rated out of a maximum score of 10.0.
-We are aiming to keep our code quality high above the score 9.5.
-
-Follow these steps to run Pylint check locally:
-
-### Set Up Python Environment
-
-From terminal in the root of the project, run the following command:
-
-```shell
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
-
-This command will also install a Pylint tool, since it is listed in the project requirements.
-
-### Run Pylint
-
-Run Pylint on all files that are currently tracked by Git in the project.
+This project uses [Pylint](https://pypi.org/project/pylint/) for static code analysis.
+Configuration is in `.pylintrc`. The target score is ≥ 9.5/10.
 
 ```shell
 pylint $(git ls-files '*.py')
 ```
 
-To run Pylint on a specific file, follow the pattern `pylint <path_to_file>/<name_of_file>.py`.
-
-Example:
+To lint a single file:
 
 ```shell
 pylint jacoco_report/jacoco_report.py
 ```
 
-### Expected Output
+Expected output example:
 
-This is the console expected output example after running the tool:
-
-```shell
-************* Module main
-main.py:30:0: C0116: Missing function or method docstring (missing-function-docstring)
-
+```
 ------------------------------------------------------------------
-Your code has been rated at 9.41/10 (previous run: 8.82/10, +0.59)
+Your code has been rated at 9.67/10 (previous run: 9.67/10, +0.00)
 ```
 
 ---
 
 ## Run Black Tool Locally
 
-This project uses the [Black](https://github.com/psf/black) tool for code formatting.
-Black aims for consistency, generality, readability and reducing git diffs.
-The coding style used can be viewed as a strict subset of PEP 8.
+This project uses [Black](https://github.com/psf/black) for code formatting (line length 120,
+target Python 3.12). Configuration is in `pyproject.toml`.
 
-The project root file `pyproject.toml` defines the Black tool configuration.
-In this project we are accepting the line length of 120 characters.
-We also do exclude the `tests/` file from the black formatting.
-
-Follow these steps to format your code with Black locally:
-
-### Set Up Python Environment
-
-From terminal in the root of the project, run the following command:
+Check formatting without modifying files:
 
 ```shell
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+black --check $(git ls-files '*.py')
 ```
 
-This command will also install a Black tool, since it is listed in the project requirements.
-
-### Run Black
-
-Run Black on all files that are currently tracked by Git in the project.
+Apply formatting:
 
 ```shell
 black $(git ls-files '*.py')
 ```
 
-To run Black on a specific file, follow the pattern `black <path_to_file>/<name_of_file>.py`.
+---
 
-Example:
+## Run Mypy Locally
 
-```shell
-black jacoco_report/jacoco_report.py
-```
-
-### Expected Output
-
-This is the console expected output example after running the tool:
+This project uses [mypy](https://mypy.readthedocs.io/) for static type checking.
+Configuration is in `pyproject.toml`.
 
 ```shell
-All done! ✨ 🍰 ✨
-1 file reformatted.
+mypy .
 ```
+
+All source files must pass with zero errors before merging.
 
 ---
 
-## Run Unit Test
+## Run Tests
 
-Unit tests are written using the Pytest framework. To run all the tests, use the following command:
+### Unit Tests
+
+Unit tests cover individual functions and classes in isolation.
 
 ```shell
 pytest tests/unit/
 ```
 
-You can modify the directory to control the level of detail or granularity as per your needs.
-
-To run a specific test, write the command following the pattern below:
+Run a specific test:
 
 ```shell
-pytest tests/unit/utils/test_github.py::test_send_request_get
+pytest tests/unit/evaluator/test_coverage_evaluator.py::test_overall_threshold
 ```
+
+### Integration Tests (offline)
+
+Integration tests exercise the full action pipeline without a GitHub token.
+They use fixture XML files from `tests/data/` and `tests/data_baseline/`.
+
+```shell
+pytest tests/integration/ --ignore=tests/integration/live
+```
+
+These tests include:
+
+- **Golden snapshot tests** (`test_golden_snapshots.py`): assert that the generated PR comment
+  matches a stored golden file in `tests/integration/fixtures/`.
+- **Matrix tests** (`test_matrix_skip_unchanged_comment_level.py`): verify all
+  `skip-unchanged` × `comment-level` combinations (12 cases).
+
+### Live Integration Tests
+
+Live tests post a real comment to a GitHub PR and require a valid `GITHUB_TOKEN`.
+They are skipped automatically on forks.
+
+```shell
+GITHUB_TOKEN=ghp_... pytest tests/integration/live/
+```
+
+In CI these run only when `github.event.pull_request.head.repo.full_name == github.repository`.
+
+### Regenerate Golden Snapshots
+
+When the PR comment output intentionally changes (e.g. after a feature update), regenerate the
+golden snapshot files instead of manually editing them:
+
+```shell
+WRITE_SNAPSHOTS=1 pytest tests/integration/test_golden_snapshots.py
+```
+
+This writes the current action output to `tests/integration/fixtures/snapshot_*.md`.
+Commit the updated files alongside your feature change.
 
 ---
 
 ## Code Coverage
 
-This project uses [pytest-cov](https://pypi.org/project/pytest-cov/) plugin to generate test coverage reports.
-The objective of the project is to achieve a minimal score of 80 %. We do exclude the `tests/` file from the coverage
-report.
+This project uses [pytest-cov](https://pypi.org/project/pytest-cov/). The minimum coverage
+threshold is **80 %** (measured over `tests/unit/` and `tests/integration/` combined,
+excluding `tests/integration/live/`).
 
-To generate the coverage report, run the following command:
+Generate a coverage report:
 
 ```shell
-pytest tests/unit/ --cov=. --cov-fail-under=80 --cov-report=html -vv
+pytest --cov=. tests/ --ignore=tests/integration/live --cov-fail-under=80 --cov-report=html -vv
 ```
 
-See the coverage report on the path:
+Open the report:
 
 ```shell
 open htmlcov/index.html
+```
+
+Full QA gate (mirrors CI):
+
+```shell
+pytest --cov=. tests/ --cov-fail-under=80 && \
+pylint $(git ls-files '*.py') && \
+black --check $(git ls-files '*.py') && \
+mypy .
 ```
 
 ---
 
 ## Releasing
 
-This project uses GitHub Actions for deployment draft creation. The deployment process is semi-automated by a workflow
-defined in `.github/workflows/release_draft.yml`.
+This project uses GitHub Actions for release draft creation via `.github/workflows/release_draft.yml`.
 
-- **Trigger the workflow**: The `release_draft.yml` workflow is triggered on workflow_dispatch.
-- **Create a new draft release**: The workflow creates a new draft release in the repository.
-- **Finalize the release draft**: Edit the draft release to add a title, description, and any other necessary details
-related to GitHub Action.
-- **Publish the release**: Once the draft is ready, publish the release to make it available to the public.
+1. **Trigger the workflow** — run `release_draft.yml` via `workflow_dispatch`.
+2. **Review the draft release** — add a title, description, and changelog notes.
+3. **Publish the release** — once the draft is finalised, publish it.
+
+The `v2` tag is kept in sync automatically by `.github/workflows/update-v2-tag.yml` after each
+release to `v2.x.y`.
