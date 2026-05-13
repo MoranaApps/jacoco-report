@@ -65,14 +65,15 @@ def _api_headers() -> dict[str, str]:
 
 def _live_env(**overrides: str) -> dict[str, str]:
     """Return a full env dict for a live ``capture_run`` invocation."""
-    return make_env_base(
+    env = make_env_base(
         INPUT_TOKEN=_TOKEN,
         INPUT_PR_NUMBER=str(_pr_number()),
         GITHUB_REPOSITORY=_REPO,
         GITHUB_REF=_REF,
         GITHUB_EVENT_NAME="pull_request",
-        **overrides,
     )
+    env.update(overrides)
+    return env
 
 
 def _fetch_all_comments(pr_number: int) -> list[dict]:
