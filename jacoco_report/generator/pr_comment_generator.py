@@ -239,14 +239,12 @@ class PRCommentGenerator:
     ) -> str:
         """Render the global summary table without baseline deltas."""
         return (
-            dedent(
-                """
+            dedent("""
             | Metric ({}) | Coverage | Threshold | Status |
             |----------------------|----------|-----------|--------|
             | **Overall**       | {}% | {}% | {} |
             | **Changed Files** | {}% | {}% | {} |
-        """
-            )
+        """)
             .strip()
             .format(
                 metric,
@@ -278,14 +276,12 @@ class PRCommentGenerator:
         diff_ch = total_changed_files_reached - bs_total_changed_files_reached
 
         return (
-            dedent(
-                """
+            dedent("""
             | Metric ({}) | Coverage | Threshold | Δ Coverage | Status |
             |-------------------|-----|-----|-----|----|
             | **Overall**       | {}% | {}% | {}{}% | {} |
             | **Changed Files** | {}% | {}% | {}{}% | {} |
-        """
-            )
+        """)
             .strip()
             .format(
                 metric,
