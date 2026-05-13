@@ -130,7 +130,7 @@ jobs:
 | `pass-symbol`       | Symbol for passing checks in PR comments (e.g., ✅, **Passed**).                                                                                                                                                               | No       | `✅`                                              |
 | `fail-symbol`       | Symbol for failing checks in PR comments (e.g., ❌, **Failed**).                                                                                                                                                               | No       | `❌`                                              |
 | `fail-on-threshold` | Comma- or newline-separated list of thresholds that must pass: `overall`, `changed-files-average`, `per-changed-file`. Leave empty to disable.                                                                                | No       | `overall,changed-files-average,per-changed-file` |
-| `debug`             | Enables detailed logging. Automatically activated when `ACTIONS_RUNNER_DEBUG=true`.                                                                                                                                            | No       | `false`                                          |
+| `debug`             | Enables detailed logging. Automatically activated when `RUNNER_DEBUG=1` (GitHub runner debug mode).                                                                                                                             | No       | `false`                                          |
 
 > Hint: default values have been defined to provide maximal possible information in the comment.
 

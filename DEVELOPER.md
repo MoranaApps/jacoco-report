@@ -62,7 +62,7 @@ chmod +x run_script.sh
 ```bash
 #!/bin/sh
 
-export INPUT_TOKEN="ghp_your_personal_access_token"
+# INPUT_TOKEN must be provided externally, e.g.:
 export INPUT_PATHS="**/jacoco.xml"
 export INPUT_EXCLUDE_PATHS=""
 export INPUT_GLOBAL_THRESHOLDS="80*70*0"
@@ -94,7 +94,7 @@ python3 main.py
 ```bash
 #!/bin/sh
 
-export INPUT_TOKEN="ghp_your_personal_access_token"
+# INPUT_TOKEN must be provided externally, e.g.:
 export INPUT_GLOBAL_THRESHOLDS="80*70*0"
 export INPUT_REPORT_THRESHOLDS_DEFAULT="75*60*0"
 export INPUT_COMMENT_LEVEL="full"
