@@ -304,12 +304,18 @@ class CoverageEvaluator:
                 evaluated_coverage.name,
             )
         if has_changed_files_for_log:
-            logger.info(
-                "Group '%s' reached average changed files coverage of %.1f%% with threshold set to %.1f%%",
-                evaluated_coverage.name,
-                evaluated_coverage.avg_changed_files_coverage_reached,
-                changed_files_threshold,
-            )
+            if has_changed_files_metric_weight:
+                logger.info(
+                    "Group '%s' reached average changed files coverage of %.1f%% with threshold set to %.1f%%",
+                    evaluated_coverage.name,
+                    evaluated_coverage.avg_changed_files_coverage_reached,
+                    changed_files_threshold,
+                )
+            else:
+                logger.info(
+                    "Group '%s' has no changed-files coverage data for selected metric; treated as passed.",
+                    evaluated_coverage.name,
+                )
 
         return evaluated_coverage
 
@@ -349,10 +355,11 @@ class CoverageEvaluator:
                 evaluated_coverage_report.overall_coverage_reached >= overall_threshold
             )
 
-        if (
+        has_avg_changed_files_metric_weight = not (
             evaluated_coverage_report.avg_changed_files_coverage.covered == 0
             and evaluated_coverage_report.avg_changed_files_coverage.missed == 0
-        ):
+        )
+        if not has_avg_changed_files_metric_weight:
             evaluated_coverage_report.avg_changed_files_coverage_reached = 0.0
             evaluated_coverage_report.avg_changed_files_passed = True
 
@@ -385,12 +392,18 @@ class CoverageEvaluator:
                 report_coverage.name,
             )
         if report_coverage.changed_files_coverage:
-            logger.info(
-                "Report '%s' reached average changed files coverage of %.1f%% with threshold set to %.1f%%",
-                report_coverage.name,
-                evaluated_coverage_report.avg_changed_files_coverage_reached,
-                changed_files_threshold,
-            )
+            if has_avg_changed_files_metric_weight:
+                logger.info(
+                    "Report '%s' reached average changed files coverage of %.1f%% with threshold set to %.1f%%",
+                    report_coverage.name,
+                    evaluated_coverage_report.avg_changed_files_coverage_reached,
+                    changed_files_threshold,
+                )
+            else:
+                logger.info(
+                    "Report '%s' has no changed-files coverage data for selected metric; treated as passed.",
+                    report_coverage.name,
+                )
 
         return evaluated_coverage_report
 

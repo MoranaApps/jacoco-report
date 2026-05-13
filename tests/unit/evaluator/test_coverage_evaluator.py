@@ -598,6 +598,51 @@ def test_report_overall_coverage_logged_as_na_when_no_metric_weight(mocker: Mock
     assert evaluator.evaluated_reports_coverage["na_report"].overall_passed is True
 
 
+def test_report_changed_files_coverage_logged_as_na_when_no_metric_weight(mocker: MockerFixture, caplog):
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="branch")
+    overall = Coverage(
+        instruction=Counter(missed=0, covered=10),
+        branch=Counter(missed=0, covered=10),
+        line=Counter(missed=0, covered=10),
+        complexity=Counter(missed=0, covered=10),
+        method=Counter(missed=0, covered=10),
+        clazz=Counter(missed=0, covered=10),
+    )
+    changed_files = {
+        "com/example/Foo.java": FileCoverage(
+            file_name="Foo.java",
+            file_path="com/example",
+            instruction=Counter(missed=0, covered=10),
+            branch=Counter(missed=0, covered=0),
+            line=Counter(missed=0, covered=10),
+            complexity=Counter(missed=0, covered=10),
+            method=Counter(missed=0, covered=10),
+            clazz=Counter(missed=0, covered=10),
+        )
+    }
+    report = ReportFileCoverage(
+        path="na_cf_report.xml",
+        name="na_cf_report",
+        overall_coverage=overall,
+        changed_files_coverage=changed_files,
+    )
+    evaluator = CoverageEvaluator(
+        report_files_coverage=[report],
+        global_min_coverage_overall=0.0,
+        global_min_coverage_changed_files=50.0,
+        global_min_coverage_changed_per_file=0.0,
+        report_thresholds_default=(0.0, 80.0, 0.0),
+    )
+
+    with caplog.at_level(logging.INFO, logger="jacoco_report.evaluator.coverage_evaluator"):
+        evaluator.evaluate()
+
+    messages = [r.message for r in caplog.records]
+    assert "Report 'na_cf_report' has no changed-files coverage data for selected metric; treated as passed." in messages
+    assert not any("Report 'na_cf_report' reached average changed files coverage" in m for m in messages)
+    assert evaluator.evaluated_reports_coverage["na_cf_report"].avg_changed_files_passed is True
+
+
 def test_report_changed_files_coverage_logged_for_changed_report(mocker: MockerFixture, caplog):
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
     report = _make_report_with_changed_file("atum_reader")
@@ -706,6 +751,7 @@ def test_group_changed_files_coverage_logged_when_metric_has_zero_weight(
         evaluator.evaluate()
 
     messages = [r.message for r in caplog.records]
-    assert "Group 'frontend' reached average changed files coverage of 0.0% with threshold set to 55.0%" in messages
+    assert "Group 'frontend' has no changed-files coverage data for selected metric; treated as passed." in messages
+    assert not any("Group 'frontend' reached average changed files coverage" in m for m in messages)
     assert evaluator.evaluated_groups_coverage["frontend"].avg_changed_files_passed is True
     assert not any("Group 'frontend' changed files coverage 0.0 is below the threshold 55.0." in v for v in evaluator.violations)
