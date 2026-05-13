@@ -509,3 +509,114 @@ def test_group_name_in_serialized_output():
     # to_dict() should include group_name field with correct value
     assert group_dict["group_name"] == "backend"
     assert group_dict["group_name"] != "Unknown"
+
+
+# --- Task 36: Enhanced logging (thresholds + reached values) ---
+
+def _make_report_with_changed_file(name: str, group_name: str = "Unknown") -> ReportFileCoverage:
+    overall = Coverage(
+        instruction=Counter(missed=2, covered=8),
+        branch=Counter(missed=0, covered=10),
+        line=Counter(missed=0, covered=10),
+        complexity=Counter(missed=0, covered=10),
+        method=Counter(missed=0, covered=10),
+        clazz=Counter(missed=0, covered=10),
+    )
+    changed_files = {
+        "com/example/Foo.java": FileCoverage(
+            file_name="Foo.java",
+            file_path="com/example",
+            instruction=Counter(missed=1, covered=9),
+            branch=Counter(missed=0, covered=10),
+            line=Counter(missed=0, covered=10),
+            complexity=Counter(missed=0, covered=10),
+            method=Counter(missed=0, covered=10),
+            clazz=Counter(missed=0, covered=10),
+        )
+    }
+    return ReportFileCoverage(
+        path=f"{name}.xml", name=name, overall_coverage=overall,
+        changed_files_coverage=changed_files, group_name=group_name,
+    )
+
+
+def test_report_overall_coverage_logged_for_unchanged_report(mocker, caplog):
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
+    report = _make_minimal_report("atum_agent", "Unknown")
+    evaluator = CoverageEvaluator(
+        report_files_coverage=[report],
+        global_min_coverage_overall=80.0,
+        global_min_coverage_changed_files=0.0,
+        global_min_coverage_changed_per_file=0.0,
+        report_thresholds_default=(80.0, 0.0, 0.0),
+    )
+    import logging
+    with caplog.at_level(logging.INFO, logger="jacoco_report.evaluator.coverage_evaluator"):
+        evaluator.evaluate()
+
+    messages = [r.message for r in caplog.records]
+    assert any("Report 'atum_agent' reached overall coverage" in m for m in messages)
+    assert any("threshold set to 80.0%" in m for m in messages)
+    assert not any("average changed files" in m for m in messages)
+
+
+def test_report_changed_files_coverage_logged_for_changed_report(mocker, caplog):
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
+    report = _make_report_with_changed_file("atum_reader")
+    evaluator = CoverageEvaluator(
+        report_files_coverage=[report],
+        global_min_coverage_overall=75.0,
+        global_min_coverage_changed_files=0.0,
+        global_min_coverage_changed_per_file=0.0,
+        report_thresholds_default=(75.0, 82.0, 0.0),
+    )
+    import logging
+    with caplog.at_level(logging.INFO, logger="jacoco_report.evaluator.coverage_evaluator"):
+        evaluator.evaluate()
+
+    messages = [r.message for r in caplog.records]
+    assert any("Report 'atum_reader' reached overall coverage" in m and "75.0%" in m for m in messages)
+    assert any("Report 'atum_reader' reached average changed files coverage" in m and "82.0%" in m for m in messages)
+
+
+def test_group_overall_coverage_logged(mocker, caplog):
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
+    report = _make_minimal_report("rep-a", "backend")
+    group = ReportGroup(name="backend", paths=["**"], min_coverage_overall=70.0)
+    evaluator = CoverageEvaluator(
+        report_files_coverage=[report],
+        global_min_coverage_overall=50.0,
+        global_min_coverage_changed_files=50.0,
+        global_min_coverage_changed_per_file=50.0,
+        report_groups=[group],
+    )
+    import logging
+    with caplog.at_level(logging.INFO, logger="jacoco_report.evaluator.coverage_evaluator"):
+        evaluator.evaluate()
+
+    messages = [r.message for r in caplog.records]
+    assert any("Group 'backend' reached overall coverage" in m and "70.0%" in m for m in messages)
+    assert not any("Group 'backend' reached average changed files" in m for m in messages)
+
+
+def test_group_changed_files_coverage_logged(mocker, caplog):
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
+    report = _make_report_with_changed_file("rep-b", "frontend")
+    group = ReportGroup(
+        name="frontend", paths=["**"],
+        min_coverage_overall=60.0, min_coverage_changed_files=55.0,
+    )
+    evaluator = CoverageEvaluator(
+        report_files_coverage=[report],
+        global_min_coverage_overall=50.0,
+        global_min_coverage_changed_files=50.0,
+        global_min_coverage_changed_per_file=50.0,
+        report_groups=[group],
+    )
+    import logging
+    with caplog.at_level(logging.INFO, logger="jacoco_report.evaluator.coverage_evaluator"):
+        evaluator.evaluate()
+
+    messages = [r.message for r in caplog.records]
+    assert any("Group 'frontend' reached overall coverage" in m and "60.0%" in m for m in messages)
+    assert any("Group 'frontend' reached average changed files coverage" in m and "55.0%" in m for m in messages)

@@ -275,15 +275,30 @@ class CoverageEvaluator:
         else:
             evaluated_coverage.overall_passed = evaluated_coverage.overall_coverage_reached >= overall_threshold
 
-        if (
-            evaluated_coverage.avg_changed_files_coverage.covered == 0
-            and evaluated_coverage.avg_changed_files_coverage.missed == 0
-        ):
+        has_changed_files = (
+            evaluated_coverage.avg_changed_files_coverage.covered > 0
+            or evaluated_coverage.avg_changed_files_coverage.missed > 0
+        )
+        if not has_changed_files:
             evaluated_coverage.avg_changed_files_coverage_reached = 0.0
             evaluated_coverage.avg_changed_files_passed = True
         else:
             evaluated_coverage.avg_changed_files_passed = (
                 evaluated_coverage.avg_changed_files_coverage_reached >= changed_files_threshold
+            )
+
+        logger.info(
+            "Group '%s' reached overall coverage of %.1f%% with threshold set to %.1f%%",
+            evaluated_coverage.name,
+            evaluated_coverage.overall_coverage_reached,
+            overall_threshold,
+        )
+        if has_changed_files:
+            logger.info(
+                "Group '%s' reached average changed files coverage of %.1f%% with threshold set to %.1f%%",
+                evaluated_coverage.name,
+                evaluated_coverage.avg_changed_files_coverage_reached,
+                changed_files_threshold,
             )
 
         return evaluated_coverage
@@ -345,6 +360,20 @@ class CoverageEvaluator:
                     changed_file_coverage.get_coverage_by_metric(ActionInputs.get_metric())
                     >= changed_per_file_threshold
                 )
+
+        logger.info(
+            "Report '%s' reached overall coverage of %.1f%% with threshold set to %.1f%%",
+            report_coverage.name,
+            evaluated_coverage_report.overall_coverage_reached,
+            overall_threshold,
+        )
+        if report_coverage.changed_files_coverage:
+            logger.info(
+                "Report '%s' reached average changed files coverage of %.1f%% with threshold set to %.1f%%",
+                report_coverage.name,
+                evaluated_coverage_report.avg_changed_files_coverage_reached,
+                changed_files_threshold,
+            )
 
         return evaluated_coverage_report
 
