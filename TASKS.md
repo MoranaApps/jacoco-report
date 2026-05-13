@@ -78,11 +78,11 @@ Group 0 (deps) → Task 20 🔝 → Tasks 17/18/21 → Group F (design decisions
 | **36** | I | Enhanced logging (thresholds + reached values) | ✅ | `feature/101-enhance-threshold-logging` | #101 |
 | **37** | I | PR comment metadata | ✅ | `feature/94-pr-comment-metadata` | #94 |
 | **38** | J | v2→v3 migration guide | ✅ | `docs/74-v2-v3-migration-guide` | #74 |
-| **39** | J | Create `docs/` directory | 🔒 ⬜ | `docs/extended-docs-directory` | new |
-| **40** | J | Update `DEVELOPER.md` | 🔒 ⬜ | `docs/update-developer-md` | new |
-| **41** | J | Update `README.md` | 🔒 ⬜ | `feature/70-Improve-README` | #70 |
-| **42** | J | Document `report-groups` YAML format | 🔒 ⬜ | `docs/98-report-groups-format-docs` | #98 |
-| **43** | J | Create `examples/` directory | 🔒 ⬜ | `docs/examples-directory` | new |
+| **39** | J | Create `docs/` directory | ✅ | `docs/improve-docs` | new |
+| **40** | J | Update `DEVELOPER.md` | ✅ | `docs/improve-docs` | new |
+| **41** | J | Update `README.md` | ✅ | `docs/improve-docs` | #70 |
+| **42** | J | Document `report-groups` YAML format | ✅ | `docs/improve-docs` | #98 |
+| **43** | J | Create `examples/` directory | ✅ | `docs/improve-docs` | new |
 | **44** | K | Remove `# pylint: disable` inline suppressions | 🔒 ⬜ | `fix/95-remove-pylint-inline-disables` | #95 |
 | **45** | K | `WRITE_SNAPSHOTS` regeneration guard | 🔒 ⬜ | `chore/snapshot-write-guard` | new |
 | **46** | L | Introduce Pydantic for validation | ⬜ | `feature/39-pydantic-input-validation` | #39 |
@@ -494,7 +494,7 @@ Append to PR comments: run ID, timestamp, trigger event, action version.
 
 Task 38 is gated on tasks 27–30 being complete. Tasks 39–43 may proceed in parallel after task 38.
 
-#### Task 38 — v2→v3 migration guide ⬜
+#### Task 38 — v2→v3 migration guide ✅
 
 **Branch:** `docs/74-v2-v3-migration-guide` | **Issue:** #74
 **Depends on:** Tasks 27, 28, 29, 30 (all core features done)
@@ -508,41 +508,44 @@ Task 38 is gated on tasks 27–30 being complete. Tasks 39–43 may proceed in p
 6. `fail-on-threshold: true/false` → deprecated; use list form
 7. `comment-level` → new values: `none`, `changed`, `failed`, `failed-or-changed`
 
-#### Task 39 — Create `docs/` directory ⬜
+#### Task 39 — Create `docs/` directory ✅
 
-**Branch:** `docs/extended-docs-directory` | **Issue:** new
-- Move migration guide here
-- Add `report-groups` YAML format reference
-- Add `comment-level` mode diagrams
+**Branch:** `docs/improve-docs` | **Issue:** new
+- `docs/comment-level-guide.md` — level descriptions with visual table examples
+- `docs/report-groups-format.md` — full YAML schema and field reference
+- `docs/v2-v3-migration-guide.md` — already existed (task 38)
 
-#### Task 40 — Update `DEVELOPER.md` ⬜
+#### Task 40 — Update `DEVELOPER.md` ✅
 
-**Branch:** `docs/update-developer-md` | **Issue:** new
+**Branch:** `docs/improve-docs` | **Issue:** new
+- Branch naming convention table
+- v3-accurate local script examples (removed `modules`/`modules-thresholds`)
 - Integration test section (offline + live)
-- Branch naming convention
 - `WRITE_SNAPSHOTS=1` snapshot regeneration step
-- Updated `mypy` and `pylint` commands
+- `mypy .` command and full QA gate
 
-#### Task 41 — Update `README.md` ⬜
+#### Task 41 — Update `README.md` ✅
 
-**Branch:** `feature/70-Improve-README` *(exists)* | **Issue:** #70
-- Close open branch `feature/70-Improve-README`
-- Add Motivation section, Troubleshooting section
-- Move Quick Start earlier
-- Align all input examples to v3
+**Branch:** `docs/improve-docs` | **Issue:** #70
+- Added Motivation section
+- Added Quick Start section (before Usage)
+- Added Troubleshooting section
+- All examples aligned to v3 inputs
+- Comment-level and report-groups sections link to `docs/`
 
-#### Task 42 — Document `report-groups` YAML format ⬜
+#### Task 42 — Document `report-groups` YAML format ✅
 
-**Branch:** `docs/98-report-groups-format-docs` | **Issue:** #98
-- Replaces the `modules-thresholds` format issue
-- Add to README and `docs/`
+**Branch:** `docs/improve-docs` | **Issue:** #98
+- Created `docs/report-groups-format.md` with full schema, field reference,
+  threshold resolution, quoting rules, and examples
+- README `report-groups` section links to the new doc
 
-#### Task 43 — Create `examples/` directory ⬜
+#### Task 43 — Create `examples/` directory ✅
 
-**Branch:** `docs/examples-directory` | **Issue:** new
-- `basic.yml` — minimal config with `global-thresholds`
-- `report-groups.yml` — multi-group YAML with per-group thresholds
-- `migration-v2-to-v3.yml` — before/after side-by-side
+**Branch:** `docs/improve-docs` | **Issue:** new
+- `examples/basic.yml` — minimal config with `global-thresholds`
+- `examples/report-groups.yml` — multi-group YAML with per-group thresholds and baseline
+- `examples/migration-v2-to-v3.yml` — annotated before/after side-by-side
 
 ---
 
@@ -622,6 +625,6 @@ Task 27 ──────────────────► Task 31
 - [ ] Task 30 (full `comment-level`) done
 - [ ] Task 31 (`fail-on-threshold` deprecation + `evaluate-unchanged`) done
 - [ ] Tasks 32–35 (integration test infrastructure) done
-- [ ] Task 38 (migration guide) done
-- [ ] Tasks 39–43 (documentation) done
+- [x] Task 38 (migration guide) done
+- [x] Tasks 39–43 (documentation) done
 - [ ] QA gate passes on `main`: `pytest --cov=. tests/ --cov-fail-under=80 && pylint $(git ls-files '*.py') && black --check $(git ls-files '*.py') && mypy .`

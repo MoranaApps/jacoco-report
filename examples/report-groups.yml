@@ -1,0 +1,84 @@
+# examples/report-groups.yml
+#
+# Multi-module project using report-groups for per-group thresholds.
+# Each group scans its own set of JaCoCo XML files and is evaluated
+# independently. A global threshold is applied to the aggregated totals
+# as a separate pass.
+
+name: Coverage Report (multi-module)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      # ------------------------------------------------------------------
+      # Your build step goes here — it must produce jacoco.xml files for
+      # each module before this action runs.
+      # ------------------------------------------------------------------
+
+      - name: Publish JaCoCo Report
+        uses: MoranaApps/jacoco-report@v3
+        with:
+          token: '${{ secrets.GITHUB_TOKEN }}'
+
+          # Global thresholds are evaluated over all reports combined,
+          # independently of per-group thresholds.
+          global-thresholds: '75*0*0'
+
+          # Default thresholds applied per-field when a group omits a field.
+          # Resolution order: per-group field → this default → 0.0
+          report-thresholds-default: '70*60*0'
+
+          # Named report groups. When report-groups is set, top-level
+          # paths can be omitted — each group defines its own paths.
+          report-groups: |
+            - name: backend
+              paths:
+                - backend/**/jacoco.xml
+              thresholds: '80*70*60'   # explicit for all three fields
+              baseline-paths:
+                - baseline/backend/**/*.xml
+
+            - name: frontend
+              paths:
+                - frontend/**/jacoco.xml
+              thresholds: '75**'       # overall=75; avg and per-file from report-thresholds-default
+              baseline-paths:
+                - baseline/frontend/**/*.xml
+
+            - name: shared-libs
+              paths:
+                - libs/**/jacoco.xml
+              # no thresholds — fully inherits from report-thresholds-default (70*60*0)
+              baseline-paths:
+                - baseline/libs/**/*.xml   # per-group baseline overrides top-level baseline-paths
+
+          # Optional top-level baseline paths (used only when exactly one group omits baseline-paths).
+          # baseline-paths: 'baseline/main/**/*.xml'
+
+          # Show rows with changes or failures; rows with no changes are still shown when failing.
+          comment-level: 'failed-or-changed'
+
+          # Fail on overall and changed-files-average threshold breaches.
+          fail-on-threshold: 'overall,changed-files-average'
+
+          # Update the existing comment rather than posting a new one each push.
+          update-comment: 'true'

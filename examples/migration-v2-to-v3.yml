@@ -1,0 +1,113 @@
+# examples/migration-v2-to-v3.yml
+#
+# Side-by-side before/after showing a complete v2 → v3 migration.
+# See docs/v2-v3-migration-guide.md for detailed explanations.
+
+# ===========================================================================
+# BEFORE — v2 workflow
+# ===========================================================================
+#
+# - uses: MoranaApps/jacoco-report@v2
+#   with:
+#     token: ${{ secrets.GITHUB_TOKEN }}
+#     paths: '**/jacoco.xml'
+#
+#     # v2 threshold inputs map in v3 as:
+#     # - overall + changed-files-average -> global-thresholds
+#     # - per-changed-file -> report-thresholds-default / group thresholds
+#     min-coverage-overall: '80'
+#     min-coverage-changed-files: '70'
+#     min-coverage-per-changed-file: '60'
+#
+#     # sensitivity is removed — detail output is always on
+#     sensitivity: 'detail'
+#
+#     # comment-mode is removed — single comment is the only mode
+#     comment-mode: 'single'
+#
+#     # modules + modules-thresholds → replaced by report-groups YAML
+#     modules: |
+#       backend=backend/**/jacoco.xml
+#       frontend=frontend/**/jacoco.xml
+#     modules-thresholds: |
+#       backend=80*70*60
+#       frontend=75*65*50
+#
+#     skip-unchanged: 'true'
+#
+#     # Boolean fail-on-threshold is deprecated → use list form
+#     fail-on-threshold: 'true'
+#
+#     # comment-level had only minimal/full → now six levels available
+#     comment-level: 'full'
+
+# ===========================================================================
+# AFTER — v3 workflow
+# ===========================================================================
+
+name: Coverage Report
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      # ------------------------------------------------------------------
+      # Your build/test step goes here — it must generate the JaCoCo XML
+      # files referenced by report-groups before publishing the report.
+      # ------------------------------------------------------------------
+
+      - name: Publish JaCoCo Report
+        uses: MoranaApps/jacoco-report@v3
+        with:
+          token: '${{ secrets.GITHUB_TOKEN }}'
+
+          # global-thresholds carries aggregated overall + changed-files-average.
+          # Per-changed-file threshold is configured via report/group thresholds.
+          global-thresholds: '80*70*0'
+
+          # report-thresholds-default sets the fallback for group threshold fields.
+          report-thresholds-default: '75*65*50'
+
+          # report-groups replaces modules + modules-thresholds.
+          # Each group defines its own paths and optional per-group thresholds.
+          report-groups: |
+            - name: backend
+              paths:
+                - backend/**/jacoco.xml
+              thresholds: '80*70*60'
+            - name: frontend
+              paths:
+                - frontend/**/jacoco.xml
+              thresholds: '75*65*50'
+
+          # skip-unchanged now filters at scan stage (before evaluation).
+          skip-unchanged: 'true'
+
+          # evaluate-unchanged=true (default): filtered reports still checked
+          # against their overall threshold even though they are hidden from the comment.
+          evaluate-unchanged: 'true'
+
+          # List form replaces deprecated boolean fail-on-threshold.
+          fail-on-threshold: 'overall,changed-files-average,per-changed-file'
+
+          # comment-level: same values as v2 (minimal/full) plus four new ones:
+          # none | changed | failed | failed-or-changed
+          comment-level: 'full'

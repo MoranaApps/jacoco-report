@@ -9,7 +9,7 @@ Each section shows a before/after workflow snippet and explains the new behaviou
 
 | # | Area | v2 input | v3 replacement |
 |---|------|----------|---------------|
-| 1 | Threshold inputs | `min-coverage-overall` / `min-coverage-changed-files` / `min-coverage-per-changed-file` | `global-thresholds` |
+| 1 | Threshold inputs | `min-coverage-overall` / `min-coverage-changed-files` / `min-coverage-per-changed-file` | `global-thresholds` (overall + changed-files-average) + `report-thresholds-default` or group `thresholds` (per-changed-file) |
 | 2 | Comment verbosity | `sensitivity` | Removed — detail is always on |
 | 3 | Comment mode | `comment-mode` | Removed — single comment always |
 | 4 | Module grouping | `modules` + `modules-thresholds` | `report-groups` (YAML) |
@@ -19,10 +19,10 @@ Each section shows a before/after workflow snippet and explains the new behaviou
 
 ---
 
-## 1. Threshold inputs → `global-thresholds`
+## 1. Threshold inputs mapping in v3
 
-The three separate threshold inputs are replaced by a single `global-thresholds` string in
-`overall*changed-files-average*per-changed-file` order.
+In v3, overall and changed-files-average thresholds map to `global-thresholds`.
+Per-changed-file thresholds map to `report-thresholds-default` (or per-group `thresholds`).
 
 **v2:**
 ```yaml
@@ -41,11 +41,13 @@ The three separate threshold inputs are replaced by a single `global-thresholds`
   with:
     token: ${{ secrets.GITHUB_TOKEN }}
     paths: '**/jacoco.xml'
-    global-thresholds: '80*70*60'
+    global-thresholds: '80*70*0'
+    report-thresholds-default: '0*0*60'
 ```
 
-Each position maps to: `overall * changed-files-average * per-changed-file`.
-Omitted or `0` positions mean no enforcement for that dimension.
+`global-thresholds` uses `overall*changed-files-average*reserved-third`.
+The aggregated evaluation uses overall and changed-files-average values.
+Per-changed-file checks come from report/group thresholds.
 
 ---
 
@@ -206,27 +208,29 @@ in a future release. A deprecation warning is written to the action log when a b
 
 | v2 value | v3 equivalent | Meaning |
 |----------|--------------|---------|
-| `true` | `[overall, changed-files-average, per-changed-file]` | Fail on any threshold breach |
-| `false` | `[]` | Never fail on threshold breach |
+| `true` | `overall,changed-files-average,per-changed-file` | Fail on any threshold breach |
+| `false` | `''` | Never fail on threshold breach |
 
 **v2:**
 ```yaml
     fail-on-threshold: 'true'
 ```
 
-**v3 (explicit list):**
+**v3 (comma-separated):**
 ```yaml
-    fail-on-threshold: '[overall, changed-files-average, per-changed-file]'
+  fail-on-threshold: 'overall,changed-files-average,per-changed-file'
 ```
 
-To fail only on the global overall threshold:
+To fail only on the overall dimension (global overall plus report/group overall checks):
 ```yaml
-    fail-on-threshold: '[overall]'
+  fail-on-threshold: 'overall'
 ```
+
+Note: `overall` is not global-only; report/group overall failures also fail the action.
 
 To disable threshold-based failure entirely:
 ```yaml
-    fail-on-threshold: '[]'
+  fail-on-threshold: ''
 ```
 
 ---
@@ -296,7 +300,7 @@ v3 adds four new levels. The existing `minimal` and `full` levels are unchanged.
   with:
     token: ${{ secrets.GITHUB_TOKEN }}
     paths: '**/jacoco.xml'
-    global-thresholds: '80*70*60'
+    global-thresholds: '80*70*0'
     report-thresholds-default: '75*65*50'
     report-groups: |
       - name: backend
@@ -308,6 +312,6 @@ v3 adds four new levels. The existing `minimal` and `full` levels are unchanged.
           - frontend/**/jacoco.xml
         thresholds: '75*65*50'
     skip-unchanged: 'true'
-    fail-on-threshold: '[overall, changed-files-average, per-changed-file]'
+    fail-on-threshold: 'overall,changed-files-average,per-changed-file'
     comment-level: 'full'
 ```
