@@ -434,7 +434,7 @@ All Group H tasks depend on at least one Group G task being complete.
 
 ---
 
-#### Task 33 — Golden snapshot tests ⬜
+#### Task 33 — Golden snapshot tests ✅
 
 **Branch:** `chore/golden-snapshot-tests`
 **Issue:** new | **Depends on:** Tasks 20, 28, 30, 32

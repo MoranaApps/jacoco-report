@@ -4,10 +4,11 @@
 """
 Integration tests: skip-unchanged × comment-level matrix (Task 34).
 
-Covers all 2 × 6 = 12 combinations of skip-unchanged × comment-level and
-verifies filter-before-evaluation semantics: with skip-unchanged=true,
-unchanged reports are removed at the scan stage — before CoverageEvaluator
-runs — so they never appear in comment tables regardless of comment level.
+Covers all 2 × 6 = 12 combinations of skip-unchanged × comment-level.
+The evaluate-unchanged=false branch is exercised throughout: with
+skip-unchanged=true and evaluate-unchanged=false, unchanged reports are
+removed at the scan stage before CoverageEvaluator runs and are fully
+excluded from both comment rows and global threshold evaluation.
 """
 
 from __future__ import annotations
@@ -15,6 +16,7 @@ from __future__ import annotations
 import pytest
 from pytest_mock import MockerFixture
 
+from jacoco_report.utils.enums import CommentLevelEnum
 from tests.integration.helpers import (
     TEST_PROJECT_GLOB,
     capture_run,
@@ -30,7 +32,7 @@ _CHANGED_REPORT = "Module Large Report"
 # Report that is filtered when skip-unchanged=true (no changed files).
 _UNCHANGED_REPORT = "Module Small Report"
 
-_COMMENT_LEVELS = ["none", "minimal", "full", "changed", "failed", "failed-or-changed"]
+_COMMENT_LEVELS = [level.value for level in CommentLevelEnum]
 
 
 def _mock_github(mocker: MockerFixture) -> list[str]:
@@ -100,6 +102,10 @@ def test_skip_unchanged_false_all_comment_levels(
             f"[skip=false, level={comment_level!r}] {_CHANGED_REPORT!r} must appear "
             f"(it has changed files)"
         )
+        assert _UNCHANGED_REPORT not in captured[0], (
+            f"[skip=false, level={comment_level!r}] {_UNCHANGED_REPORT!r} must be absent — "
+            f"this level filters to rows with changed files only"
+        )
 
     if comment_level == "failed":
         # At 0% thresholds all reports pass — no failing rows in tables.
@@ -113,7 +119,7 @@ def test_skip_unchanged_false_all_comment_levels(
 def test_skip_unchanged_true_all_comment_levels(
     mocker: MockerFixture, comment_level: str
 ) -> None:
-    """skip-unchanged=true: unchanged reports filtered before evaluation for all comment levels.
+    """skip-unchanged=true + evaluate-unchanged=false: unchanged reports filtered before evaluation.
 
     Verifies:
     - Action completes without error for all 6 levels

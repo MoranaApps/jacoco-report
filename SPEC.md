@@ -1201,7 +1201,7 @@ Three items that form the integration test layer:
    Gate regeneration with `WRITE_SNAPSHOTS=1` env var.
    Run as part of offline integration job (no GitHub token needed).
 
-3. **Combination coverage** (`tests/integration/test_skip_unchanged_x_comment_level.py`):
+3. **Combination coverage** (`tests/integration/test_matrix_skip_unchanged_comment_level.py`):
    All 2 × 6 = 12 `skip-unchanged` × `comment-level` combinations, verifying filter-before-
    evaluation semantics from task 27.
 
