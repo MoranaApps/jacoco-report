@@ -275,10 +275,7 @@ class CoverageEvaluator:
         else:
             evaluated_coverage.overall_passed = evaluated_coverage.overall_coverage_reached >= overall_threshold
 
-        has_changed_files = (
-            evaluated_coverage.avg_changed_files_coverage.covered > 0
-            or evaluated_coverage.avg_changed_files_coverage.missed > 0
-        )
+        has_changed_files = bool(evaluated_coverage.changed_files_coverage_reached)
         if not has_changed_files:
             evaluated_coverage.avg_changed_files_coverage_reached = 0.0
             evaluated_coverage.avg_changed_files_passed = True
