@@ -20,6 +20,7 @@ from tests.integration.helpers import (
     TEST_PROJECT_GLOB,
     capture_run,
     make_env_base,
+    mock_github_offline,
 )
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
@@ -74,30 +75,12 @@ def _assert_or_write_snapshot(scenario: str, actual: str) -> None:
     )
 
 
-def _mock_github(mocker: MockerFixture, changed_files: list[str]) -> list[str]:
-    """Patch all GitHub API calls for offline runs. Returns a list that accumulates posted comment bodies."""
-    mocker.patch(
-        "jacoco_report.utils.github.GitHub.get_pr_changed_files",
-        return_value=changed_files,
-    )
-    mocker.patch(
-        "jacoco_report.utils.github.GitHub.get_comments",
-        return_value=[],
-    )
-    captured: list[str] = []
-    mocker.patch(
-        "jacoco_report.utils.github.GitHub.add_comment",
-        side_effect=lambda pr_number, body: captured.append(body) or True,
-    )
-    return captured
-
-
 def test_snapshot_no_groups(mocker: MockerFixture) -> None:
     """Full comment: all reports loaded from TEST_PROJECT_GLOB, no groups configured.
 
     Two files from module_large appear as changed; all other reports have no changed files.
     """
-    captured = _mock_github(mocker, _CHANGED_FILES_NO_GROUPS)
+    captured = mock_github_offline(mocker, _CHANGED_FILES_NO_GROUPS)
 
     env = make_env_base(
         INPUT_PATHS=TEST_PROJECT_GLOB,
@@ -123,7 +106,7 @@ def test_snapshot_with_groups(mocker: MockerFixture) -> None:
 
     The groups table appears between the global summary and the reports table.
     """
-    captured = _mock_github(mocker, _CHANGED_FILES_WITH_GROUPS)
+    captured = mock_github_offline(mocker, _CHANGED_FILES_WITH_GROUPS)
 
     env = make_env_base(
         INPUT_PATHS="",
@@ -152,7 +135,7 @@ def test_snapshot_skip_unchanged(mocker: MockerFixture) -> None:
     are scan-stage filtered; evaluate-unchanged keeps their overall coverage in the
     global summary but hides them from the reports table rows.
     """
-    captured = _mock_github(mocker, _CHANGED_FILES_SKIP_UNCHANGED)
+    captured = mock_github_offline(mocker, _CHANGED_FILES_SKIP_UNCHANGED)
 
     env = make_env_base(
         INPUT_PATHS=TEST_PROJECT_GLOB,

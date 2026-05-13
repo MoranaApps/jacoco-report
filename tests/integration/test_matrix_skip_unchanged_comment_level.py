@@ -21,6 +21,7 @@ from tests.integration.helpers import (
     TEST_PROJECT_GLOB,
     capture_run,
     make_env_base,
+    mock_github_offline,
 )
 
 # Only module_large files are changed; all other reports have no changed files.
@@ -33,24 +34,6 @@ _CHANGED_REPORT = "Module Large Report"
 _UNCHANGED_REPORT = "Module Small Report"
 
 _COMMENT_LEVELS = [level.value for level in CommentLevelEnum]
-
-
-def _mock_github(mocker: MockerFixture) -> list[str]:
-    """Patch all GitHub API calls for offline runs. Returns captured comment bodies."""
-    mocker.patch(
-        "jacoco_report.utils.github.GitHub.get_pr_changed_files",
-        return_value=_CHANGED_FILES,
-    )
-    mocker.patch(
-        "jacoco_report.utils.github.GitHub.get_comments",
-        return_value=[],
-    )
-    captured: list[str] = []
-    mocker.patch(
-        "jacoco_report.utils.github.GitHub.add_comment",
-        side_effect=lambda pr_number, body: captured.append(body) or True,
-    )
-    return captured
 
 
 @pytest.mark.parametrize("comment_level", _COMMENT_LEVELS)
@@ -66,7 +49,7 @@ def test_skip_unchanged_false_all_comment_levels(
     - 'changed' and 'failed-or-changed' levels include the report with changed files
     - 'failed' level emits 'No rows match' (all reports pass at 0% thresholds)
     """
-    captured = _mock_github(mocker)
+    captured = mock_github_offline(mocker, _CHANGED_FILES)
 
     result = capture_run(
         make_env_base(
@@ -129,7 +112,7 @@ def test_skip_unchanged_true_all_comment_levels(
     - 'changed' and 'failed-or-changed' include the report with changed files
     - 'failed' emits 'No rows match' (the surviving report passes at 0% threshold)
     """
-    captured = _mock_github(mocker)
+    captured = mock_github_offline(mocker, _CHANGED_FILES)
 
     result = capture_run(
         make_env_base(
@@ -194,7 +177,7 @@ def test_filter_before_evaluation_changes_global_coverage(mocker: MockerFixture)
     CoverageEvaluator rather than inside the comment generator.
     """
     # Run 1: no filter — all reports in evaluator.
-    captured_all = _mock_github(mocker)
+    captured_all = mock_github_offline(mocker, _CHANGED_FILES)
     r1 = capture_run(
         make_env_base(
             INPUT_PATHS=TEST_PROJECT_GLOB,
@@ -206,7 +189,7 @@ def test_filter_before_evaluation_changes_global_coverage(mocker: MockerFixture)
     assert len(captured_all) == 1, f"Expected one comment in run 1, got {len(captured_all)}"
 
     # Run 2: scan-stage filter active — only module_large in evaluator.
-    captured_filtered = _mock_github(mocker)
+    captured_filtered = mock_github_offline(mocker, _CHANGED_FILES)
     r2 = capture_run(
         make_env_base(
             INPUT_PATHS=TEST_PROJECT_GLOB,

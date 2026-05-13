@@ -19,6 +19,8 @@ from contextlib import redirect_stderr, redirect_stdout
 from dataclasses import dataclass
 from pathlib import Path
 
+from pytest_mock import MockerFixture
+
 TESTS_DIR: Path = Path(__file__).parent.parent
 DATA_DIR: Path = TESTS_DIR / "data"
 TEST_PROJECT_GLOB: str = str(DATA_DIR / "test_project" / "**" / "jacoco.xml")
@@ -144,3 +146,21 @@ def make_env_base(**overrides: str) -> dict[str, str]:
     }
     env.update(overrides)
     return env
+
+
+def mock_github_offline(mocker: MockerFixture, changed_files: list[str]) -> list[str]:
+    """Patch GitHub API calls for offline integration tests and capture posted comment bodies."""
+    mocker.patch(
+        "jacoco_report.utils.github.GitHub.get_pr_changed_files",
+        return_value=changed_files,
+    )
+    mocker.patch(
+        "jacoco_report.utils.github.GitHub.get_comments",
+        return_value=[],
+    )
+    captured: list[str] = []
+    mocker.patch(
+        "jacoco_report.utils.github.GitHub.add_comment",
+        side_effect=lambda pr_number, body: captured.append(body) or True,
+    )
+    return captured
