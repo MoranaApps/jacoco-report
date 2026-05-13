@@ -39,7 +39,7 @@ comment-level: 'none'
 
 A single global summary table is posted. Individual report and file rows are not shown.
 
-```
+```text
 | Metric (Instruction) | Coverage | Threshold | Status |
 |----------------------|----------|-----------|--------|
 | **Overall**          | 85.2%    | 80.0%     | ✅     |
@@ -59,7 +59,7 @@ comment-level: 'minimal'
 All tables are posted: global summary, groups (if configured), per-report, and per-changed-file.
 This is the default.
 
-```
+```text
 | Metric (Instruction) | Coverage | Threshold | Status |
 |…|
 
@@ -122,13 +122,13 @@ comment-level: 'failed-or-changed'
 ## Interaction with `skip-unchanged`
 
 `skip-unchanged: true` runs **before** `comment-level` filtering. Reports with no changed files
-are removed from evaluation entirely, so they will not appear in any table regardless of the
-`comment-level` chosen.
+are removed from comment rows. With `evaluate-unchanged: true` (default), those filtered reports
+can still fail overall thresholds even though they do not appear in tables.
 
 | `skip-unchanged` | `comment-level` | Effect |
 |---|---|---|
 | `false` | `changed` | Hide zero-changed rows in comment; still evaluated |
-| `true` | `full` | Changed reports removed before comment is built |
+| `true` | `full` | Unchanged reports removed from comment rows before comment is built |
 | `true` | `changed` | Equivalent to `true` / `full` for unchanged reports; remaining rows with changes shown |
 
 ---
@@ -136,7 +136,8 @@ are removed from evaluation entirely, so they will not appear in any table regar
 ## Interaction with `baseline-paths`
 
 When `baseline-paths` is configured, a **Δ Coverage** column appears in all tables.
-The column is omitted when no baseline data is available for a given row.
+The column is omitted only when no baseline evaluator data exists at all. Rows without a matching
+baseline entry render a `0.0%` delta.
 
 ---
 

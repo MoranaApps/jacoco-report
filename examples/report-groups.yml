@@ -17,7 +17,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: write
+      issues: write
+      pull-requests: read
 
     steps:
       - name: Checkout
@@ -53,11 +54,15 @@ jobs:
               paths:
                 - backend/**/jacoco.xml
               thresholds: '80*70*60'   # explicit for all three fields
+              baseline-paths:
+                - baseline/backend/**/*.xml
 
             - name: frontend
               paths:
                 - frontend/**/jacoco.xml
               thresholds: '75**'       # overall=75; avg and per-file from report-thresholds-default
+              baseline-paths:
+                - baseline/frontend/**/*.xml
 
             - name: shared-libs
               paths:
@@ -66,8 +71,8 @@ jobs:
               baseline-paths:
                 - baseline/libs/**/*.xml   # per-group baseline overrides top-level baseline-paths
 
-          # Top-level baseline paths used by groups that do not define their own.
-          baseline-paths: 'baseline/main/**/*.xml'
+          # Optional top-level baseline paths (used only when exactly one group omits baseline-paths).
+          # baseline-paths: 'baseline/main/**/*.xml'
 
           # Show all tables; hide rows with no changed files to reduce noise.
           comment-level: 'failed-or-changed'

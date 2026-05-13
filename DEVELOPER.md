@@ -1,4 +1,4 @@
-# Jacoco Report GitHub Action — Developer Guide
+# JaCoCo Report GitHub Action — Developer Guide
 
 - [Project Setup](#project-setup)
 - [Branch Naming Convention](#branch-naming-convention)
@@ -110,6 +110,7 @@ export INPUT_REPORT_GROUPS="
 "
 export INPUT_SKIP_UNCHANGED="false"
 export INPUT_EVALUATE_UNCHANGED="true"
+export INPUT_PR_NUMBER="1"
 export INPUT_UPDATE_COMMENT="false"
 export INPUT_FAIL_ON_THRESHOLD="overall,changed-files-average,per-changed-file"
 export INPUT_PASS_SYMBOL="✅"
@@ -134,7 +135,7 @@ python3 main.py
 ## Run Pylint Check Locally
 
 This project uses [Pylint](https://pypi.org/project/pylint/) for static code analysis.
-Configuration is in `.pylintrc`. The target score is ≥ 9.5/10.
+Configuration is in `.pylintrc`. The target score is **10.0/10** (`fail-under=10`).
 
 ```shell
 pylint $(git ls-files '*.py')
@@ -148,9 +149,9 @@ pylint jacoco_report/jacoco_report.py
 
 Expected output example:
 
-```
+```text
 ------------------------------------------------------------------
-Your code has been rated at 9.67/10 (previous run: 9.67/10, +0.00)
+Your code has been rated at 10.00/10
 ```
 
 ---
@@ -158,7 +159,7 @@ Your code has been rated at 9.67/10 (previous run: 9.67/10, +0.00)
 ## Run Black Tool Locally
 
 This project uses [Black](https://github.com/psf/black) for code formatting (line length 120,
-target Python 3.12). Configuration is in `pyproject.toml`.
+target Python 3.13). Configuration is in `pyproject.toml`.
 
 Check formatting without modifying files:
 
@@ -200,7 +201,7 @@ pytest tests/unit/
 Run a specific test:
 
 ```shell
-pytest tests/unit/evaluator/test_coverage_evaluator.py::test_overall_threshold
+pytest tests/unit/evaluator/test_coverage_evaluator.py::test_evaluate_overall_coverage
 ```
 
 ### Integration Tests (offline)
@@ -221,11 +222,15 @@ These tests include:
 
 ### Live Integration Tests
 
-Live tests post a real comment to a GitHub PR and require a valid `GITHUB_TOKEN`.
+Live tests post a real comment to a GitHub PR and require `GITHUB_TOKEN`, `GITHUB_REPOSITORY`,
+and a PR-shaped `GITHUB_REF` (`refs/pull/<n>/merge`).
 They are skipped automatically on forks.
 
 ```shell
-GITHUB_TOKEN=ghp_... pytest tests/integration/live/
+GITHUB_TOKEN=ghp_... \
+GITHUB_REPOSITORY=owner/repo \
+GITHUB_REF=refs/pull/123/merge \
+pytest tests/integration/live/
 ```
 
 In CI these run only when `github.event.pull_request.head.repo.full_name == github.repository`.
@@ -265,7 +270,7 @@ open htmlcov/index.html
 Full QA gate (mirrors CI):
 
 ```shell
-pytest --cov=. tests/ --cov-fail-under=80 && \
+pytest --cov=. tests/ --ignore=tests/integration/live --cov-fail-under=80 && \
 pylint $(git ls-files '*.py') && \
 black --check $(git ls-files '*.py') && \
 mypy .
@@ -281,5 +286,5 @@ This project uses GitHub Actions for release draft creation via `.github/workflo
 2. **Review the draft release** — add a title, description, and changelog notes.
 3. **Publish the release** — once the draft is finalised, publish it.
 
-The `v2` tag is kept in sync automatically by `.github/workflows/update-v2-tag.yml` after each
-release to `v2.x.y`.
+The `v2` tag is moved automatically by `.github/workflows/update-v2-tag.yml` on every
+published release.

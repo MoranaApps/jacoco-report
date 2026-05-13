@@ -24,8 +24,8 @@ report-groups: |
 |-------|----------|------|-------------|
 | `name` | **Yes** | string | Non-empty group label. Appears as a row header in the Groups table. |
 | `paths` | **Yes** | list of strings | Glob patterns for JaCoCo XML files belonging to this group. At least one non-empty entry required. |
-| `thresholds` | No | string | `overall*changed-files-average*per-changed-file` (e.g. `80*70*60`). Each field is a float 0–100 or empty. Missing fields fall back to `report-thresholds-default`, then to 0.0. |
-| `baseline-paths` | No | list of strings | Glob patterns for baseline XMLs for this group. When present, overrides the top-level `baseline-paths` for this group only. |
+| `thresholds` | No | string | `overall*changed-files-average*per-changed-file` (e.g. `80*70*60`). Each field is a float in `[0, 100)` or empty. Missing fields fall back to `report-thresholds-default`, then to 0.0. |
+| `baseline-paths` | No | list of strings | Glob patterns for baseline XMLs for this group. When present, overrides top-level `baseline-paths` for this group. If omitted, top-level `baseline-paths` can be inherited only when exactly one group omits `baseline-paths`; otherwise inheritance is ambiguous and grouped baseline scans are skipped for omitted groups. |
 
 ---
 
@@ -33,7 +33,7 @@ report-groups: |
 
 The `thresholds` value is three floats separated by `*`:
 
-```
+```text
 overall * changed-files-average * per-changed-file
 ```
 
@@ -45,7 +45,7 @@ overall * changed-files-average * per-changed-file
 
 A field may be left empty to inherit from `report-thresholds-default`:
 
-```
+```text
 80**       →  overall=80, avg=default, per-file=default
 *70*       →  overall=default, avg=70, per-file=default
 80*70*     →  overall=80, avg=70, per-file=default
@@ -53,7 +53,7 @@ A field may be left empty to inherit from `report-thresholds-default`:
 
 ### Threshold resolution order (per field)
 
-```
+```text
 per-group threshold field
     → report-thresholds-default field
         → 0.0
@@ -67,7 +67,7 @@ this fallback chain.
 ## YAML quoting rules
 
 Any glob or threshold value that begins with `*` must be wrapped in quotes to prevent YAML from
-interpreting it as an alias anchor.
+interpreting it as a YAML alias.
 
 ```yaml
 report-groups: |
@@ -85,9 +85,10 @@ report-groups: |
 The action raises a `ValueError` during startup if:
 
 - Any group has an empty or missing `name`.
+- Any two groups share the same `name`.
 - Any group has an empty or missing `paths` list.
 - Any path in `paths` or `baseline-paths` is an empty string.
-- Any threshold field is not a number in [0, 100].
+- Any threshold field is not a number in `[0, 100)`.
 - The YAML block is not valid YAML.
 
 ---
@@ -141,7 +142,11 @@ report-groups: |
     paths:
       - frontend/**/jacoco.xml
     thresholds: '75*65*50'
-    # no baseline-paths — falls back to top-level baseline-paths
+    baseline-paths:
+      - baseline/frontend/**/jacoco.xml
+
+# Note: if top-level baseline-paths is set and multiple groups omit baseline-paths,
+# grouped baseline inheritance is ambiguous and those groups will skip grouped baseline diffs.
 ```
 
 ---
@@ -175,7 +180,7 @@ It is independent of group thresholds.
 When `report-groups` is non-empty the PR comment includes a Groups table between the Global
 summary and the Reports table:
 
-```
+```text
 | Metric (instruction) | Coverage | Threshold | Status |
 |…| ← Global summary (always present)
 

@@ -15,7 +15,7 @@
 
 Automates the publication of JaCoCo coverage reports directly as comments in pull requests.
 
-**Requirements**
+## Requirements
 
 - **GitHub Token**: A GitHub token with permission to fetch repository data such as Issues and Pull Requests.
 - **Python 3.13+**: Ensure you have Python 3.13 installed on your system.
@@ -69,6 +69,10 @@ on:
 jobs:
   generate-report:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -155,7 +159,7 @@ The `paths` input allows you to specify the paths to the JaCoCo XML files that s
 analysis. This input is required only when `report-groups` is not provided.
 
 - You can use wildcard glob patterns to match multiple files.
-- Multiple paths may be specified as a newline-separated list or comma-separated on one line.
+- Multiple paths must be specified as a newline-separated list.
 
 The `exclude-paths` input allows you to specify files or directories that should be excluded from the code coverage
 analysis.
@@ -166,12 +170,12 @@ analysis.
   with:
     token: '${{ secrets.GITHUB_TOKEN }}'
     paths: |
-      module-a/target/jacoco/code-coverage.xml,
-      module-b/target/jacoco/code-coverage.xml,
+      module-a/target/jacoco/code-coverage.xml
+      module-b/target/jacoco/code-coverage.xml
       module-c/target/jacoco/**/*.xml
     exclude-paths: |
-      **/temp/**,
-      **/legacy/**,
+      **/temp/**
+      **/legacy/**
       module-c/target/**/excluded/**
 ```
 
@@ -239,12 +243,12 @@ Each entry is a YAML mapping with:
 - `name` (required): Group name shown in the PR comment groups table.
 - `paths` (required): List of glob patterns for JaCoCo XML reports in this group.
 - `thresholds` (optional): `overall*changed-files-average*per-changed-file` (e.g. `80*70*60`). Missing fields fall back to `report-thresholds-default`, then to 0.0. Global thresholds are a separate evaluation pass.
-- `baseline-paths` (optional): List of glob patterns for baseline reports for this group. Falls back to `baseline-paths`.
+- `baseline-paths` (optional): List of glob patterns for baseline reports for this group. Falls back to top-level `baseline-paths` only when exactly one group omits `baseline-paths`; when multiple groups omit it, baseline inheritance is treated as ambiguous and skipped for those groups.
 
 For the full format reference see [docs/report-groups-format.md](docs/report-groups-format.md).
 
 > **YAML quoting note**: Any `paths`, `baseline-paths`, or `thresholds` value that begins with `*` must be quoted,
-> otherwise YAML interprets the leading `*` as an alias.
+> otherwise YAML interprets the leading `*` as a YAML alias.
 > ```yaml
 > paths:
 >   - '**/jacoco.xml'       # leading * — must be quoted
@@ -449,16 +453,17 @@ The `debug` input enables detailed logging. It is automatically enabled when
 
 - Check that your build step runs **before** this action and actually produces the XML files.
 - Use `debug: 'true'` to log every glob expansion result.
-- Verify the `paths` pattern is relative to the repository root (not the workspace).
+- Verify the `paths` pattern resolves to real files. Both repository-relative patterns and absolute `${{ github.workspace }}` paths are supported.
 - If the path contains a leading `*` in a `report-groups` YAML block, wrap it in quotes:
   `- '**/jacoco.xml'`.
 
 ### No PR comment is posted
 
 - Confirm `comment-level` is not set to `none`.
-- Confirm the `token` has write permission to pull requests (`pull-requests: write`).
-- If `skip-unchanged: true` and all reports have no changed files, the action exits cleanly
-  with no comment by design.
+- Confirm the job token permissions include `issues: write` (comment create/update/delete) and `pull-requests: read` (PR files lookup).
+- If `skip-unchanged: true` and all reports have no changed files:
+  - with `evaluate-unchanged: false`, the action exits cleanly with no comment by design;
+  - with `evaluate-unchanged: true` (default), unchanged reports are still evaluated for threshold failures.
 
 ### The action fails with a threshold error but the comment shows ✅
 
@@ -497,4 +502,4 @@ matters and is deeply appreciated.
 
 - [Buy me a coffee on Ko-fi](https://ko-fi.com/mirpo)
 
-**Thanks for keeping this project alive!**
+Thanks for keeping this project alive.

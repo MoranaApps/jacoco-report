@@ -15,7 +15,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: write
+      issues: write
+      pull-requests: read
 
     steps:
       - name: Checkout
