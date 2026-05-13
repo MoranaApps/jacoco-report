@@ -88,45 +88,72 @@ class PRCommentGenerator:
 
         body += f"\n\n{self.get_basic_table_for_all(p, f)}"
 
-        if comment_level == CommentLevelEnum.MINIMAL:
-            return title, body
+        if comment_level != CommentLevelEnum.MINIMAL:
+            filtered_groups = self.evaluator.evaluated_groups_coverage
+            filtered_reports = {
+                k: v for k, v in self.evaluator.evaluated_reports_coverage.items() if k not in self.skip_report_names
+            }
+            if self.skip_report_names:
+                visible_group_names: frozenset[str] = frozenset(
+                    v.group_name
+                    for k, v in self.evaluator.evaluated_reports_coverage.items()
+                    if k not in self.skip_report_names
+                )
+                filtered_groups = {k: v for k, v in filtered_groups.items() if k in visible_group_names}
 
-        filtered_groups = self.evaluator.evaluated_groups_coverage
-        filtered_reports = {
-            k: v for k, v in self.evaluator.evaluated_reports_coverage.items() if k not in self.skip_report_names
-        }
-        if self.skip_report_names:
-            visible_group_names: frozenset[str] = frozenset(
-                v.group_name
-                for k, v in self.evaluator.evaluated_reports_coverage.items()
-                if k not in self.skip_report_names
-            )
-            filtered_groups = {k: v for k, v in filtered_groups.items() if k in visible_group_names}
+            if comment_level != CommentLevelEnum.FULL:
+                filtered_groups = self._filter_evaluated_coverage_rows(filtered_groups, comment_level)
+                filtered_reports = self._filter_evaluated_coverage_rows(filtered_reports, comment_level)
 
-        if comment_level != CommentLevelEnum.FULL:
-            filtered_groups = self._filter_evaluated_coverage_rows(filtered_groups, comment_level)
-            filtered_reports = self._filter_evaluated_coverage_rows(filtered_reports, comment_level)
+            detail_sections: list[str] = []
 
-        detail_sections: list[str] = []
+            groups_table = self.get_groups_table(p, f, filtered_groups)
+            if groups_table:
+                detail_sections.append(groups_table)
 
-        groups_table = self.get_groups_table(p, f, filtered_groups)
-        if groups_table:
-            detail_sections.append(groups_table)
+            reports_table = self.get_reports_table(p, f, filtered_reports)
+            if reports_table:
+                detail_sections.append(reports_table)
 
-        reports_table = self.get_reports_table(p, f, filtered_reports)
-        if reports_table:
-            detail_sections.append(reports_table)
+            changed_files_table = self._get_changed_files_table(p, f, filtered_reports, comment_level)
+            if changed_files_table:
+                detail_sections.append(changed_files_table)
 
-        changed_files_table = self._get_changed_files_table(p, f, filtered_reports, comment_level)
-        if changed_files_table:
-            detail_sections.append(changed_files_table)
+            if detail_sections:
+                body += "\n\n" + "\n\n".join(detail_sections)
+            elif comment_level != CommentLevelEnum.FULL:
+                body += "\n\nNo rows match the selected comment level."
 
-        if detail_sections:
-            body += "\n\n" + "\n\n".join(detail_sections)
-        elif comment_level != CommentLevelEnum.FULL:
-            body += "\n\nNo rows match the selected comment level."
+        metadata = self._get_metadata_footer()
+        if metadata:
+            body += f"\n\n{metadata}"
 
         return title, body
+
+    def _get_metadata_footer(self) -> str:
+        """Build the metadata footer appended to every non-NONE PR comment."""
+        run_id = ActionInputs.get_run_id()
+        event = ActionInputs.get_event_name()
+        started_at = ActionInputs.get_run_started_at()
+        action_ref = ActionInputs.get_action_ref()
+
+        parts: list[str] = []
+        if run_id:
+            if self.github_repository:
+                url = f"https://github.com/{self.github_repository}/actions/runs/{run_id}"
+                parts.append(f"Run [{run_id}]({url})")
+            else:
+                parts.append(f"Run `{run_id}`")
+        if event:
+            parts.append(f"Event: `{event}`")
+        if action_ref:
+            parts.append(f"`{action_ref}`")
+        if started_at:
+            parts.append(started_at)
+
+        if not parts:
+            return ""
+        return "---\n*" + " · ".join(parts) + "*"
 
     def _filter_evaluated_coverage_rows(
         self,

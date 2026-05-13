@@ -75,8 +75,8 @@ Group 0 (deps) → Task 20 🔝 → Tasks 17/18/21 → Group F (design decisions
 | **33** | H | Golden snapshot tests | ✅ | `chore/golden-snapshot-tests` | new |
 | **34** | H | skip-unchanged × comment-level matrix tests | ✅ | `chore/skip-unchanged-comment-level-matrix-tests` | new |
 | **35** | H | Live integration smoke test | ✅ | `chore/live-integration-smoke-test` | new |
-| **36** | I | Enhanced logging (thresholds + reached values) | 🔒 ⬜ | `feature/101-enhance-threshold-logging` | #101 |
-| **37** | I | PR comment metadata | 🔒 ⬜ | `feature/94-pr-comment-metadata` | #94 |
+| **36** | I | Enhanced logging (thresholds + reached values) | ✅ | `feature/101-enhance-threshold-logging` | #101 |
+| **37** | I | PR comment metadata | ✅ | `feature/94-pr-comment-metadata` | #94 |
 | **38** | J | v2→v3 migration guide | ✅ | `docs/74-v2-v3-migration-guide` | #74 |
 | **39** | J | Create `docs/` directory | 🔒 ⬜ | `docs/extended-docs-directory` | new |
 | **40** | J | Update `DEVELOPER.md` | 🔒 ⬜ | `docs/update-developer-md` | new |
@@ -482,7 +482,7 @@ Both tasks depend on Group G being substantially complete.
 
 Include threshold values and reached values in log output for each evaluation step.
 
-#### Task 37 — PR comment metadata ⬜
+#### Task 37 — PR comment metadata ✅
 
 **Branch:** `feature/94-pr-comment-metadata` | **Issue:** #94
 

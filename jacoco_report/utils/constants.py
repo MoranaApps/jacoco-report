@@ -35,3 +35,8 @@ BASELINE_PATHS = "baseline-paths"
 OVERALL = "overall"
 CHANGED_FILES_AVERAGE = "changed-files-average"
 CHANGED_FILE = "changed-file"
+
+# GitHub-injected metadata environment variables (no INPUT_ prefix)
+GITHUB_RUN_ID = "GITHUB_RUN_ID"
+GITHUB_RUN_STARTED_AT = "GITHUB_RUN_STARTED_AT"
+GITHUB_ACTION_REF = "GITHUB_ACTION_REF"

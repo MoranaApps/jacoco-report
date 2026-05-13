@@ -30,6 +30,9 @@ from jacoco_report.utils.constants import (
     METRIC,
     PR_NUMBER,
     BASELINE_PATHS,
+    GITHUB_RUN_ID,
+    GITHUB_RUN_STARTED_AT,
+    GITHUB_ACTION_REF,
 )
 
 from jacoco_report.model.report_group import ReportGroup
@@ -762,6 +765,27 @@ class ActionInputs:
         Get the repository from the GitHub environment variables.
         """
         return get_action_input("GITHUB_REPOSITORY", prefix="")
+
+    @staticmethod
+    def get_run_id() -> str:
+        """
+        Get the GitHub Actions run ID from environment variables.
+        """
+        return get_action_input(GITHUB_RUN_ID, prefix="")
+
+    @staticmethod
+    def get_run_started_at() -> str:
+        """
+        Get the ISO 8601 timestamp when the run started (GITHUB_RUN_STARTED_AT).
+        """
+        return get_action_input(GITHUB_RUN_STARTED_AT, prefix="")
+
+    @staticmethod
+    def get_action_ref() -> str:
+        """
+        Get the ref (tag/SHA) used to invoke this action (GITHUB_ACTION_REF).
+        """
+        return get_action_input(GITHUB_ACTION_REF, prefix="")
 
     @staticmethod
     def __parse_paths(paths: str) -> list[str]:

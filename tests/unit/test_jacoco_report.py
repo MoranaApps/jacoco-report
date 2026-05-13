@@ -23,7 +23,10 @@ comment_no_data_no_baseline = """**JaCoCo Coverage Report**
 | File Path | Coverage | Threshold | Status |
 |-----------|----------|-----------|--------|
 
-No changed file in reports."""
+No changed file in reports.
+
+---
+*Event: `pull_request`*"""
 
 comment_no_data_with_baseline = """**JaCoCo Coverage Report**
 
@@ -39,7 +42,10 @@ comment_no_data_with_baseline = """**JaCoCo Coverage Report**
 | File Path | Coverage | Threshold | Δ Coverage | Status |
 |-----------|----------|-----------|------------|--------|
 
-No changed file in reports."""
+No changed file in reports.
+
+---
+*Event: `pull_request`*"""
 
 comment_one_file_single_detailed = """TODO"""
 comment_one_file_multi_detailed = """TODO"""
@@ -54,42 +60,60 @@ comment_one_file_single_minimalist_instruction = """**Custom Title**
 | Metric (instruction) | Coverage | Threshold | Status |
 |----------------------|----------|-----------|--------|
 | **Overall**       | 90.0% | 0.0% | ✅ |
-| **Changed Files** | 80.0% | 0.0% | ✅ |"""
+| **Changed Files** | 80.0% | 0.0% | ✅ |
+
+---
+*Event: `pull_request`*"""
 
 comment_one_file_single_minimalist_line = """**Custom Title**
 
 | Metric (line) | Coverage | Threshold | Status |
 |----------------------|----------|-----------|--------|
 | **Overall**       | 80.0% | 0.0% | ✅ |
-| **Changed Files** | 60.0% | 0.0% | ✅ |"""
+| **Changed Files** | 60.0% | 0.0% | ✅ |
+
+---
+*Event: `pull_request`*"""
 
 comment_one_file_single_minimalist_branch = """**Custom Title**
 
 | Metric (branch) | Coverage | Threshold | Status |
 |----------------------|----------|-----------|--------|
 | **Overall**       | 75.0% | 0.0% | ✅ |
-| **Changed Files** | 0.0% | 0.0% | ✅ |"""
+| **Changed Files** | 0.0% | 0.0% | ✅ |
+
+---
+*Event: `pull_request`*"""
 
 comment_one_file_single_minimalist_complexity = """**Custom Title**
 
 | Metric (complexity) | Coverage | Threshold | Status |
 |----------------------|----------|-----------|--------|
 | **Overall**       | 75.0% | 0.0% | ✅ |
-| **Changed Files** | 50.0% | 0.0% | ✅ |"""
+| **Changed Files** | 50.0% | 0.0% | ✅ |
+
+---
+*Event: `pull_request`*"""
 
 comment_one_file_single_minimalist_method = """**Custom Title**
 
 | Metric (method) | Coverage | Threshold | Status |
 |----------------------|----------|-----------|--------|
 | **Overall**       | 100.0% | 0.0% | ✅ |
-| **Changed Files** | 0.0% | 0.0% | ✅ |"""
+| **Changed Files** | 0.0% | 0.0% | ✅ |
+
+---
+*Event: `pull_request`*"""
 
 comment_one_file_single_minimalist_class = """**Custom Title**
 
 | Metric (class) | Coverage | Threshold | Status |
 |----------------------|----------|-----------|--------|
 | **Overall**       | 100.0% | 0.0% | ✅ |
-| **Changed Files** | 0.0% | 0.0% | ✅ |"""
+| **Changed Files** | 0.0% | 0.0% | ✅ |
+
+---
+*Event: `pull_request`*"""
 
 comment_one_file_multi_minimalist = """TODO"""
 comment_one_file_module_minimalist = """TODO"""
@@ -273,7 +297,10 @@ comment_more_files_single_detailed_instruction_no_modules = """**JaCoCo Coverage
 |-----------|----------|-----------|--------|
 | [BigClass.java](https://github.com/MoranaApps/jacoco-report/pull/35/files#diff-ead3b50565c5dda5dc7e32be690e80a71f6e317d66aaa386b5942b484476832d) | 90.0% | 65.0% | ✅ |
 | [ClientHttpClass.java](https://github.com/MoranaApps/jacoco-report/pull/35/files#diff-233a8df372c1ee3631d77bd1afb2eb2c5729cdb125b277a3b0eb51a4933b888a) | 90.0% | 65.0% | ✅ |
-| [ImplementationClass.java](https://github.com/MoranaApps/jacoco-report/pull/35/files#diff-7a267b2f062048b58eaf9c03df9857a0b95e8425451a7a68e18508a2ccb0d316) | 88.0% | 65.0% | ✅ |"""
+| [ImplementationClass.java](https://github.com/MoranaApps/jacoco-report/pull/35/files#diff-7a267b2f062048b58eaf9c03df9857a0b95e8425451a7a68e18508a2ccb0d316) | 88.0% | 65.0% | ✅ |
+
+---
+*Event: `pull_request`*"""
 
 comment_more_files_single_detailed_instruction_no_modules_with_bs = """**JaCoCo Coverage Report**
 
@@ -298,7 +325,10 @@ comment_more_files_single_detailed_instruction_no_modules_with_bs = """**JaCoCo 
 |-----------|----------|-----------|------------|--------|
 | [BigClass.java](https://github.com/MoranaApps/jacoco-report/pull/35/files#diff-ead3b50565c5dda5dc7e32be690e80a71f6e317d66aaa386b5942b484476832d) | 90.0% | 65.0% | -5.0% | ✅ |
 | [ClientHttpClass.java](https://github.com/MoranaApps/jacoco-report/pull/35/files#diff-233a8df372c1ee3631d77bd1afb2eb2c5729cdb125b277a3b0eb51a4933b888a) | 90.0% | 65.0% | +80.0% | ✅ |
-| [ImplementationClass.java](https://github.com/MoranaApps/jacoco-report/pull/35/files#diff-7a267b2f062048b58eaf9c03df9857a0b95e8425451a7a68e18508a2ccb0d316) | 88.0% | 65.0% | +8.0% | ✅ |"""
+| [ImplementationClass.java](https://github.com/MoranaApps/jacoco-report/pull/35/files#diff-7a267b2f062048b58eaf9c03df9857a0b95e8425451a7a68e18508a2ccb0d316) | 88.0% | 65.0% | +8.0% | ✅ |
+
+---
+*Event: `pull_request`*"""
 
 comment_more_files_single_detailed_instruction_with_modules = """**JaCoCo Coverage Report**
 

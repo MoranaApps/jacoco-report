@@ -24,3 +24,6 @@
 |-----------|----------|-----------|--------|
 | [ApiClass.java](https://github.com/owner/repo/pull/1/files#diff-04de1cb2cf0087b2067d518ca69e0fa09d19ac3f70c216d9e6e95f539c22e217) | 95.0% | 0.0% | ✅ |
 | [ControllerClass.java](https://github.com/owner/repo/pull/1/files#diff-f31b78555f698136fc5a92f723c22aec2b1390402b08e26b0f355d028552546d) | 93.0% | 0.0% | ✅ |
+
+---
+*Run [1111111111](https://github.com/owner/repo/actions/runs/1111111111) · Event: `pull_request` · `v3.0.0` · 2025-01-01T00:00:00Z*
