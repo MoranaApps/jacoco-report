@@ -124,6 +124,9 @@ def make_env_base(**overrides: str) -> dict[str, str]:
         # GitHub-injected vars (no INPUT_ prefix)
         "GITHUB_EVENT_NAME": "pull_request",
         "GITHUB_REPOSITORY": "owner/repo",
+        "GITHUB_RUN_ID": "1111111111",
+        "GITHUB_RUN_STARTED_AT": "2025-01-01T00:00:00Z",
+        "GITHUB_ACTION_REF": "v3.0.0",
         # Action inputs
         "INPUT_TOKEN": "ghs_" + "x" * 36,
         "INPUT_PATHS": TEST_PROJECT_GLOB,

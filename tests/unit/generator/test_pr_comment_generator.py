@@ -858,3 +858,101 @@ def test_skip_report_names_hides_group_when_all_group_reports_are_skipped(pr_com
     assert "`backend`" not in body
     assert "`frontend-report`" in body
     assert "`backend-report`" not in body
+
+
+# --- metadata footer ---
+
+def test_metadata_footer_all_fields(pr_comment_generator, mocker):
+    _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="minimal")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_run_id", return_value="9876543210")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value="pull_request")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_run_started_at", return_value="2025-01-01T00:00:00Z")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_action_ref", return_value="v3.0.0")
+    pr_comment_generator.github_repository = "owner/repo"
+
+    pr_comment_generator.generate()
+
+    body = pr_comment_generator.gh.add_comment.call_args[0][1]
+
+    assert "---" in body
+    assert "Run [9876543210](https://github.com/owner/repo/actions/runs/9876543210)" in body
+    assert "Event: `pull_request`" in body
+    assert "Action: `v3.0.0`" in body
+    assert "Started: `2025-01-01T00:00:00Z`" in body
+
+
+def test_metadata_footer_no_run_id(pr_comment_generator, mocker):
+    _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="minimal")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_run_id", return_value="")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value="pull_request")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_run_started_at", return_value="2025-01-01T00:00:00Z")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_action_ref", return_value="v3.0.0")
+
+    pr_comment_generator.generate()
+
+    body = pr_comment_generator.gh.add_comment.call_args[0][1]
+
+    assert "Run" not in body
+    assert "Event: `pull_request`" in body
+    assert "Action: `v3.0.0`" in body
+    assert "Started: `2025-01-01T00:00:00Z`" in body
+
+
+def test_metadata_footer_all_empty_returns_empty_string(pr_comment_generator, mocker):
+    _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="minimal")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_run_id", return_value="")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value="")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_run_started_at", return_value="")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_action_ref", return_value="")
+
+    pr_comment_generator.generate()
+
+    body = pr_comment_generator.gh.add_comment.call_args[0][1]
+
+    assert "\n\n---\n*" not in body
+
+
+def test_metadata_footer_run_id_without_repository(pr_comment_generator, mocker):
+    _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="minimal")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_run_id", return_value="42")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value="")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_run_started_at", return_value="")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_action_ref", return_value="")
+    pr_comment_generator.github_repository = ""
+
+    pr_comment_generator.generate()
+
+    body = pr_comment_generator.gh.add_comment.call_args[0][1]
+
+    assert "Run `42`" in body
+    assert "github.com" not in body
+
+
+def test_metadata_footer_appended_to_comment_body(pr_comment_generator, mocker):
+    _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="minimal")
+    pr_comment_generator.github_repository = "owner/repo"
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_run_id", return_value="9876543210")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value="pull_request")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_run_started_at", return_value="2025-01-01T00:00:00Z")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_action_ref", return_value="v3.0.0")
+
+    pr_comment_generator.generate()
+
+    body = pr_comment_generator.gh.add_comment.call_args[0][1]
+    assert "---" in body
+    assert "Run [9876543210]" in body
+    assert "Event: `pull_request`" in body
+    assert "Action: `v3.0.0`" in body
+    assert "Started: `2025-01-01T00:00:00Z`" in body
+
+
+def test_metadata_footer_not_appended_for_none_level(pr_comment_generator, mocker):
+    _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="none")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_run_id", return_value="9876543210")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value="pull_request")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_run_started_at", return_value="2025-01-01T00:00:00Z")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_action_ref", return_value="v3.0.0")
+
+    pr_comment_generator.generate()
+
+    pr_comment_generator.gh.add_comment.assert_not_called()

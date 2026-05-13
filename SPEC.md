@@ -80,6 +80,15 @@ Two output verbosity levels controlled by `sensitivity`: `detail` / `summary` / 
 | `test_skip_unchanged_true_all_comment_levels` | Cover all 6 comment levels with scan-stage skip filter enabled | `skip-unchanged=true`, `evaluate-unchanged=false`, `comment-level` in 6-level matrix | Run succeeds for each level; logs filtering; unchanged report rows excluded in `full`; level-specific assertions hold |
 | `test_filter_before_evaluation_changes_global_coverage` | Prove skip-unchanged filtering occurs before evaluator aggregation | Compare `minimal` comment for `skip-unchanged=false` vs `skip-unchanged=true,evaluate-unchanged=false` | Comment bodies differ because evaluator input set changes after scan-stage filtering |
 
+## 9. Confirmed Test Cases (2026-05-13)
+
+| Test name | Intent | Input summary | Expected output |
+|---|---|---|---|
+| `test_metadata_footer_appended_to_comment_body` | Ensure generated comment footer is self-describing when all metadata fields are present | `generate()` with run id, event, action ref, started at, and repository set | Comment body footer includes `Run ...`, `Event: ...`, `Action: ...`, and `Started: ...` |
+| `test_metadata_footer_without_run_id_appended_to_comment_body` | Ensure footer still renders labeled metadata when run id is absent | `generate()` with empty run id, but event, action ref, and started at present | Comment body omits `Run` and still includes labeled `Event`, `Action`, and `Started` fields |
+| `test_metadata_footer_all_empty_returns_no_footer_in_comment_body` | Ensure no footer is appended when all metadata inputs are empty | `generate()` or `_get_comment_content()` with all metadata getters returning empty strings | Generated comment body contains no metadata separator/footer |
+| `test_metadata_footer_run_id_without_repository_appended_to_comment_body` | Ensure run id falls back to inline code when repository is unavailable | `generate()` with run id set, repository empty, and other metadata empty | Comment body footer includes `Run `42`` and no GitHub Actions URL |
+
 ---
 
 ## 2. Current Master State (mid-dev, pre-v3.0.0)
