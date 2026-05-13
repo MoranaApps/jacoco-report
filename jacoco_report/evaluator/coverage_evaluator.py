@@ -337,10 +337,11 @@ class CoverageEvaluator:
         evaluated_coverage_report.changed_files_threshold = changed_files_threshold
         evaluated_coverage_report.per_changed_file_threshold = changed_per_file_threshold
 
-        if (
+        has_overall_metric_weight = not (
             evaluated_coverage_report.overall_coverage.covered == 0
             and evaluated_coverage_report.overall_coverage.missed == 0
-        ):
+        )
+        if not has_overall_metric_weight:
             evaluated_coverage_report.overall_coverage_reached = 0.0
             evaluated_coverage_report.overall_passed = True
         else:
@@ -371,12 +372,18 @@ class CoverageEvaluator:
                     >= changed_per_file_threshold
                 )
 
-        logger.info(
-            "Report '%s' reached overall coverage of %.1f%% with threshold set to %.1f%%",
-            report_coverage.name,
-            evaluated_coverage_report.overall_coverage_reached,
-            overall_threshold,
-        )
+        if has_overall_metric_weight:
+            logger.info(
+                "Report '%s' reached overall coverage of %.1f%% with threshold set to %.1f%%",
+                report_coverage.name,
+                evaluated_coverage_report.overall_coverage_reached,
+                overall_threshold,
+            )
+        else:
+            logger.info(
+                "Report '%s' has no overall coverage data for selected metric; treated as passed.",
+                report_coverage.name,
+            )
         if report_coverage.changed_files_coverage:
             logger.info(
                 "Report '%s' reached average changed files coverage of %.1f%% with threshold set to %.1f%%",
