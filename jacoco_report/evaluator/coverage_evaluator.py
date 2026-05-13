@@ -275,8 +275,12 @@ class CoverageEvaluator:
         else:
             evaluated_coverage.overall_passed = evaluated_coverage.overall_coverage_reached >= overall_threshold
 
-        has_changed_files = bool(evaluated_coverage.changed_files_coverage_reached)
-        if not has_changed_files:
+        has_changed_files_for_log = bool(evaluated_coverage.changed_files_coverage_reached)
+        has_changed_files_metric_weight = not (
+            evaluated_coverage.avg_changed_files_coverage.covered == 0
+            and evaluated_coverage.avg_changed_files_coverage.missed == 0
+        )
+        if not has_changed_files_metric_weight:
             evaluated_coverage.avg_changed_files_coverage_reached = 0.0
             evaluated_coverage.avg_changed_files_passed = True
         else:
@@ -290,7 +294,7 @@ class CoverageEvaluator:
             evaluated_coverage.overall_coverage_reached,
             overall_threshold,
         )
-        if has_changed_files:
+        if has_changed_files_for_log:
             logger.info(
                 "Group '%s' reached average changed files coverage of %.1f%% with threshold set to %.1f%%",
                 evaluated_coverage.name,

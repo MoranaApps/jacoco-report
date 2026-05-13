@@ -1,3 +1,5 @@
+import logging
+
 import pytest
 from pytest_mock import MockerFixture
 from jacoco_report.evaluator.coverage_evaluator import CoverageEvaluator
@@ -551,13 +553,11 @@ def test_report_overall_coverage_logged_for_unchanged_report(mocker: MockerFixtu
         global_min_coverage_changed_per_file=0.0,
         report_thresholds_default=(80.0, 0.0, 0.0),
     )
-    import logging
     with caplog.at_level(logging.INFO, logger="jacoco_report.evaluator.coverage_evaluator"):
         evaluator.evaluate()
 
     messages = [r.message for r in caplog.records]
-    assert any("Report 'atum_agent' reached overall coverage" in m for m in messages)
-    assert any("threshold set to 80.0%" in m for m in messages)
+    assert "Report 'atum_agent' reached overall coverage of 100.0% with threshold set to 80.0%" in messages
     assert not any("average changed files" in m for m in messages)
 
 
@@ -571,13 +571,12 @@ def test_report_changed_files_coverage_logged_for_changed_report(mocker: MockerF
         global_min_coverage_changed_per_file=0.0,
         report_thresholds_default=(75.0, 82.0, 0.0),
     )
-    import logging
     with caplog.at_level(logging.INFO, logger="jacoco_report.evaluator.coverage_evaluator"):
         evaluator.evaluate()
 
     messages = [r.message for r in caplog.records]
-    assert any("Report 'atum_reader' reached overall coverage" in m and "75.0%" in m for m in messages)
-    assert any("Report 'atum_reader' reached average changed files coverage" in m and "82.0%" in m for m in messages)
+    assert "Report 'atum_reader' reached overall coverage of 80.0% with threshold set to 75.0%" in messages
+    assert "Report 'atum_reader' reached average changed files coverage of 90.0% with threshold set to 82.0%" in messages
 
 
 def test_group_overall_coverage_logged(mocker: MockerFixture, caplog):
@@ -591,12 +590,11 @@ def test_group_overall_coverage_logged(mocker: MockerFixture, caplog):
         global_min_coverage_changed_per_file=50.0,
         report_groups=[group],
     )
-    import logging
     with caplog.at_level(logging.INFO, logger="jacoco_report.evaluator.coverage_evaluator"):
         evaluator.evaluate()
 
     messages = [r.message for r in caplog.records]
-    assert any("Group 'backend' reached overall coverage" in m and "70.0%" in m for m in messages)
+    assert "Group 'backend' reached overall coverage of 100.0% with threshold set to 70.0%" in messages
     assert not any("Group 'backend' reached average changed files" in m for m in messages)
 
 
@@ -614,13 +612,12 @@ def test_group_changed_files_coverage_logged(mocker: MockerFixture, caplog):
         global_min_coverage_changed_per_file=50.0,
         report_groups=[group],
     )
-    import logging
     with caplog.at_level(logging.INFO, logger="jacoco_report.evaluator.coverage_evaluator"):
         evaluator.evaluate()
 
     messages = [r.message for r in caplog.records]
-    assert any("Group 'frontend' reached overall coverage" in m and "60.0%" in m for m in messages)
-    assert any("Group 'frontend' reached average changed files coverage" in m and "55.0%" in m for m in messages)
+    assert "Group 'frontend' reached overall coverage of 80.0% with threshold set to 60.0%" in messages
+    assert "Group 'frontend' reached average changed files coverage of 90.0% with threshold set to 55.0%" in messages
 
 
 def test_group_changed_files_coverage_logged_when_metric_has_zero_weight(
@@ -668,10 +665,10 @@ def test_group_changed_files_coverage_logged_when_metric_has_zero_weight(
         global_min_coverage_changed_per_file=50.0,
         report_groups=[group],
     )
-    import logging
-
     with caplog.at_level(logging.INFO, logger="jacoco_report.evaluator.coverage_evaluator"):
         evaluator.evaluate()
 
     messages = [r.message for r in caplog.records]
-    assert any("Group 'frontend' reached average changed files coverage" in m and "0.0%" in m for m in messages)
+    assert "Group 'frontend' reached average changed files coverage of 0.0% with threshold set to 55.0%" in messages
+    assert evaluator.evaluated_groups_coverage["frontend"].avg_changed_files_passed is True
+    assert not any("Group 'frontend' changed files coverage 0.0 is below the threshold 55.0." in v for v in evaluator.violations)
