@@ -239,14 +239,12 @@ class PRCommentGenerator:
     ) -> str:
         """Render the global summary table without baseline deltas."""
         return (
-            dedent(
-                """
+            dedent("""
             | Metric ({}) | Coverage | Threshold | Status |
             |----------------------|----------|-----------|--------|
             | **Overall**       | {}% | {}% | {} |
             | **Changed Files** | {}% | {}% | {} |
-        """
-            )
+        """)
             .strip()
             .format(
                 metric,
@@ -278,14 +276,12 @@ class PRCommentGenerator:
         diff_ch = total_changed_files_reached - bs_total_changed_files_reached
 
         return (
-            dedent(
-                """
+            dedent("""
             | Metric ({}) | Coverage | Threshold | Δ Coverage | Status |
             |-------------------|-----|-----|-----|----|
             | **Overall**       | {}% | {}% | {}{}% | {} |
             | **Changed Files** | {}% | {}% | {}{}% | {} |
-        """
-            )
+        """)
             .strip()
             .format(
                 metric,
@@ -318,24 +314,20 @@ class PRCommentGenerator:
         has_baseline = self._has_baseline_data()
 
         if not has_baseline:
-            s = dedent(
-                """
+            s = dedent("""
                 | Group | Coverage (O/Ch) | Threshold (O/Ch) | Status (O/Ch) |
                 |-------|----------|-----------|--------|
-            """
-            ).strip()
+            """).strip()
             for group_name, ev in sorted(evaluated_groups_coverage.items()):
                 cov = f"{ev.overall_coverage_reached}% / {ev.avg_changed_files_coverage_reached}%"
                 thres = f"{ev.overall_coverage_threshold}% / {ev.changed_files_threshold}%"
                 status = f"{p if ev.overall_passed else f}/{p if ev.avg_changed_files_passed else f}"
                 s += f"\n| `{group_name}` | {cov} | {thres} | {status} |"
         else:
-            s = dedent(
-                """
+            s = dedent("""
                 | Group | Coverage (O/Ch) | Threshold (O/Ch) | Δ Coverage (O/Ch) | Status (O/Ch) |
                 |-------|----------|-----------|------------|--------|
-            """
-            ).strip()
+            """).strip()
             for group_name, ev in sorted(evaluated_groups_coverage.items()):
                 diff_o, diff_ch = self.calculate_baseline_group_diffs(ev)
                 diff_o = round(diff_o, 2)
@@ -371,12 +363,10 @@ class PRCommentGenerator:
         if not evaluated_reports_coverage:
             return ""
 
-        s = dedent(
-            """
+        s = dedent("""
             | Report | Coverage (O/Ch) | Threshold (O/Ch) | Status (O/Ch) |
             |--------|----------|-----------|--------|
-        """
-        ).strip()
+        """).strip()
 
         keys: list[str] = sorted(list(evaluated_reports_coverage.keys()))
         for key in keys:
@@ -406,12 +396,10 @@ class PRCommentGenerator:
         if not evaluated_reports_coverage:
             return ""
 
-        s = dedent(
-            """
+        s = dedent("""
             | Report | Coverage (O/Ch) | Threshold (O/Ch) | Δ Coverage (O/Ch) | Status (O/Ch) |
             |--------|----------|-----------|------------|--------|
-        """
-        ).strip()
+        """).strip()
 
         keys: list[str] = sorted(list(evaluated_reports_coverage.keys()))
         for key in keys:
@@ -486,12 +474,10 @@ class PRCommentGenerator:
         """
         Generate a table with changed files without baseline. The table contains the files from all reports.
         """
-        s = dedent(
-            """
+        s = dedent("""
             | File Path | Coverage | Threshold | Status |
             |-----------|----------|-----------|--------|
-        """
-        ).strip()
+        """).strip()
 
         if evaluated_reports_coverage is None:
             evaluated_reports_coverage = self.evaluator.evaluated_reports_coverage
@@ -571,12 +557,10 @@ class PRCommentGenerator:
         self, p: str, f: str, evaluated_reports_coverage: Optional[dict[str, EvaluatedReportCoverage]] = None
     ) -> str:
         """Generate a changed-files table that includes baseline deltas."""
-        s = dedent(
-            """
+        s = dedent("""
             | File Path | Coverage | Threshold | Δ Coverage | Status |
             |-----------|----------|-----------|------------|--------|
-        """
-        ).strip()
+        """).strip()
 
         if evaluated_reports_coverage is None:
             evaluated_reports_coverage = self.evaluator.evaluated_reports_coverage
