@@ -13,6 +13,8 @@ For skip-unchanged=false cases, evaluate-unchanged has no effect.
 
 from __future__ import annotations
 
+import re
+
 import pytest
 from pytest_mock import MockerFixture
 
@@ -34,6 +36,13 @@ _CHANGED_REPORT = "Module Large Report"
 _UNCHANGED_REPORT = "Module Small Report"
 
 _COMMENT_LEVELS = [level.value for level in CommentLevelEnum]
+
+
+def _extract_overall_coverage(comment_body: str) -> float:
+    """Extract the global Overall coverage percentage from the summary table."""
+    match = re.search(r"\| \*\*Overall\*\*\s+\|\s+([0-9]+(?:\.[0-9]+)?)%\s+\|", comment_body)
+    assert match is not None, f"Could not parse Overall coverage from comment body:\n{comment_body}"
+    return float(match.group(1))
 
 
 @pytest.mark.parametrize("comment_level", _COMMENT_LEVELS)
@@ -128,10 +137,15 @@ def test_skip_unchanged_true_all_comment_levels(
         f"stdout:\n{result.stdout}"
     )
 
-    # Scan-stage filter log must appear — confirms filter runs before evaluation.
-    assert "Filtering report" in result.stdout, (
-        f"[skip=true, level={comment_level!r}] Expected scan-stage filter log in stdout; "
-        f"Module Small Report (and others) have no changed files and must be filtered."
+    expected_filter_log = (
+        f"Filtering report '{_UNCHANGED_REPORT}' from evaluation and comment rows: no changed files."
+    )
+    assert expected_filter_log in result.stdout, (
+        f"[skip=true, level={comment_level!r}] Expected exact scan-stage filter log for "
+        f"{_UNCHANGED_REPORT!r} in stdout.\nstdout:\n{result.stdout}"
+    )
+    assert f"Filtering report '{_CHANGED_REPORT}'" not in result.stdout, (
+        f"[skip=true, level={comment_level!r}] {_CHANGED_REPORT!r} has changed files and must not be filtered."
     )
 
     if comment_level == "none":
@@ -200,6 +214,22 @@ def test_filter_before_evaluation_changes_global_coverage(mocker: MockerFixture)
     )
     assert r2.exit_code == 0, f"Run 2 failed: {r2.stdout}"
     assert len(captured_filtered) == 1, f"Expected one comment in run 2, got {len(captured_filtered)}"
+
+    expected_filter_log = (
+        f"Filtering report '{_UNCHANGED_REPORT}' from evaluation and comment rows: no changed files."
+    )
+    assert expected_filter_log not in r1.stdout, (
+        "Run 1 uses skip-unchanged=false; no report should be scan-stage filtered."
+    )
+    assert expected_filter_log in r2.stdout, (
+        "Run 2 must log that the unchanged report was filtered before evaluation."
+    )
+
+    overall_all = _extract_overall_coverage(captured_all[0])
+    overall_filtered = _extract_overall_coverage(captured_filtered[0])
+    assert overall_all != overall_filtered, (
+        "Global Overall coverage must change when unchanged reports are excluded from evaluator input."
+    )
 
     assert captured_all[0] != captured_filtered[0], (
         "Global coverage summary must differ between skip-unchanged=false (all reports evaluated) "
