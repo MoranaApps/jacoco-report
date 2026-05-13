@@ -69,6 +69,11 @@ jobs:
         with:
           python-version: '3.13'
 
+      # ------------------------------------------------------------------
+      # Your build/test step goes here — it must generate the JaCoCo XML
+      # files referenced by report-groups before publishing the report.
+      # ------------------------------------------------------------------
+
       - name: Publish JaCoCo Report
         uses: MoranaApps/jacoco-report@v3
         with:

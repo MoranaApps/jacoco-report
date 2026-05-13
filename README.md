@@ -52,6 +52,11 @@ jobs:
       issues: write
       pull-requests: read
     steps:
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
       - name: Publish JaCoCo Report
         uses: MoranaApps/jacoco-report@v3
         with:
@@ -460,7 +465,8 @@ comparison against an established reference (e.g. the `main` branch).
 #### Customizing the Debug Mode
 
 The `debug` input enables detailed logging. It is automatically enabled when
-`ACTIONS_RUNNER_DEBUG=true` is set in the repository secrets.
+`RUNNER_DEBUG=1` is set by GitHub Actions runner debug mode.
+Use `debug: 'true'` to enable debug logs explicitly regardless of runner settings.
 
 ```yaml
 - name: Publish JaCoCo Report

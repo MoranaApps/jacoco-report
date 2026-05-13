@@ -208,27 +208,27 @@ in a future release. A deprecation warning is written to the action log when a b
 
 | v2 value | v3 equivalent | Meaning |
 |----------|--------------|---------|
-| `true` | `[overall, changed-files-average, per-changed-file]` | Fail on any threshold breach |
-| `false` | `[]` | Never fail on threshold breach |
+| `true` | `overall,changed-files-average,per-changed-file` | Fail on any threshold breach |
+| `false` | `''` | Never fail on threshold breach |
 
 **v2:**
 ```yaml
     fail-on-threshold: 'true'
 ```
 
-**v3 (explicit list):**
+**v3 (comma-separated):**
 ```yaml
-    fail-on-threshold: '[overall, changed-files-average, per-changed-file]'
+  fail-on-threshold: 'overall,changed-files-average,per-changed-file'
 ```
 
 To fail only on the global overall threshold:
 ```yaml
-    fail-on-threshold: '[overall]'
+  fail-on-threshold: 'overall'
 ```
 
 To disable threshold-based failure entirely:
 ```yaml
-    fail-on-threshold: '[]'
+  fail-on-threshold: ''
 ```
 
 ---
@@ -310,6 +310,6 @@ v3 adds four new levels. The existing `minimal` and `full` levels are unchanged.
           - frontend/**/jacoco.xml
         thresholds: '75*65*50'
     skip-unchanged: 'true'
-    fail-on-threshold: '[overall, changed-files-average, per-changed-file]'
+    fail-on-threshold: 'overall,changed-files-average,per-changed-file'
     comment-level: 'full'
 ```
