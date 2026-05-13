@@ -20,7 +20,7 @@ jobs:
         id: lychee
         uses: lycheeverse/lychee-action@v2.8.0
         with:
-          args: --root-dir "${{ github.workspace }}" --verbose --no-progress --timeout 30 './**/*.md'
+          args: --root-dir "${{ github.workspace }}" --verbose --no-progress --timeout 30 --exclude-path '^tests/integration/fixtures/.*\.md$' --exclude '^https://github.com/owner/repo/pull/1/files#diff-' './**/*.md'
           format: markdown
           output: ./lychee-results.md
           token: ${{ secrets.TOKEN }}
