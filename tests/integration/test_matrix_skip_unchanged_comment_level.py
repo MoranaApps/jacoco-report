@@ -5,10 +5,10 @@
 Integration tests: skip-unchanged × comment-level matrix (Task 34).
 
 Covers all 2 × 6 = 12 combinations of skip-unchanged × comment-level.
-The evaluate-unchanged=false branch is exercised throughout: with
-skip-unchanged=true and evaluate-unchanged=false, unchanged reports are
-removed at the scan stage before CoverageEvaluator runs and are fully
-excluded from both comment rows and global threshold evaluation.
+For skip-unchanged=true cases, the evaluate-unchanged=false branch is exercised:
+unchanged reports are removed at the scan stage before CoverageEvaluator runs
+and are fully excluded from both comment rows and global threshold evaluation.
+For skip-unchanged=false cases, evaluate-unchanged has no effect.
 """
 
 from __future__ import annotations
