@@ -221,10 +221,12 @@ in a future release. A deprecation warning is written to the action log when a b
   fail-on-threshold: 'overall,changed-files-average,per-changed-file'
 ```
 
-To fail only on the global overall threshold:
+To fail only on the overall dimension (global overall plus report/group overall checks):
 ```yaml
   fail-on-threshold: 'overall'
 ```
+
+Note: `overall` is not global-only; report/group overall failures also fail the action.
 
 To disable threshold-based failure entirely:
 ```yaml
