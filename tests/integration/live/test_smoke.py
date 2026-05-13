@@ -36,7 +36,7 @@ _REF: str = os.environ.get("GITHUB_REF", "")
 pytestmark = pytest.mark.skipif(
     not _TOKEN
     or not _REPO
-    or not re.match(r"refs/pull/\d+/merge", _REF),
+    or not re.fullmatch(r"refs/pull/\d+/merge", _REF),
     reason=(
         "Live tests require GITHUB_TOKEN, GITHUB_REPOSITORY, and "
         "GITHUB_REF in refs/pull/<n>/merge format"
@@ -51,7 +51,7 @@ pytestmark = pytest.mark.skipif(
 
 def _pr_number() -> int:
     """Extract the PR number from GITHUB_REF."""
-    match = re.match(r"refs/pull/(\d+)/merge", _REF)
+    match = re.fullmatch(r"refs/pull/(\d+)/merge", _REF)
     assert match, f"Cannot extract PR number from GITHUB_REF={_REF!r}"
     return int(match.group(1))
 
@@ -231,7 +231,16 @@ def test_invalid_token_produces_clear_error() -> None:
         f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}"
     )
     combined = result.stdout + result.stderr
-    assert "error" in combined.lower() or "failed" in combined.lower(), (
-        "Expected an error message in output for an invalid token.\n"
+    normalized = combined.lower()
+    assert (
+        "http error occurred" in normalized
+        and (
+            "401" in normalized
+            or "unauthorized" in normalized
+            or "bad credentials" in normalized
+        )
+    ), (
+        "Expected an explicit authentication failure indicator for an invalid token "
+        "(HTTP 401 / unauthorized / bad credentials).\n"
         f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}"
     )
