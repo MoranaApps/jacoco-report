@@ -3,6 +3,7 @@
 ![GitHub tag](https://img.shields.io/github/v/tag/MoranaApps/jacoco-report?label=latest&style=flat-square&color=blue)
 
 - [Motivation](#motivation)
+- [Requirements](#requirements)
 - [Quick Start](#quick-start)
 - [Usage](#usage)
   - [Action Inputs](#action-inputs)
@@ -30,7 +31,7 @@ which files changed, what their coverage is, and whether thresholds are met, wit
 
 Key capabilities:
 
-- **Global thresholds** — enforce overall, average-changed, and per-file minimums in one input.
+- **Global thresholds** — enforce overall and average-changed minimums in one input.
 - **Report groups** — organise multi-module projects into named groups with per-group thresholds.
 - **Baseline comparison** — show Δ coverage against a stored baseline (e.g. `main` branch reports).
 - **Flexible comment levels** — from a single-line summary to full per-file detail, or no comment at all.
@@ -43,12 +44,18 @@ Key capabilities:
 Add the following step to any job that already produces a JaCoCo XML report:
 
 ```yaml
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
 - name: Publish JaCoCo Report
   uses: MoranaApps/jacoco-report@v3
   with:
     token: '${{ secrets.GITHUB_TOKEN }}'
     paths: '**/jacoco.xml'
-    global-thresholds: '80*70*60'   # overall * changed-avg * per-file
+    global-thresholds: '80*70*0'        # overall * changed-avg * reserved-third
+    report-thresholds-default: '0*0*60' # per-changed-file threshold
 ```
 
 This posts a full PR comment and fails the action if any threshold is not met.
@@ -101,7 +108,7 @@ jobs:
 | `token`             | GitHub token for authentication with the repository.                                                                                                                                                                           | **Yes**  |                                                  |
 | `paths`             | Newline-separated paths to JaCoCo XML files. Supports wildcard glob patterns. Required when `report-groups` is not set.                                                                                                        | No       | `''`                                             |
 | `exclude-paths`     | Newline-separated paths to exclude from coverage analysis. Supports glob patterns.                                                                                                                                             | No       | `''`                                             |
-| `global-thresholds` | Global coverage thresholds in `overall*changed-files-average*per-changed-file` format. Evaluated independently as a separate pass over aggregated totals.                                                                      | No       | `0.0*0.0*0.0`                                    |
+| `global-thresholds` | Global thresholds in `overall*changed-files-average*reserved-third` format. Aggregated evaluation uses overall and changed-files-average.                                                                                         | No       | `0.0*0.0*0.0`                                    |
 | `report-thresholds-default` | Default thresholds for reports/groups when a group omits a threshold field. Format: `overall*changed-files-average*per-changed-file` (e.g. `75*60*0`). Field-level fallback chain: per-group → this default → 0.0.        | No       | `0.0*0.0*0.0`                                    |
 | `title`             | Title for the coverage report comment added to the Pull Request.                                                                                                                                                               | No       | `JaCoCo Coverage Report`                         |
 | `pr-number`         | Number of the pull request. If not provided, the action will attempt to determine the PR number from the GitHub context.                                                                                                       | No       | `''`                                             |
@@ -119,6 +126,9 @@ jobs:
 
 > Hint: default values have been defined to provide maximal possible information in the comment.
 
+Per-changed-file checks are configured by `report-thresholds-default` or per-group `thresholds`,
+not by `global-thresholds`.
+
 ---
 
 #### Outputs
@@ -127,10 +137,12 @@ The following outputs are set by the JaCoCo GitHub Action:
 
 - `coverage-overall`: The overall code coverage percentage.
 - `coverage-changed-files`: The code coverage percentage for the changed files.
-- `coverage-overall-passed`: A boolean indicating if the overall code coverage meets the minimum threshold.
-- `coverage-changed-files-passed`: A boolean indicating if the code coverage for the changed files meets the minimum threshold.
+- `coverage-overall-passed`: A boolean indicating if overall code coverage meets the configured threshold.
+- `coverage-changed-files-passed`: A boolean indicating if changed-files average coverage
+  meets the configured threshold.
 - `reports-coverage`: A JSON string containing the evaluated coverage per report.
-- `groups-coverage`: A JSON string containing the evaluated coverage per report group (populated when `report-groups` is defined).
+- `groups-coverage`: A JSON string containing the evaluated coverage per report group
+  (populated when `report-groups` is defined).
 
 ---
 
@@ -181,8 +193,11 @@ analysis.
 
 #### Customizing the Global Coverage Thresholds
 
-The `global-thresholds` input defines coverage thresholds for the aggregated totals in the format
-`overall*changed-files-average*per-changed-file`.
+The `global-thresholds` input defines aggregated thresholds in the format
+`overall*changed-files-average*reserved-third`.
+
+Per-changed-file enforcement is configured through `report-thresholds-default` (or per-group
+`thresholds` when `report-groups` is used).
 
 ```yaml
 - name: Publish JaCoCo Report
@@ -190,7 +205,8 @@ The `global-thresholds` input defines coverage thresholds for the aggregated tot
   with:
     token: '${{ secrets.GITHUB_TOKEN }}'
     paths: '**/jacoco/**/*.xml'
-    global-thresholds: '80*70*60'   # 80% overall, 70% changed avg, 60% per file
+    global-thresholds: '80*70*0'    # 80% overall, 70% changed avg
+    report-thresholds-default: '0*0*60' # 60% per changed file
     fail-on-threshold: 'overall,changed-files-average,per-changed-file'
 ```
 
@@ -240,15 +256,22 @@ The `report-groups` input groups JaCoCo reports under named groups with optional
 baseline paths. When defined, each group's `paths` is used for scanning and the top-level `paths` input can be omitted.
 
 Each entry is a YAML mapping with:
+
 - `name` (required): Group name shown in the PR comment groups table.
 - `paths` (required): List of glob patterns for JaCoCo XML reports in this group.
-- `thresholds` (optional): `overall*changed-files-average*per-changed-file` (e.g. `80*70*60`). Missing fields fall back to `report-thresholds-default`, then to 0.0. Global thresholds are a separate evaluation pass.
-- `baseline-paths` (optional): List of glob patterns for baseline reports for this group. Falls back to top-level `baseline-paths` only when exactly one group omits `baseline-paths`; when multiple groups omit it, baseline inheritance is treated as ambiguous and skipped for those groups.
+- `thresholds` (optional): `overall*changed-files-average*per-changed-file`
+  (e.g. `80*70*60`). Missing fields fall back to `report-thresholds-default`, then to 0.0.
+  Global thresholds are a separate evaluation pass.
+- `baseline-paths` (optional): List of glob patterns for baseline reports for this group.
 
 For the full format reference see [docs/report-groups-format.md](docs/report-groups-format.md).
 
+When multiple groups omit `baseline-paths` while top-level `baseline-paths` is set, inheritance is
+treated as ambiguous and grouped baseline scans are skipped for those omitted groups.
+
 > **YAML quoting note**: Any `paths`, `baseline-paths`, or `thresholds` value that begins with `*` must be quoted,
 > otherwise YAML interprets the leading `*` as a YAML alias.
+>
 > ```yaml
 > paths:
 >   - '**/jacoco.xml'       # leading * — must be quoted
@@ -453,14 +476,16 @@ The `debug` input enables detailed logging. It is automatically enabled when
 
 - Check that your build step runs **before** this action and actually produces the XML files.
 - Use `debug: 'true'` to log every glob expansion result.
-- Verify the `paths` pattern resolves to real files. Both repository-relative patterns and absolute `${{ github.workspace }}` paths are supported.
+- Verify the `paths` pattern resolves to real files.
+  Both repository-relative patterns and absolute `${{ github.workspace }}` paths are supported.
 - If the path contains a leading `*` in a `report-groups` YAML block, wrap it in quotes:
   `- '**/jacoco.xml'`.
 
 ### No PR comment is posted
 
 - Confirm `comment-level` is not set to `none`.
-- Confirm the job token permissions include `issues: write` (comment create/update/delete) and `pull-requests: read` (PR files lookup).
+- Confirm the job token permissions include `issues: write` (comment create/update/delete)
+  and `pull-requests: read` (PR files lookup).
 - If `skip-unchanged: true` and all reports have no changed files:
   - with `evaluate-unchanged: false`, the action exits cleanly with no comment by design;
   - with `evaluate-unchanged: true` (default), unchanged reports are still evaluated for threshold failures.
@@ -468,12 +493,15 @@ The `debug` input enables detailed logging. It is automatically enabled when
 ### The action fails with a threshold error but the comment shows ✅
 
 - Check whether `fail-on-threshold` lists dimensions that differ from the thresholds you set in
-  `global-thresholds`. By default, all three dimensions are enforced.
+  `global-thresholds` and `report-thresholds-default`.
+  By default, `overall`, `changed-files-average`, and `per-changed-file` checks are enabled;
+  the per-changed-file check uses report/group thresholds.
 - When `report-groups` is used, group thresholds are evaluated separately from `global-thresholds`.
 
 ### `fail-on-threshold: true` shows a deprecation warning
 
 - Boolean values for `fail-on-threshold` are deprecated in v3. Replace with the list form:
+
   ```yaml
   fail-on-threshold: 'overall,changed-files-average,per-changed-file'
   ```

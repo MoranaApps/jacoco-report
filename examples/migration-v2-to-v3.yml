@@ -12,7 +12,9 @@
 #     token: ${{ secrets.GITHUB_TOKEN }}
 #     paths: '**/jacoco.xml'
 #
-#     # Three separate threshold inputs → replaced by global-thresholds
+#     # v2 threshold inputs map in v3 as:
+#     # - overall + changed-files-average -> global-thresholds
+#     # - per-changed-file -> report-thresholds-default / group thresholds
 #     min-coverage-overall: '80'
 #     min-coverage-changed-files: '70'
 #     min-coverage-per-changed-file: '60'
@@ -72,9 +74,9 @@ jobs:
         with:
           token: '${{ secrets.GITHUB_TOKEN }}'
 
-          # global-thresholds replaces the three separate min-coverage-* inputs.
-          # Format: overall * changed-files-average * per-changed-file
-          global-thresholds: '80*70*60'
+          # global-thresholds carries aggregated overall + changed-files-average.
+          # Per-changed-file threshold is configured via report/group thresholds.
+          global-thresholds: '80*70*0'
 
           # report-thresholds-default sets the fallback for group threshold fields.
           report-thresholds-default: '75*65*50'

@@ -267,7 +267,7 @@ Open the report:
 open htmlcov/index.html
 ```
 
-Full QA gate (mirrors CI):
+Full local QA gate (stricter single command):
 
 ```shell
 pytest --cov=. tests/ --ignore=tests/integration/live --cov-fail-under=80 && \
