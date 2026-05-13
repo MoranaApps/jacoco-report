@@ -143,6 +143,10 @@ jobs:
     if: github.event.pull_request.head.repo.full_name == github.repository
     needs: set-matrix
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: read
     strategy:
       matrix: ${{fromJson(needs.set-matrix.outputs.matrix)}}
     name: Live Integration Test - (Python ${{ matrix.python-version }})
