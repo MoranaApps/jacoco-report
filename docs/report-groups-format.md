@@ -180,7 +180,8 @@ It is independent of group thresholds.
 
 ## PR comment structure when groups are configured
 
-When `report-groups` is non-empty the PR comment includes a Groups table between the Global
+When `report-groups` is non-empty and `comment-level` is a detail level (`full`, `changed`,
+`failed`, `failed-or-changed`), the PR comment includes a Groups table between the Global
 summary and the Reports table:
 
 ```text
@@ -197,7 +198,8 @@ summary and the Reports table:
 |…| ← Changed-files table
 ```
 
-When `report-groups` is empty the Groups table is omitted and the three-table structure is used.
+When `report-groups` is empty, or when `comment-level` is `minimal`/`none`, the Groups table is
+omitted.
 
 ---
 

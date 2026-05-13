@@ -74,7 +74,7 @@ jobs:
           # Optional top-level baseline paths (used only when exactly one group omits baseline-paths).
           # baseline-paths: 'baseline/main/**/*.xml'
 
-          # Show all tables; hide rows with no changed files to reduce noise.
+          # Show rows with changes or failures; rows with no changes are still shown when failing.
           comment-level: 'failed-or-changed'
 
           # Fail on overall and changed-files-average threshold breaches.

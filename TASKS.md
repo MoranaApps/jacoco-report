@@ -494,7 +494,7 @@ Append to PR comments: run ID, timestamp, trigger event, action version.
 
 Task 38 is gated on tasks 27–30 being complete. Tasks 39–43 may proceed in parallel after task 38.
 
-#### Task 38 — v2→v3 migration guide ⬜
+#### Task 38 — v2→v3 migration guide ✅
 
 **Branch:** `docs/74-v2-v3-migration-guide` | **Issue:** #74
 **Depends on:** Tasks 27, 28, 29, 30 (all core features done)
@@ -536,7 +536,8 @@ Task 38 is gated on tasks 27–30 being complete. Tasks 39–43 may proceed in p
 #### Task 42 — Document `report-groups` YAML format ✅
 
 **Branch:** `docs/improve-docs` | **Issue:** #98
-- Created `docs/report-groups-format.md` with full schema, field reference, threshold resolution, quoting rules, and examples
+- Created `docs/report-groups-format.md` with full schema, field reference,
+  threshold resolution, quoting rules, and examples
 - README `report-groups` section links to the new doc
 
 #### Task 43 — Create `examples/` directory ✅

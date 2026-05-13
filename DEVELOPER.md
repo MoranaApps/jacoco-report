@@ -65,8 +65,8 @@ chmod +x run_script.sh
 export INPUT_TOKEN="ghp_your_personal_access_token"
 export INPUT_PATHS="**/jacoco.xml"
 export INPUT_EXCLUDE_PATHS=""
-export INPUT_GLOBAL_THRESHOLDS="80*70*60"
-export INPUT_REPORT_THRESHOLDS_DEFAULT="0*0*0"
+export INPUT_GLOBAL_THRESHOLDS="80*70*0"
+export INPUT_REPORT_THRESHOLDS_DEFAULT="0*0*60"
 export INPUT_TITLE="JaCoCo Coverage Report"
 export INPUT_PR_NUMBER="1"
 export INPUT_METRIC="instruction"
@@ -95,7 +95,7 @@ python3 main.py
 #!/bin/sh
 
 export INPUT_TOKEN="ghp_your_personal_access_token"
-export INPUT_GLOBAL_THRESHOLDS="80*70*60"
+export INPUT_GLOBAL_THRESHOLDS="80*70*0"
 export INPUT_REPORT_THRESHOLDS_DEFAULT="75*60*0"
 export INPUT_COMMENT_LEVEL="full"
 export INPUT_REPORT_GROUPS="

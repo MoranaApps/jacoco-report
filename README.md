@@ -2,8 +2,8 @@
 
 ![GitHub tag](https://img.shields.io/github/v/tag/MoranaApps/jacoco-report?label=latest&style=flat-square&color=blue)
 
-- [Motivation](#motivation)
 - [Requirements](#requirements)
+- [Motivation](#motivation)
 - [Quick Start](#quick-start)
 - [Usage](#usage)
   - [Action Inputs](#action-inputs)
@@ -41,21 +41,24 @@ Key capabilities:
 
 ## Quick Start
 
-Add the following step to any job that already produces a JaCoCo XML report:
+Add the following job fragment to a workflow that already produces a JaCoCo XML report:
 
 ```yaml
-permissions:
-  contents: read
-  issues: write
-  pull-requests: read
-
-- name: Publish JaCoCo Report
-  uses: MoranaApps/jacoco-report@v3
-  with:
-    token: '${{ secrets.GITHUB_TOKEN }}'
-    paths: '**/jacoco.xml'
-    global-thresholds: '80*70*0'        # overall * changed-avg * reserved-third
-    report-thresholds-default: '0*0*60' # per-changed-file threshold
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: read
+    steps:
+      - name: Publish JaCoCo Report
+        uses: MoranaApps/jacoco-report@v3
+        with:
+          token: '${{ secrets.GITHUB_TOKEN }}'
+          paths: '**/jacoco.xml'
+          global-thresholds: '80*70*0'        # overall * changed-avg * reserved-third
+          report-thresholds-default: '0*0*60' # per-changed-file threshold
 ```
 
 This posts a full PR comment and fails the action if any threshold is not met.
@@ -115,7 +118,7 @@ jobs:
 | `metric`            | Coverage metric to use (`instruction`, `line`, `branch`, `complexity`, `method`, `class`).                                                                                                                                     | No       | `instruction`                                    |
 | `comment-level`     | Comment output level: `none`, `minimal`, `full`, `changed`, `failed`, or `failed-or-changed`. See [docs/comment-level-guide.md](docs/comment-level-guide.md).                                                                 | No       | `full`                                           |
 | `report-groups`     | Named report groups as a YAML list. Each entry: `name` (required), `paths` (required list of globs), `thresholds` (optional `O*A*P`), `baseline-paths` (optional list). See [docs/report-groups-format.md](docs/report-groups-format.md). | No  | `''`                                      |
-| `skip-unchanged`    | If `true`, reports with no changed files are filtered out before evaluation.                                                                                                                                                   | No       | `false`                                          |
+| `skip-unchanged`    | If `true`, reports with no changed files are filtered out from comment rows. With default `evaluate-unchanged=true`, filtered reports can still affect threshold results.                                                        | No       | `false`                                          |
 | `evaluate-unchanged` | Applies only when `skip-unchanged=true`. If `true`, filtered reports can still fail overall thresholds. If `false`, they are excluded from threshold evaluation as well.                                                       | No       | `true`                                           |
 | `baseline-paths`    | Paths to baseline coverage reports for comparison. Supports wildcard glob patterns.                                                                                                                                            | No       | `''`                                             |
 | `update-comment`    | If `true`, updates an existing comment instead of creating a new one.                                                                                                                                                          | No       | `true`                                           |
@@ -475,7 +478,7 @@ The `debug` input enables detailed logging. It is automatically enabled when
 ### The action cannot find any JaCoCo XML files
 
 - Check that your build step runs **before** this action and actually produces the XML files.
-- Use `debug: 'true'` to log every glob expansion result.
+- Use `debug: 'true'` to log matched JaCoCo XML files discovered by scanning.
 - Verify the `paths` pattern resolves to real files.
   Both repository-relative patterns and absolute `${{ github.workspace }}` paths are supported.
 - If the path contains a leading `*` in a `report-groups` YAML block, wrap it in quotes:
