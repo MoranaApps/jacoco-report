@@ -17,6 +17,8 @@ from __future__ import annotations
 
 import os
 import re
+import uuid
+import warnings
 from collections.abc import Generator
 
 import pytest
@@ -108,11 +110,18 @@ def cleanup_comments() -> Generator[list[int], None, None]:
     """Yield a list; append comment IDs to it and they will be deleted on teardown."""
     ids: list[int] = []
     yield ids
+    cleanup_failures: list[str] = []
     for comment_id in ids:
         try:
             _delete_comment(comment_id)
-        except Exception:  # pylint: disable=broad-exception-caught
-            pass  # best-effort: never mask the original test failure
+        except (requests.RequestException, AssertionError) as exc:
+            cleanup_failures.append(f"comment_id={comment_id}: {exc}")
+
+    if cleanup_failures:
+        warnings.warn(
+            "Live test comment cleanup had failures:\n" + "\n".join(cleanup_failures),
+            RuntimeWarning,
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -128,9 +137,11 @@ def test_comment_creation(cleanup_comments: list[int]) -> None:
     """
     pr_number = _pr_number()
     before_ids = {c["id"] for c in _fetch_all_comments(pr_number)}
+    marker = f"jacoco-live-smoke-create-{uuid.uuid4().hex}"
 
     env = _live_env(
         INPUT_PATHS=TEST_PROJECT_GLOB,
+        INPUT_TITLE=marker,
         INPUT_COMMENT_LEVEL="minimal",
         INPUT_SKIP_UNCHANGED="false",
         INPUT_GLOBAL_THRESHOLDS="0.0*0.0*0.0",
@@ -143,12 +154,14 @@ def test_comment_creation(cleanup_comments: list[int]) -> None:
     )
 
     after_comments = _fetch_all_comments(pr_number)
-    new_comments = [c for c in after_comments if c["id"] not in before_ids]
-    assert len(new_comments) == 1, (
-        f"Expected exactly one new comment, found {len(new_comments)}.\n"
+    marker_comments = [c for c in after_comments if marker in c.get("body", "")]
+    new_marker_comments = [c for c in marker_comments if c["id"] not in before_ids]
+    assert len(new_marker_comments) == 1, (
+        "Expected exactly one newly-created marker comment, "
+        f"found {len(new_marker_comments)}.\n"
         f"stdout:\n{result.stdout}"
     )
-    cleanup_comments.append(new_comments[0]["id"])
+    cleanup_comments.append(new_marker_comments[0]["id"])
 
 
 def test_pagination_handling(cleanup_comments: list[int]) -> None:
@@ -160,7 +173,7 @@ def test_pagination_handling(cleanup_comments: list[int]) -> None:
     """
     pr_number = _pr_number()
 
-    marker = "jacoco-smoke-pagination"
+    marker = f"jacoco-smoke-pagination-{uuid.uuid4().hex}"
     posted_ids: list[int] = []
     for i in range(3):
         url = f"https://api.github.com/repos/{_REPO}/issues/{pr_number}/comments"
@@ -171,8 +184,9 @@ def test_pagination_handling(cleanup_comments: list[int]) -> None:
             timeout=30,
         )
         resp.raise_for_status()
-        posted_ids.append(resp.json()["id"])
-    cleanup_comments.extend(posted_ids)
+        comment_id = resp.json()["id"]
+        posted_ids.append(comment_id)
+        cleanup_comments.append(comment_id)
 
     from jacoco_report.utils.github import GitHub  # local import avoids module-level side effects
 
