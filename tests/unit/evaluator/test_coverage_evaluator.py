@@ -173,7 +173,7 @@ def test_review_violations_report_changed_files_coverage_below_threshold(evaluat
 
     assert "Report 'filepath' changed files coverage 40.0 is below the threshold 50.0." in evaluator.violations
 
-def test_evaluate_group_with_zero_coverage(mocker: MockerFixture):
+def test_evaluate_group_with_zero_coverage(caplog):
     # Create a sample report file coverage
     overall_coverage = Coverage(
         instruction=Counter(missed=0, covered=0),
@@ -216,10 +216,14 @@ def test_evaluate_group_with_zero_coverage(mocker: MockerFixture):
     evaluated_coverage.overall_coverage.missed = 0
 
     group = ReportGroup(name="module-a", paths=["**"])
-    evaluated_coverage = evaluator.evaluate_group(evaluated_coverage, group)
+    with caplog.at_level(logging.INFO, logger="jacoco_report.evaluator.coverage_evaluator"):
+        evaluated_coverage = evaluator.evaluate_group(evaluated_coverage, group)
 
     assert evaluated_coverage.overall_coverage_reached == 0.0
     assert evaluated_coverage.overall_passed is True
+    messages = [r.message for r in caplog.records]
+    assert "Group 'module-a' has no overall coverage data for selected metric; treated as passed." in messages
+    assert not any("Group 'module-a' reached overall coverage" in m for m in messages)
 
 
 def _make_minimal_report(name: str, group_name: str) -> ReportFileCoverage:
