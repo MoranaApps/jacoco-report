@@ -953,7 +953,6 @@ def test_metadata_footer_not_appended_for_none_level(pr_comment_generator, mocke
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_run_started_at", return_value="2025-01-01T00:00:00Z")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_action_ref", return_value="v3.0.0")
 
-    _, body = pr_comment_generator._get_comment_content("none")
+    pr_comment_generator.generate()
 
-    assert "---" not in body
-    assert "Run" not in body
+    pr_comment_generator.gh.add_comment.assert_not_called()
