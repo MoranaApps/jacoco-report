@@ -149,7 +149,20 @@ def make_env_base(**overrides: str) -> dict[str, str]:
 
 
 def mock_github_offline(mocker: MockerFixture, changed_files: list[str]) -> list[str]:
-    """Patch GitHub API calls for offline integration tests and capture posted comment bodies."""
+    """Patch GitHub API calls for offline integration tests.
+
+    Parameters
+    ----------
+    mocker
+        pytest-mock fixture used to patch GitHub client methods.
+    changed_files
+        Changed file paths returned by the mocked pull-request changed-files API.
+
+    Returns
+    -------
+    list[str]
+        Mutable list that accumulates posted PR comment bodies.
+    """
     mocker.patch(
         "jacoco_report.utils.github.GitHub.get_pr_changed_files",
         return_value=changed_files,
