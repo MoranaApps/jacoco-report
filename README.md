@@ -1,6 +1,7 @@
 # Jacoco Report GitHub Action
 
 ![GitHub tag](https://img.shields.io/github/v/tag/MoranaApps/jacoco-report?label=latest&style=flat-square&color=blue)
+[![CodeRabbit Pull Request Reviews](https://coderabbit.ai/badges/github/MoranaApps/jacoco-report)](https://coderabbit.ai/github/MoranaApps/jacoco-report)
 
 - [Usage](#usage)
   - [Action Inputs](#action-inputs)
