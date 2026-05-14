@@ -58,6 +58,7 @@ def run() -> None:
             FailOnThresholdEnum.OVERALL: jr.reached_threshold_overall,
             FailOnThresholdEnum.CHANGED_FILES_AVERAGE: jr.reached_threshold_changed_files_average,
             FailOnThresholdEnum.PER_CHANGED_FILE: jr.reached_threshold_per_change_file,
+            FailOnThresholdEnum.FAIL_UNCHANGED: jr.reached_threshold_fail_unchanged,
         }
 
         # Fail if any configured threshold was not reached

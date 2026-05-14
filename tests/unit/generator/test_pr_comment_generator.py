@@ -356,6 +356,57 @@ def test_reports_table_uses_evaluated_thresholds_not_global(pr_comment_generator
 
     assert "75.0% / 70.0%" in table
 
+
+def test_report_table_orders_by_group_config_order_then_report_name(pr_comment_generator):
+    pr_comment_generator.evaluator.report_group_order = ["backend", "frontend"]
+
+    backend_z = _make_evaluated_coverage("z-report", group_name="backend")
+    backend_a = _make_evaluated_coverage("a-report", group_name="backend")
+    frontend_b = _make_evaluated_coverage("b-report", group_name="frontend")
+
+    pr_comment_generator.evaluator.evaluated_reports_coverage = {
+        "b-report": frontend_b,
+        "z-report": backend_z,
+        "a-report": backend_a,
+    }
+
+    table = pr_comment_generator.get_reports_table("✅", "❌")
+
+    assert table.index("`a-report`") < table.index("`z-report`")
+    assert table.index("`z-report`") < table.index("`b-report`")
+
+
+def test_report_table_keeps_ungrouped_reports_after_configured_groups(pr_comment_generator):
+    pr_comment_generator.evaluator.report_group_order = ["backend", "frontend"]
+
+    backend = _make_evaluated_coverage("backend-report", group_name="backend")
+    unknown = _make_evaluated_coverage("unknown-report", group_name="unknown")
+
+    pr_comment_generator.evaluator.evaluated_reports_coverage = {
+        "unknown-report": unknown,
+        "backend-report": backend,
+    }
+
+    table = pr_comment_generator.get_reports_table("✅", "❌")
+
+    assert table.index("`backend-report`") < table.index("`unknown-report`")
+
+
+def test_report_table_without_report_groups_keeps_name_sort(pr_comment_generator):
+    pr_comment_generator.evaluator.report_group_order = []
+
+    beta = _make_evaluated_coverage("beta-report", group_name="backend")
+    alpha = _make_evaluated_coverage("alpha-report", group_name="frontend")
+
+    pr_comment_generator.evaluator.evaluated_reports_coverage = {
+        "beta-report": beta,
+        "alpha-report": alpha,
+    }
+
+    table = pr_comment_generator.get_reports_table("✅", "❌")
+
+    assert table.index("`alpha-report`") < table.index("`beta-report`")
+
 # --- Issue 1: get_groups_table baseline decision logic ---
 
 def test_get_groups_table_baseline_decision_global_only(pr_comment_generator, mocker):

@@ -575,15 +575,22 @@ def test_get_fail_symbol(mocker):
     assert "F" == ActionInputs.get_fail_symbol()
 
 
-def test_get_fail_on_threshold_true(mocker):
+def test_get_fail_on_threshold_true_rejected(mocker):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="true")
-    expected = [FailOnThresholdEnum.OVERALL, FailOnThresholdEnum.CHANGED_FILES_AVERAGE, FailOnThresholdEnum.PER_CHANGED_FILE]
-    assert expected == ActionInputs.get_fail_on_threshold()
+
+    with pytest.raises(ValueError) as exc_info:
+        ActionInputs.get_fail_on_threshold()
+
+    assert "Boolean values for 'fail-on-threshold' are no longer supported." in str(exc_info.value)
 
 
-def test_get_fail_on_threshold_false(mocker):
+def test_get_fail_on_threshold_false_rejected(mocker):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="false")
-    assert ActionInputs.get_fail_on_threshold() == []
+
+    with pytest.raises(ValueError) as exc_info:
+        ActionInputs.get_fail_on_threshold()
+
+    assert "Boolean values for 'fail-on-threshold' are no longer supported." in str(exc_info.value)
 
 
 def test_get_fail_on_threshold_overall(mocker):
@@ -594,6 +601,11 @@ def test_get_fail_on_threshold_overall(mocker):
 def test_get_fail_on_threshold_overall_changed_average(mocker):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="overall\nchanged-files-average")
     assert ActionInputs.get_fail_on_threshold() == [FailOnThresholdEnum.OVERALL, FailOnThresholdEnum.CHANGED_FILES_AVERAGE]
+
+
+def test_get_fail_on_threshold_accepts_fail_unchanged(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="overall,fail-unchanged")
+    assert ActionInputs.get_fail_on_threshold() == [FailOnThresholdEnum.OVERALL, FailOnThresholdEnum.FAIL_UNCHANGED]
 
 
 def test_get_fail_on_threshold_invalid_format(mocker):
@@ -692,6 +704,26 @@ def test_validate_inputs_rejects_invalid_debug_literal(mocker):
         ActionInputs.validate_inputs()
 
         mock_error.assert_any_call("%s", "'debug' must be a boolean ('true' or 'false').")
+        mock_exit.assert_called_once_with(1)
+    finally:
+        stop_mocks(patchers)
+
+
+@pytest.mark.parametrize("legacy_value", ["true", "false"])
+def test_validate_inputs_rejects_boolean_fail_on_threshold(mocker, legacy_value):
+    case = success_case.copy()
+    patchers = apply_mocks(case, mocker)
+    try:
+        mocker.patch(
+            "jacoco_report.action_inputs.ActionInputs.get_fail_on_threshold",
+            side_effect=ValueError("Boolean values for 'fail-on-threshold' are no longer supported."),
+        )
+        mock_error = mocker.patch("jacoco_report.action_inputs.logger.error")
+        mock_exit = mocker.patch("sys.exit")
+
+        ActionInputs.validate_inputs()
+
+        mock_error.assert_any_call("%s", "Boolean values for 'fail-on-threshold' are no longer supported.")
         mock_exit.assert_called_once_with(1)
     finally:
         stop_mocks(patchers)

@@ -201,10 +201,10 @@ files in the comment, but still evaluates all reports.
 
 ---
 
-## 6. `fail-on-threshold` — boolean deprecated, use list form
+## 6. `fail-on-threshold` — list form only
 
-Boolean `true` / `false` values for `fail-on-threshold` are deprecated in v3 and will be removed
-in a future release. A deprecation warning is written to the action log when a boolean is detected.
+Boolean `true` / `false` values for `fail-on-threshold` are not supported in v3.
+Use a comma- or newline-separated list, or `''` to disable threshold-based failure.
 
 | v2 value | v3 equivalent | Meaning |
 |----------|--------------|---------|
@@ -227,6 +227,11 @@ To fail only on the overall dimension (global overall plus report/group overall 
 ```
 
 Note: `overall` is not global-only; report/group overall failures also fail the action.
+
+To enforce threshold failures for unchanged reports filtered by `skip-unchanged: 'true'`:
+```yaml
+  fail-on-threshold: 'fail-unchanged'
+```
 
 To disable threshold-based failure entirely:
 ```yaml

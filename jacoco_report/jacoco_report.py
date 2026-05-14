@@ -12,6 +12,7 @@ from jacoco_report.model.report_file_coverage import ReportFileCoverage
 from jacoco_report.model.report_group import ReportGroup
 from jacoco_report.parser.jacoco_report_parser import JaCoCoReportParser
 from jacoco_report.scanner.jacoco_report_input_scanner import JaCoCoReportInputScanner
+from jacoco_report.utils.enums import FailOnThresholdEnum
 from jacoco_report.utils.github import GitHub
 
 logger = logging.getLogger(__name__)
@@ -36,6 +37,7 @@ class JaCoCoReport:
         self.reached_threshold_overall = True
         self.reached_threshold_changed_files_average = True
         self.reached_threshold_per_change_file = True
+        self.reached_threshold_fail_unchanged = True
 
     def run(self) -> None:
         """
@@ -118,13 +120,16 @@ class JaCoCoReport:
 
         skip_unchanged = ActionInputs.get_skip_unchanged()
         evaluate_unchanged = ActionInputs.get_evaluate_unchanged()
+        fail_on_threshold = set(ActionInputs.get_fail_on_threshold())
+        fail_unchanged_enabled = FailOnThresholdEnum.FAIL_UNCHANGED in fail_on_threshold
+        evaluate_filtered_unchanged = evaluate_unchanged or fail_unchanged_enabled
         filtered_unchanged_reports: list[ReportFileCoverage] = []
 
         # scan-stage filter: remove reports with no changed files before evaluation
         if skip_unchanged:
             for report in report_files_coverage:
                 if not report.changed_files_coverage:
-                    if evaluate_unchanged:
+                    if evaluate_filtered_unchanged:
                         logger.info(
                             "Filtering report '%s' from comment rows and changed-files evaluation: "
                             "no changed files (overall threshold checks may still apply).",
@@ -138,7 +143,7 @@ class JaCoCoReport:
                     filtered_unchanged_reports.append(report)
 
             report_files_coverage = [r for r in report_files_coverage if r.changed_files_coverage]
-            if not report_files_coverage and not evaluate_unchanged:
+            if not report_files_coverage and not evaluate_filtered_unchanged:
                 logger.info("All reports filtered out by skip-unchanged. No comment will be generated.")
                 self.total_overall_coverage_passed = True
                 self.total_changed_files_coverage_passed = True
@@ -146,9 +151,10 @@ class JaCoCoReport:
                 self.evaluated_coverage_groups = "{}"
                 self._delete_stale_comment_if_update_enabled(gh=gh, pr_number=pr_number)
                 return
-            if not report_files_coverage and evaluate_unchanged:
+            if not report_files_coverage and evaluate_filtered_unchanged:
                 logger.info(
-                    "All reports filtered out by skip-unchanged. Evaluating unchanged reports for threshold result only."
+                    "All reports filtered out by skip-unchanged. "
+                    "Evaluating unchanged reports for threshold result only."
                 )
                 report_thresholds_default = ActionInputs.get_report_thresholds_default()
                 filtered_evaluator = CoverageEvaluator(
@@ -180,6 +186,14 @@ class JaCoCoReport:
                     filtered_evaluator.reached_threshold_changed_files_average
                 )
                 self.reached_threshold_per_change_file = filtered_evaluator.reached_threshold_per_change_file
+
+                if fail_unchanged_enabled:
+                    self.reached_threshold_fail_unchanged = all(
+                        evaluated_report.overall_passed
+                        for evaluated_report in filtered_evaluator.evaluated_reports_coverage.values()
+                    )
+                else:
+                    self.reached_threshold_fail_unchanged = True
 
                 self._delete_stale_comment_if_update_enabled(gh=gh, pr_number=pr_number)
                 return
@@ -262,7 +276,7 @@ class JaCoCoReport:
         report_thresholds_default = ActionInputs.get_report_thresholds_default()
         reports_for_evaluation = (
             report_files_coverage + filtered_unchanged_reports
-            if skip_unchanged and evaluate_unchanged and filtered_unchanged_reports
+            if skip_unchanged and evaluate_filtered_unchanged and filtered_unchanged_reports
             else report_files_coverage
         )
         evaluator_for_results: CoverageEvaluator = CoverageEvaluator(
@@ -305,11 +319,28 @@ class JaCoCoReport:
         self.reached_threshold_changed_files_average = evaluator_for_results.reached_threshold_changed_files_average
         self.reached_threshold_per_change_file = evaluator_for_results.reached_threshold_per_change_file
 
+        if fail_unchanged_enabled and filtered_unchanged_reports:
+            filtered_unchanged_evaluator = CoverageEvaluator(
+                report_files_coverage=filtered_unchanged_reports,
+                global_min_coverage_overall=ActionInputs.get_global_overall_threshold(),
+                global_min_coverage_changed_files=ActionInputs.get_global_changed_files_average_threshold(),
+                global_min_coverage_changed_per_file=ActionInputs.get_global_changed_file_threshold(),
+                report_groups=report_groups,
+                report_thresholds_default=report_thresholds_default,
+            )
+            filtered_unchanged_evaluator.evaluate()
+            self.reached_threshold_fail_unchanged = all(
+                evaluated_report.overall_passed
+                for evaluated_report in filtered_unchanged_evaluator.evaluated_reports_coverage.values()
+            )
+        else:
+            self.reached_threshold_fail_unchanged = True
+
         # generate the comment(s)
         logger.info("Generating PR comment(s).")
         skip_report_names: frozenset[str] = (
             frozenset(r.name for r in filtered_unchanged_reports)
-            if skip_unchanged and evaluate_unchanged and filtered_unchanged_reports
+            if skip_unchanged and evaluate_filtered_unchanged and filtered_unchanged_reports
             else frozenset()
         )
         generator = PRCommentGenerator(gh, evaluator_for_results, bs_evaluator, pr_number, skip_report_names)

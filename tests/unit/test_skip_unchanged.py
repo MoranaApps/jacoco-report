@@ -30,6 +30,7 @@ def _make_run_mocks(
     *,
     skip_unchanged: bool,
     evaluate_unchanged: bool,
+    fail_on_threshold: list[str] | None = None,
     reports: list[ReportFileCoverage],
 ) -> dict:
     """Patch the minimum surface needed to exercise JaCoCoReport.run()."""
@@ -47,6 +48,10 @@ def _make_run_mocks(
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_comment_level", return_value=CommentLevelEnum.FULL)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups", return_value=[])
+    mocker.patch(
+        "jacoco_report.action_inputs.ActionInputs.get_fail_on_threshold",
+        return_value=fail_on_threshold if fail_on_threshold is not None else ["overall", "changed-files-average", "per-changed-file"],
+    )
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_title", return_value="JaCoCo")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=False)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_pass_symbol", return_value="✅")
@@ -404,6 +409,60 @@ def test_skip_unchanged_all_filtered_evaluate_unchanged_true_serializes_reports_
     assert jr.evaluated_coverage_reports != "{}"
 
 
+def test_skip_unchanged_true_fail_unchanged_enabled_evaluates_filtered_reports(
+    mocker: MockerFixture,
+    make_report_file_coverage,
+    make_coverage,
+):
+    low_overall = make_coverage(instruction=Counter(missed=10, covered=0))
+    unchanged = make_report_file_coverage(
+        name="Low Report",
+        overall_coverage=low_overall,
+        changed_files_coverage={},
+    )
+    _make_run_mocks(
+        mocker,
+        skip_unchanged=True,
+        evaluate_unchanged=False,
+        fail_on_threshold=["fail-unchanged"],
+        reports=[unchanged],
+    )
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_thresholds_default", return_value=(50.0, 0.0, 0.0))
+
+    jr = JaCoCoReport()
+    jr.run()
+
+    assert any("Report 'Low Report' overall coverage 0.0 is below the threshold 50.0." in v for v in jr.violations)
+    assert jr.reached_threshold_fail_unchanged is False
+
+
+def test_skip_unchanged_true_fail_unchanged_disabled_excludes_filtered_reports(
+    mocker: MockerFixture,
+    make_report_file_coverage,
+    make_coverage,
+):
+    low_overall = make_coverage(instruction=Counter(missed=10, covered=0))
+    unchanged = make_report_file_coverage(
+        name="Low Report",
+        overall_coverage=low_overall,
+        changed_files_coverage={},
+    )
+    _make_run_mocks(
+        mocker,
+        skip_unchanged=True,
+        evaluate_unchanged=False,
+        fail_on_threshold=["overall"],
+        reports=[unchanged],
+    )
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_thresholds_default", return_value=(50.0, 0.0, 0.0))
+
+    jr = JaCoCoReport()
+    jr.run()
+
+    assert not any("Report 'Low Report' overall coverage 0.0 is below the threshold 50.0." in v for v in jr.violations)
+    assert jr.reached_threshold_fail_unchanged is True
+
+
 # --- comment-level × skip-unchanged combinations ---
 #
 # 2 (skip-unchanged: true / false) × 6 comment levels = 12 cases.
@@ -539,24 +598,20 @@ def test_minimal_comment_contains_only_global_table(
         assert "| Report |" in body
 
 
-# --- fail-on-threshold boolean deprecation ---
+# --- fail-on-threshold boolean removal ---
 
-def test_fail_on_threshold_true_emits_deprecation_warning(mocker: MockerFixture, caplog):
+def test_fail_on_threshold_true_is_rejected(mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="true")
-    with caplog.at_level(logging.WARNING, logger="jacoco_report.action_inputs"):
-        result = ActionInputs.get_fail_on_threshold()
-    assert result == ["overall", "changed-files-average", "per-changed-file"]
-    assert "no longer supported from v3" in caplog.text
-    assert "overall,changed-files-average,per-changed-file" in caplog.text
+    with pytest.raises(ValueError) as exc_info:
+        ActionInputs.get_fail_on_threshold()
+    assert "Boolean values for 'fail-on-threshold' are no longer supported." in str(exc_info.value)
 
 
-def test_fail_on_threshold_false_emits_deprecation_warning(mocker: MockerFixture, caplog):
+def test_fail_on_threshold_false_is_rejected(mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="false")
-    with caplog.at_level(logging.WARNING, logger="jacoco_report.action_inputs"):
-        result = ActionInputs.get_fail_on_threshold()
-    assert result == []
-    assert "no longer supported from v3" in caplog.text
-    assert "empty string" in caplog.text
+    with pytest.raises(ValueError) as exc_info:
+        ActionInputs.get_fail_on_threshold()
+    assert "Boolean values for 'fail-on-threshold' are no longer supported." in str(exc_info.value)
 
 
 # --- skip-unchanged with report groups ---

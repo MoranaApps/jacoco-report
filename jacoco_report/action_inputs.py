@@ -369,31 +369,18 @@ class ActionInputs:
     def get_fail_on_threshold() -> list[str]:
         """
         Get the threshold levels that should trigger a failure.
-        Supports:
-          - "true": fail on all thresholds
-          - "false": do not fail
-          - Comma or newline separated of supported thresholds: overall, changed-files-average, per-changed-file
+        Supports comma- or newline-separated values:
+        overall, changed-files-average, per-changed-file, fail-unchanged.
         """
         value = get_action_input(FAIL_ON_THRESHOLD, "overall,changed-files-average,per-changed-file").strip().lower()
 
-        if value == "false":
-            logger.warning(
-                "Boolean value for fail-on-threshold is no longer supported from v3. "
+        if value in {"true", "false"}:
+            raise ValueError(
+                "Boolean values for 'fail-on-threshold' are no longer supported. "
+                "Use a comma- or newline-separated list of: "
+                "overall, changed-files-average, per-changed-file, fail-unchanged. "
                 "Use an empty string to disable threshold failure."
             )
-            return []
-
-        if value == "true":
-            logger.warning(
-                "Boolean value for fail-on-threshold is no longer supported from v3. "
-                "Use comma- or newline-separated values to fail on thresholds: "
-                "overall,changed-files-average,per-changed-file"
-            )
-            return [
-                FailOnThresholdEnum.OVERALL.value,
-                FailOnThresholdEnum.CHANGED_FILES_AVERAGE.value,
-                FailOnThresholdEnum.PER_CHANGED_FILE.value,
-            ]
 
         # Split on newlines and commas
         raw_items: list[str] = [v.strip() for line in value.splitlines() for v in line.split(",") if v.strip()]

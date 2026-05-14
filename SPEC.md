@@ -1258,6 +1258,36 @@ Add structured documentation directories:
 **`docs/`:**
 - v2→v3 migration guide (move from task 38)
 - `report-groups` YAML format reference (from task 42 / #98)
+
+---
+
+## Update 2026-05-14 - Confirmed review fixes (points 1, 2, 5)
+
+Scope for implementation:
+- Point 1: add `fail-unchanged` support in `fail-on-threshold` list handling.
+- Point 2: remove boolean `fail-on-threshold` support (hard validation failure for `true` / `false`).
+- Point 5: render report rows ordered by configured `report-groups` order (then by report name), not pure lexicographic order.
+
+Confirmed test-case table:
+
+| Test name | Intent | Input summary | Expected output |
+|---|---|---|---|
+| `test_get_fail_on_threshold_accepts_fail_unchanged` | Accept new list value in parser | `fail-on-threshold='overall,fail-unchanged'` | Returns `['overall', 'fail-unchanged']` |
+| `test_get_fail_on_threshold_rejects_boolean_true` | Remove deprecated boolean compatibility (`true`) | `fail-on-threshold='true'` | Raises `ValueError` with migration guidance to list syntax |
+| `test_get_fail_on_threshold_rejects_boolean_false` | Remove deprecated boolean compatibility (`false`) | `fail-on-threshold='false'` | Raises `ValueError` with migration guidance to empty string |
+| `test_validate_inputs_rejects_boolean_fail_on_threshold_true` | Fail fast in full input validation path | mocked `get_fail_on_threshold` raises for `true` | Validation logs error and exits |
+| `test_validate_inputs_rejects_boolean_fail_on_threshold_false` | Fail fast in full input validation path | mocked `get_fail_on_threshold` raises for `false` | Validation logs error and exits |
+| `test_skip_unchanged_true_fail_unchanged_enabled_evaluates_filtered_reports` | Enforce unchanged-report overall checks when explicitly requested | `skip-unchanged=true`, `fail-on-threshold` includes `fail-unchanged`, unchanged report below threshold | Violation includes unchanged report overall breach while unchanged report rows stay filtered from comment tables |
+| `test_skip_unchanged_true_fail_unchanged_disabled_excludes_filtered_reports` | Preserve current filtered-out behavior when option is not enabled | `skip-unchanged=true`, `fail-on-threshold` excludes `fail-unchanged`, unchanged report below threshold | No unchanged-report overall violation |
+| `test_report_table_orders_by_group_config_order_then_report_name` | Implement point 5 ordering requirement | configured groups order `['backend','frontend']`, reports in mixed insertion/name order | Reports table rows appear grouped by configured group order; names sorted inside each group |
+| `test_report_table_keeps_ungrouped_reports_after_configured_groups` | Define stable behavior for ungrouped rows | configured groups plus one report with unknown group | Unknown-group report rendered after configured groups |
+| `test_report_table_without_report_groups_keeps_name_sort` | Keep backward-compatible ordering when no groups configured | no group config, mixed report names | Same lexicographic-by-report-name rendering as today |
+
+Implementation acceptance:
+- [x] `fail-on-threshold` supports `fail-unchanged` list value.
+- [x] `fail-on-threshold=true/false` is rejected (no compatibility mapping).
+- [x] `evaluate-unchanged` remains supported for backward compatibility; `fail-unchanged` is additionally supported.
+- [x] Report table ordering follows configured `report-groups` order.
 - `comment-level` mode diagrams
 
 **`examples/`:**
