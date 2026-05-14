@@ -84,7 +84,7 @@ Group 0 (deps) → Task 20 🔝 → Tasks 17/18/21 → Group F (design decisions
 | **42** | J | Document `report-groups` YAML format | ✅ | `docs/improve-docs` | #98 |
 | **43** | J | Create `examples/` directory | ✅ | `docs/improve-docs` | new |
 | **44** | K | Remove `# pylint: disable` inline suppressions | ✅ | `fix/95-remove-pylint-inline-disables` | #95 |
-| **45** | K | `WRITE_SNAPSHOTS` regeneration guard | 🔒 ⬜ | `chore/snapshot-write-guard` | new |
+| **45** | K | `WRITE_SNAPSHOTS` regeneration guard | ✅ | `chore/snapshot-write-guard` | new |
 | **46** | L | Introduce Pydantic for validation | ⬜ | `feature/39-pydantic-input-validation` | #39 |
 | **47** | L | SPIKE: auto-detect modules from sbt/mvn | ⬜ | `spike/71-auto-detect-modules-sbt-mvn` | #71 |
 | **48** | L | Copilot GitHub Marketplace support | ✅ | `chore/136-copilot-marketplace-support` | #136 |
@@ -560,7 +560,7 @@ Replace inline disables with proper code fixes or `.pylintrc` entries with docum
 
 Status note: repository audit confirms there are no inline `# pylint: disable` suppressions remaining in tracked Python files.
 
-#### Task 45 — `WRITE_SNAPSHOTS` regeneration guard ⬜
+#### Task 45 — `WRITE_SNAPSHOTS` regeneration guard ✅
 
 **Branch:** `chore/snapshot-write-guard` | **Issue:** new
 **Depends on:** Task 33
