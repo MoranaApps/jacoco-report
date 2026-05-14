@@ -230,6 +230,7 @@ Note: `overall` is not global-only; report/group overall failures also fail the 
 
 To enforce threshold failures for unchanged reports filtered by `skip-unchanged: 'true'`:
 ```yaml
+  skip-unchanged: 'true'
   fail-on-threshold: 'fail-unchanged'
 ```
 

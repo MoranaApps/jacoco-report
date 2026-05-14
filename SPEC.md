@@ -1273,10 +1273,9 @@ Confirmed test-case table:
 | Test name | Intent | Input summary | Expected output |
 |---|---|---|---|
 | `test_get_fail_on_threshold_accepts_fail_unchanged` | Accept new list value in parser | `fail-on-threshold='overall,fail-unchanged'` | Returns `['overall', 'fail-unchanged']` |
-| `test_get_fail_on_threshold_rejects_boolean_true` | Remove deprecated boolean compatibility (`true`) | `fail-on-threshold='true'` | Raises `ValueError` with migration guidance to list syntax |
-| `test_get_fail_on_threshold_rejects_boolean_false` | Remove deprecated boolean compatibility (`false`) | `fail-on-threshold='false'` | Raises `ValueError` with migration guidance to empty string |
-| `test_validate_inputs_rejects_boolean_fail_on_threshold_true` | Fail fast in full input validation path | mocked `get_fail_on_threshold` raises for `true` | Validation logs error and exits |
-| `test_validate_inputs_rejects_boolean_fail_on_threshold_false` | Fail fast in full input validation path | mocked `get_fail_on_threshold` raises for `false` | Validation logs error and exits |
+| `test_get_fail_on_threshold_true_rejected` | Remove deprecated boolean compatibility (`true`) | `fail-on-threshold='true'` | Raises `ValueError` with migration guidance to list syntax |
+| `test_get_fail_on_threshold_false_rejected` | Remove deprecated boolean compatibility (`false`) | `fail-on-threshold='false'` | Raises `ValueError` with migration guidance to empty string |
+| `test_validate_inputs_rejects_boolean_fail_on_threshold` | Fail fast in full input validation path for legacy booleans | mocked `get_fail_on_threshold` raises for `true` and `false` (parametrized) | Validation logs error and exits |
 | `test_skip_unchanged_true_fail_unchanged_enabled_evaluates_filtered_reports` | Enforce unchanged-report overall checks when explicitly requested | `skip-unchanged=true`, `fail-on-threshold` includes `fail-unchanged`, unchanged report below threshold | Violation includes unchanged report overall breach while unchanged report rows stay filtered from comment tables |
 | `test_skip_unchanged_true_fail_unchanged_disabled_excludes_filtered_reports` | Preserve current filtered-out behavior when option is not enabled | `skip-unchanged=true`, `fail-on-threshold` excludes `fail-unchanged`, unchanged report below threshold | No unchanged-report overall violation |
 | `test_report_table_orders_by_group_config_order_then_report_name` | Implement point 5 ordering requirement | configured groups order `['backend','frontend']`, reports in mixed insertion/name order | Reports table rows appear grouped by configured group order; names sorted inside each group |
