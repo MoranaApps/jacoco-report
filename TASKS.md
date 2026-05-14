@@ -83,11 +83,11 @@ Group 0 (deps) → Task 20 🔝 → Tasks 17/18/21 → Group F (design decisions
 | **41** | J | Update `README.md` | ✅ | `docs/improve-docs` | #70 |
 | **42** | J | Document `report-groups` YAML format | ✅ | `docs/improve-docs` | #98 |
 | **43** | J | Create `examples/` directory | ✅ | `docs/improve-docs` | new |
-| **44** | K | Remove `# pylint: disable` inline suppressions | 🔒 ⬜ | `fix/95-remove-pylint-inline-disables` | #95 |
+| **44** | K | Remove `# pylint: disable` inline suppressions | ✅ | `fix/95-remove-pylint-inline-disables` | #95 |
 | **45** | K | `WRITE_SNAPSHOTS` regeneration guard | 🔒 ⬜ | `chore/snapshot-write-guard` | new |
 | **46** | L | Introduce Pydantic for validation | ⬜ | `feature/39-pydantic-input-validation` | #39 |
 | **47** | L | SPIKE: auto-detect modules from sbt/mvn | ⬜ | `spike/71-auto-detect-modules-sbt-mvn` | #71 |
-| **48** | L | Copilot GitHub Marketplace support | ⬜ | `chore/136-copilot-marketplace-support` | #136 |
+| **48** | L | Copilot GitHub Marketplace support | ✅ | `chore/136-copilot-marketplace-support` | #136 |
 
 ---
 
@@ -551,12 +551,14 @@ Task 38 is gated on tasks 27–30 being complete. Tasks 39–43 may proceed in p
 
 ### Group K — Code Quality Cleanup
 
-#### Task 44 — Remove `# pylint: disable` inline suppressions ⬜
+#### Task 44 — Remove `# pylint: disable` inline suppressions ✅
 
 **Branch:** `fix/95-remove-pylint-inline-disables` | **Issue:** #95
 **Depends on:** Task 9 (`.pylintrc` ✅)
 
 Replace inline disables with proper code fixes or `.pylintrc` entries with documented justification.
+
+Status note: repository audit confirms there are no inline `# pylint: disable` suppressions remaining in tracked Python files.
 
 #### Task 45 — `WRITE_SNAPSHOTS` regeneration guard ⬜
 
@@ -583,7 +585,7 @@ Replace manual validation in `ActionInputs` with Pydantic models.
 
 Research feasibility; produce a findings doc in `docs/`.
 
-#### Task 48 — Copilot GitHub Marketplace support ⬜
+#### Task 48 — Copilot GitHub Marketplace support ✅
 
 **Branch:** `chore/136-copilot-marketplace-support` | **Issue:** #136
 
