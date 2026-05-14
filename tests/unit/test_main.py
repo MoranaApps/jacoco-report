@@ -221,3 +221,36 @@ def test_run_fail_disabled_level(mocker):
     mock_set_action_output_text.assert_any_call("reports-coverage", "Report Coverage")
     mock_set_action_output_text.assert_any_call("groups-coverage", "Group Coverage")
     mock_set_action_failed.assert_called_once_with(messages=["Violation 1"], fail=False)
+
+
+def test_run_operational_violation_fails_even_with_fail_unchanged_only(mocker):
+    mocker.patch("main.setup_logging")
+    mock_logger = mocker.patch("main.logging.getLogger")
+    mock_logger.return_value = mocker.Mock(spec=logging.Logger)
+    mocker.patch.object(ActionInputs, "validate_inputs")
+    mock_jacoco_report = mocker.patch("main.JaCoCoReport")
+    mock_set_action_output = mocker.patch("main.set_action_output")
+    mock_set_action_output_text = mocker.patch("main.set_action_output_text")
+    mock_set_action_failed = mocker.patch("main.set_action_failed")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_fail_on_threshold", return_value=[FailOnThresholdEnum.FAIL_UNCHANGED])
+
+    mock_jr = mock_jacoco_report.return_value
+    mock_jr.total_overall_coverage = 0.0
+    mock_jr.total_changed_files_coverage = 0.0
+    mock_jr.evaluated_coverage_reports = "{}"
+    mock_jr.evaluated_coverage_groups = "{}"
+    mock_jr.violations = ["Failed to retrieve changed files from GitHub API."]
+    mock_jr.reached_threshold_overall = True
+    mock_jr.reached_threshold_changed_files_average = True
+    mock_jr.reached_threshold_per_change_file = True
+    mock_jr.reached_threshold_fail_unchanged = True
+    mock_jr.has_operational_failure = True
+
+    run()
+
+    mock_set_action_output.assert_any_call("coverage-overall", "0.0")
+    mock_set_action_output_text.assert_any_call("reports-coverage", "{}")
+    mock_set_action_failed.assert_called_once_with(
+        messages=["Failed to retrieve changed files from GitHub API."],
+        fail=True,
+    )

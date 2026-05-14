@@ -463,6 +463,52 @@ def test_skip_unchanged_true_fail_unchanged_disabled_excludes_filtered_reports(
     assert jr.reached_threshold_fail_unchanged is True
 
 
+def test_operational_failure_marks_fail_unchanged_flag_false(mocker: MockerFixture):
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value="pull_request")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_token", return_value="token")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_pr_number", return_value=1)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups", return_value=[])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=["**/jacoco.xml"])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_exclude_paths", return_value=[])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_fail_on_threshold", return_value=["fail-unchanged"])
+
+    gh_mock = mocker.Mock()
+    gh_mock.get_pr_changed_files.return_value = None
+    mocker.patch("jacoco_report.jacoco_report.GitHub", return_value=gh_mock)
+    mocker.patch.object(JaCoCoReport, "scan_jacoco_xml_files", return_value=["dummy.xml"])
+
+    jr = JaCoCoReport()
+    jr.run()
+
+    assert jr.has_operational_failure is True
+    assert jr.reached_threshold_fail_unchanged is False
+    assert "Failed to retrieve changed files from GitHub API." in jr.violations
+
+
+def test_skip_unchanged_fail_unchanged_mixed_flow_uses_single_evaluator_pass(
+    mocker: MockerFixture,
+    make_report_file_coverage,
+):
+    unchanged = _report_without_changes("Unchanged Report", make_report_file_coverage)
+    changed = _report_with_changes("Changed Report", make_report_file_coverage)
+
+    _make_run_mocks(
+        mocker,
+        skip_unchanged=True,
+        evaluate_unchanged=False,
+        fail_on_threshold=["fail-unchanged"],
+        reports=[unchanged, changed],
+    )
+
+    evaluate_spy = mocker.spy(CoverageEvaluator, "evaluate")
+
+    jr = JaCoCoReport()
+    jr.run()
+
+    assert evaluate_spy.call_count == 1
+    assert jr.reached_threshold_fail_unchanged is True
+
+
 # --- comment-level × skip-unchanged combinations ---
 #
 # 2 (skip-unchanged: true / false) × 6 comment levels = 12 cases.
