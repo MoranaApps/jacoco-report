@@ -13,6 +13,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
+import pytest
 from pytest_mock import MockerFixture
 
 from tests.integration.helpers import (
@@ -73,6 +74,27 @@ def _assert_or_write_snapshot(scenario: str, actual: str) -> None:
         "If this change is intentional, regenerate with: "
         "WRITE_SNAPSHOTS=1 pytest tests/integration/test_golden_snapshots.py"
     )
+
+
+def test_assert_or_write_snapshot_writes_fixture_when_guard_enabled(monkeypatch, tmp_path: Path) -> None:
+    """WRITE_SNAPSHOTS=1 writes the snapshot instead of asserting against existing fixtures."""
+    monkeypatch.setenv("WRITE_SNAPSHOTS", "1")
+    monkeypatch.setattr("tests.integration.test_golden_snapshots.FIXTURES_DIR", tmp_path)
+
+    _assert_or_write_snapshot("guard_case", "snapshot body")
+
+    written = tmp_path / "snapshot_guard_case.md"
+    assert written.exists()
+    assert written.read_text(encoding="utf-8") == "snapshot body"
+
+
+def test_assert_or_write_snapshot_missing_fixture_has_regen_hint(monkeypatch, tmp_path: Path) -> None:
+    """Without WRITE_SNAPSHOTS, missing fixture should fail with regeneration guidance."""
+    monkeypatch.delenv("WRITE_SNAPSHOTS", raising=False)
+    monkeypatch.setattr("tests.integration.test_golden_snapshots.FIXTURES_DIR", tmp_path)
+
+    with pytest.raises(AssertionError, match="WRITE_SNAPSHOTS=1"):
+        _assert_or_write_snapshot("missing_case", "snapshot body")
 
 
 def test_snapshot_no_groups(mocker: MockerFixture) -> None:
