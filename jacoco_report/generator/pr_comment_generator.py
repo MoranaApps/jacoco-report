@@ -395,7 +395,7 @@ class PRCommentGenerator:
             |--------|----------|-----------|--------|
         """).strip()
 
-        keys: list[str] = sorted(list(evaluated_reports_coverage.keys()))
+        keys: list[str] = self._sorted_report_keys(evaluated_reports_coverage)
         for key in keys:
             evaluated_report = evaluated_reports_coverage[key]
             o_thres = evaluated_report.overall_coverage_threshold
@@ -428,7 +428,7 @@ class PRCommentGenerator:
             |--------|----------|-----------|------------|--------|
         """).strip()
 
-        keys: list[str] = sorted(list(evaluated_reports_coverage.keys()))
+        keys: list[str] = self._sorted_report_keys(evaluated_reports_coverage)
         for key in keys:
             evaluated_report = evaluated_reports_coverage[key]
             diff_o, diff_ch = self._calculate_baseline_report_diffs(evaluated_report)
@@ -449,6 +449,23 @@ class PRCommentGenerator:
             s += f"\n| `{name}` | {cov} | {thres} | {delta} | {status_o}/{status_ch} |"
 
         return s
+
+    def _sorted_report_keys(self, evaluated_reports_coverage: dict[str, EvaluatedReportCoverage]) -> list[str]:
+        """Return report keys sorted by configured group order, then report name."""
+        group_order = getattr(self.evaluator, "report_group_order", [])
+        if not group_order:
+            return sorted(list(evaluated_reports_coverage.keys()))
+
+        group_index: dict[str, int] = {name: idx for idx, name in enumerate(group_order)}
+        fallback_index = len(group_index)
+
+        return sorted(
+            list(evaluated_reports_coverage.keys()),
+            key=lambda report_name: (
+                group_index.get(evaluated_reports_coverage[report_name].group_name, fallback_index),
+                report_name,
+            ),
+        )
 
     def calculate_baseline_group_diffs(self, evaluated_coverage: EvaluatedReportCoverage) -> tuple[float, float]:
         """Calculate baseline deltas for one rendered group row."""

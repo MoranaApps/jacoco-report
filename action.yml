@@ -72,7 +72,8 @@ inputs:
   fail-on-threshold:
     description: >
       Controls which threshold breaches fail the action.
-      Use a comma- or newline-separated list: overall, changed-files-average, per-changed-file.
+      List input (comma- or newline-separated): overall, changed-files-average, per-changed-file, fail-unchanged.
+      fail-unchanged applies when skip-unchanged is true and enforces overall checks for filtered reports.
       Leave empty to disable failing on threshold breaches.
     required: false
     default: 'overall,changed-files-average,per-changed-file'

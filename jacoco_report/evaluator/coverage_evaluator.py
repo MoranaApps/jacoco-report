@@ -42,6 +42,7 @@ class CoverageEvaluator:
         # global-thresholds is a separate evaluation pass and is never in this chain.
         self._report_thresholds_default: tuple[float, float, float] = report_thresholds_default
         self._report_groups: list[ReportGroup] = report_groups if report_groups is not None else []
+        self.report_group_order: list[str] = [group.name for group in self._report_groups]
         self._group_thresholds_lookup: dict[str, tuple[float, float, float]] = {
             group.name: (
                 (

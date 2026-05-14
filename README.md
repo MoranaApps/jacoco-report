@@ -129,7 +129,7 @@ jobs:
 | `update-comment`    | If `true`, updates an existing comment instead of creating a new one.                                                                                                                                                          | No       | `true`                                           |
 | `pass-symbol`       | Symbol for passing checks in PR comments (e.g., ✅, **Passed**).                                                                                                                                                               | No       | `✅`                                              |
 | `fail-symbol`       | Symbol for failing checks in PR comments (e.g., ❌, **Failed**).                                                                                                                                                               | No       | `❌`                                              |
-| `fail-on-threshold` | Comma- or newline-separated list of thresholds that must pass: `overall`, `changed-files-average`, `per-changed-file`. Leave empty to disable.                                                                                | No       | `overall,changed-files-average,per-changed-file` |
+| `fail-on-threshold` | List value (comma- or newline-separated) of thresholds that must pass: `overall`, `changed-files-average`, `per-changed-file`, `fail-unchanged`. Leave empty to disable.                                                     | No       | `overall,changed-files-average,per-changed-file` |
 | `debug`             | Enables detailed logging. Automatically activated when `RUNNER_DEBUG=1` (GitHub runner debug mode).                                                                                                                             | No       | `false`                                          |
 
 > Hint: default values have been defined to provide maximal possible information in the comment.
@@ -224,6 +224,13 @@ To fail only on the overall threshold:
     global-thresholds: '80*0*0'
     fail-on-threshold: 'overall'
 ```
+
+  To enforce failures for unchanged reports filtered by `skip-unchanged: 'true'`:
+
+  ```yaml
+    skip-unchanged: 'true'
+    fail-on-threshold: 'fail-unchanged'
+  ```
 
 To disable threshold-based failure entirely:
 
@@ -507,9 +514,10 @@ Use `debug: 'true'` to enable debug logs explicitly regardless of runner setting
   the per-changed-file check uses report/group thresholds.
 - When `report-groups` is used, group thresholds are evaluated separately from `global-thresholds`.
 
-### `fail-on-threshold: true` shows a deprecation warning
+### `fail-on-threshold` selection looks incorrect
 
-- Boolean values for `fail-on-threshold` are deprecated in v3. Replace with the list form:
+- Ensure `fail-on-threshold` is configured as a list value (comma- or newline-separated).
+- Example:
 
   ```yaml
   fail-on-threshold: 'overall,changed-files-average,per-changed-file'

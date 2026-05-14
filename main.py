@@ -58,10 +58,15 @@ def run() -> None:
             FailOnThresholdEnum.OVERALL: jr.reached_threshold_overall,
             FailOnThresholdEnum.CHANGED_FILES_AVERAGE: jr.reached_threshold_changed_files_average,
             FailOnThresholdEnum.PER_CHANGED_FILE: jr.reached_threshold_per_change_file,
+            FailOnThresholdEnum.FAIL_UNCHANGED: jr.reached_threshold_fail_unchanged,
         }
 
         # Fail if any configured threshold was not reached
-        fail = any(not passed for threshold, passed in threshold_checks.items() if threshold in thresholds)
+        threshold_failure = any(not passed for threshold, passed in threshold_checks.items() if threshold in thresholds)
+        operational_failure = getattr(jr, "has_operational_failure", False)
+        if not isinstance(operational_failure, bool):
+            operational_failure = False
+        fail = operational_failure or threshold_failure
         set_action_failed(messages=jr.violations, fail=fail)
     else:
         logger.info("JaCoCo Report GitHub Action - success.")
