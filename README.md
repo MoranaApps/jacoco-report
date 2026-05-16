@@ -2,6 +2,8 @@
 
 ![GitHub tag](https://img.shields.io/github/v/tag/MoranaApps/jacoco-report?label=latest&style=flat-square&color=blue)
 
+Automates the publication of JaCoCo coverage reports directly as comments in pull requests.
+
 - [Requirements](#requirements)
 - [Motivation](#motivation)
 - [Quick Start](#quick-start)
@@ -15,12 +17,10 @@
 - [License](#license)
 - [Donate](#donate)
 
-Automates the publication of JaCoCo coverage reports directly as comments in pull requests.
-
 ## Requirements
 
 - **GitHub Token**: A GitHub token with permission to fetch repository data such as Issues and Pull Requests.
-- **Python 3.13+**: Ensure you have Python 3.13 installed on your system.
+- **Python 3.14+**: Ensure you have Python 3.14 installed on your system.
 
 ---
 
@@ -56,7 +56,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.13'
+          python-version: '3.14'
 
       - name: Publish JaCoCo Report
         uses: MoranaApps/jacoco-report@v3
@@ -95,7 +95,7 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.13'
+          python-version: '3.14'
 
       - name: Publish JaCoCo Report in PR comments
         uses: MoranaApps/jacoco-report@v3
@@ -133,14 +133,9 @@ jobs:
 | `fail-on-threshold` | List value (comma- or newline-separated) of thresholds that must pass: `overall`, `changed-files-average`, `per-changed-file`, `fail-unchanged`. Leave empty to disable.                                                     | No       | `overall,changed-files-average,per-changed-file` |
 | `debug`             | Enables detailed logging. Automatically activated when `RUNNER_DEBUG=1` (GitHub runner debug mode).                                                                                                                             | No       | `false`                                          |
 
-> Hint: default values have been defined to provide maximal possible information in the comment.
-
-Per-changed-file checks are configured by `report-thresholds-default` or per-group `thresholds`,
-not by `global-thresholds`.
-
 ---
 
-#### Outputs
+### Outputs
 
 The following outputs are set by the JaCoCo GitHub Action:
 

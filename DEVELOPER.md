@@ -21,7 +21,7 @@
 ### Prepare the Environment
 
 ```shell
-python3 --version   # Python 3.13+ required
+python3 --version   # Python 3.14+ required
 ```
 
 ### Set Up Python Virtual Environment
@@ -159,7 +159,7 @@ Your code has been rated at 10.00/10
 ## Run Black Tool Locally
 
 This project uses [Black](https://github.com/psf/black) for code formatting (line length 120,
-target Python 3.13). Configuration is in `pyproject.toml`.
+target Python 3.14). Configuration is in `pyproject.toml`.
 
 Check formatting without modifying files:
 
