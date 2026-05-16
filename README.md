@@ -143,14 +143,52 @@ not by `global-thresholds`.
 
 The following outputs are set by the JaCoCo GitHub Action:
 
-- `coverage-overall`: The overall code coverage percentage.
-- `coverage-changed-files`: The code coverage percentage for the changed files.
-- `coverage-overall-passed`: A boolean indicating if overall code coverage meets the configured threshold.
+- `coverage-overall`: The overall code coverage percentage. Example: `85.38`
+- `coverage-changed-files`: The code coverage percentage for the changed files. Example: `79.21`
+- `coverage-overall-passed`: A boolean indicating if overall code coverage meets the configured threshold. Example: `True`
 - `coverage-changed-files-passed`: A boolean indicating if changed-files average coverage
-  meets the configured threshold.
-- `reports-coverage`: A JSON string containing the evaluated coverage per report.
+  meets the configured threshold. Example: `True`
+- `reports-coverage`: A JSON string containing the evaluated coverage per report. Example:
+  ```json
+  {
+      "path/to/jacoco.xml": {
+          "name": "My Report",
+          "group_name": "Unknown",
+          "overall_passed": true,
+          "overall_coverage_reached": 85.38,
+          "overall_coverage_threshold": 80.0,
+          "overall_coverage": { "missed": 142, "covered": 934 },
+          "avg_changed_files_passed": true,
+          "avg_changed_files_coverage_reached": 79.21,
+          "avg_changed_files_coverage": { "missed": 21, "covered": 80 },
+          "changed_files_passed": { "src/main/java/Foo.java": true },
+          "changed_files_threshold": 70.0,
+          "changed_files_coverage_reached": { "src/main/java/Foo.java": 82.5 },
+          "per_changed_file_threshold": 70.0
+      }
+  }
+  ```
 - `groups-coverage`: A JSON string containing the evaluated coverage per report group
-  (populated when `report-groups` is defined).
+  (populated when `report-groups` is defined). Example:
+  ```json
+  {
+      "backend": {
+          "name": "backend",
+          "group_name": "backend",
+          "overall_passed": true,
+          "overall_coverage_reached": 85.38,
+          "overall_coverage_threshold": 80.0,
+          "overall_coverage": { "missed": 142, "covered": 934 },
+          "avg_changed_files_passed": true,
+          "avg_changed_files_coverage_reached": 79.21,
+          "avg_changed_files_coverage": { "missed": 21, "covered": 80 },
+          "changed_files_passed": { "src/main/java/Foo.java": true },
+          "changed_files_threshold": 70.0,
+          "changed_files_coverage_reached": { "src/main/java/Foo.java": 82.5 },
+          "per_changed_file_threshold": 70.0
+      }
+  }
+  ```
 
 ---
 
