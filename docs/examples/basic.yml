@@ -42,9 +42,8 @@ jobs:
           # Path(s) to JaCoCo XML files. Supports glob patterns.
           paths: '**/jacoco.xml'
 
-          # Global thresholds: overall * changed-files-average * reserved-third
-          # Per-changed-file checks are configured via report/group thresholds.
-          global-thresholds: '80*70*0'
+          # Global thresholds: overall * changed-files-average * per-changed-file
+          global-thresholds: '80*70*60'
 
           # Per-changed-file threshold (overall * changed-files-average * per-changed-file).
           report-thresholds-default: '0*0*60'

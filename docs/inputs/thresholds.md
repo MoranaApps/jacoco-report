@@ -17,14 +17,12 @@ you evaluate and display all dimensions in the comment while only enforcing a su
 ### `global-thresholds`
 
 ```text
-overall * changed-files-average * reserved-third
+overall * changed-files-average * per-changed-file
 ```
 
-The third field is reserved and ignored by the evaluator. Set to `0`.
-
 ```text
-80*70*0   →  overall ≥ 80 %, changed-files average ≥ 70 %
-80*0*0    →  overall only
+80*70*60  →  overall ≥ 80 %, changed-files average ≥ 70 %, every changed file ≥ 60 %
+80*0*0    →  overall only (global per-changed-file disabled)
 0*0*0     →  no global enforcement (default)
 ```
 
@@ -49,7 +47,7 @@ Comma- or newline-separated list of dimension names:
 |-------|-----------|
 | `overall` | Global overall coverage |
 | `changed-files-average` | Global average over changed files |
-| `per-changed-file` | Per-report / per-group per-changed-file threshold |
+| `per-changed-file` | Global per-changed-file and per-report / per-group per-changed-file threshold |
 | `fail-unchanged` | Unchanged reports filtered by `skip-unchanged` still fail |
 
 Leave empty (`fail-on-threshold: ''`) to disable all threshold-based failures.
@@ -73,7 +71,7 @@ Default: `overall,changed-files-average,per-changed-file`
   with:
     token: '${{ secrets.GITHUB_TOKEN }}'
     paths: '**/jacoco/**/*.xml'
-    global-thresholds: '80*70*0'
+    global-thresholds: '80*70*60'
     report-thresholds-default: '0*0*60'
     fail-on-threshold: 'overall,changed-files-average,per-changed-file'
 ```

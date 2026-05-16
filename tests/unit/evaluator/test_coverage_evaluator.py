@@ -755,3 +755,79 @@ def test_group_changed_files_coverage_logged_when_metric_has_zero_weight(
     assert not any("Group 'frontend' reached average changed files coverage" in m for m in messages)
     assert evaluator.evaluated_groups_coverage["frontend"].avg_changed_files_passed is True
     assert not any("Group 'frontend' changed files coverage 0.0 is below the threshold 55.0." in v for v in evaluator.violations)
+
+
+def _make_report_with_changed_file_instruction(
+    report_name: str,
+    changed_file_name: str,
+    covered: int,
+    missed: int,
+) -> ReportFileCoverage:
+    overall = Coverage(
+        instruction=Counter(missed=0, covered=10),
+        branch=Counter(missed=0, covered=10),
+        line=Counter(missed=0, covered=10),
+        complexity=Counter(missed=0, covered=10),
+        method=Counter(missed=0, covered=10),
+        clazz=Counter(missed=0, covered=10),
+    )
+    changed_files = {
+        changed_file_name: FileCoverage(
+            file_name=changed_file_name.split("/")[-1],
+            file_path="/".join(changed_file_name.split("/")[:-1]),
+            instruction=Counter(missed=missed, covered=covered),
+            branch=Counter(missed=0, covered=10),
+            line=Counter(missed=0, covered=10),
+            complexity=Counter(missed=0, covered=10),
+            method=Counter(missed=0, covered=10),
+            clazz=Counter(missed=0, covered=10),
+        )
+    }
+    return ReportFileCoverage(
+        path=f"{report_name}.xml",
+        name=report_name,
+        overall_coverage=overall,
+        changed_files_coverage=changed_files,
+    )
+
+
+def test_global_per_changed_file_threshold_passes_when_all_changed_files_meet_global_third(
+    mocker: MockerFixture,
+):
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
+    report_a = _make_report_with_changed_file_instruction("report-a", "src/A.java", covered=8, missed=2)
+    report_b = _make_report_with_changed_file_instruction("report-b", "src/B.java", covered=9, missed=1)
+
+    evaluator = CoverageEvaluator(
+        report_files_coverage=[report_a, report_b],
+        global_min_coverage_overall=0.0,
+        global_min_coverage_changed_files=0.0,
+        global_min_coverage_changed_per_file=75.0,
+        report_thresholds_default=(0.0, 0.0, 0.0),
+    )
+
+    evaluator.evaluate()
+
+    assert evaluator.reached_threshold_per_change_file is True
+    assert not any("Global changed file" in violation for violation in evaluator.violations)
+
+
+def test_global_per_changed_file_threshold_fails_when_any_changed_file_below_global_third(
+    mocker: MockerFixture,
+):
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
+    report_a = _make_report_with_changed_file_instruction("report-a", "src/A.java", covered=8, missed=2)
+    report_b = _make_report_with_changed_file_instruction("report-b", "src/B.java", covered=7, missed=3)
+
+    evaluator = CoverageEvaluator(
+        report_files_coverage=[report_a, report_b],
+        global_min_coverage_overall=0.0,
+        global_min_coverage_changed_files=0.0,
+        global_min_coverage_changed_per_file=75.0,
+        report_thresholds_default=(0.0, 0.0, 0.0),
+    )
+
+    evaluator.evaluate()
+
+    assert evaluator.reached_threshold_per_change_file is False
+    assert any("Global changed file" in violation for violation in evaluator.violations)

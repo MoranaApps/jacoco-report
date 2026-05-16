@@ -36,20 +36,20 @@ failure_cases = [
     ("get_paths", None, "'paths' must be defined."),
     ("get_paths", 1, "'paths' must be a list of strings."),
     ("get_paths", "", "'paths' must be a non-empty list of strings."),
-    ("get_global_thresholds", "x", "'global-thresholds' must be in the format 'overall*changed-files-average*changed-file'. Where overall is the minimum coverage overall, changed-files-average is the minimum average coverage of changed files and changed-file is the minimum coverage per changed file."),
+    ("get_global_thresholds", "x", "'global-thresholds' must be in the format 'overall*changed-files-average*per-changed-file'. Where overall is the minimum coverage overall, changed-files-average is the minimum average coverage of changed files and per-changed-file is the minimum coverage per changed file."),
     ("get_global_thresholds", "x*0*0", "'global-thresholds' overall value must be a float between 0 and 100."),
     ("get_global_thresholds", "0*x*0", "'global-thresholds' changed-files-average value must be a float between 0 and 100."),
-    ("get_global_thresholds", "0*0*x", "'global-thresholds' changed-file value must be a float between 0 and 100."),
+    ("get_global_thresholds", "0*0*x", "'global-thresholds' per-changed-file value must be a float between 0 and 100."),
     ("get_global_thresholds", "-1*0*0", "'global-thresholds' overall value must be a float between 0 and 100."),
     ("get_global_thresholds", "0*-1*0", "'global-thresholds' changed-files-average value must be a float between 0 and 100."),
-    ("get_global_thresholds", "0*0*-1", "'global-thresholds' changed-file value must be a float between 0 and 100."),
+    ("get_global_thresholds", "0*0*-1", "'global-thresholds' per-changed-file value must be a float between 0 and 100."),
     ("get_global_thresholds", "101*0*0", "'global-thresholds' overall value must be a float between 0 and 100."),
     ("get_global_thresholds", "0*101*0", "'global-thresholds' changed-files-average value must be a float between 0 and 100."),
-    ("get_global_thresholds", "0*0*101", "'global-thresholds' changed-file value must be a float between 0 and 100."),
+    ("get_global_thresholds", "0*0*101", "'global-thresholds' per-changed-file value must be a float between 0 and 100."),
     (
         "get_global_thresholds",
         "1*2*3*4",
-        "'global-thresholds' must be in the format 'overall*changed-files-average*changed-file' "
+        "'global-thresholds' must be in the format 'overall*changed-files-average*per-changed-file' "
         "with exactly three components.",
     ),
     ("get_global_thresholds", True, "'global-thresholds' must be a string or not defined."),
@@ -295,7 +295,7 @@ def test_get_global_thresholds_two_components_warns_changed_file(mocker):
         for call in mock_warning.call_args_list
     ]
     assert any(
-        "Adding default value for changed file threshold." in message for message in warning_messages
+        "Adding default value for per-changed-file threshold." in message for message in warning_messages
     )
 
 
@@ -343,7 +343,7 @@ def test_get_global_thresholds_invalid_third_component_logs_changed_file_label(m
         for call in mock_warning.call_args_list
     ]
     assert any(
-        "Cannot convert 'changed file' part ('x') to float. Defaulting to 0.0." in message
+        "Cannot convert 'per-changed-file' part ('x') to float. Defaulting to 0.0." in message
         for message in warning_messages
     )
 

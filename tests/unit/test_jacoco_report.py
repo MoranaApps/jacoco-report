@@ -2294,6 +2294,9 @@ single_summary_violations_with_modules = [
 single_detail_violations = [
     'Global overall coverage 92.0 is below the threshold 100.0.',
     'Global changed files coverage 89.71 is below the threshold 100.0.',
+    "Global changed file 'com/example/module_large/BigClass.java' coverage 90.0 is below the threshold 100.0.",
+    "Global changed file 'com/example/user-info/implementation/ImplementationClass.java' coverage 88.0 is below the threshold 100.0.",
+    "Global changed file 'com/example/user-info/client-http/ClientHttpClass.java' coverage 90.0 is below the threshold 100.0.",
     "Report 'Module Large Report' overall coverage 91.33 is below the threshold 100.0.",
     "Report 'Module Large Report' changed files coverage 90.0 is below the threshold 100.0.",
     "Report 'Module Large Report' changed file 'com/example/module_large/BigClass.java' coverage 90.0 is below the threshold 100.0.",

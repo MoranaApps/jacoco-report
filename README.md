@@ -63,7 +63,7 @@ jobs:
         with:
           token: '${{ secrets.GITHUB_TOKEN }}'
           paths: '**/jacoco.xml'
-          global-thresholds: '80*70*0'        # overall * changed-avg * reserved-third
+          global-thresholds: '80*70*60'       # overall * changed-avg * per-changed-file
           report-thresholds-default: '0*0*60' # per-changed-file threshold
 ```
 
@@ -117,7 +117,7 @@ jobs:
 | `token`             | GitHub token for authentication with the repository.                                                                                                                                                                           | **Yes**  |                                                  |
 | `paths`             | Newline-separated paths to JaCoCo XML files. Supports wildcard glob patterns. Required when `report-groups` is not set.                                                                                                        | No       | `''`                                             |
 | `exclude-paths`     | Newline-separated paths to exclude from coverage analysis. Supports glob patterns.                                                                                                                                             | No       | `''`                                             |
-| `global-thresholds` | Global thresholds in `overall*changed-files-average*reserved-third` format. Aggregated evaluation uses overall and changed-files-average.                                                                                         | No       | `0.0*0.0*0.0`                                    |
+| `global-thresholds` | Global thresholds in `overall*changed-files-average*per-changed-file` format.                                                                                                                       | No       | `0.0*0.0*0.0`                                    |
 | `report-thresholds-default` | Default thresholds for reports/groups when a group omits a threshold field. Format: `overall*changed-files-average*per-changed-file` (e.g. `75*60*0`). Field-level fallback chain: per-group → this default → 0.0.        | No       | `0.0*0.0*0.0`                                    |
 | `title`             | Title for the coverage report comment added to the Pull Request.                                                                                                                                                               | No       | `JaCoCo Coverage Report`                         |
 | `pr-number`         | Number of the pull request. If not provided, the action will attempt to determine the PR number from the GitHub context.                                                                                                       | No       | `''`                                             |
