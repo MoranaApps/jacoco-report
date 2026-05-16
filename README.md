@@ -33,7 +33,7 @@ Key capabilities:
 
 - **Global thresholds** — enforce overall and average-changed minimums in one input.
 - **Report groups** — organise multi-module projects into named groups with per-group thresholds.
-- **Baseline comparison** — show Δ coverage against a stored baseline (e.g. `main` branch reports).
+- **Baseline comparison** — show Δ coverage against a stored baseline (e.g. the `master` branch reports).
 - **Flexible comment levels** — from a single-line summary to full per-file detail, or no comment at all.
 - **Skip-unchanged filter** — remove reports with no changed files from the comment (and optionally from evaluation).
 
@@ -67,7 +67,7 @@ jobs:
 ```
 
 This posts a full PR comment and fails the action if any threshold is not met.
-See the [examples/](examples/) directory for more complete workflow files.
+See the [examples/](docs/examples/) directory for more complete workflow files.
 
 ---
 
@@ -78,8 +78,8 @@ name: Publish JaCoCo Report in PR comments
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, edited, labeled, unlabeled]
-    branches: [ main ]
+    types: [opened, synchronize, reopened, edited]
+    branches: [ master ]
 
 jobs:
   generate-report:
@@ -443,7 +443,7 @@ Hide unchanged reports but still enforce their overall threshold:
 #### Customizing the Baseline Paths
 
 The `baseline-paths` input defines paths to baseline coverage reports, enabling Δ coverage
-comparison against an established reference (e.g. the `main` branch).
+comparison against an established reference (e.g. the `master` branch).
 
 **Required**: each report must have a unique title that matches the corresponding baseline report.
 

@@ -1,4 +1,4 @@
-# examples/report-groups.yml
+# docs/examples/report-groups.yml
 #
 # Multi-module project using report-groups for per-group thresholds.
 # Each group scans its own set of JaCoCo XML files and is evaluated
@@ -10,7 +10,7 @@ name: Coverage Report (multi-module)
 on:
   pull_request:
     types: [opened, synchronize, reopened]
-    branches: [main]
+    branches: [master]
 
 jobs:
   coverage:
