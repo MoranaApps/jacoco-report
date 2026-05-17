@@ -1295,6 +1295,7 @@ def test_debug_flag_does_not_change_comment_body(mocker, mock_github, test_evalu
         mock_github.reset_mock()
         mock_github.get_comments.return_value = []
         mocker.patch("jacoco_report.action_inputs.ActionInputs.get_debug", return_value=debug_val)
+        mocker.patch("jacoco_report.action_inputs.ActionInputs.get_repository", return_value="owner/repo")
         gen = PRCommentGenerator(mock_github, test_evaluator, empty_bs, pr_number=1)
         _configure_generator_for_comment_tests(gen, mocker, comment_level=CommentLevelEnum.MINIMAL)
         gen.generate()
