@@ -216,6 +216,16 @@ class CoverageEvaluator:
 
         report_violations: list[str] = []
         changed_files_violations: list[str] = []
+        global_changed_files_violations: list[str] = []
+
+        for evaluated_coverage_report in self.evaluated_reports_coverage.values():
+            for key, reached in evaluated_coverage_report.changed_files_coverage_reached.items():
+                if reached < self._global_min_coverage_changed_per_file:
+                    global_changed_files_violations.append(
+                        f"Global changed file '{key}' coverage {reached} is below the threshold "
+                        f"{self._global_min_coverage_changed_per_file}."
+                    )
+                    self.reached_threshold_per_change_file = False
 
         for report_path, evaluated_coverage_report in self.evaluated_reports_coverage.items():
             if not evaluated_coverage_report.overall_passed:
@@ -242,6 +252,7 @@ class CoverageEvaluator:
 
         # Add all violations to the list
         self.violations.extend(group_violations)
+        self.violations.extend(global_changed_files_violations)
         self.violations.extend(report_violations)
         self.violations.extend(changed_files_violations)
 

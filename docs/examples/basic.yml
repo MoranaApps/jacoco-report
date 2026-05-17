@@ -1,4 +1,4 @@
-# examples/basic.yml
+# docs/examples/basic.yml
 #
 # Minimal JaCoCo Report GitHub Action configuration.
 # Use this as a starting point when you have a single-module project.
@@ -8,7 +8,7 @@ name: Coverage Report
 on:
   pull_request:
     types: [opened, synchronize, reopened]
-    branches: [main]
+    branches: [master]
 
 jobs:
   coverage:
@@ -25,7 +25,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.13'
+          python-version: '3.14'
 
       # ------------------------------------------------------------------
       # Your build step that produces jacoco.xml goes here.
@@ -42,12 +42,11 @@ jobs:
           # Path(s) to JaCoCo XML files. Supports glob patterns.
           paths: '**/jacoco.xml'
 
-          # Global thresholds: overall * changed-files-average * reserved-third
-          # Per-changed-file checks are configured via report/group thresholds.
-          global-thresholds: '80*70*0'
-
-          # Per-changed-file threshold (overall * changed-files-average * per-changed-file).
-          report-thresholds-default: '0*0*60'
+          # Global thresholds: overall * changed-files-average * per-changed-file.
+          # For a single-module project this is sufficient — report-thresholds-default
+          # is not needed here because there is only one report to aggregate.
+          # Use report-thresholds-default together with report-groups for multi-module projects.
+          global-thresholds: '80*70*60'
 
           # Which threshold breaches fail the action.
           # Leave empty ('') to never fail on thresholds.

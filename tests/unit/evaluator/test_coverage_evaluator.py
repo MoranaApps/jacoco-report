@@ -755,3 +755,230 @@ def test_group_changed_files_coverage_logged_when_metric_has_zero_weight(
     assert not any("Group 'frontend' reached average changed files coverage" in m for m in messages)
     assert evaluator.evaluated_groups_coverage["frontend"].avg_changed_files_passed is True
     assert not any("Group 'frontend' changed files coverage 0.0 is below the threshold 55.0." in v for v in evaluator.violations)
+
+
+def _make_report_with_changed_file_instruction(
+    report_name: str,
+    changed_file_name: str,
+    covered: int,
+    missed: int,
+) -> ReportFileCoverage:
+    overall = Coverage(
+        instruction=Counter(missed=0, covered=10),
+        branch=Counter(missed=0, covered=10),
+        line=Counter(missed=0, covered=10),
+        complexity=Counter(missed=0, covered=10),
+        method=Counter(missed=0, covered=10),
+        clazz=Counter(missed=0, covered=10),
+    )
+    changed_files = {
+        changed_file_name: FileCoverage(
+            file_name=changed_file_name.split("/")[-1],
+            file_path="/".join(changed_file_name.split("/")[:-1]),
+            instruction=Counter(missed=missed, covered=covered),
+            branch=Counter(missed=0, covered=10),
+            line=Counter(missed=0, covered=10),
+            complexity=Counter(missed=0, covered=10),
+            method=Counter(missed=0, covered=10),
+            clazz=Counter(missed=0, covered=10),
+        )
+    }
+    return ReportFileCoverage(
+        path=f"{report_name}.xml",
+        name=report_name,
+        overall_coverage=overall,
+        changed_files_coverage=changed_files,
+    )
+
+
+def test_global_per_changed_file_threshold_passes_when_all_changed_files_meet_global_third(
+    mocker: MockerFixture,
+):
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
+    report_a = _make_report_with_changed_file_instruction("report-a", "src/A.java", covered=8, missed=2)
+    report_b = _make_report_with_changed_file_instruction("report-b", "src/B.java", covered=9, missed=1)
+
+    evaluator = CoverageEvaluator(
+        report_files_coverage=[report_a, report_b],
+        global_min_coverage_overall=0.0,
+        global_min_coverage_changed_files=0.0,
+        global_min_coverage_changed_per_file=75.0,
+        report_thresholds_default=(0.0, 0.0, 0.0),
+    )
+
+    evaluator.evaluate()
+
+    assert evaluator.reached_threshold_per_change_file is True
+    assert not any("Global changed file" in violation for violation in evaluator.violations)
+
+
+def test_global_per_changed_file_threshold_fails_when_any_changed_file_below_global_third(
+    mocker: MockerFixture,
+):
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
+    report_a = _make_report_with_changed_file_instruction("report-a", "src/A.java", covered=8, missed=2)
+    report_b = _make_report_with_changed_file_instruction("report-b", "src/B.java", covered=7, missed=3)
+
+    evaluator = CoverageEvaluator(
+        report_files_coverage=[report_a, report_b],
+        global_min_coverage_overall=0.0,
+        global_min_coverage_changed_files=0.0,
+        global_min_coverage_changed_per_file=75.0,
+        report_thresholds_default=(0.0, 0.0, 0.0),
+    )
+
+    evaluator.evaluate()
+
+    assert evaluator.reached_threshold_per_change_file is False
+    assert any("Global changed file" in violation for violation in evaluator.violations)
+
+
+# ---------------------------------------------------------------------------
+# G4a  Duplicate report name triggers evaluator warning
+# ---------------------------------------------------------------------------
+
+def test_duplicate_report_name_emits_warning(make_report_file_coverage, mocker, caplog):
+    """Evaluator logs a WARNING when two reports share the same name (title)."""
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
+    report_a = make_report_file_coverage(name="same-name")
+    report_b = make_report_file_coverage(name="same-name")
+
+    evaluator = CoverageEvaluator(
+        report_files_coverage=[report_a, report_b],
+        global_min_coverage_overall=0.0,
+        global_min_coverage_changed_files=0.0,
+        global_min_coverage_changed_per_file=0.0,
+    )
+
+    with caplog.at_level(logging.WARNING, logger="jacoco_report.evaluator.coverage_evaluator"):
+        evaluator.evaluate()
+
+    assert "Duplicate report name 'same-name' detected" in caplog.text
+
+
+# ---------------------------------------------------------------------------
+# G5  Baseline has no effect on threshold evaluation
+# ---------------------------------------------------------------------------
+
+def test_baseline_does_not_affect_threshold_evaluation(make_report_file_coverage, make_coverage, mocker):
+    """High-coverage baseline does not cause a low-coverage current report to pass thresholds."""
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
+
+    low_cov = make_coverage(instruction=Counter(missed=10, covered=0))
+    high_cov = make_coverage(instruction=Counter(missed=0, covered=10))
+
+    current_report = make_report_file_coverage(name="mod", overall_coverage=low_cov)
+    baseline_report = make_report_file_coverage(name="mod", overall_coverage=high_cov)
+
+    evaluator = CoverageEvaluator(
+        report_files_coverage=[current_report],
+        global_min_coverage_overall=80.0,
+        global_min_coverage_changed_files=0.0,
+        global_min_coverage_changed_per_file=0.0,
+    )
+    evaluator.evaluate()
+
+    bs_evaluator = CoverageEvaluator(
+        report_files_coverage=[baseline_report],
+        global_min_coverage_overall=0.0,
+        global_min_coverage_changed_files=0.0,
+        global_min_coverage_changed_per_file=0.0,
+    )
+    bs_evaluator.evaluate()
+
+    assert evaluator.total_coverage_overall == 0.0
+    assert evaluator.total_coverage_overall_passed is False
+    assert any("Global overall coverage 0.0 is below the threshold 80.0" in v for v in evaluator.violations)
+    assert bs_evaluator.total_coverage_overall == 100.0
+    assert bs_evaluator.total_coverage_overall_passed is True
+
+
+def test_low_baseline_does_not_cause_high_coverage_to_fail(make_report_file_coverage, make_coverage, mocker):
+    """Low-coverage baseline does not drag down a passing current report."""
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
+
+    high_cov = make_coverage(instruction=Counter(missed=0, covered=10))
+    low_cov = make_coverage(instruction=Counter(missed=9, covered=1))
+
+    current_report = make_report_file_coverage(name="mod", overall_coverage=high_cov)
+    baseline_report = make_report_file_coverage(name="mod", overall_coverage=low_cov)
+
+    evaluator = CoverageEvaluator(
+        report_files_coverage=[current_report],
+        global_min_coverage_overall=80.0,
+        global_min_coverage_changed_files=0.0,
+        global_min_coverage_changed_per_file=0.0,
+    )
+    evaluator.evaluate()
+
+    bs_evaluator = CoverageEvaluator(
+        report_files_coverage=[baseline_report],
+        global_min_coverage_overall=0.0,
+        global_min_coverage_changed_files=0.0,
+        global_min_coverage_changed_per_file=0.0,
+    )
+    bs_evaluator.evaluate()
+
+    assert evaluator.total_coverage_overall == 100.0
+    assert evaluator.total_coverage_overall_passed is True
+    assert evaluator.violations == []
+
+
+# ---------------------------------------------------------------------------
+# G11  Selected metric affects threshold comparison, not just display
+# ---------------------------------------------------------------------------
+
+def test_metric_instruction_passes_when_line_would_fail(mocker):
+    """Instruction coverage passes an 80% threshold; line coverage (0%) would fail the same threshold."""
+    report = ReportFileCoverage(
+        path="test.xml",
+        name="test-mod",
+        overall_coverage=Coverage(
+            instruction=Counter(missed=0, covered=10),
+            branch=Counter(missed=0, covered=10),
+            line=Counter(missed=10, covered=0),
+            complexity=Counter(missed=0, covered=10),
+            method=Counter(missed=0, covered=10),
+            clazz=Counter(missed=0, covered=10),
+        ),
+        changed_files_coverage={},
+    )
+
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
+    ev_instr = CoverageEvaluator(
+        report_files_coverage=[report],
+        global_min_coverage_overall=80.0,
+        global_min_coverage_changed_files=0.0,
+        global_min_coverage_changed_per_file=0.0,
+    )
+    ev_instr.evaluate()
+    assert ev_instr.total_coverage_overall_passed is True
+    assert ev_instr.total_coverage_overall == 100.0
+
+
+def test_metric_line_fails_when_instruction_would_pass(mocker):
+    """Line coverage (0%) fails an 80% threshold even though instruction coverage is 100%."""
+    report = ReportFileCoverage(
+        path="test.xml",
+        name="test-mod",
+        overall_coverage=Coverage(
+            instruction=Counter(missed=0, covered=10),
+            branch=Counter(missed=0, covered=10),
+            line=Counter(missed=10, covered=0),
+            complexity=Counter(missed=0, covered=10),
+            method=Counter(missed=0, covered=10),
+            clazz=Counter(missed=0, covered=10),
+        ),
+        changed_files_coverage={},
+    )
+
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="line")
+    ev_line = CoverageEvaluator(
+        report_files_coverage=[report],
+        global_min_coverage_overall=80.0,
+        global_min_coverage_changed_files=0.0,
+        global_min_coverage_changed_per_file=0.0,
+    )
+    ev_line.evaluate()
+    assert ev_line.total_coverage_overall_passed is False
+    assert ev_line.total_coverage_overall == 0.0

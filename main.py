@@ -46,7 +46,6 @@ def run() -> None:
     logger.debug("Action output 'coverage-changed-files-passed' set to: %s", jr.total_changed_files_coverage_passed)
     logger.debug("Action output 'reports-coverage' set to: %s", jr.evaluated_coverage_reports)
     logger.debug("Action output 'groups-coverage' set to: %s", jr.evaluated_coverage_groups)
-    logger.debug("Action output 'violations' set to: %s", jr.violations)
 
     if len(jr.violations) > 0:
         logger.error("JaCoCo Report GitHub Action - failed.")

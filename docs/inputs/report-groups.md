@@ -1,9 +1,13 @@
-# `report-groups` YAML Format Reference
+# `report-groups`
 
-The `report-groups` input lets you organise JaCoCo reports from multi-module projects into named
-groups, each with its own path globs, optional thresholds, and optional baseline paths.
+## Theory
 
----
+`report-groups` organises JaCoCo reports from multi-module projects into named groups. Each group
+defines its own file globs, optional per-group thresholds, and optional baseline paths.
+
+When `report-groups` is set, the top-level `paths` input can be omitted — the action scans each
+group's `paths` list instead. The top-level `global-thresholds` still run as a **separate
+aggregated pass** over all reports, independent of group thresholds.
 
 ## Schema
 
@@ -25,12 +29,10 @@ report-groups: |
 | `name` | **Yes** | string | Non-empty group label. Appears as a row header in the Groups table. |
 | `paths` | **Yes** | list of strings | Glob patterns for JaCoCo XML files belonging to this group. At least one non-empty entry required. |
 | `thresholds` | No | string | `overall*changed-files-average*per-changed-file` (e.g. `80*70*60`). Each field is a float in `[0, 100)` or empty. Missing fields fall back to `report-thresholds-default`, then to 0.0. |
-| `baseline-paths` | No | list of strings | Glob patterns for baseline XMLs for this group. When present, overrides top-level `baseline-paths` for this group. |
+| `baseline-paths` | No | list of strings | Glob patterns for baseline XMLs for this group. Overrides top-level `baseline-paths` for this group. |
 
 If top-level `baseline-paths` is set and multiple groups omit `baseline-paths`, inheritance is
-ambiguous and grouped baseline scans are skipped for those omitted groups.
-
----
+ambiguous and grouped baseline scans are skipped for those groups.
 
 ## Threshold format
 
@@ -65,8 +67,6 @@ per-group threshold field
 `global-thresholds` is a **separate evaluation pass** over aggregated totals and is never part of
 this fallback chain.
 
----
-
 ## YAML quoting rules
 
 Any glob or threshold value that begins with `*` must be wrapped in quotes to prevent YAML from
@@ -78,14 +78,12 @@ report-groups: |
     paths:
       - '**/jacoco.xml'       # leading * — quotes required
       - backend/**/jacoco.xml # no leading * — quotes optional
-    thresholds: '80*70*60'    # always quote thresholds (first char after * could be *, too)
+    thresholds: '80*70*60'    # always quote thresholds
 ```
-
----
 
 ## Validation rules
 
-Startup input validation fails (logged as action errors, then exits with status 1) if:
+The action fails at startup if:
 
 - Any group has an empty or missing `name`.
 - Any two groups share the same `name`.
@@ -94,95 +92,11 @@ Startup input validation fails (logged as action errors, then exits with status 
 - Any threshold field is not a number in `[0, 100)`.
 - The YAML block is not valid YAML.
 
----
-
-## Examples
-
-### Minimal — two groups, no per-group thresholds
-
-```yaml
-report-groups: |
-  - name: backend
-    paths:
-      - backend/**/jacoco.xml
-  - name: frontend
-    paths:
-      - frontend/**/jacoco.xml
-```
-
-All groups inherit from `report-thresholds-default` (default `0*0*0` → no enforcement).
-
----
-
-### Per-group thresholds
-
-```yaml
-report-thresholds-default: '75*60*0'
-report-groups: |
-  - name: backend
-    paths:
-      - backend/**/jacoco.xml
-    thresholds: '80*70*60'   # explicit for all three fields
-  - name: frontend
-    paths:
-      - frontend/**/jacoco.xml
-    thresholds: '75**'       # overall=75; avg and per-file from report-thresholds-default (60 and 0)
-```
-
----
-
-### Per-group baseline paths
-
-```yaml
-report-groups: |
-  - name: backend
-    paths:
-      - backend/**/jacoco.xml
-    thresholds: '80*70*60'
-    baseline-paths:
-      - baseline/backend/**/jacoco.xml   # overrides top-level baseline-paths for this group
-  - name: frontend
-    paths:
-      - frontend/**/jacoco.xml
-    thresholds: '75*65*50'
-    baseline-paths:
-      - baseline/frontend/**/jacoco.xml
-
-# Note: if top-level baseline-paths is set and multiple groups omit baseline-paths,
-# grouped baseline inheritance is ambiguous and those groups will skip grouped baseline diffs.
-```
-
----
-
-### Combined with global thresholds
-
-`global-thresholds` always runs as a separate pass over all reports combined.
-It is independent of group thresholds.
-
-```yaml
-- uses: MoranaApps/jacoco-report@v3
-  with:
-    token: '${{ secrets.GITHUB_TOKEN }}'
-    global-thresholds: '70*0*0'          # aggregated overall must be ≥ 70 %
-    report-thresholds-default: '60*50*0' # default for all groups
-    report-groups: |
-      - name: core
-        paths:
-          - core/**/jacoco.xml
-        thresholds: '80*70*60'           # stricter per-group enforcement
-      - name: plugins
-        paths:
-          - plugins/**/jacoco.xml
-        # no thresholds — uses report-thresholds-default (60*50*0)
-```
-
----
-
-## PR comment structure when groups are configured
+## PR comment structure
 
 When `report-groups` is non-empty and `comment-level` is a detail level (`full`, `changed`,
-`failed`, `failed-or-changed`), the PR comment includes a Groups table between the Global
-summary and the Reports table:
+`failed`, `failed-or-changed`), the PR comment includes a Groups table between the Global summary
+and the Reports table:
 
 ```text
 | Metric (instruction) | Coverage | Threshold | Status |
@@ -198,13 +112,113 @@ summary and the Reports table:
 |…| ← Changed-files table
 ```
 
-When `report-groups` is empty, or when `comment-level` is `minimal`/`none`, the Groups table is
-omitted.
+When `report-groups` is empty, or when `comment-level` is `minimal` / `none`, the Groups table
+is omitted.
+
+## Examples
+
+### Minimal — two groups, no per-group thresholds
+
+```yaml
+report-groups: |
+  - name: backend
+    paths:
+      - backend/**/jacoco.xml
+  - name: frontend
+    paths:
+      - frontend/**/jacoco.xml
+```
+
+All groups inherit from `report-thresholds-default` (default `0*0*0` — no enforcement).
 
 ---
 
+### Per-group thresholds
+
+```yaml
+report-thresholds-default: '75*60*0'
+report-groups: |
+  - name: backend
+    paths:
+      - backend/**/jacoco.xml
+    thresholds: '80*70*60'   # explicit for all three fields
+  - name: frontend
+    paths:
+      - frontend/**/jacoco.xml
+    thresholds: '75**'       # overall=75; avg and per-file from report-thresholds-default
+```
+
+---
+
+### Per-group baseline paths
+
+```yaml
+report-groups: |
+  - name: backend
+    paths:
+      - backend/**/jacoco.xml
+    thresholds: '80*70*60'
+    baseline-paths:
+      - baseline/backend/**/jacoco.xml
+  - name: frontend
+    paths:
+      - frontend/**/jacoco.xml
+    thresholds: '75*65*50'
+    baseline-paths:
+      - baseline/frontend/**/jacoco.xml
+```
+
+---
+
+### Combined with global thresholds
+
+`global-thresholds` always runs as a separate pass over all reports combined.
+
+```yaml
+- uses: MoranaApps/jacoco-report@v3
+  with:
+    token: '${{ secrets.GITHUB_TOKEN }}'
+    global-thresholds: '70*0*0'           # aggregated overall must be ≥ 70 %
+    report-thresholds-default: '60*50*0'  # default for all groups
+    report-groups: |
+      - name: core
+        paths:
+          - core/**/jacoco.xml
+        thresholds: '80*70*60'            # stricter per-group enforcement
+      - name: plugins
+        paths:
+          - plugins/**/jacoco.xml
+        # no thresholds — uses report-thresholds-default (60*50*0)
+```
+
+---
+
+### With all features combined
+
+```yaml
+- name: Publish JaCoCo Report
+  uses: MoranaApps/jacoco-report@v3
+  with:
+    token: '${{ secrets.GITHUB_TOKEN }}'
+    report-thresholds-default: '75*60*0'
+    report-groups: |
+      - name: Core
+        paths:
+          - core/target/site/jacoco/jacoco.xml
+        thresholds: '80*70*60'
+      - name: Modules
+        paths:
+          - module-a/target/site/jacoco/jacoco.xml
+          - module-b/target/site/jacoco/jacoco.xml
+        thresholds: '75*65*'
+        baseline-paths:
+          - baseline/modules/**/*.xml
+```
+
 ## See also
 
-- [comment-level-guide.md](comment-level-guide.md) — controlling comment verbosity
-- [v2-v3-migration-guide.md](v2-v3-migration-guide.md) — migrating `modules` / `modules-thresholds` to `report-groups`
+- [thresholds.md](thresholds.md) — `global-thresholds`, `report-thresholds-default`, threshold resolution
+- [comment-level.md](comment-level.md) — Groups table visibility
+- [baseline-paths.md](baseline-paths.md) — top-level baseline configuration
+- [v2-v3-migration-guide.md](../v2-v3-migration-guide.md) — migrating `modules` / `modules-thresholds` to `report-groups`
 - [examples/report-groups.yml](../examples/report-groups.yml) — complete workflow example

@@ -9,13 +9,13 @@ Each section shows a before/after workflow snippet and explains the new behaviou
 
 | # | Area | v2 input | v3 replacement |
 |---|------|----------|---------------|
-| 1 | Threshold inputs | `min-coverage-overall` / `min-coverage-changed-files` / `min-coverage-per-changed-file` | `global-thresholds` (overall + changed-files-average) + `report-thresholds-default` or group `thresholds` (per-changed-file) |
-| 2 | Comment verbosity | `sensitivity` | Removed — detail is always on |
-| 3 | Comment mode | `comment-mode` | Removed — single comment always |
-| 4 | Module grouping | `modules` + `modules-thresholds` | `report-groups` (YAML) |
-| 5 | Unchanged reports | `skip-unchanged` | Reworked — now a scan-stage filter |
-| 6 | Threshold failure | `fail-on-threshold: true/false` | Deprecated — use list form |
-| 7 | Comment detail level | `comment-level: minimal/full` | Expanded to six levels |
+| 1 | Threshold inputs | [`min-coverage-overall`](#1-threshold-inputs-mapping-in-v3) / [`min-coverage-changed-files`](#1-threshold-inputs-mapping-in-v3) / [`min-coverage-per-changed-file`](#1-threshold-inputs-mapping-in-v3) | `global-thresholds` (overall + changed-files-average) + `report-thresholds-default` or group `thresholds` (per-changed-file) |
+| 2 | Comment verbosity | [`sensitivity`](#2-sensitivity--removed) | Removed — detail is always on |
+| 3 | Comment mode | [`comment-mode`](#3-comment-mode--removed) | Removed — single comment always |
+| 4 | Module grouping | [`modules`](#4-modules--modules-thresholds--report-groups) + [`modules-thresholds`](#4-modules--modules-thresholds--report-groups) | `report-groups` (YAML) |
+| 5 | Unchanged reports | [`skip-unchanged`](#5-skip-unchanged--scan-stage-filter-breaking-semantic-change) | Reworked — now a scan-stage filter |
+| 6 | Threshold failure | [`fail-on-threshold: true/false`](#6-fail-on-threshold--list-form-only) | Deprecated — use list form |
+| 7 | Comment detail level | [`comment-level: minimal/full`](#7-comment-level--expanded-option-set) | Expanded to six levels |
 
 ---
 
@@ -61,28 +61,21 @@ Detail output is always produced. Remove the input from your workflow.
     sensitivity: 'summary'
 ```
 
-**v3:**
-```yaml
-    # Remove — detail output is always on.
-    # Use comment-level (see section 7) to control what rows appear.
-```
+**v3:** Delete the `sensitivity` line. Use `comment-level` (see section 7) to control detail.
 
 ---
 
 ## 3. `comment-mode` — removed
 
 The `comment-mode` input (`single` / `multi` / `module`) no longer exists.
-A single unified PR comment is always produced. Remove the input.
+A single unified PR comment is always produced.
 
 **v2:**
 ```yaml
     comment-mode: 'single'
 ```
 
-**v3:**
-```yaml
-    # Remove — single comment is the only mode.
-```
+**v3:** Delete the `comment-mode` line.
 
 ---
 
@@ -123,32 +116,6 @@ Each group defines its own paths, optional per-group thresholds, and optional ba
 | `thresholds` | No | `overall*avg*per-file`; missing fields fall back to `report-thresholds-default` |
 | `baseline-paths` | No | Per-group baseline XMLs; overrides top-level `baseline-paths` for this group |
 
-### `report-thresholds-default`
-
-A new `report-thresholds-default` input sets the fallback threshold for any field not specified
-per group. The resolution order per field is:
-
-```
-per-group threshold field  →  report-thresholds-default field  →  0.0
-```
-
-`global-thresholds` is always a separate evaluation pass and is never part of this chain.
-
-**Example:**
-```yaml
-    report-thresholds-default: '75*60*0'
-    report-groups: |
-      - name: backend
-        paths:
-          - backend/**/jacoco.xml
-        thresholds: '80**'   # overall=80, avg=60 (from default), per-file=0 (from default)
-```
-
-### When no groups are configured
-
-If `report-groups` is empty or absent, the action behaves as in v2: the three-table PR comment
-structure (Global / Reports / Changed files) is unchanged.
-
 ---
 
 ## 5. `skip-unchanged` — scan-stage filter (breaking semantic change)
@@ -156,15 +123,9 @@ structure (Global / Reports / Changed files) is unchanged.
 In v2, `skip-unchanged` suppressed comment output and violation reporting for reports with no
 changed files, but only at the comment and evaluation layers (late filter).
 
-In v3, `skip-unchanged` filters at the **scan stage** — any `ReportFileCoverage` with no changed
-files is removed before evaluation begins. Each filtered report is logged at INFO:
-
-```
-Skipping report '<name>': no changed files.
-```
-
-If all reports are filtered, the action exits cleanly: no comment is posted and no violations
-are raised.
+In v3, `skip-unchanged` filters at the **scan stage** — any report with no changed files is
+removed before evaluation begins. If all reports are filtered, the action exits cleanly with
+no comment and no violations.
 
 **v2:**
 ```yaml
@@ -192,12 +153,6 @@ the new `evaluate-unchanged` input:
 
 Set `evaluate-unchanged: 'false'` to fully exclude filtered reports from all evaluation
 (equivalent to the simplest v2 skip behaviour).
-
-### Interaction with `comment-level`
-
-`skip-unchanged: 'true'` removes reports before `comment-level` filtering applies.
-Using `comment-level: changed` without `skip-unchanged` shows only reports that have changed
-files in the comment, but still evaluates all reports.
 
 ---
 

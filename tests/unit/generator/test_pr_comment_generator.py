@@ -1,10 +1,15 @@
+import logging
+
 import pytest
 
+from jacoco_report.action_inputs import ActionInputs
 from jacoco_report.evaluator.coverage_evaluator import CoverageEvaluator
 from jacoco_report.generator.pr_comment_generator import PRCommentGenerator
 from jacoco_report.model.counter import Counter
+from jacoco_report.model.coverage import Coverage
 from jacoco_report.model.evaluated_report_coverage import EvaluatedReportCoverage
-from jacoco_report.utils.enums import MetricTypeEnum
+from jacoco_report.model.report_file_coverage import ReportFileCoverage
+from jacoco_report.utils.enums import CommentLevelEnum, MetricTypeEnum
 
 
 @pytest.fixture
@@ -1007,3 +1012,369 @@ def test_metadata_footer_not_appended_for_none_level(pr_comment_generator, mocke
     pr_comment_generator.generate()
 
     pr_comment_generator.gh.add_comment.assert_not_called()
+
+
+def _make_empty_evaluator():
+    return CoverageEvaluator(
+        report_files_coverage=[],
+        global_min_coverage_overall=0.0,
+        global_min_coverage_changed_files=0.0,
+        global_min_coverage_changed_per_file=0.0,
+    )
+
+
+# ---------------------------------------------------------------------------
+# G2  Column header reflects selected metric type
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize("metric", ["instruction", "line", "branch", "complexity", "method", "class"])
+def test_basic_table_header_reflects_selected_metric(pr_comment_generator, metric):
+    """get_basic_table header label changes with the metric parameter."""
+    table = pr_comment_generator.get_basic_table("✅", "❌", metric, 85.0, True, 80.0, 80.0, True, 80.0)
+    assert f"Metric ({metric})" in table
+
+
+def test_basic_table_with_baseline_header_reflects_metric(pr_comment_generator):
+    """get_basic_table_with_baseline also reflects the metric in its header."""
+    table = pr_comment_generator.get_basic_table_with_baseline(
+        "✅", "❌", "line", 85.0, True, 80.0, 80.0, True, 80.0, 80.0, 75.0
+    )
+    assert "Metric (line)" in table
+
+
+# ---------------------------------------------------------------------------
+# G3  Custom pass/fail symbols appear in every table type
+# ---------------------------------------------------------------------------
+
+def test_custom_pass_symbol_appears_in_basic_table(pr_comment_generator):
+    """Custom pass symbol is rendered in Status column of the global summary table."""
+    table = pr_comment_generator.get_basic_table("PASS", "FAIL", "instruction", 85.0, True, 80.0, 85.0, True, 80.0)
+    assert "PASS" in table
+    assert "FAIL" not in table
+
+
+def test_custom_fail_symbol_appears_in_basic_table(pr_comment_generator):
+    """Custom fail symbol is rendered when a threshold is not met in the global summary table."""
+    table = pr_comment_generator.get_basic_table("PASS", "FAIL", "instruction", 50.0, False, 80.0, 50.0, False, 80.0)
+    assert "FAIL" in table
+
+
+def test_custom_pass_symbol_in_groups_table(pr_comment_generator):
+    """Custom pass symbol appears in the Status column of the groups table."""
+    ec = EvaluatedReportCoverage("grp", "grp")
+    ec.overall_passed = True
+    ec.avg_changed_files_passed = True
+    ec.overall_coverage_reached = 85.0
+    ec.avg_changed_files_coverage_reached = 85.0
+    ec.overall_coverage_threshold = 70.0
+    ec.changed_files_threshold = 70.0
+    ec.avg_changed_files_coverage = Counter(0, 0)
+    ec.changed_files_coverage_reached = {}
+
+    table = pr_comment_generator.get_groups_table("OK", "NOTOK", {"grp": ec})
+    assert "OK" in table
+    assert "NOTOK" not in table
+
+
+def test_custom_fail_symbol_in_groups_table(pr_comment_generator):
+    """Custom fail symbol appears in the Status column of the groups table."""
+    ec = EvaluatedReportCoverage("grp", "grp")
+    ec.overall_passed = False
+    ec.avg_changed_files_passed = False
+    ec.overall_coverage_reached = 50.0
+    ec.avg_changed_files_coverage_reached = 50.0
+    ec.overall_coverage_threshold = 80.0
+    ec.changed_files_threshold = 80.0
+    ec.avg_changed_files_coverage = Counter(0, 0)
+    ec.changed_files_coverage_reached = {}
+
+    table = pr_comment_generator.get_groups_table("OK", "NOTOK", {"grp": ec})
+    assert "NOTOK" in table
+
+
+def test_custom_symbols_in_reports_table(pr_comment_generator):
+    """Custom pass/fail symbols appear in the Status column of the reports table."""
+    erc_pass = EvaluatedReportCoverage("rep-a", "Unknown")
+    erc_pass.overall_passed = True
+    erc_pass.avg_changed_files_passed = True
+    erc_pass.overall_coverage_reached = 85.0
+    erc_pass.avg_changed_files_coverage_reached = 85.0
+    erc_pass.overall_coverage_threshold = 0.0
+    erc_pass.changed_files_threshold = 0.0
+    erc_pass.per_changed_file_threshold = 0.0
+    erc_pass.avg_changed_files_coverage = Counter(0, 0)
+    erc_pass.changed_files_coverage_reached = {}
+    erc_pass.changed_files_passed = {}
+
+    erc_fail = EvaluatedReportCoverage("rep-b", "Unknown")
+    erc_fail.overall_passed = False
+    erc_fail.avg_changed_files_passed = True
+    erc_fail.overall_coverage_reached = 40.0
+    erc_fail.avg_changed_files_coverage_reached = 0.0
+    erc_fail.overall_coverage_threshold = 80.0
+    erc_fail.changed_files_threshold = 0.0
+    erc_fail.per_changed_file_threshold = 0.0
+    erc_fail.avg_changed_files_coverage = Counter(0, 0)
+    erc_fail.changed_files_coverage_reached = {}
+    erc_fail.changed_files_passed = {}
+
+    table = pr_comment_generator.get_reports_table("OK", "NOTOK", {"rep-a": erc_pass, "rep-b": erc_fail})
+    assert "OK" in table
+    assert "NOTOK" in table
+
+
+def test_custom_symbols_in_changed_files_table(pr_comment_generator):
+    """Custom symbols appear in the Status column of the changed-files table."""
+    erc = EvaluatedReportCoverage("rep", "Unknown")
+    erc.overall_passed = True
+    erc.avg_changed_files_passed = True
+    erc.overall_coverage_reached = 90.0
+    erc.avg_changed_files_coverage_reached = 90.0
+    erc.overall_coverage_threshold = 0.0
+    erc.changed_files_threshold = 0.0
+    erc.per_changed_file_threshold = 0.0
+    erc.avg_changed_files_coverage = Counter(0, 10)
+    erc.changed_files_coverage_reached = {"src/Foo.java": 90.0}
+    erc.changed_files_passed = {"src/Foo.java": True}
+
+    table = pr_comment_generator.generate_changed_files_table_without_baseline("PASS", "FAIL", {"rep": erc})
+    assert "PASS" in table
+    assert "FAIL" not in table
+
+
+def test_custom_fail_symbol_in_changed_files_table(pr_comment_generator):
+    """Custom fail symbol appears in the changed-files table when a file fails."""
+    erc = EvaluatedReportCoverage("rep", "Unknown")
+    erc.overall_passed = False
+    erc.avg_changed_files_passed = False
+    erc.overall_coverage_reached = 30.0
+    erc.avg_changed_files_coverage_reached = 30.0
+    erc.overall_coverage_threshold = 80.0
+    erc.changed_files_threshold = 80.0
+    erc.per_changed_file_threshold = 80.0
+    erc.avg_changed_files_coverage = Counter(7, 3)
+    erc.changed_files_coverage_reached = {"src/Bar.java": 30.0}
+    erc.changed_files_passed = {"src/Bar.java": False}
+
+    table = pr_comment_generator.generate_changed_files_table_without_baseline("PASS", "FAIL", {"rep": erc})
+    assert "FAIL" in table
+
+
+# ---------------------------------------------------------------------------
+# G4b  Baseline delta matched by report title
+# ---------------------------------------------------------------------------
+
+def test_baseline_report_matched_by_name(make_report_file_coverage, make_coverage, mocker, pr_comment_generator):
+    """Baseline delta for a report uses its name (title) as the match key."""
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
+
+    current = make_report_file_coverage(
+        name="module-a",
+        overall_coverage=make_coverage(instruction=Counter(missed=2, covered=8)),
+    )
+    baseline = make_report_file_coverage(
+        name="module-a",
+        overall_coverage=make_coverage(instruction=Counter(missed=4, covered=6)),
+    )
+
+    evaluator = CoverageEvaluator(
+        report_files_coverage=[current],
+        global_min_coverage_overall=0.0,
+        global_min_coverage_changed_files=0.0,
+        global_min_coverage_changed_per_file=0.0,
+    )
+    evaluator.evaluate()
+
+    bs_evaluator = CoverageEvaluator(
+        report_files_coverage=[baseline],
+        global_min_coverage_overall=0.0,
+        global_min_coverage_changed_files=0.0,
+        global_min_coverage_changed_per_file=0.0,
+    )
+    bs_evaluator.evaluate()
+
+    pr_comment_generator.evaluator = evaluator
+    pr_comment_generator.bs_evaluator = bs_evaluator
+
+    ev = evaluator.evaluated_reports_coverage["module-a"]
+    diff_o, _ = pr_comment_generator._calculate_baseline_report_diffs(ev)
+    assert abs(diff_o - 20.0) < 0.1
+
+
+def test_baseline_mismatched_name_yields_zero_delta(make_report_file_coverage, make_coverage, mocker, pr_comment_generator):
+    """When the report name has no matching baseline entry, delta is 0.0."""
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
+
+    baseline = make_report_file_coverage(
+        name="module-a",
+        overall_coverage=make_coverage(instruction=Counter(missed=0, covered=10)),
+    )
+    bs_evaluator = CoverageEvaluator(
+        report_files_coverage=[baseline],
+        global_min_coverage_overall=0.0,
+        global_min_coverage_changed_files=0.0,
+        global_min_coverage_changed_per_file=0.0,
+    )
+    bs_evaluator.evaluate()
+    pr_comment_generator.bs_evaluator = bs_evaluator
+
+    unmatched = EvaluatedReportCoverage("module-b", "Unknown")
+    unmatched.overall_coverage_reached = 80.0
+    unmatched.avg_changed_files_coverage_reached = 0.0
+
+    diff_o, diff_ch = pr_comment_generator._calculate_baseline_report_diffs(unmatched)
+    assert diff_o == 0.0
+    assert diff_ch == 0.0
+
+
+# ---------------------------------------------------------------------------
+# G6  Title change orphans old comment; new comment is created
+# ---------------------------------------------------------------------------
+
+def test_title_change_creates_new_comment_orphans_old(mocker, mock_github, test_evaluator):
+    """Changing title creates a new comment; the old comment with the previous title is not touched."""
+    empty_bs = _make_empty_evaluator()
+    gen = PRCommentGenerator(mock_github, test_evaluator, empty_bs, pr_number=1)
+    _configure_generator_for_comment_tests(gen, mocker, comment_level=CommentLevelEnum.MINIMAL)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_title", return_value="New Title")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=True)
+    mock_github.get_comments.return_value = [{"id": 99, "body": "**Old Title**\n\nold coverage content"}]
+
+    gen.generate()
+
+    mock_github.add_comment.assert_called_once()
+    mock_github.update_comment.assert_not_called()
+    mock_github.delete_comment.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# G7  Two distinct titles produce two independent comments
+# ---------------------------------------------------------------------------
+
+def test_two_generators_with_different_titles_post_independently(mocker, mock_github):
+    """Two PRCommentGenerators with distinct titles each post their own comment independently."""
+    ev_a = CoverageEvaluator(report_files_coverage=[], global_min_coverage_overall=0.0,
+                              global_min_coverage_changed_files=0.0, global_min_coverage_changed_per_file=0.0)
+    ev_a.total_coverage_overall = 85.0
+    ev_a.total_coverage_overall_passed = True
+    ev_a.total_coverage_changed_files = 80.0
+    ev_a.total_coverage_changed_files_passed = True
+
+    bs_ev = _make_empty_evaluator()
+    gen_a = PRCommentGenerator(mock_github, ev_a, bs_ev, pr_number=1)
+    _configure_generator_for_comment_tests(gen_a, mocker, comment_level=CommentLevelEnum.MINIMAL)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_title", return_value="Team A Coverage")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=True)
+    gen_a.generate()
+
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_title", return_value="Team B Coverage")
+    mock_github.get_comments.return_value = [{"id": 1, "body": "**Team A Coverage**\n\nteam a content"}]
+
+    ev_b = CoverageEvaluator(report_files_coverage=[], global_min_coverage_overall=0.0,
+                              global_min_coverage_changed_files=0.0, global_min_coverage_changed_per_file=0.0)
+    ev_b.total_coverage_overall = 90.0
+    ev_b.total_coverage_overall_passed = True
+    ev_b.total_coverage_changed_files = 85.0
+    ev_b.total_coverage_changed_files_passed = True
+    gen_b = PRCommentGenerator(mock_github, ev_b, bs_ev, pr_number=1)
+    gen_b.generate()
+
+    assert mock_github.add_comment.call_count == 2
+    mock_github.update_comment.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# G8  debug flag has no effect on comment content
+# ---------------------------------------------------------------------------
+
+def test_debug_flag_does_not_change_comment_body(mocker, mock_github, test_evaluator):
+    """Comment body is byte-for-byte identical whether get_debug() returns True or False."""
+    empty_bs = _make_empty_evaluator()
+
+    def _generate_body(debug_val):
+        mock_github.reset_mock()
+        mock_github.get_comments.return_value = []
+        mocker.patch("jacoco_report.action_inputs.ActionInputs.get_debug", return_value=debug_val)
+        mocker.patch("jacoco_report.action_inputs.ActionInputs.get_repository", return_value="owner/repo")
+        gen = PRCommentGenerator(mock_github, test_evaluator, empty_bs, pr_number=1)
+        _configure_generator_for_comment_tests(gen, mocker, comment_level=CommentLevelEnum.MINIMAL)
+        gen.generate()
+        return mock_github.add_comment.call_args[0][1]
+
+    body_false = _generate_body(False)
+    body_true = _generate_body(True)
+    assert body_false == body_true
+
+
+def test_debug_flag_not_consulted_during_generate(mocker, mock_github, test_evaluator):
+    """PRCommentGenerator.generate() never reads the debug flag."""
+    empty_bs = _make_empty_evaluator()
+    gen = PRCommentGenerator(mock_github, test_evaluator, empty_bs, pr_number=1)
+    _configure_generator_for_comment_tests(gen, mocker, comment_level=CommentLevelEnum.MINIMAL)
+    debug_spy = mocker.spy(ActionInputs, "get_debug")
+    gen.generate()
+    debug_spy.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# G12  update-comment: false appends even when a matching title already exists
+# ---------------------------------------------------------------------------
+
+def test_update_comment_false_appends_despite_matching_title(mocker, mock_github, test_evaluator):
+    """update-comment=false causes add_comment to be called even when an existing comment matches the title."""
+    empty_bs = _make_empty_evaluator()
+    gen = PRCommentGenerator(mock_github, test_evaluator, empty_bs, pr_number=1)
+    _configure_generator_for_comment_tests(gen, mocker, comment_level=CommentLevelEnum.MINIMAL)
+    mock_github.get_comments.return_value = [{"id": 99, "body": "**JaCoCo**\n\nold content"}]
+
+    gen.generate()
+
+    mock_github.add_comment.assert_called_once()
+    mock_github.update_comment.assert_not_called()
+
+
+@pytest.mark.parametrize("level", [CommentLevelEnum.MINIMAL, CommentLevelEnum.FULL, CommentLevelEnum.CHANGED])
+def test_update_comment_false_appends_across_comment_levels(mocker, mock_github, test_evaluator, level):
+    """update-comment=false appends a new comment for every comment level that posts content."""
+    empty_bs = _make_empty_evaluator()
+    gen = PRCommentGenerator(mock_github, test_evaluator, empty_bs, pr_number=1)
+    _configure_generator_for_comment_tests(gen, mocker, comment_level=level)
+    mock_github.get_comments.return_value = [{"id": 99, "body": "**JaCoCo**\n\nprevious content"}]
+
+    gen.generate()
+
+    mock_github.add_comment.assert_called_once()
+    mock_github.update_comment.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# G13  Title identity key does not match comments with a different title
+# ---------------------------------------------------------------------------
+
+def test_title_identity_key_does_not_match_different_title(mocker, mock_github, test_evaluator):
+    """Generator with 'New JaCoCo' title does not update a comment that starts with 'Old JaCoCo'."""
+    empty_bs = _make_empty_evaluator()
+    gen = PRCommentGenerator(mock_github, test_evaluator, empty_bs, pr_number=1)
+    _configure_generator_for_comment_tests(gen, mocker, comment_level=CommentLevelEnum.MINIMAL)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_title", return_value="New JaCoCo")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=True)
+    mock_github.get_comments.return_value = [{"id": 99, "body": "**Old JaCoCo**\n\nold coverage content"}]
+
+    gen.generate()
+
+    mock_github.update_comment.assert_not_called()
+    mock_github.add_comment.assert_called_once()
+
+
+def test_title_identity_key_matches_correct_comment(mocker, mock_github, test_evaluator):
+    """Generator with 'JaCoCo' title DOES update the comment that starts with '**JaCoCo**'."""
+    empty_bs = _make_empty_evaluator()
+    gen = PRCommentGenerator(mock_github, test_evaluator, empty_bs, pr_number=1)
+    _configure_generator_for_comment_tests(gen, mocker, comment_level=CommentLevelEnum.MINIMAL)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=True)
+    mock_github.get_comments.return_value = [{"id": 42, "body": "**JaCoCo**\n\nexisting coverage content"}]
+
+    gen.generate()
+
+    mock_github.update_comment.assert_called_once_with(42, mocker.ANY)
+    mock_github.add_comment.assert_not_called()

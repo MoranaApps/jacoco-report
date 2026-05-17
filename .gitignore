@@ -175,3 +175,4 @@ cython_debug/
 
 # Project planning (local only)
 .claude/settings.json
+run_script.sh
