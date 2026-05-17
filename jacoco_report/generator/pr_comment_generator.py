@@ -232,6 +232,9 @@ class PRCommentGenerator:
         # bs_evaluator is guaranteed non-None here due to _has_baseline_data() check
         bs_evaluator = self.bs_evaluator
         assert bs_evaluator is not None
+        # Compute diffs from matched report names only to avoid comparing N current
+        # reports against a partial baseline that covers fewer reports.
+        diff_o, diff_ch = self._compute_matched_global_diffs(bs_evaluator)
         return self.get_basic_table_with_baseline(
             p,
             f,
@@ -242,9 +245,56 @@ class PRCommentGenerator:
             self.evaluator.total_coverage_changed_files,
             self.evaluator.total_coverage_changed_files_passed,
             ActionInputs.get_global_changed_files_average_threshold(),
-            bs_evaluator.total_coverage_overall,
-            bs_evaluator.total_coverage_changed_files,
+            self.evaluator.total_coverage_overall - diff_o,
+            self.evaluator.total_coverage_changed_files - diff_ch,
         )
+
+    def _compute_matched_global_diffs(self, bs_evaluator: "CoverageEvaluator") -> tuple[float, float]:
+        """Return (diff_overall, diff_changed) using only report names present in both evaluators."""
+        matched_names = (
+            set(self.evaluator.evaluated_reports_coverage.keys())
+            & set(bs_evaluator.evaluated_reports_coverage.keys())
+        )
+        if not matched_names:
+            return 0.0, 0.0
+
+        curr_covered_o = curr_missed_o = 0
+        bs_covered_o = bs_missed_o = 0
+        curr_covered_ch = curr_missed_ch = 0
+        bs_covered_ch = bs_missed_ch = 0
+
+        for name in matched_names:
+            curr = self.evaluator.evaluated_reports_coverage[name]
+            bs = bs_evaluator.evaluated_reports_coverage[name]
+            curr_covered_o += curr.overall_coverage.covered
+            curr_missed_o += curr.overall_coverage.missed
+            bs_covered_o += bs.overall_coverage.covered
+            bs_missed_o += bs.overall_coverage.missed
+            curr_covered_ch += curr.avg_changed_files_coverage.covered
+            curr_missed_ch += curr.avg_changed_files_coverage.missed
+            bs_covered_ch += bs.avg_changed_files_coverage.covered
+            bs_missed_ch += bs.avg_changed_files_coverage.missed
+
+        curr_total_o = curr_covered_o + curr_missed_o
+        bs_total_o = bs_covered_o + bs_missed_o
+        curr_total_ch = curr_covered_ch + curr_missed_ch
+        bs_total_ch = bs_covered_ch + bs_missed_ch
+
+        diff_o = 0.0
+        if curr_total_o > 0 and bs_total_o > 0:
+            diff_o = (
+                round(curr_covered_o / curr_total_o * 100, 2)
+                - round(bs_covered_o / bs_total_o * 100, 2)
+            )
+
+        diff_ch = 0.0
+        if curr_total_ch > 0 and bs_total_ch > 0:
+            diff_ch = (
+                round(curr_covered_ch / curr_total_ch * 100, 2)
+                - round(bs_covered_ch / bs_total_ch * 100, 2)
+            )
+
+        return diff_o, diff_ch
 
     # Full example of the table
     # | Metric (Instruction) | Coverage | Threshold | Δ Coverage | Status |
@@ -468,24 +518,54 @@ class PRCommentGenerator:
         )
 
     def calculate_baseline_group_diffs(self, evaluated_coverage: EvaluatedReportCoverage) -> tuple[float, float]:
-        """Calculate baseline deltas for one rendered group row."""
-        if not self.bs_evaluator or evaluated_coverage.name not in self.bs_evaluator.evaluated_groups_coverage.keys():
+        """Calculate baseline deltas for one rendered group row using only matched report names."""
+        if not self.bs_evaluator or evaluated_coverage.name not in self.bs_evaluator.evaluated_groups_coverage:
             return 0.0, 0.0
 
-        baseline_group = self.bs_evaluator.evaluated_groups_coverage[evaluated_coverage.name]
-        has_overall_data = (
-            baseline_group.overall_coverage.covered + baseline_group.overall_coverage.missed
-        ) > 0 or baseline_group.overall_coverage_reached > 0.0
-        has_changed_data = (
-            baseline_group.avg_changed_files_coverage.covered + baseline_group.avg_changed_files_coverage.missed
-        ) > 0 or baseline_group.avg_changed_files_coverage_reached > 0.0
-        if not has_overall_data and not has_changed_data:
+        group_name = evaluated_coverage.name
+        matched_names = {
+            name
+            for name, erc in self.evaluator.evaluated_reports_coverage.items()
+            if erc.group_name == group_name and name in self.bs_evaluator.evaluated_reports_coverage
+        }
+        if not matched_names:
             return 0.0, 0.0
 
-        diff_o = evaluated_coverage.overall_coverage_reached - baseline_group.overall_coverage_reached
-        diff_ch = (
-            evaluated_coverage.avg_changed_files_coverage_reached - baseline_group.avg_changed_files_coverage_reached
-        )
+        curr_covered_o = curr_missed_o = 0
+        bs_covered_o = bs_missed_o = 0
+        curr_covered_ch = curr_missed_ch = 0
+        bs_covered_ch = bs_missed_ch = 0
+
+        for name in matched_names:
+            curr = self.evaluator.evaluated_reports_coverage[name]
+            bs = self.bs_evaluator.evaluated_reports_coverage[name]
+            curr_covered_o += curr.overall_coverage.covered
+            curr_missed_o += curr.overall_coverage.missed
+            bs_covered_o += bs.overall_coverage.covered
+            bs_missed_o += bs.overall_coverage.missed
+            curr_covered_ch += curr.avg_changed_files_coverage.covered
+            curr_missed_ch += curr.avg_changed_files_coverage.missed
+            bs_covered_ch += bs.avg_changed_files_coverage.covered
+            bs_missed_ch += bs.avg_changed_files_coverage.missed
+
+        curr_total_o = curr_covered_o + curr_missed_o
+        bs_total_o = bs_covered_o + bs_missed_o
+        curr_total_ch = curr_covered_ch + curr_missed_ch
+        bs_total_ch = bs_covered_ch + bs_missed_ch
+
+        diff_o = 0.0
+        if curr_total_o > 0 and bs_total_o > 0:
+            diff_o = (
+                round(curr_covered_o / curr_total_o * 100, 2)
+                - round(bs_covered_o / bs_total_o * 100, 2)
+            )
+
+        diff_ch = 0.0
+        if curr_total_ch > 0 and bs_total_ch > 0:
+            diff_ch = (
+                round(curr_covered_ch / curr_total_ch * 100, 2)
+                - round(bs_covered_ch / bs_total_ch * 100, 2)
+            )
 
         return diff_o, diff_ch
 

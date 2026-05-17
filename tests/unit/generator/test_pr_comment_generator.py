@@ -113,24 +113,28 @@ def test_get_changed_files_table_with_baseline(pr_comment_generator):
     assert "| File Path | Coverage | Threshold | Δ Coverage | Status |\n|-----------|----------|-----------|------------|--------|\n\nNo changed file in reports." in table
 
 def test_calculate_group_diff(pr_comment_generator, mocker):
-    # Mock the baseline evaluator with some values
+    # Current report: overall = 80/100 = 80.0%, changed = 85/100 = 85.0%, group="module-a"
+    curr_erc = EvaluatedReportCoverage("module-a-report", group_name="module-a")
+    curr_erc.overall_coverage = Counter(20, 80)
+    curr_erc.avg_changed_files_coverage = Counter(15, 85)
+    pr_comment_generator.evaluator.evaluated_reports_coverage = {"module-a-report": curr_erc}
+
+    # Baseline report: overall = 70/100 = 70.0%, changed = 75/100 = 75.0%
+    bs_erc = EvaluatedReportCoverage("module-a-report")
+    bs_erc.overall_coverage = Counter(30, 70)
+    bs_erc.avg_changed_files_coverage = Counter(25, 75)
+
     mock_baseline_evaluator = mocker.Mock()
-    mock_baseline_evaluator.evaluated_groups_coverage = {
-        "module-a": EvaluatedReportCoverage("module-a")
-    }
-    mock_baseline_evaluator.evaluated_groups_coverage["module-a"].overall_coverage_reached = 70.0
-    mock_baseline_evaluator.evaluated_groups_coverage["module-a"].avg_changed_files_coverage_reached = 75.0
+    mock_baseline_evaluator.evaluated_groups_coverage = {"module-a": EvaluatedReportCoverage("module-a")}
+    mock_baseline_evaluator.evaluated_reports_coverage = {"module-a-report": bs_erc}
     pr_comment_generator.bs_evaluator = mock_baseline_evaluator
 
-    # Create an evaluated coverage module with different values
+    # Group ERC passed to calculate_baseline_group_diffs — name must match the group key
     evaluated_coverage_module = EvaluatedReportCoverage("module-a")
-    evaluated_coverage_module.overall_coverage_reached = 80.0
-    evaluated_coverage_module.avg_changed_files_coverage_reached = 85.0
 
-    # Calculate the differences
+    # diff_o = 80.0 - 70.0 = 10.0, diff_ch = 85.0 - 75.0 = 10.0
     diff_o, diff_ch = pr_comment_generator.calculate_baseline_group_diffs(evaluated_coverage_module)
 
-    # Assert the differences are calculated correctly
     assert diff_o == 10.0
     assert diff_ch == 10.0
 
@@ -307,15 +311,28 @@ def test_get_groups_table_with_baseline(pr_comment_generator, mocker):
     ev.avg_changed_files_passed = False
     pr_comment_generator.evaluator.evaluated_groups_coverage = {"backend": ev}
 
+    # Individual report: overall = 85/100 = 85.0%, changed = 80/100 = 80.0%, group="backend"
+    curr_erc = EvaluatedReportCoverage("backend-report", group_name="backend")
+    curr_erc.overall_coverage = Counter(15, 85)
+    curr_erc.avg_changed_files_coverage = Counter(20, 80)
+    pr_comment_generator.evaluator.evaluated_reports_coverage = {"backend-report": curr_erc}
+
+    # Baseline: overall = 80/100 = 80.0%, changed = 75/100 = 75.0%
+    bs_erc = EvaluatedReportCoverage("backend-report")
+    bs_erc.overall_coverage = Counter(20, 80)
+    bs_erc.avg_changed_files_coverage = Counter(25, 75)
+
     bs_ev = EvaluatedReportCoverage("backend")
     bs_ev.overall_coverage_reached = 80.0
     bs_ev.avg_changed_files_coverage_reached = 75.0
     bs_evaluator = mocker.Mock()
     bs_evaluator.evaluated_groups_coverage = {"backend": bs_ev}
+    bs_evaluator.evaluated_reports_coverage = {"backend-report": bs_erc}
     pr_comment_generator.bs_evaluator = bs_evaluator
 
     table = pr_comment_generator.get_groups_table("✅", "❌")
 
+    # diff_o = 85.0 - 80.0 = 5.0, diff_ch = 80.0 - 75.0 = 5.0
     assert "| Group |" in table
     assert "Δ Coverage" in table
     assert "| `backend` | 85.0% / 80.0% | 75.0% / 70.0% | +5.0% / +5.0% | ✅/❌ |" in table
@@ -425,15 +442,28 @@ def test_get_groups_table_baseline_decision_global_only(pr_comment_generator, mo
     ev.avg_changed_files_passed = True
     pr_comment_generator.evaluator.evaluated_groups_coverage = {"backend": ev}
 
+    # Individual report: overall = 85/100 = 85.0%, changed = 80/100 = 80.0%, group="backend"
+    curr_erc = EvaluatedReportCoverage("backend-report", group_name="backend")
+    curr_erc.overall_coverage = Counter(15, 85)
+    curr_erc.avg_changed_files_coverage = Counter(20, 80)
+    pr_comment_generator.evaluator.evaluated_reports_coverage = {"backend-report": curr_erc}
+
+    # Baseline: overall = 80/100 = 80.0%, changed = 75/100 = 75.0%
+    bs_erc = EvaluatedReportCoverage("backend-report")
+    bs_erc.overall_coverage = Counter(20, 80)
+    bs_erc.avg_changed_files_coverage = Counter(25, 75)
+
     bs_ev = EvaluatedReportCoverage("backend")
     bs_ev.overall_coverage_reached = 80.0
     bs_ev.avg_changed_files_coverage_reached = 75.0
     bs_evaluator = mocker.Mock()
     bs_evaluator.evaluated_groups_coverage = {"backend": bs_ev}
+    bs_evaluator.evaluated_reports_coverage = {"backend-report": bs_erc}
     pr_comment_generator.bs_evaluator = bs_evaluator
 
     table = pr_comment_generator.get_groups_table("✅", "❌")
 
+    # diff_o = 85.0 - 80.0 = 5.0, diff_ch = 80.0 - 75.0 = 5.0
     assert "Δ Coverage" in table
     assert "+5.0% / +5.0%" in table
 
