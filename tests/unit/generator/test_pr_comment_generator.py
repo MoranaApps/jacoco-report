@@ -22,7 +22,6 @@ def test_evaluator(mocker):
         report_files_coverage=[],
         global_min_coverage_overall=80.0,
         global_min_coverage_changed_files=80.0,
-        global_min_coverage_changed_per_file=80.0,
     )
     ce.total_coverage_overall = 85.2
     ce.total_coverage_overall_passed = True
@@ -1019,7 +1018,6 @@ def _make_empty_evaluator():
         report_files_coverage=[],
         global_min_coverage_overall=0.0,
         global_min_coverage_changed_files=0.0,
-        global_min_coverage_changed_per_file=0.0,
     )
 
 
@@ -1181,7 +1179,6 @@ def test_baseline_report_matched_by_name(make_report_file_coverage, make_coverag
         report_files_coverage=[current],
         global_min_coverage_overall=0.0,
         global_min_coverage_changed_files=0.0,
-        global_min_coverage_changed_per_file=0.0,
     )
     evaluator.evaluate()
 
@@ -1189,7 +1186,6 @@ def test_baseline_report_matched_by_name(make_report_file_coverage, make_coverag
         report_files_coverage=[baseline],
         global_min_coverage_overall=0.0,
         global_min_coverage_changed_files=0.0,
-        global_min_coverage_changed_per_file=0.0,
     )
     bs_evaluator.evaluate()
 
@@ -1213,7 +1209,6 @@ def test_baseline_mismatched_name_yields_zero_delta(make_report_file_coverage, m
         report_files_coverage=[baseline],
         global_min_coverage_overall=0.0,
         global_min_coverage_changed_files=0.0,
-        global_min_coverage_changed_per_file=0.0,
     )
     bs_evaluator.evaluate()
     pr_comment_generator.bs_evaluator = bs_evaluator
@@ -1254,7 +1249,7 @@ def test_title_change_creates_new_comment_orphans_old(mocker, mock_github, test_
 def test_two_generators_with_different_titles_post_independently(mocker, mock_github):
     """Two PRCommentGenerators with distinct titles each post their own comment independently."""
     ev_a = CoverageEvaluator(report_files_coverage=[], global_min_coverage_overall=0.0,
-                              global_min_coverage_changed_files=0.0, global_min_coverage_changed_per_file=0.0)
+                              global_min_coverage_changed_files=0.0)
     ev_a.total_coverage_overall = 85.0
     ev_a.total_coverage_overall_passed = True
     ev_a.total_coverage_changed_files = 80.0
@@ -1271,7 +1266,7 @@ def test_two_generators_with_different_titles_post_independently(mocker, mock_gi
     mock_github.get_comments.return_value = [{"id": 1, "body": "**Team A Coverage**\n\nteam a content"}]
 
     ev_b = CoverageEvaluator(report_files_coverage=[], global_min_coverage_overall=0.0,
-                              global_min_coverage_changed_files=0.0, global_min_coverage_changed_per_file=0.0)
+                              global_min_coverage_changed_files=0.0)
     ev_b.total_coverage_overall = 90.0
     ev_b.total_coverage_overall_passed = True
     ev_b.total_coverage_changed_files = 85.0

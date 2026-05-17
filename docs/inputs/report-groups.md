@@ -178,7 +178,7 @@ report-groups: |
 - uses: MoranaApps/jacoco-report@v3
   with:
     token: '${{ secrets.GITHUB_TOKEN }}'
-    global-thresholds: '70*0*0'           # aggregated overall must be ≥ 70 %
+    global-thresholds: '70*0'             # aggregated overall must be ≥ 70 %
     report-thresholds-default: '60*50*0'  # default for all groups
     report-groups: |
       - name: core

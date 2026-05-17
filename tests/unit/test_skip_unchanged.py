@@ -44,7 +44,6 @@ def _make_run_mocks(
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=[])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_threshold", return_value=0.0)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_files_average_threshold", return_value=0.0)
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_file_threshold", return_value=0.0)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_comment_level", return_value=CommentLevelEnum.FULL)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups", return_value=[])
@@ -521,7 +520,6 @@ def evaluator_with_changed(make_report_file_coverage, make_file_coverage):
         report_files_coverage=[rfc],
         global_min_coverage_overall=0.0,
         global_min_coverage_changed_files=0.0,
-        global_min_coverage_changed_per_file=0.0,
     )
     ce.evaluate()
     return ce
@@ -570,7 +568,7 @@ def test_comment_level_x_skip_unchanged_comment_posted(
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_repository", return_value="owner/repo")
 
     bs_evaluator = CoverageEvaluator(report_files_coverage=[], global_min_coverage_overall=0.0,
-                                     global_min_coverage_changed_files=0.0, global_min_coverage_changed_per_file=0.0)
+                                      global_min_coverage_changed_files=0.0)
     generator = PRCommentGenerator(gh_mock, evaluator_with_changed, bs_evaluator, pr_number=1)
     generator.generate()
 
@@ -603,7 +601,7 @@ def test_comment_level_none_still_suppresses_comment(
     gh_mock.get_comments.return_value = [{"id": 99, "body": "**JaCoCo**\n\nold content"}]
 
     bs_evaluator = CoverageEvaluator(report_files_coverage=[], global_min_coverage_overall=0.0,
-                                     global_min_coverage_changed_files=0.0, global_min_coverage_changed_per_file=0.0)
+                                      global_min_coverage_changed_files=0.0)
     generator = PRCommentGenerator(gh_mock, evaluator_with_changed, bs_evaluator, pr_number=1)
     generator.generate()
 
@@ -632,7 +630,7 @@ def test_minimal_comment_contains_only_global_table(
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_repository", return_value="owner/repo")
 
     bs_evaluator = CoverageEvaluator(report_files_coverage=[], global_min_coverage_overall=0.0,
-                                     global_min_coverage_changed_files=0.0, global_min_coverage_changed_per_file=0.0)
+                                      global_min_coverage_changed_files=0.0)
     generator = PRCommentGenerator(gh_mock, evaluator_with_changed, bs_evaluator, pr_number=1)
     generator.generate()
 

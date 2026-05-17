@@ -10,10 +10,9 @@ success_case = {
     # "get_token": "github_pat_12345ABCDE67890FGHIJKL_12345ABCDE67890FGHIJKL12345ABCDE67890FGHIJKL123456789012345",
     "get_paths": "path1,path2",
     "get_exclude_paths": "path1,path2",
-    "get_global_thresholds": "0.0*0.0*0.0",
+    "get_global_thresholds": "0.0*0.0",
     "get_global_overall_threshold": 80.0,
     "get_global_changed_files_average_threshold": 70.0,
-    "get_global_changed_file_threshold": 25.0,
     "get_report_thresholds_default": "0.0*0.0*0.0",
     "get_title": "Custom Title",
     "get_metric": "instruction",
@@ -36,21 +35,18 @@ failure_cases = [
     ("get_paths", None, "'paths' must be defined."),
     ("get_paths", 1, "'paths' must be a list of strings."),
     ("get_paths", "", "'paths' must be a non-empty list of strings."),
-    ("get_global_thresholds", "x", "'global-thresholds' must be in the format 'overall*changed-files-average*per-changed-file'. Where overall is the minimum coverage overall, changed-files-average is the minimum average coverage of changed files and per-changed-file is the minimum coverage per changed file."),
-    ("get_global_thresholds", "x*0*0", "'global-thresholds' overall value must be a float between 0 and 100."),
-    ("get_global_thresholds", "0*x*0", "'global-thresholds' changed-files-average value must be a float between 0 and 100."),
-    ("get_global_thresholds", "0*0*x", "'global-thresholds' per-changed-file value must be a float between 0 and 100."),
-    ("get_global_thresholds", "-1*0*0", "'global-thresholds' overall value must be a float between 0 and 100."),
-    ("get_global_thresholds", "0*-1*0", "'global-thresholds' changed-files-average value must be a float between 0 and 100."),
-    ("get_global_thresholds", "0*0*-1", "'global-thresholds' per-changed-file value must be a float between 0 and 100."),
-    ("get_global_thresholds", "101*0*0", "'global-thresholds' overall value must be a float between 0 and 100."),
-    ("get_global_thresholds", "0*101*0", "'global-thresholds' changed-files-average value must be a float between 0 and 100."),
-    ("get_global_thresholds", "0*0*101", "'global-thresholds' per-changed-file value must be a float between 0 and 100."),
+    ("get_global_thresholds", "x", "'global-thresholds' must be in the format 'overall*changed-files-average'. Where overall is the minimum coverage overall and changed-files-average is the minimum average coverage of changed files."),
+    ("get_global_thresholds", "x*0", "'global-thresholds' overall value must be a float between 0 and 100."),
+    ("get_global_thresholds", "0*x", "'global-thresholds' changed-files-average value must be a float between 0 and 100."),
+    ("get_global_thresholds", "-1*0", "'global-thresholds' overall value must be a float between 0 and 100."),
+    ("get_global_thresholds", "0*-1", "'global-thresholds' changed-files-average value must be a float between 0 and 100."),
+    ("get_global_thresholds", "101*0", "'global-thresholds' overall value must be a float between 0 and 100."),
+    ("get_global_thresholds", "0*101", "'global-thresholds' changed-files-average value must be a float between 0 and 100."),
     (
         "get_global_thresholds",
-        "1*2*3*4",
-        "'global-thresholds' must be in the format 'overall*changed-files-average*per-changed-file' "
-        "with exactly three components.",
+        "1*2*3",
+        "'global-thresholds' must be in the format 'overall*changed-files-average' "
+        "with exactly two components.",
     ),
     ("get_global_thresholds", True, "'global-thresholds' must be a string or not defined."),
     ("get_report_thresholds_default", "x", "'report-thresholds-default' must be in the format 'overall*changed-files-average*per-changed-file'."),
@@ -238,11 +234,6 @@ def test_get_global_changed_files_average_threshold(mocker):
     assert 0.0 == ActionInputs.get_global_changed_files_average_threshold()
 
 
-def test_get_global_changed_file_threshold(mocker):
-    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="0")
-    assert 0.0 == ActionInputs.get_global_changed_file_threshold()
-
-
 report_thresholds_default_cases = [
     ("75.0*60.0*40.0", (75.0, 60.0, 40.0)),
     ("0.0*0.0*0.0", (0.0, 0.0, 0.0)),
@@ -283,29 +274,21 @@ def test_get_report_thresholds_default_two_components_warns_per_changed_file(moc
     )
 
 
-def test_get_global_thresholds_two_components_warns_changed_file(mocker):
-    mock_warning = mocker.patch("jacoco_report.action_inputs.logger.warning")
+def test_get_global_thresholds_two_components_parsed(mocker):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="80*70")
 
     result = ActionInputs.get_global_thresholds()
 
-    assert result == (80.0, 70.0, 0.0)
-    warning_messages = [
-        (str(call.args[0]) % tuple(call.args[1:])) if len(call.args) > 1 else str(call.args[0])
-        for call in mock_warning.call_args_list
-    ]
-    assert any(
-        "Adding default value for per-changed-file threshold." in message for message in warning_messages
-    )
+    assert result == (80.0, 70.0)
 
 
 def test_get_global_thresholds_invalid_component_logs_warning_without_warning_prefix(mocker):
     mock_warning = mocker.patch("jacoco_report.action_inputs.logger.warning")
-    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="x*1*2")
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="x*1")
 
     result = ActionInputs.get_global_thresholds()
 
-    assert result == (0.0, 1.0, 2.0)
+    assert result == (0.0, 1.0)
     warning_messages = [
         (str(call.args[0]) % tuple(call.args[1:])) if len(call.args) > 1 else str(call.args[0])
         for call in mock_warning.call_args_list
@@ -319,23 +302,6 @@ def test_get_report_thresholds_default_invalid_third_component_logs_per_changed_
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="1*2*x")
 
     result = ActionInputs.get_report_thresholds_default()
-
-    assert result == (1.0, 2.0, 0.0)
-    warning_messages = [
-        (str(call.args[0]) % tuple(call.args[1:])) if len(call.args) > 1 else str(call.args[0])
-        for call in mock_warning.call_args_list
-    ]
-    assert any(
-        "Cannot convert 'per-changed-file' part ('x') to float. Defaulting to 0.0." in message
-        for message in warning_messages
-    )
-
-
-def test_get_global_thresholds_invalid_third_component_logs_changed_file_label(mocker):
-    mock_warning = mocker.patch("jacoco_report.action_inputs.logger.warning")
-    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="1*2*x")
-
-    result = ActionInputs.get_global_thresholds()
 
     assert result == (1.0, 2.0, 0.0)
     warning_messages = [
@@ -939,10 +905,9 @@ failure_cases_defaults = [
     ("get_fail_symbol", "❌"),
     ("get_fail_on_threshold", [FailOnThresholdEnum.OVERALL, FailOnThresholdEnum.CHANGED_FILES_AVERAGE, FailOnThresholdEnum.PER_CHANGED_FILE]),
     ("get_debug", False),
-    ("get_global_thresholds", (0.0, 0.0, 0.0)),
+    ("get_global_thresholds", (0.0, 0.0)),
     ("get_global_overall_threshold", 0.0),
     ("get_global_changed_files_average_threshold", 0.0),
-    ("get_global_changed_file_threshold", 0.0),
 ]
 
 @pytest.mark.parametrize("method, expected_value", failure_cases_defaults)
@@ -950,8 +915,8 @@ def test_validate_inputs_default(method, expected_value, mocker):
     case = success_case.copy()
     case.pop(method)
 
-    if method in ("get_global_overall_threshold", "get_global_changed_files_average_threshold", "get_global_changed_file_threshold"):
-        case["get_global_thresholds"] = (0.0, 0.0, 0.0)
+    if method in ("get_global_overall_threshold", "get_global_changed_files_average_threshold"):
+        case["get_global_thresholds"] = (0.0, 0.0)
 
     patchers = apply_mocks(case, mocker)
     try:
