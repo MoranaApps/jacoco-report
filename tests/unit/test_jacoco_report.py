@@ -2578,3 +2578,107 @@ def test_scan_groups_with_overlap_deduplication(jacoco_report, mocker):
 
     # Parse the JSON strings
     # dict_evaluated_coverage_reports: dict = json.loads(jacoco_report.evaluated_coverage_reports)
+
+
+# ---------------------------------------------------------------------------
+# G9 / G10  groups-coverage output and exclude_paths forwarding
+# ---------------------------------------------------------------------------
+
+def _patch_jr_run_inputs(mocker, *, exclude_paths=None, report_groups=None):
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value="pull_request")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_token", return_value="token")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=["**/jacoco.xml"])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_exclude_paths",
+                 return_value=exclude_paths if exclude_paths is not None else [])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups",
+                 return_value=report_groups if report_groups is not None else [])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_unchanged", return_value=False)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_evaluate_unchanged", return_value=True)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=[])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_threshold", return_value=0.0)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_files_average_threshold", return_value=0.0)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_file_threshold", return_value=0.0)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_comment_level", return_value=CommentLevelEnum.MINIMAL)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_thresholds_default", return_value=(0.0, 0.0, 0.0))
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_fail_on_threshold", return_value=["overall"])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_title", return_value="JaCoCo")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=False)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_pass_symbol", return_value="✅")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_fail_symbol", return_value="❌")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_repository", return_value="owner/repo")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_run_id", return_value="")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_action_ref", return_value="")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_run_started_at", return_value="")
+    mocker.patch("jacoco_report.utils.github.GitHub.get_pr_number", return_value=1)
+    mocker.patch("jacoco_report.utils.github.GitHub.get_pr_changed_files", return_value=[])
+    mocker.patch("jacoco_report.utils.github.GitHub.get_comments", return_value=[])
+    mocker.patch("jacoco_report.utils.github.GitHub.add_comment", return_value=None)
+
+
+def test_groups_coverage_output_contains_real_group_data(jacoco_report, mocker, make_report_file_coverage):
+    """When report-groups are configured, evaluated_coverage_groups is non-empty JSON with group entries."""
+    from jacoco_report.model.report_group import ReportGroup
+    group = ReportGroup(name="team-a", paths=["**/jacoco.xml"])
+    report = make_report_file_coverage(name="mod-1", group_name="team-a")
+
+    _patch_jr_run_inputs(mocker, report_groups=[group])
+    mocker.patch("jacoco_report.jacoco_report.JaCoCoReport.scan_jacoco_xml_files", return_value=["dummy.xml"])
+    parser_mock = mocker.patch("jacoco_report.jacoco_report.JaCoCoReportParser")
+    parser_mock.return_value.parse.return_value = report
+
+    jacoco_report.run()
+
+    assert jacoco_report.evaluated_coverage_groups != "{}"
+    groups_data = json.loads(jacoco_report.evaluated_coverage_groups)
+    assert "team-a" in groups_data
+
+
+def test_groups_coverage_output_empty_json_when_no_groups(jacoco_report, mocker, make_report_file_coverage):
+    """Without report-groups, evaluated_coverage_groups is '{}'."""
+    report = make_report_file_coverage(name="mod-1")
+
+    _patch_jr_run_inputs(mocker)
+    mocker.patch("jacoco_report.jacoco_report.JaCoCoReport.scan_jacoco_xml_files", return_value=["dummy.xml"])
+    parser_mock = mocker.patch("jacoco_report.jacoco_report.JaCoCoReportParser")
+    parser_mock.return_value.parse.return_value = report
+
+    jacoco_report.run()
+
+    assert jacoco_report.evaluated_coverage_groups == "{}"
+
+
+def test_exclude_paths_forwarded_to_scan_jacoco_xml_files(jacoco_report, mocker, make_report_file_coverage):
+    """JaCoCoReport.scan_jacoco_xml_files receives the exclude_paths configured in action inputs."""
+    report = make_report_file_coverage(name="mod")
+    _patch_jr_run_inputs(mocker, exclude_paths=["**/exclude_me.xml"])
+
+    captured: dict = {}
+
+    def mock_scan(paths, exclude_paths):
+        captured["exclude_paths"] = exclude_paths
+        return ["dummy.xml"]
+
+    mocker.patch("jacoco_report.jacoco_report.JaCoCoReport.scan_jacoco_xml_files", side_effect=mock_scan)
+    parser_mock = mocker.patch("jacoco_report.jacoco_report.JaCoCoReportParser")
+    parser_mock.return_value.parse.return_value = report
+
+    jacoco_report.run()
+
+    assert captured.get("exclude_paths") == ["**/exclude_me.xml"]
+
+
+def test_excluded_files_absent_from_evaluated_reports(jacoco_report, mocker, make_report_file_coverage):
+    """Files excluded by exclude_paths are not present in the evaluation output."""
+    included_report = make_report_file_coverage(name="included-mod")
+
+    _patch_jr_run_inputs(mocker, exclude_paths=["**/excluded.xml"])
+    mocker.patch("jacoco_report.jacoco_report.JaCoCoReport.scan_jacoco_xml_files", return_value=["included.xml"])
+    parser_mock = mocker.patch("jacoco_report.jacoco_report.JaCoCoReportParser")
+    parser_mock.return_value.parse.return_value = included_report
+
+    jacoco_report.run()
+
+    reports_data = json.loads(jacoco_report.evaluated_coverage_reports)
+    assert "included-mod" in reports_data
+    assert "excluded-mod" not in reports_data

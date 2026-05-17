@@ -12,7 +12,7 @@ Automates the publication of JaCoCo coverage reports directly as comments in pul
   - [Outputs](#outputs)
   - [Examples](#examples)
 - [Troubleshooting](#troubleshooting)
-- [Migrating from v2](docs/v2-v3-migration-guide.md)
+- [Migrating from v2](#migrating-from-v2)
 - [Developer](#developer)
 - [License](#license)
 - [Donate](#donate)
@@ -37,38 +37,6 @@ Key capabilities:
 - **Baseline comparison** — show Δ coverage against a stored baseline (e.g. the `master` branch reports).
 - **Flexible comment levels** — from a single-line summary to full per-file detail, or no comment at all.
 - **Skip-unchanged filter** — remove reports with no changed files from the comment (and optionally from evaluation).
-
----
-
-## Quick Start
-
-Add the following job fragment to a workflow that already produces a JaCoCo XML report:
-
-```yaml
-jobs:
-  coverage:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      issues: write
-      pull-requests: read
-    steps:
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.14'
-
-      - name: Publish JaCoCo Report
-        uses: MoranaApps/jacoco-report@v3
-        with:
-          token: '${{ secrets.GITHUB_TOKEN }}'
-          paths: '**/jacoco.xml'
-          global-thresholds: '80*70*60'       # overall * changed-avg * per-changed-file
-          report-thresholds-default: '0*0*60' # per-changed-file threshold
-```
-
-This posts a full PR comment and fails the action if any threshold is not met.
-See the [examples/](docs/examples/) directory for more complete workflow files.
 
 ---
 
@@ -106,6 +74,8 @@ jobs:
             **/jacoco.xml
             **/reports/**/*.xml
             ${{ github.workspace }}/**/jacoco.xml
+          global-thresholds: '80*70*60'       # overall * changed-avg * per-changed-file
+
 ```
 
 ---

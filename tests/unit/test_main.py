@@ -254,3 +254,68 @@ def test_run_operational_violation_fails_even_with_fail_unchanged_only(mocker):
         messages=["Failed to retrieve changed files from GitHub API."],
         fail=True,
     )
+
+
+# ---------------------------------------------------------------------------
+# G15  coverage-overall-passed and coverage-changed-files-passed set as outputs
+# ---------------------------------------------------------------------------
+
+def test_main_sets_coverage_overall_passed_output(mocker):
+    """main.run() writes coverage-overall-passed as a GitHub Actions output."""
+    mocker.patch("main.setup_logging")
+    mocker.patch("main.logging.getLogger").return_value = mocker.Mock()
+    mocker.patch.object(ActionInputs, "validate_inputs")
+    mock_jr_cls = mocker.patch("main.JaCoCoReport")
+    mock_set_output = mocker.patch("main.set_action_output")
+    mocker.patch("main.set_action_output_text")
+    mocker.patch("main.set_action_failed")
+    mocker.patch("sys.exit")
+
+    mock_jr = mock_jr_cls.return_value
+    mock_jr.total_overall_coverage = 88.0
+    mock_jr.total_changed_files_coverage = 75.0
+    mock_jr.total_overall_coverage_passed = True
+    mock_jr.total_changed_files_coverage_passed = False
+    mock_jr.evaluated_coverage_reports = "{}"
+    mock_jr.evaluated_coverage_groups = "{}"
+    mock_jr.violations = []
+
+    run()
+
+    mock_set_output.assert_any_call("coverage-overall-passed", "True")
+    mock_set_output.assert_any_call("coverage-changed-files-passed", "False")
+
+
+def test_main_sets_coverage_changed_files_passed_false_when_failing(mocker):
+    """main.run() correctly writes False when changed-files coverage does not pass."""
+    mocker.patch("main.setup_logging")
+    mocker.patch("main.logging.getLogger").return_value = mocker.Mock()
+    mocker.patch.object(ActionInputs, "validate_inputs")
+    mock_jr_cls = mocker.patch("main.JaCoCoReport")
+    mock_set_output = mocker.patch("main.set_action_output")
+    mocker.patch("main.set_action_output_text")
+    mock_set_failed = mocker.patch("main.set_action_failed")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_fail_on_threshold",
+                 return_value=["overall", "changed-files-average"])
+
+    mock_jr = mock_jr_cls.return_value
+    mock_jr.total_overall_coverage = 85.0
+    mock_jr.total_changed_files_coverage = 60.0
+    mock_jr.total_overall_coverage_passed = True
+    mock_jr.total_changed_files_coverage_passed = False
+    mock_jr.evaluated_coverage_reports = "{}"
+    mock_jr.evaluated_coverage_groups = "{}"
+    mock_jr.violations = ["Changed files coverage below threshold."]
+    mock_jr.reached_threshold_overall = True
+    mock_jr.reached_threshold_changed_files_average = False
+    mock_jr.reached_threshold_per_change_file = True
+    mock_jr.reached_threshold_fail_unchanged = True
+    mock_jr.has_operational_failure = False
+
+    run()
+
+    mock_set_output.assert_any_call("coverage-overall-passed", "True")
+    mock_set_output.assert_any_call("coverage-changed-files-passed", "False")
+    mock_set_failed.assert_called_once_with(
+        messages=["Changed files coverage below threshold."], fail=True
+    )

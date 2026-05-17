@@ -1,3 +1,5 @@
+import logging
+
 from jacoco_report.scanner.jacoco_report_input_scanner import JaCoCoReportInputScanner
 
 # __init__
@@ -118,3 +120,43 @@ def test_scan_blob_paths_with_blob_exclude(mocker):
 
     assert not file_path_1_detected, f"{file_path_1} found in {result}"
     assert not file_path_2_detected, f"{file_path_2} found in {result}"
+
+
+# ---------------------------------------------------------------------------
+# G1 / G14  Scanner logs matched file paths at DEBUG level
+# ---------------------------------------------------------------------------
+
+def test_scanner_logs_matched_xml_file_at_debug_level(tmp_path, caplog):
+    """Scanner emits a DEBUG log message containing the absolute path of each matched XML file."""
+    xml_file = tmp_path / "jacoco.xml"
+    xml_file.write_text("<report/>")
+
+    with caplog.at_level(logging.DEBUG, logger="jacoco_report.scanner.jacoco_report_input_scanner"):
+        JaCoCoReportInputScanner(paths=[str(xml_file)], exclude_paths=[]).scan()
+
+    debug_msgs = [r.message for r in caplog.records if r.levelno == logging.DEBUG]
+    assert any("Found 'xml' file" in m for m in debug_msgs)
+    assert any(str(xml_file) in m for m in debug_msgs)
+
+
+def test_scanner_does_not_log_non_xml_files(tmp_path, caplog):
+    """Scanner does not emit DEBUG messages for non-XML files."""
+    txt_file = tmp_path / "report.txt"
+    txt_file.write_text("not xml")
+
+    with caplog.at_level(logging.DEBUG, logger="jacoco_report.scanner.jacoco_report_input_scanner"):
+        JaCoCoReportInputScanner(paths=[str(txt_file)], exclude_paths=[]).scan()
+
+    assert "Found 'xml' file" not in caplog.text
+
+
+def test_scanner_logs_each_matched_file_separately(tmp_path, caplog):
+    """One DEBUG message is emitted per matched XML file."""
+    for i in range(3):
+        (tmp_path / f"report_{i}.xml").write_text("<report/>")
+
+    with caplog.at_level(logging.DEBUG, logger="jacoco_report.scanner.jacoco_report_input_scanner"):
+        result = JaCoCoReportInputScanner(paths=[str(tmp_path / "*.xml")], exclude_paths=[]).scan()
+
+    found_msgs = [r for r in caplog.records if r.levelno == logging.DEBUG and "Found 'xml' file" in r.message]
+    assert len(found_msgs) == len(result)
