@@ -32,11 +32,30 @@ overall * changed-files-average * per-changed-file
 overall * changed-files-average * per-changed-file
 ```
 
-This is the fallback for any threshold field not explicitly set in a group's `thresholds`.
+**Primary role: field-level fallback for `report-groups`.** When a group omits one or more fields
+from its `thresholds`, the missing values come from `report-thresholds-default`. This lets you set
+a baseline once and override only where groups differ.
+
+**Threshold resolution order (per field):**
+
+```text
+per-group threshold field
+    → report-thresholds-default field
+        → 0.0
+```
+
+`global-thresholds` is a **separate evaluation pass** over the aggregated total and is never part
+of this chain.
+
+**Without `report-groups`:** `report-thresholds-default` becomes the threshold applied to each
+report file individually. For a single-module project this duplicates `global-thresholds` — the
+same data is evaluated twice. For multi-module projects without groups it does add value: a
+low-coverage module cannot be masked by others at the global level.
 
 ```text
 75*60*50   →  overall ≥ 75 %, avg ≥ 60 %, each changed file ≥ 50 %
-0*0*60     →  only per-changed-file enforced
+0*0*60     →  only per-changed-file enforced per report
+0*0*0      →  no per-report enforcement (default)
 ```
 
 ### `fail-on-threshold`
@@ -57,23 +76,56 @@ Default: `overall,changed-files-average,per-changed-file`
 ## Impact
 
 - `global-thresholds` drives the global summary row in the PR comment header.
-- `report-thresholds-default` (and per-group `thresholds`) drive the per-report and per-file rows.
+- `report-thresholds-default` (and per-group `thresholds`) drive the per-report and per-group rows.
 - `fail-on-threshold` controls the exit code — a dimension can appear as ❌ in the comment
   without failing the action if it is not in the `fail-on-threshold` list.
 
+## When to use which
+
+| Scenario | Use |
+|----------|-----|
+| Single-module project | `global-thresholds` only. `report-thresholds-default` evaluates the same data and adds no value. |
+| Multi-module without `report-groups` | `global-thresholds` for the aggregate; `report-thresholds-default` to prevent a weak module from being masked by stronger ones. |
+| Multi-module with `report-groups` | `global-thresholds` for the aggregate; `report-thresholds-default` as the baseline each group inherits when it omits a field; per-group `thresholds` for group-specific overrides. |
+
 ## Examples
 
-### Standard setup — overall + changed average + per file
+### Single-module project
+
+Only `global-thresholds` is needed. `report-thresholds-default` would evaluate the same report a
+second time and is not set.
 
 ```yaml
 - name: Publish JaCoCo Report
   uses: MoranaApps/jacoco-report@v3
   with:
     token: '${{ secrets.GITHUB_TOKEN }}'
-    paths: '**/jacoco/**/*.xml'
+    paths: '**/jacoco.xml'
     global-thresholds: '80*70*60'
-    report-thresholds-default: '0*0*60'
     fail-on-threshold: 'overall,changed-files-average,per-changed-file'
+```
+
+### Multi-module with `report-groups` — shared baseline, group overrides
+
+`report-thresholds-default` sets the baseline all groups inherit. Groups override only where they
+differ; `global-thresholds` guards the aggregated total independently.
+
+```yaml
+    global-thresholds: '75*0*0'
+    report-thresholds-default: '70*60*50'
+    report-groups: |
+      - name: backend
+        paths:
+          - backend/**/jacoco.xml
+        thresholds: '80*70*60'   # explicit for all three fields
+      - name: frontend
+        paths:
+          - frontend/**/jacoco.xml
+        thresholds: '75**'       # overall=75; avg and per-file from report-thresholds-default
+      - name: shared-libs
+        paths:
+          - libs/**/jacoco.xml
+        # no thresholds — fully inherits report-thresholds-default (70*60*50)
 ```
 
 ### Enforce overall only
