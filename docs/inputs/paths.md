@@ -20,6 +20,7 @@ Both inputs accept a **newline-separated list** of glob patterns. Leading `*` va
 ## Impact
 
 - Only files matched by `paths` and not matched by `exclude-paths` are parsed and evaluated.
+- Files excluded via `exclude-paths` are not subject to `evaluate-unchanged` — they are removed before parsing, so they never enter threshold evaluation.
 - If no files are found after filtering, the action logs an error and fails.
 - Use `debug: 'true'` to log every file discovered by the scan.
 
