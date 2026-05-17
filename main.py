@@ -48,8 +48,6 @@ def run() -> None:
     logger.debug("Action output 'groups-coverage' set to: %s", jr.evaluated_coverage_groups)
 
     if len(jr.violations) > 0:
-        logger.error("JaCoCo Report GitHub Action - failed.")
-
         thresholds = ActionInputs.get_fail_on_threshold()
 
         # Map enum values to the corresponding evaluation flags
@@ -66,6 +64,11 @@ def run() -> None:
         if not isinstance(operational_failure, bool):
             operational_failure = False
         fail = operational_failure or threshold_failure
+
+        if fail:
+            logger.error("JaCoCo Report GitHub Action - failed.")
+        else:
+            logger.info("JaCoCo Report GitHub Action - violations detected but fail-on-threshold is disabled.")
         set_action_failed(messages=jr.violations, fail=fail)
     else:
         logger.info("JaCoCo Report GitHub Action - success.")

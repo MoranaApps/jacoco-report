@@ -59,7 +59,8 @@ def set_action_failed(messages: list[str], fail: bool = True) -> None:
     @param fail: A boolean flag indicating whether the action should be marked as failed.
     @return: None
     """
+    annotation = "error" if fail else "notice"
     for message in messages:
-        print(f"::error::{message}")
+        print(f"::{annotation}::{message}")
 
     sys.exit(1 if fail else 0)

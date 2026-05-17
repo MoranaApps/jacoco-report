@@ -574,6 +574,16 @@ def test_get_fail_on_threshold_accepts_fail_unchanged(mocker):
     assert ActionInputs.get_fail_on_threshold() == [FailOnThresholdEnum.OVERALL, FailOnThresholdEnum.FAIL_UNCHANGED]
 
 
+def test_get_fail_on_threshold_empty_string_returns_empty_list(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="")
+    assert ActionInputs.get_fail_on_threshold() == []
+
+
+def test_get_fail_on_threshold_whitespace_only_returns_empty_list(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="  \n  ")
+    assert ActionInputs.get_fail_on_threshold() == []
+
+
 def test_get_fail_on_threshold_invalid_format(mocker):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="not supported")
 

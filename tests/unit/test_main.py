@@ -60,6 +60,8 @@ def test_run_fail_overall_level(mocker):
     mock_jr.reached_threshold_overall = False
     mock_jr.reached_threshold_changed_files_average = True
     mock_jr.reached_threshold_per_change_file = True
+    mock_jr.reached_threshold_fail_unchanged = True
+    mock_jr.has_operational_failure = False
 
     # Run the main function
     run()
@@ -96,6 +98,8 @@ def test_run_fail_changed_files_average_level(mocker):
     mock_jr.reached_threshold_overall = True
     mock_jr.reached_threshold_changed_files_average = False
     mock_jr.reached_threshold_per_change_file = True
+    mock_jr.reached_threshold_fail_unchanged = True
+    mock_jr.has_operational_failure = False
 
     # Run the main function
     run()
@@ -132,6 +136,8 @@ def test_run_fail_per_changed_file_level(mocker):
     mock_jr.reached_threshold_overall = True
     mock_jr.reached_threshold_changed_files_average = True
     mock_jr.reached_threshold_per_change_file = False
+    mock_jr.reached_threshold_fail_unchanged = True
+    mock_jr.has_operational_failure = False
 
     # Run the main function
     run()
@@ -169,6 +175,8 @@ def test_run_fail_disabled(mocker):
     mock_jr.reached_threshold_overall = True
     mock_jr.reached_threshold_changed_files_average = True
     mock_jr.reached_threshold_per_change_file = True
+    mock_jr.reached_threshold_fail_unchanged = True
+    mock_jr.has_operational_failure = False
 
     # Run the main function
     run()
@@ -182,7 +190,6 @@ def test_run_fail_disabled(mocker):
     mock_set_action_output_text.assert_any_call("reports-coverage", "Report Coverage")
     mock_set_action_output_text.assert_any_call("groups-coverage", "Group Coverage")
     mock_set_action_failed.assert_called_once_with(messages=["Violation 1"], fail=False)
-
 
 
 def test_run_fail_disabled_level(mocker):
@@ -208,6 +215,8 @@ def test_run_fail_disabled_level(mocker):
     mock_jr.reached_threshold_overall = True
     mock_jr.reached_threshold_changed_files_average = True
     mock_jr.reached_threshold_per_change_file = False
+    mock_jr.reached_threshold_fail_unchanged = True
+    mock_jr.has_operational_failure = False
 
     # Run the main function
     run()
