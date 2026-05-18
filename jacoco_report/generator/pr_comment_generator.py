@@ -251,9 +251,8 @@ class PRCommentGenerator:
 
     def _compute_matched_global_diffs(self, bs_evaluator: "CoverageEvaluator") -> tuple[float, float]:
         """Return (diff_overall, diff_changed) using only report names present in both evaluators."""
-        matched_names = (
-            set(self.evaluator.evaluated_reports_coverage.keys())
-            & set(bs_evaluator.evaluated_reports_coverage.keys())
+        matched_names = set(self.evaluator.evaluated_reports_coverage.keys()) & set(
+            bs_evaluator.evaluated_reports_coverage.keys()
         )
         if not matched_names:
             return 0.0, 0.0
