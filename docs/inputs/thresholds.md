@@ -17,13 +17,13 @@ you evaluate and display all dimensions in the comment while only enforcing a su
 ### `global-thresholds`
 
 ```text
-overall * changed-files-average * per-changed-file
+overall * changed-files-average
 ```
 
 ```text
-80*70*60  →  overall ≥ 80 %, changed-files average ≥ 70 %, every changed file ≥ 60 %
-80*0*0    →  overall only (global per-changed-file disabled)
-0*0*0     →  no global enforcement (default)
+80*70  →  overall ≥ 80 %, changed-files average ≥ 70 %
+80*0   →  overall only
+0*0    →  no global enforcement (default)
 ```
 
 ### `report-thresholds-default`
@@ -101,7 +101,7 @@ second time and is not set.
   with:
     token: '${{ secrets.GITHUB_TOKEN }}'
     paths: '**/jacoco.xml'
-    global-thresholds: '80*70*60'
+    global-thresholds: '80*70'
     fail-on-threshold: 'overall,changed-files-average,per-changed-file'
 ```
 
@@ -111,7 +111,7 @@ second time and is not set.
 differ; `global-thresholds` guards the aggregated total independently.
 
 ```yaml
-    global-thresholds: '75*0*0'
+    global-thresholds: '75*0'
     report-thresholds-default: '70*60*50'
     report-groups: |
       - name: backend
@@ -131,7 +131,7 @@ differ; `global-thresholds` guards the aggregated total independently.
 ### Enforce overall only
 
 ```yaml
-    global-thresholds: '80*0*0'
+    global-thresholds: '80*0'
     fail-on-threshold: 'overall'
 ```
 

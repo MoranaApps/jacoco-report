@@ -45,7 +45,6 @@ def evaluator(sample_report_file_coverage):
         report_files_coverage=[sample_report_file_coverage],
         global_min_coverage_overall=50.0,
         global_min_coverage_changed_files=50.0,
-        global_min_coverage_changed_per_file=50.0
     )
 
 def test_evaluate_overall_coverage(evaluator):
@@ -63,7 +62,6 @@ def test_evaluate_with_low_thresholds(sample_report_file_coverage):
         report_files_coverage=[sample_report_file_coverage],
         global_min_coverage_overall=70.0,
         global_min_coverage_changed_files=95.0,
-        global_min_coverage_changed_per_file=50.0
     )
     evaluator.evaluate()
     assert evaluator.total_coverage_overall_passed is False
@@ -208,7 +206,6 @@ def test_evaluate_group_with_zero_coverage(caplog):
         report_files_coverage=[report_file_coverage],
         global_min_coverage_overall=50.0,
         global_min_coverage_changed_files=50.0,
-        global_min_coverage_changed_per_file=50.0
     )
 
     evaluated_coverage = EvaluatedReportCoverage("module-a")
@@ -248,7 +245,6 @@ def test_threshold_uses_group_when_matched(mocker: MockerFixture):
         report_files_coverage=[report],
         global_min_coverage_overall=80.0,
         global_min_coverage_changed_files=75.0,
-        global_min_coverage_changed_per_file=65.0,
         report_groups=[group],
     )
     evaluator.evaluate()
@@ -267,7 +263,6 @@ def test_threshold_falls_back_to_report_thresholds_default_when_no_group_matches
         report_files_coverage=[report],
         global_min_coverage_overall=80.0,
         global_min_coverage_changed_files=75.0,
-        global_min_coverage_changed_per_file=65.0,
         report_groups=[group],
         report_thresholds_default=(55.0, 45.0, 35.0),
     )
@@ -287,7 +282,6 @@ def test_threshold_partial_group_thresholds_fall_back_to_report_thresholds_defau
         report_files_coverage=[report],
         global_min_coverage_overall=80.0,
         global_min_coverage_changed_files=75.0,
-        global_min_coverage_changed_per_file=65.0,
         report_groups=[group],
         report_thresholds_default=(55.0, 45.0, 35.0),
     )
@@ -316,7 +310,6 @@ def test_report_thresholds_default_fallback_all_explicit(mocker: MockerFixture):
         report_files_coverage=[report],
         global_min_coverage_overall=50.0,
         global_min_coverage_changed_files=50.0,
-        global_min_coverage_changed_per_file=50.0,
         report_groups=[group],
         report_thresholds_default=(55.0, 45.0, 35.0),
     )
@@ -336,7 +329,6 @@ def test_report_thresholds_default_fallback_from_default(mocker: MockerFixture):
         report_files_coverage=[report],
         global_min_coverage_overall=50.0,
         global_min_coverage_changed_files=50.0,
-        global_min_coverage_changed_per_file=50.0,
         report_groups=[group],
         report_thresholds_default=(75.0, 60.0, 40.0),
     )
@@ -356,7 +348,6 @@ def test_report_thresholds_default_fallback_to_zero(mocker: MockerFixture):
         report_files_coverage=[report],
         global_min_coverage_overall=50.0,
         global_min_coverage_changed_files=50.0,
-        global_min_coverage_changed_per_file=50.0,
         report_groups=[group],
         report_thresholds_default=(0.0, 0.0, 0.0),
     )
@@ -376,7 +367,6 @@ def test_report_thresholds_default_field_level_mix(mocker: MockerFixture):
         report_files_coverage=[report],
         global_min_coverage_overall=50.0,
         global_min_coverage_changed_files=50.0,
-        global_min_coverage_changed_per_file=50.0,
         report_groups=[group],
         report_thresholds_default=(75.0, 60.0, 0.0),
     )
@@ -408,7 +398,6 @@ def test_global_thresholds_unaffected_by_report_thresholds_default(mocker: Mocke
         report_files_coverage=[report],
         global_min_coverage_overall=60.0,
         global_min_coverage_changed_files=0.0,
-        global_min_coverage_changed_per_file=0.0,
         report_thresholds_default=(90.0, 90.0, 90.0),
     )
     evaluator.evaluate()
@@ -438,7 +427,6 @@ def test_evaluate_populates_evaluated_groups_coverage():
         report_files_coverage=[report],
         global_min_coverage_overall=50.0,
         global_min_coverage_changed_files=50.0,
-        global_min_coverage_changed_per_file=50.0,
         report_groups=[group],
     )
     evaluator.evaluate()
@@ -473,7 +461,6 @@ def test_group_name_populated_in_evaluated_coverage():
         report_files_coverage=[report],
         global_min_coverage_overall=50.0,
         global_min_coverage_changed_files=50.0,
-        global_min_coverage_changed_per_file=50.0,
         report_groups=[group],
     )
     evaluator.evaluate()
@@ -506,7 +493,6 @@ def test_group_name_in_serialized_output():
         report_files_coverage=[report],
         global_min_coverage_overall=50.0,
         global_min_coverage_changed_files=50.0,
-        global_min_coverage_changed_per_file=50.0,
         report_groups=[group],
     )
     evaluator.evaluate()
@@ -554,7 +540,6 @@ def test_report_overall_coverage_logged_for_unchanged_report(mocker: MockerFixtu
         report_files_coverage=[report],
         global_min_coverage_overall=80.0,
         global_min_coverage_changed_files=0.0,
-        global_min_coverage_changed_per_file=0.0,
         report_thresholds_default=(80.0, 0.0, 0.0),
     )
     with caplog.at_level(logging.INFO, logger="jacoco_report.evaluator.coverage_evaluator"):
@@ -585,7 +570,6 @@ def test_report_overall_coverage_logged_as_na_when_no_metric_weight(mocker: Mock
         report_files_coverage=[report],
         global_min_coverage_overall=80.0,
         global_min_coverage_changed_files=0.0,
-        global_min_coverage_changed_per_file=0.0,
         report_thresholds_default=(80.0, 0.0, 0.0),
     )
 
@@ -630,7 +614,6 @@ def test_report_changed_files_coverage_logged_as_na_when_no_metric_weight(mocker
         report_files_coverage=[report],
         global_min_coverage_overall=0.0,
         global_min_coverage_changed_files=50.0,
-        global_min_coverage_changed_per_file=0.0,
         report_thresholds_default=(0.0, 80.0, 0.0),
     )
 
@@ -650,7 +633,6 @@ def test_report_changed_files_coverage_logged_for_changed_report(mocker: MockerF
         report_files_coverage=[report],
         global_min_coverage_overall=75.0,
         global_min_coverage_changed_files=0.0,
-        global_min_coverage_changed_per_file=0.0,
         report_thresholds_default=(75.0, 82.0, 0.0),
     )
     with caplog.at_level(logging.INFO, logger="jacoco_report.evaluator.coverage_evaluator"):
@@ -669,7 +651,6 @@ def test_group_overall_coverage_logged(mocker: MockerFixture, caplog):
         report_files_coverage=[report],
         global_min_coverage_overall=50.0,
         global_min_coverage_changed_files=50.0,
-        global_min_coverage_changed_per_file=50.0,
         report_groups=[group],
     )
     with caplog.at_level(logging.INFO, logger="jacoco_report.evaluator.coverage_evaluator"):
@@ -691,7 +672,6 @@ def test_group_changed_files_coverage_logged(mocker: MockerFixture, caplog):
         report_files_coverage=[report],
         global_min_coverage_overall=50.0,
         global_min_coverage_changed_files=50.0,
-        global_min_coverage_changed_per_file=50.0,
         report_groups=[group],
     )
     with caplog.at_level(logging.INFO, logger="jacoco_report.evaluator.coverage_evaluator"):
@@ -744,7 +724,6 @@ def test_group_changed_files_coverage_logged_when_metric_has_zero_weight(
         report_files_coverage=[report],
         global_min_coverage_overall=50.0,
         global_min_coverage_changed_files=50.0,
-        global_min_coverage_changed_per_file=50.0,
         report_groups=[group],
     )
     with caplog.at_level(logging.INFO, logger="jacoco_report.evaluator.coverage_evaluator"):
@@ -791,46 +770,6 @@ def _make_report_with_changed_file_instruction(
     )
 
 
-def test_global_per_changed_file_threshold_passes_when_all_changed_files_meet_global_third(
-    mocker: MockerFixture,
-):
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
-    report_a = _make_report_with_changed_file_instruction("report-a", "src/A.java", covered=8, missed=2)
-    report_b = _make_report_with_changed_file_instruction("report-b", "src/B.java", covered=9, missed=1)
-
-    evaluator = CoverageEvaluator(
-        report_files_coverage=[report_a, report_b],
-        global_min_coverage_overall=0.0,
-        global_min_coverage_changed_files=0.0,
-        global_min_coverage_changed_per_file=75.0,
-        report_thresholds_default=(0.0, 0.0, 0.0),
-    )
-
-    evaluator.evaluate()
-
-    assert evaluator.reached_threshold_per_change_file is True
-    assert not any("Global changed file" in violation for violation in evaluator.violations)
-
-
-def test_global_per_changed_file_threshold_fails_when_any_changed_file_below_global_third(
-    mocker: MockerFixture,
-):
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
-    report_a = _make_report_with_changed_file_instruction("report-a", "src/A.java", covered=8, missed=2)
-    report_b = _make_report_with_changed_file_instruction("report-b", "src/B.java", covered=7, missed=3)
-
-    evaluator = CoverageEvaluator(
-        report_files_coverage=[report_a, report_b],
-        global_min_coverage_overall=0.0,
-        global_min_coverage_changed_files=0.0,
-        global_min_coverage_changed_per_file=75.0,
-        report_thresholds_default=(0.0, 0.0, 0.0),
-    )
-
-    evaluator.evaluate()
-
-    assert evaluator.reached_threshold_per_change_file is False
-    assert any("Global changed file" in violation for violation in evaluator.violations)
 
 
 # ---------------------------------------------------------------------------
@@ -847,7 +786,6 @@ def test_duplicate_report_name_emits_warning(make_report_file_coverage, mocker, 
         report_files_coverage=[report_a, report_b],
         global_min_coverage_overall=0.0,
         global_min_coverage_changed_files=0.0,
-        global_min_coverage_changed_per_file=0.0,
     )
 
     with caplog.at_level(logging.WARNING, logger="jacoco_report.evaluator.coverage_evaluator"):
@@ -874,7 +812,6 @@ def test_baseline_does_not_affect_threshold_evaluation(make_report_file_coverage
         report_files_coverage=[current_report],
         global_min_coverage_overall=80.0,
         global_min_coverage_changed_files=0.0,
-        global_min_coverage_changed_per_file=0.0,
     )
     evaluator.evaluate()
 
@@ -882,7 +819,6 @@ def test_baseline_does_not_affect_threshold_evaluation(make_report_file_coverage
         report_files_coverage=[baseline_report],
         global_min_coverage_overall=0.0,
         global_min_coverage_changed_files=0.0,
-        global_min_coverage_changed_per_file=0.0,
     )
     bs_evaluator.evaluate()
 
@@ -907,7 +843,6 @@ def test_low_baseline_does_not_cause_high_coverage_to_fail(make_report_file_cove
         report_files_coverage=[current_report],
         global_min_coverage_overall=80.0,
         global_min_coverage_changed_files=0.0,
-        global_min_coverage_changed_per_file=0.0,
     )
     evaluator.evaluate()
 
@@ -915,7 +850,6 @@ def test_low_baseline_does_not_cause_high_coverage_to_fail(make_report_file_cove
         report_files_coverage=[baseline_report],
         global_min_coverage_overall=0.0,
         global_min_coverage_changed_files=0.0,
-        global_min_coverage_changed_per_file=0.0,
     )
     bs_evaluator.evaluate()
 
@@ -949,7 +883,6 @@ def test_metric_instruction_passes_when_line_would_fail(mocker):
         report_files_coverage=[report],
         global_min_coverage_overall=80.0,
         global_min_coverage_changed_files=0.0,
-        global_min_coverage_changed_per_file=0.0,
     )
     ev_instr.evaluate()
     assert ev_instr.total_coverage_overall_passed is True
@@ -977,7 +910,6 @@ def test_metric_line_fails_when_instruction_would_pass(mocker):
         report_files_coverage=[report],
         global_min_coverage_overall=80.0,
         global_min_coverage_changed_files=0.0,
-        global_min_coverage_changed_per_file=0.0,
     )
     ev_line.evaluate()
     assert ev_line.total_coverage_overall_passed is False

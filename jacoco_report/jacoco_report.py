@@ -164,7 +164,6 @@ class JaCoCoReport:
                     report_files_coverage=filtered_unchanged_reports,
                     global_min_coverage_overall=ActionInputs.get_global_overall_threshold(),
                     global_min_coverage_changed_files=ActionInputs.get_global_changed_files_average_threshold(),
-                    global_min_coverage_changed_per_file=ActionInputs.get_global_changed_file_threshold(),
                     report_groups=report_groups,
                     report_thresholds_default=report_thresholds_default,
                 )
@@ -286,7 +285,6 @@ class JaCoCoReport:
             report_files_coverage=reports_for_evaluation,
             global_min_coverage_overall=ActionInputs.get_global_overall_threshold(),
             global_min_coverage_changed_files=ActionInputs.get_global_changed_files_average_threshold(),
-            global_min_coverage_changed_per_file=ActionInputs.get_global_changed_file_threshold(),
             report_groups=report_groups,
             report_thresholds_default=report_thresholds_default,
         )
@@ -296,7 +294,6 @@ class JaCoCoReport:
             report_files_coverage=bs_report_files_coverage,
             global_min_coverage_overall=ActionInputs.get_global_overall_threshold(),
             global_min_coverage_changed_files=ActionInputs.get_global_changed_files_average_threshold(),
-            global_min_coverage_changed_per_file=ActionInputs.get_global_changed_file_threshold(),
             report_groups=report_groups,
             report_thresholds_default=report_thresholds_default,
         )
