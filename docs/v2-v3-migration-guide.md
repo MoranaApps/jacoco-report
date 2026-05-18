@@ -41,12 +41,11 @@ Per-changed-file thresholds map to `report-thresholds-default` (or per-group `th
   with:
     token: ${{ secrets.GITHUB_TOKEN }}
     paths: '**/jacoco.xml'
-    global-thresholds: '80*70*0'
+    global-thresholds: '80*70'
     report-thresholds-default: '0*0*60'
 ```
 
-`global-thresholds` uses `overall*changed-files-average*reserved-third`.
-The aggregated evaluation uses overall and changed-files-average values.
+`global-thresholds` uses `overall*changed-files-average`.
 Per-changed-file checks come from report/group thresholds.
 
 ---
@@ -261,7 +260,7 @@ v3 adds four new levels. The existing `minimal` and `full` levels are unchanged.
   with:
     token: ${{ secrets.GITHUB_TOKEN }}
     paths: '**/jacoco.xml'
-    global-thresholds: '80*70*0'
+    global-thresholds: '80*70'
     report-thresholds-default: '75*65*50'
     report-groups: |
       - name: backend

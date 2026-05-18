@@ -41,7 +41,7 @@ jobs:
 
           # Global thresholds are evaluated over all reports combined,
           # independently of per-group thresholds.
-          global-thresholds: '75*0*0'
+          global-thresholds: '75*0'
 
           # Default thresholds applied per-field when a group omits a field.
           # Resolution order: per-group field → this default → 0.0

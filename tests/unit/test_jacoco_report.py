@@ -148,14 +148,14 @@ comment_single_minimalist_instruction_with_bs = """**JaCoCo Coverage Report**
 
 | Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |
 |-------------------|-----|-----|-----|----|
-| **Overall**       | 92.0% | 75.0% | +6.9% | ✅ |
+| **Overall**       | 92.0% | 75.0% | +4.5% | ✅ |
 | **Changed Files** | 89.71% | 80.0% | +9.0% | ✅ |"""
 
 comment_single_minimalist_instruction_with_bs_summary = """**JaCoCo Coverage Report**
 
 | Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |
 |-------------------|-----|-----|-----|----|
-| **Overall**       | 92.0% | 75.0% | +6.9% | ✅ |
+| **Overall**       | 92.0% | 75.0% | +4.5% | ✅ |
 | **Changed Files** | 89.71% | 80.0% | +9.0% | ✅ |
 
 | Report | Coverage (O/Ch) | Threshold (O/Ch) | Δ Coverage (O/Ch) | Status (O/Ch) |
@@ -200,7 +200,7 @@ comment_more_files_single_summary_instruction_with_modules_with_bs = """**JaCoCo
 
 | Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |
 |-------------------|-----|-----|-----|----|
-| **Overall**       | 92.0% | 75.0% | +6.9% | ✅ |
+| **Overall**       | 92.0% | 75.0% | +4.5% | ✅ |
 | **Changed Files** | 89.71% | 80.0% | +9.0% | ✅ |
 
 | Module | Coverage (O/Ch) | Threshold (O/Ch) | Δ Coverage (O/Ch) | Status (O/Ch) |
@@ -252,7 +252,7 @@ comment_more_files_single_summary_instruction_with_modules_no_module_thresholds_
 
 | Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |
 |-------------------|-----|-----|-----|----|
-| **Overall**       | 92.0% | 75.0% | +6.9% | ✅ |
+| **Overall**       | 92.0% | 75.0% | +4.5% | ✅ |
 | **Changed Files** | 89.71% | 80.0% | +9.0% | ✅ |
 
 | Module | Coverage (O/Ch) | Threshold (O/Ch) | Δ Coverage (O/Ch) | Status (O/Ch) |
@@ -306,7 +306,7 @@ comment_more_files_single_detailed_instruction_no_modules_with_bs = """**JaCoCo 
 
 | Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |
 |-------------------|-----|-----|-----|----|
-| **Overall**       | 92.0% | 75.0% | +6.9% | ✅ |
+| **Overall**       | 92.0% | 75.0% | +4.5% | ✅ |
 | **Changed Files** | 89.71% | 80.0% | +9.0% | ✅ |
 
 | Report | Coverage (O/Ch) | Threshold (O/Ch) | Δ Coverage (O/Ch) | Status (O/Ch) |
@@ -366,7 +366,7 @@ comment_more_files_single_detailed_instruction_with_modules_with_bs = """**JaCoC
 
 | Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |
 |-------------------|-----|-----|-----|----|
-| **Overall**       | 92.0% | 75.0% | +6.9% | ✅ |
+| **Overall**       | 92.0% | 75.0% | +4.5% | ✅ |
 | **Changed Files** | 89.71% | 80.0% | +9.0% | ✅ |
 
 | Module | Coverage (O/Ch) | Threshold (O/Ch) | Δ Coverage (O/Ch) | Status (O/Ch) |
@@ -398,7 +398,7 @@ comment_more_files_single_detailed_instruction_with_modules_with_bs_fail_module 
 
 | Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |
 |-------------------|-----|-----|-----|----|
-| **Overall**       | 92.0% | 75.0% | +6.9% | ✅ |
+| **Overall**       | 92.0% | 75.0% | +4.5% | ✅ |
 | **Changed Files** | 89.71% | 80.0% | +9.0% | ✅ |
 
 | Module | Coverage (O/Ch) | Threshold (O/Ch) | Δ Coverage (O/Ch) | Status (O/Ch) |
@@ -422,7 +422,7 @@ comment_more_files_single_detailed_instruction_with_partial_modules_1 = """**JaC
 
 | Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |
 |-------------------|-----|-----|-----|----|
-| **Overall**       | 92.0% | 75.0% | +6.9% | ✅ |
+| **Overall**       | 92.0% | 75.0% | +4.5% | ✅ |
 | **Changed Files** | 89.71% | 80.0% | +9.0% | ✅ |
 
 | Module | Coverage (O/Ch) | Threshold (O/Ch) | Δ Coverage (O/Ch) | Status (O/Ch) |
@@ -446,7 +446,7 @@ comment_more_files_single_detailed_instruction_with_partial_modules_2 = """**JaC
 
 | Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |
 |-------------------|-----|-----|-----|----|
-| **Overall**       | 92.0% | 75.0% | +6.9% | ✅ |
+| **Overall**       | 92.0% | 75.0% | +4.5% | ✅ |
 | **Changed Files** | 89.71% | 80.0% | +9.0% | ✅ |
 
 | Module | Coverage (O/Ch) | Threshold (O/Ch) | Δ Coverage (O/Ch) | Status (O/Ch) |
@@ -470,7 +470,7 @@ comment_more_files_single_detailed_instruction_with_partial_modules_3 = """**JaC
 
 | Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |
 |-------------------|-----|-----|-----|----|
-| **Overall**       | 92.0% | 75.0% | +6.9% | ✅ |
+| **Overall**       | 92.0% | 75.0% | +4.5% | ✅ |
 | **Changed Files** | 89.71% | 80.0% | +9.0% | ✅ |
 
 | Module | Coverage (O/Ch) | Threshold (O/Ch) | Δ Coverage (O/Ch) | Status (O/Ch) |
@@ -525,7 +525,7 @@ comment_more_files_single_detailed_instruction_with_modules_no_module_thresholds
 
 | Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |
 |-------------------|-----|-----|-----|----|
-| **Overall**       | 92.0% | 75.0% | +6.9% | ✅ |
+| **Overall**       | 92.0% | 75.0% | +4.5% | ✅ |
 | **Changed Files** | 89.71% | 80.0% | +9.0% | ✅ |
 
 | Module | Coverage (O/Ch) | Threshold (O/Ch) | Δ Coverage (O/Ch) | Status (O/Ch) |
@@ -581,7 +581,7 @@ comment_more_files_single_detailed_instruction_with_modules_no_module_thresholds
 
 | Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |
 |-------------------|-----|-----|-----|----|
-| **Overall**       | 92.0% | 75.0% | +6.9% | ✅ |
+| **Overall**       | 92.0% | 75.0% | +4.5% | ✅ |
 | **Changed Files** | 89.71% | 80.0% | +9.0% | ✅ |
 
 | Module | Coverage (O/Ch) | Threshold (O/Ch) | Δ Coverage (O/Ch) | Status (O/Ch) |
@@ -2216,7 +2216,6 @@ def test_successful_more_source_files(jacoco_report, id, level, changed_files, e
         mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["tests/data_baseline/**/*.xml"])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_threshold", return_value=75.0)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_files_average_threshold", return_value=80.0)
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_file_threshold", return_value=65.0)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_thresholds_default", return_value=(75.0, 80.0, 65.0))
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups", return_value=[])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_repository", return_value="MoranaApps/jacoco-report")
@@ -2294,9 +2293,6 @@ single_summary_violations_with_modules = [
 single_detail_violations = [
     'Global overall coverage 92.0 is below the threshold 100.0.',
     'Global changed files coverage 89.71 is below the threshold 100.0.',
-    "Global changed file 'com/example/module_large/BigClass.java' coverage 90.0 is below the threshold 100.0.",
-    "Global changed file 'com/example/user-info/implementation/ImplementationClass.java' coverage 88.0 is below the threshold 100.0.",
-    "Global changed file 'com/example/user-info/client-http/ClientHttpClass.java' coverage 90.0 is below the threshold 100.0.",
     "Report 'Module Large Report' overall coverage 91.33 is below the threshold 100.0.",
     "Report 'Module Large Report' changed files coverage 90.0 is below the threshold 100.0.",
     "Report 'Module Large Report' changed file 'com/example/module_large/BigClass.java' coverage 90.0 is below the threshold 100.0.",
@@ -2441,7 +2437,6 @@ def test_violations(jacoco_report, id, level, changed_files, violations, mocker)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=["tests/data/test_project/**/jacoco.xml"])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_threshold", return_value=100.0)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_files_average_threshold", return_value=100.0)
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_file_threshold", return_value=100.0)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_thresholds_default", return_value=(100.0, 100.0, 100.0))
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups", return_value=[])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_repository", return_value="MoranaApps/jacoco-report")
@@ -2468,7 +2463,6 @@ def test_filtered_out_all_from_changed_file(jacoco_report, mocker):
     # mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=["data/module_d/**/jacoco*.xml"])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_threshold", return_value=100.0)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_files_average_threshold", return_value=100.0)
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_file_threshold", return_value=100.0)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups", return_value=[])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_repository", return_value="MoranaApps/jacoco-report")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_unchanged", return_value=False)
@@ -2495,7 +2489,6 @@ def test_scan_groups_no_overlap_deduplication(jacoco_report, mocker):
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_comment_level", return_value=CommentLevelEnum.FULL)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_threshold", return_value=0.0)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_files_average_threshold", return_value=0.0)
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_file_threshold", return_value=0.0)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=False)
 
     group1 = ReportGroup(name="app", paths=["tests/data/context/notification/**/jacoco*.xml"])
@@ -2540,7 +2533,6 @@ def test_scan_groups_with_overlap_deduplication(jacoco_report, mocker):
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_comment_level", return_value=CommentLevelEnum.FULL)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_threshold", return_value=0.0)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_files_average_threshold", return_value=0.0)
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_file_threshold", return_value=0.0)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=False)
 
     group1 = ReportGroup(name="all", paths=["tests/data/**/**/jacoco*.xml"])
@@ -2597,7 +2589,6 @@ def _patch_jr_run_inputs(mocker, *, exclude_paths=None, report_groups=None):
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=[])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_threshold", return_value=0.0)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_files_average_threshold", return_value=0.0)
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_file_threshold", return_value=0.0)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_comment_level", return_value=CommentLevelEnum.MINIMAL)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_thresholds_default", return_value=(0.0, 0.0, 0.0))

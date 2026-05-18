@@ -1,0 +1,160 @@
+coverage-overall=82.07
+coverage-changed-files=54.5
+coverage-overall-passed=True
+coverage-changed-files-passed=False
+reports-coverage<<EOF
+{
+    "Report: calculator - scala:2.12.18": {
+        "name": "Report: calculator - scala:2.12.18",
+        "group_name": "calc",
+        "overall_passed": false,
+        "overall_coverage_reached": 61.9,
+        "overall_coverage_threshold": 83.0,
+        "overall_coverage": {
+            "missed": 16,
+            "covered": 26
+        },
+        "avg_changed_files_passed": false,
+        "avg_changed_files_coverage_reached": 61.9,
+        "avg_changed_files_coverage": {
+            "missed": 16,
+            "covered": 26
+        },
+        "changed_files_passed": {
+            "za/co/absa/db/balta/calculator/Calculator.scala": true
+        },
+        "changed_files_threshold": 73.0,
+        "changed_files_coverage_reached": {
+            "za/co/absa/db/balta/calculator/Calculator.scala": 61.9
+        },
+        "per_changed_file_threshold": 53.0
+    },
+    "Report: validator - scala:2.12.18": {
+        "name": "Report: validator - scala:2.12.18",
+        "group_name": "rest",
+        "overall_passed": false,
+        "overall_coverage_reached": 47.14,
+        "overall_coverage_threshold": 82.0,
+        "overall_coverage": {
+            "missed": 37,
+            "covered": 33
+        },
+        "avg_changed_files_passed": false,
+        "avg_changed_files_coverage_reached": 47.14,
+        "avg_changed_files_coverage": {
+            "missed": 37,
+            "covered": 33
+        },
+        "changed_files_passed": {
+            "za/co/absa/db/balta/validator/Validator.scala": false
+        },
+        "changed_files_threshold": 72.0,
+        "changed_files_coverage_reached": {
+            "za/co/absa/db/balta/validator/Validator.scala": 47.14
+        },
+        "per_changed_file_threshold": 52.0
+    },
+    "Report: formatter - scala:2.12.18": {
+        "name": "Report: formatter - scala:2.12.18",
+        "group_name": "rest",
+        "overall_passed": false,
+        "overall_coverage_reached": 56.82,
+        "overall_coverage_threshold": 82.0,
+        "overall_coverage": {
+            "missed": 38,
+            "covered": 50
+        },
+        "avg_changed_files_passed": false,
+        "avg_changed_files_coverage_reached": 56.82,
+        "avg_changed_files_coverage": {
+            "missed": 38,
+            "covered": 50
+        },
+        "changed_files_passed": {
+            "za/co/absa/db/balta/formatter/Formatter.scala": true
+        },
+        "changed_files_threshold": 72.0,
+        "changed_files_coverage_reached": {
+            "za/co/absa/db/balta/formatter/Formatter.scala": 56.82
+        },
+        "per_changed_file_threshold": 52.0
+    },
+    "Report: balta - scala:2.12.18": {
+        "name": "Report: balta - scala:2.12.18",
+        "group_name": "rest",
+        "overall_passed": true,
+        "overall_coverage_reached": 84.58,
+        "overall_coverage_threshold": 82.0,
+        "overall_coverage": {
+            "missed": 339,
+            "covered": 1859
+        },
+        "avg_changed_files_passed": true,
+        "avg_changed_files_coverage_reached": 0.0,
+        "avg_changed_files_coverage": {
+            "missed": 0,
+            "covered": 0
+        },
+        "changed_files_passed": {},
+        "changed_files_threshold": 72.0,
+        "changed_files_coverage_reached": {},
+        "per_changed_file_threshold": 52.0
+    }
+}
+EOF
+groups-coverage<<EOF
+{
+    "calc": {
+        "name": "calc",
+        "group_name": "calc",
+        "overall_passed": false,
+        "overall_coverage_reached": 61.9,
+        "overall_coverage_threshold": 83.0,
+        "overall_coverage": {
+            "missed": 16,
+            "covered": 26
+        },
+        "avg_changed_files_passed": false,
+        "avg_changed_files_coverage_reached": 61.9,
+        "avg_changed_files_coverage": {
+            "missed": 16,
+            "covered": 26
+        },
+        "changed_files_passed": {
+            "za/co/absa/db/balta/calculator/Calculator.scala": true
+        },
+        "changed_files_threshold": 73.0,
+        "changed_files_coverage_reached": {
+            "za/co/absa/db/balta/calculator/Calculator.scala": 61.9
+        },
+        "per_changed_file_threshold": 53.0
+    },
+    "rest": {
+        "name": "rest",
+        "group_name": "rest",
+        "overall_passed": true,
+        "overall_coverage_reached": 82.43,
+        "overall_coverage_threshold": 82.0,
+        "overall_coverage": {
+            "missed": 414,
+            "covered": 1942
+        },
+        "avg_changed_files_passed": false,
+        "avg_changed_files_coverage_reached": 52.53,
+        "avg_changed_files_coverage": {
+            "missed": 75,
+            "covered": 83
+        },
+        "changed_files_passed": {
+            "za/co/absa/db/balta/validator/Validator.scala": false,
+            "za/co/absa/db/balta/formatter/Formatter.scala": true
+        },
+        "changed_files_threshold": 72.0,
+        "changed_files_coverage_reached": {
+            "za/co/absa/db/balta/validator/Validator.scala": 47.14,
+            "za/co/absa/db/balta/formatter/Formatter.scala": 56.82
+        },
+        "per_changed_file_threshold": 52.0
+    }
+}
+EOF

@@ -1,0 +1,10 @@
+<report name="Partial Baseline Module B">
+    <sessioninfo id="b-session" start="1609459200000" dump="1609459200000"/>
+    <package name="com/partial_baseline/module_b">
+        <sourcefile name="FileB.java">
+            <counter type="INSTRUCTION" missed="10" covered="90"/>
+        </sourcefile>
+    </package>
+    <counter type="INSTRUCTION" missed="10" covered="90"/>
+    <counter type="CLASS" missed="0" covered="1"/>
+</report>

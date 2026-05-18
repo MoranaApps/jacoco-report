@@ -27,7 +27,6 @@ class CoverageEvaluator:
         report_files_coverage: list[ReportFileCoverage],
         global_min_coverage_overall: float,
         global_min_coverage_changed_files: float,
-        global_min_coverage_changed_per_file: float,
         report_groups: Optional[list[ReportGroup]] = None,
         report_thresholds_default: tuple[float, float, float] = (0.0, 0.0, 0.0),
     ):
@@ -37,7 +36,6 @@ class CoverageEvaluator:
         # thresholds
         self._global_min_coverage_overall: float = global_min_coverage_overall
         self._global_min_coverage_changed_files: float = global_min_coverage_changed_files
-        self._global_min_coverage_changed_per_file = global_min_coverage_changed_per_file
         # Per-report/group fallback: group field → report-thresholds-default field → 0.0
         # global-thresholds is a separate evaluation pass and is never in this chain.
         self._report_thresholds_default: tuple[float, float, float] = report_thresholds_default
@@ -216,16 +214,6 @@ class CoverageEvaluator:
 
         report_violations: list[str] = []
         changed_files_violations: list[str] = []
-        global_changed_files_violations: list[str] = []
-
-        for evaluated_coverage_report in self.evaluated_reports_coverage.values():
-            for key, reached in evaluated_coverage_report.changed_files_coverage_reached.items():
-                if reached < self._global_min_coverage_changed_per_file:
-                    global_changed_files_violations.append(
-                        f"Global changed file '{key}' coverage {reached} is below the threshold "
-                        f"{self._global_min_coverage_changed_per_file}."
-                    )
-                    self.reached_threshold_per_change_file = False
 
         for report_path, evaluated_coverage_report in self.evaluated_reports_coverage.items():
             if not evaluated_coverage_report.overall_passed:
@@ -252,7 +240,6 @@ class CoverageEvaluator:
 
         # Add all violations to the list
         self.violations.extend(group_violations)
-        self.violations.extend(global_changed_files_violations)
         self.violations.extend(report_violations)
         self.violations.extend(changed_files_violations)
 

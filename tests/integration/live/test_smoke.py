@@ -156,7 +156,7 @@ def test_comment_creation(cleanup_comments: list[int]) -> None:
         INPUT_TITLE=marker,
         INPUT_COMMENT_LEVEL="minimal",
         INPUT_SKIP_UNCHANGED="false",
-        INPUT_GLOBAL_THRESHOLDS="0.0*0.0*0.0",
+        INPUT_GLOBAL_THRESHOLDS="0.0*0.0",
     )
     result = capture_run(env)
 
@@ -248,7 +248,7 @@ def test_invalid_token_produces_clear_error() -> None:
         INPUT_TOKEN="ghs_" + "z" * 36,
         INPUT_PATHS=TEST_PROJECT_GLOB,
         INPUT_COMMENT_LEVEL="minimal",
-        INPUT_GLOBAL_THRESHOLDS="0.0*0.0*0.0",
+        INPUT_GLOBAL_THRESHOLDS="0.0*0.0",
     )
     result = capture_run(env)
 

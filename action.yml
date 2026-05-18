@@ -11,9 +11,9 @@ inputs:
     description: 'Newline-separated paths or globs to exclude from scanning.'
     required: false
   global-thresholds:
-    description: 'Global thresholds in format overall*changed-files-average*per-changed-file.'
+    description: 'Global thresholds in format overall*changed-files-average.'
     required: false
-    default: '0*0*0'
+    default: '0*0'
   report-thresholds-default:
     description: >
       Default thresholds applied at the report/group level when a group omits a threshold field.
