@@ -235,7 +235,7 @@ class PRCommentGenerator:
         # Compute diffs from matched report names only to avoid comparing N current
         # reports against a partial baseline that covers fewer reports.
         diff_o, diff_ch = self._compute_matched_global_diffs(bs_evaluator)
-        return self.get_basic_table_with_baseline(
+        return self._render_basic_table_with_delta(
             p,
             f,
             ActionInputs.get_metric(),
@@ -245,8 +245,8 @@ class PRCommentGenerator:
             self.evaluator.total_coverage_changed_files,
             self.evaluator.total_coverage_changed_files_passed,
             ActionInputs.get_global_changed_files_average_threshold(),
-            self.evaluator.total_coverage_overall - diff_o,
-            self.evaluator.total_coverage_changed_files - diff_ch,
+            diff_o,
+            diff_ch,
         )
 
     def _compute_matched_global_diffs(self, bs_evaluator: "CoverageEvaluator") -> tuple[float, float]:
@@ -258,22 +258,16 @@ class PRCommentGenerator:
         if not matched_names:
             return 0.0, 0.0
 
-        curr_covered_o = curr_missed_o = 0
-        bs_covered_o = bs_missed_o = 0
-        curr_covered_ch = curr_missed_ch = 0
-        bs_covered_ch = bs_missed_ch = 0
+        curr_covered_o = bs_covered_o = 0
+        curr_covered_ch = bs_covered_ch = 0
 
         for name in matched_names:
             curr = self.evaluator.evaluated_reports_coverage[name]
             bs = bs_evaluator.evaluated_reports_coverage[name]
             curr_covered_o += curr.overall_coverage.covered
-            curr_missed_o += curr.overall_coverage.missed
             bs_covered_o += bs.overall_coverage.covered
-            bs_missed_o += bs.overall_coverage.missed
             curr_covered_ch += curr.avg_changed_files_coverage.covered
-            curr_missed_ch += curr.avg_changed_files_coverage.missed
             bs_covered_ch += bs.avg_changed_files_coverage.covered
-            bs_missed_ch += bs.avg_changed_files_coverage.missed
 
         global_total_o = sum(
             erc.overall_coverage.covered + erc.overall_coverage.missed
@@ -342,9 +336,35 @@ class PRCommentGenerator:
         bs_total_changed_files_reached: float,
     ) -> str:
         """Render the global summary table with baseline delta columns."""
-        diff_o = total_overall_reached - bs_total_overall_reached
-        diff_ch = total_changed_files_reached - bs_total_changed_files_reached
+        return self._render_basic_table_with_delta(
+            p,
+            f,
+            metric,
+            total_overall_reached,
+            total_overall_passed,
+            min_overall,
+            total_changed_files_reached,
+            total_changed_files_passed,
+            min_changed_files,
+            total_overall_reached - bs_total_overall_reached,
+            total_changed_files_reached - bs_total_changed_files_reached,
+        )
 
+    def _render_basic_table_with_delta(
+        self,
+        p: str,
+        f: str,
+        metric: str,
+        total_overall_reached: float,
+        total_overall_passed: bool,
+        min_overall: float,
+        total_changed_files_reached: float,
+        total_changed_files_passed: bool,
+        min_changed_files: float,
+        diff_o: float,
+        diff_ch: float,
+    ) -> str:
+        """Render the global summary table given pre-computed deltas."""
         return (
             dedent("""
             | Metric ({}) | Coverage | Threshold | Δ Coverage | Status |
@@ -524,22 +544,16 @@ class PRCommentGenerator:
         if not matched_names:
             return 0.0, 0.0
 
-        curr_covered_o = curr_missed_o = 0
-        bs_covered_o = bs_missed_o = 0
-        curr_covered_ch = curr_missed_ch = 0
-        bs_covered_ch = bs_missed_ch = 0
+        curr_covered_o = bs_covered_o = 0
+        curr_covered_ch = bs_covered_ch = 0
 
         for name in matched_names:
             curr = self.evaluator.evaluated_reports_coverage[name]
             bs = self.bs_evaluator.evaluated_reports_coverage[name]
             curr_covered_o += curr.overall_coverage.covered
-            curr_missed_o += curr.overall_coverage.missed
             bs_covered_o += bs.overall_coverage.covered
-            bs_missed_o += bs.overall_coverage.missed
             curr_covered_ch += curr.avg_changed_files_coverage.covered
-            curr_missed_ch += curr.avg_changed_files_coverage.missed
             bs_covered_ch += bs.avg_changed_files_coverage.covered
-            bs_missed_ch += bs.avg_changed_files_coverage.missed
 
         group_total_o = sum(
             erc.overall_coverage.covered + erc.overall_coverage.missed
