@@ -2661,7 +2661,7 @@ def test_exclude_paths_forwarded_to_scan_jacoco_xml_files(jacoco_report, mocker,
 
 def test_excluded_files_absent_from_evaluated_reports(jacoco_report, mocker, make_report_file_coverage):
     """Files excluded by exclude_paths are not present in the evaluation output."""
-    included_report = make_report_file_coverage(name="included-mod")
+    included_report = make_report_file_coverage(path="included.xml", name="included-mod")
 
     _patch_jr_run_inputs(mocker, exclude_paths=["**/excluded.xml"])
     mocker.patch("jacoco_report.jacoco_report.JaCoCoReport.scan_jacoco_xml_files", return_value=["included.xml"])
@@ -2671,5 +2671,7 @@ def test_excluded_files_absent_from_evaluated_reports(jacoco_report, mocker, mak
     jacoco_report.run()
 
     reports_data = json.loads(jacoco_report.evaluated_coverage_reports)
-    assert "included-mod" in reports_data
-    assert "excluded-mod" not in reports_data
+    # Reports are now keyed by file path; confirm the included report is present and excluded is not.
+    assert "included.xml" in reports_data
+    assert reports_data["included.xml"]["name"] == "included-mod"
+    assert not any(v.get("name") == "excluded-mod" for v in reports_data.values())

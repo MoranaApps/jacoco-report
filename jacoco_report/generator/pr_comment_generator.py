@@ -250,19 +250,27 @@ class PRCommentGenerator:
         )
 
     def _compute_matched_global_diffs(self, bs_evaluator: "CoverageEvaluator") -> tuple[float, float]:
-        """Return (diff_overall, diff_changed) using only report names present in both evaluators."""
-        matched_names = set(self.evaluator.evaluated_reports_coverage.keys()) & set(
-            bs_evaluator.evaluated_reports_coverage.keys()
-        )
-        if not matched_names:
+        """Return (diff_overall, diff_changed) using reports matched between both evaluators.
+
+        Matching is path-first (same directory structure) with a name-based fallback for setups
+        where current and baseline reports live in different directory trees.
+        """
+        curr_by_path = self.evaluator.evaluated_reports_coverage
+        bs_by_path = bs_evaluator.evaluated_reports_coverage
+
+        matched_paths = set(curr_by_path.keys()) & set(bs_by_path.keys())
+        if matched_paths:
+            pairs = [(curr_by_path[p], bs_by_path[p]) for p in matched_paths]
+        else:
+            bs_by_name = {v.name: v for v in bs_by_path.values()}
+            pairs = [(curr, bs_by_name[curr.name]) for curr in curr_by_path.values() if curr.name in bs_by_name]
+
+        if not pairs:
             return 0.0, 0.0
 
         curr_covered_o = bs_covered_o = 0
         curr_covered_ch = bs_covered_ch = 0
-
-        for name in matched_names:
-            curr = self.evaluator.evaluated_reports_coverage[name]
-            bs = bs_evaluator.evaluated_reports_coverage[name]
+        for curr, bs in pairs:
             curr_covered_o += curr.overall_coverage.covered
             bs_covered_o += bs.overall_coverage.covered
             curr_covered_ch += curr.avg_changed_files_coverage.covered
@@ -270,11 +278,11 @@ class PRCommentGenerator:
 
         global_total_o = sum(
             erc.overall_coverage.covered + erc.overall_coverage.missed
-            for erc in self.evaluator.evaluated_reports_coverage.values()
+            for erc in curr_by_path.values()
         )
         global_total_ch = sum(
             erc.avg_changed_files_coverage.covered + erc.avg_changed_files_coverage.missed
-            for erc in self.evaluator.evaluated_reports_coverage.values()
+            for erc in curr_by_path.values()
         )
 
         diff_o = round((curr_covered_o - bs_covered_o) / global_total_o * 100, 2) if global_total_o > 0 else 0.0
@@ -513,56 +521,64 @@ class PRCommentGenerator:
         return s
 
     def _sorted_report_keys(self, evaluated_reports_coverage: dict[str, EvaluatedReportCoverage]) -> list[str]:
-        """Return report keys sorted by configured group order, then report name."""
+        """Return report keys sorted by configured group order, then by display name."""
         group_order = getattr(self.evaluator, "report_group_order", [])
         if not group_order:
-            return sorted(list(evaluated_reports_coverage.keys()))
+            return sorted(
+                list(evaluated_reports_coverage.keys()),
+                key=lambda k: evaluated_reports_coverage[k].name,
+            )
 
         group_index: dict[str, int] = {name: idx for idx, name in enumerate(group_order)}
         fallback_index = len(group_index)
 
         return sorted(
             list(evaluated_reports_coverage.keys()),
-            key=lambda report_name: (
-                group_index.get(evaluated_reports_coverage[report_name].group_name, fallback_index),
-                report_name,
+            key=lambda k: (
+                group_index.get(evaluated_reports_coverage[k].group_name, fallback_index),
+                evaluated_reports_coverage[k].name,
             ),
         )
 
     def calculate_baseline_group_diffs(self, evaluated_coverage: EvaluatedReportCoverage) -> tuple[float, float]:
-        """Calculate baseline deltas for one rendered group row using only matched report names."""
+        """Calculate baseline deltas for one rendered group row using path-first, name-fallback matching."""
         if not self.bs_evaluator or evaluated_coverage.name not in self.bs_evaluator.evaluated_groups_coverage:
             return 0.0, 0.0
 
         group_name = evaluated_coverage.name
-        matched_names = {
-            name
-            for name, erc in self.evaluator.evaluated_reports_coverage.items()
-            if erc.group_name == group_name and name in self.bs_evaluator.evaluated_reports_coverage
+        curr_in_group = {
+            path: erc
+            for path, erc in self.evaluator.evaluated_reports_coverage.items()
+            if erc.group_name == group_name
         }
-        if not matched_names:
+
+        bs_reports = getattr(self.bs_evaluator, "evaluated_reports_coverage", {})
+        bs_reports = bs_reports if isinstance(bs_reports, dict) else {}
+
+        matched_paths = set(curr_in_group.keys()) & set(bs_reports.keys())
+        if matched_paths:
+            pairs = [(curr_in_group[p], bs_reports[p]) for p in matched_paths]
+        else:
+            bs_by_name = {v.name: v for v in bs_reports.values()}
+            pairs = [(curr, bs_by_name[curr.name]) for curr in curr_in_group.values() if curr.name in bs_by_name]
+
+        if not pairs:
             return 0.0, 0.0
 
         curr_covered_o = bs_covered_o = 0
         curr_covered_ch = bs_covered_ch = 0
-
-        for name in matched_names:
-            curr = self.evaluator.evaluated_reports_coverage[name]
-            bs = self.bs_evaluator.evaluated_reports_coverage[name]
+        for curr, bs in pairs:
             curr_covered_o += curr.overall_coverage.covered
             bs_covered_o += bs.overall_coverage.covered
             curr_covered_ch += curr.avg_changed_files_coverage.covered
             bs_covered_ch += bs.avg_changed_files_coverage.covered
 
         group_total_o = sum(
-            erc.overall_coverage.covered + erc.overall_coverage.missed
-            for erc in self.evaluator.evaluated_reports_coverage.values()
-            if erc.group_name == group_name
+            erc.overall_coverage.covered + erc.overall_coverage.missed for erc in curr_in_group.values()
         )
         group_total_ch = sum(
             erc.avg_changed_files_coverage.covered + erc.avg_changed_files_coverage.missed
-            for erc in self.evaluator.evaluated_reports_coverage.values()
-            if erc.group_name == group_name
+            for erc in curr_in_group.values()
         )
 
         diff_o = round((curr_covered_o - bs_covered_o) / group_total_o * 100, 2) if group_total_o > 0 else 0.0
@@ -570,20 +586,31 @@ class PRCommentGenerator:
 
         return diff_o, diff_ch
 
+    def _find_baseline_report(self, evaluated_coverage: EvaluatedReportCoverage) -> Optional["EvaluatedReportCoverage"]:
+        """Return the matching baseline EvaluatedReportCoverage, or None.
+
+        Tries path-based lookup first (same directory structure), then falls back to name-based
+        matching for setups where current and baseline reports live in different directory trees.
+        """
+        if not self.bs_evaluator:
+            return None
+        bs = getattr(self.bs_evaluator, "evaluated_reports_coverage", {})
+        if not isinstance(bs, dict):
+            return None
+        if evaluated_coverage.path and evaluated_coverage.path in bs:
+            return bs[evaluated_coverage.path]
+        return next((v for v in bs.values() if v.name == evaluated_coverage.name), None)
+
     def _calculate_baseline_report_diffs(self, evaluated_coverage: EvaluatedReportCoverage) -> tuple[float, float]:
         """Calculate baseline deltas for one rendered report row."""
-        if not self.bs_evaluator or evaluated_coverage.name not in self.bs_evaluator.evaluated_reports_coverage.keys():
+        bs_coverage = self._find_baseline_report(evaluated_coverage)
+        if bs_coverage is None:
             return 0.0, 0.0
 
-        diff_o = (
-            evaluated_coverage.overall_coverage_reached
-            - self.bs_evaluator.evaluated_reports_coverage[evaluated_coverage.name].overall_coverage_reached
-        )
+        diff_o = evaluated_coverage.overall_coverage_reached - bs_coverage.overall_coverage_reached
         diff_ch = (
-            evaluated_coverage.avg_changed_files_coverage_reached
-            - self.bs_evaluator.evaluated_reports_coverage[evaluated_coverage.name].avg_changed_files_coverage_reached
+            evaluated_coverage.avg_changed_files_coverage_reached - bs_coverage.avg_changed_files_coverage_reached
         )
-
         return diff_o, diff_ch
 
     # Full example of the table
@@ -692,34 +719,29 @@ class PRCommentGenerator:
 
         lines = []
         for ecr_key in evaluated_reports_coverage.keys():
-            for file_key in evaluated_reports_coverage[ecr_key].changed_files_coverage_reached.keys():
+            curr_erc = evaluated_reports_coverage[ecr_key]
+            bs_erc = self._find_baseline_report(curr_erc)
+            for file_key in curr_erc.changed_files_coverage_reached.keys():
                 filename = _escape_md_link_text(os.path.basename(file_key))
                 file_hash = hashlib.sha256(file_key.encode("utf-8")).hexdigest()
                 file_as_link_to_diff = (
                     f"https://github.com/{self.github_repository}/pull/{self.pr_number}/files#diff-{file_hash}"
                 )
 
-                if not self.bs_evaluator:
-                    diff = 0.0
-                elif ecr_key not in self.bs_evaluator.evaluated_reports_coverage.keys():
-                    diff = 0.0
-                elif (
-                    file_key
-                    not in self.bs_evaluator.evaluated_reports_coverage[ecr_key].changed_files_coverage_reached.keys()
-                ):
+                if bs_erc is None or file_key not in bs_erc.changed_files_coverage_reached:
                     diff = 0.0
                 else:
                     diff = (
-                        evaluated_reports_coverage[ecr_key].changed_files_coverage_reached[file_key]
-                        - self.bs_evaluator.evaluated_reports_coverage[ecr_key].changed_files_coverage_reached[file_key]
+                        curr_erc.changed_files_coverage_reached[file_key]
+                        - bs_erc.changed_files_coverage_reached[file_key]
                     )
 
                 line = (
                     f"\n| [{filename}]({file_as_link_to_diff})"
-                    f" | {evaluated_reports_coverage[ecr_key].changed_files_coverage_reached[file_key]}%"
-                    f" | {evaluated_reports_coverage[ecr_key].per_changed_file_threshold}%"
+                    f" | {curr_erc.changed_files_coverage_reached[file_key]}%"
+                    f" | {curr_erc.per_changed_file_threshold}%"
                     f" | {'+' if diff > 0.001 else ''}{round(diff, 2)}%"
-                    f" | {p if evaluated_reports_coverage[ecr_key].changed_files_passed[file_key] else f} |"
+                    f" | {p if curr_erc.changed_files_passed[file_key] else f} |"
                 )
                 lines.append(line)
 

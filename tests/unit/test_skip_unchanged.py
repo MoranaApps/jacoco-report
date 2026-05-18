@@ -77,11 +77,11 @@ def _make_run_mocks(
 def _report_with_changes(name: str, make_report_file_coverage) -> ReportFileCoverage:
     fc = FileCoverage("Foo.java", "src", Counter(0, 10), Counter(0, 10), Counter(0, 10),
                       Counter(0, 10), Counter(0, 10), Counter(0, 10))
-    return make_report_file_coverage(name=name, changed_files_coverage={"src/Foo.java": fc})
+    return make_report_file_coverage(path=f"{name}.xml", name=name, changed_files_coverage={"src/Foo.java": fc})
 
 
 def _report_without_changes(name: str, make_report_file_coverage) -> ReportFileCoverage:
-    return make_report_file_coverage(name=name, changed_files_coverage={})
+    return make_report_file_coverage(path=f"{name}.xml", name=name, changed_files_coverage={})
 
 
 # --- scan-stage filter tests ---
@@ -321,11 +321,13 @@ def test_skip_unchanged_evaluate_unchanged_true_mixed_input_uses_all_reports_for
     make_coverage,
 ):
     unchanged_low = make_report_file_coverage(
+        path="unchanged-low.xml",
         name="Unchanged Low",
         overall_coverage=make_coverage(instruction=Counter(missed=10, covered=0)),
         changed_files_coverage={},
     )
     changed_high = make_report_file_coverage(
+        path="changed-high.xml",
         name="Changed High",
         overall_coverage=make_coverage(instruction=Counter(missed=0, covered=10)),
         changed_files_coverage={

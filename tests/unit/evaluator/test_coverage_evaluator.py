@@ -140,7 +140,7 @@ def test_review_violations_report_overall_coverage_below_threshold(evaluator, mo
     }
     evaluator.review_violations()
 
-    assert "Report 'filepath' overall coverage 40.0 is below the threshold 50.0." in evaluator.violations
+    assert "Report 'module-a' overall coverage 40.0 is below the threshold 50.0." in evaluator.violations
 
 def test_review_violations_report_changed_files_coverage_below_threshold(evaluator, mocker: MockerFixture):
     evaluator.total_coverage_overall = 75.0
@@ -169,7 +169,7 @@ def test_review_violations_report_changed_files_coverage_below_threshold(evaluat
     }
     evaluator.review_violations()
 
-    assert "Report 'filepath' changed files coverage 40.0 is below the threshold 50.0." in evaluator.violations
+    assert "Report 'module-a' changed files coverage 40.0 is below the threshold 50.0." in evaluator.violations
 
 def test_evaluate_group_with_zero_coverage(caplog):
     # Create a sample report file coverage
@@ -248,7 +248,7 @@ def test_threshold_uses_group_when_matched(mocker: MockerFixture):
         report_groups=[group],
     )
     evaluator.evaluate()
-    ev = evaluator.evaluated_reports_coverage["report-a"]
+    ev = evaluator.evaluated_reports_coverage["report-a.xml"]
     assert ev.overall_coverage_threshold == 70.0
     assert ev.changed_files_threshold == 60.0
     assert ev.per_changed_file_threshold == 50.0
@@ -267,7 +267,7 @@ def test_threshold_falls_back_to_report_thresholds_default_when_no_group_matches
         report_thresholds_default=(55.0, 45.0, 35.0),
     )
     evaluator.evaluate()
-    ev = evaluator.evaluated_reports_coverage["report-b"]
+    ev = evaluator.evaluated_reports_coverage["report-b.xml"]
     # fallback chain: group field → report-thresholds-default → 0.0 (global NOT in chain)
     assert ev.overall_coverage_threshold == 55.0
     assert ev.changed_files_threshold == 45.0
@@ -286,7 +286,7 @@ def test_threshold_partial_group_thresholds_fall_back_to_report_thresholds_defau
         report_thresholds_default=(55.0, 45.0, 35.0),
     )
     evaluator.evaluate()
-    ev = evaluator.evaluated_reports_coverage["report-c"]
+    ev = evaluator.evaluated_reports_coverage["report-c.xml"]
     # overall is set on the group; changed_files and per_file fall back to report_thresholds_default
     assert ev.overall_coverage_threshold == 70.0
     assert ev.changed_files_threshold == 45.0
@@ -314,7 +314,7 @@ def test_report_thresholds_default_fallback_all_explicit(mocker: MockerFixture):
         report_thresholds_default=(55.0, 45.0, 35.0),
     )
     evaluator.evaluate()
-    ev = evaluator.evaluated_reports_coverage["report-a"]
+    ev = evaluator.evaluated_reports_coverage["report-a.xml"]
     assert ev.overall_coverage_threshold == 80.0
     assert ev.changed_files_threshold == 70.0
     assert ev.per_changed_file_threshold == 60.0
@@ -333,7 +333,7 @@ def test_report_thresholds_default_fallback_from_default(mocker: MockerFixture):
         report_thresholds_default=(75.0, 60.0, 40.0),
     )
     evaluator.evaluate()
-    ev = evaluator.evaluated_reports_coverage["report-b"]
+    ev = evaluator.evaluated_reports_coverage["report-b.xml"]
     assert ev.overall_coverage_threshold == 75.0
     assert ev.changed_files_threshold == 60.0
     assert ev.per_changed_file_threshold == 40.0
@@ -352,7 +352,7 @@ def test_report_thresholds_default_fallback_to_zero(mocker: MockerFixture):
         report_thresholds_default=(0.0, 0.0, 0.0),
     )
     evaluator.evaluate()
-    ev = evaluator.evaluated_reports_coverage["report-c"]
+    ev = evaluator.evaluated_reports_coverage["report-c.xml"]
     assert ev.overall_coverage_threshold == 0.0
     assert ev.changed_files_threshold == 0.0
     assert ev.per_changed_file_threshold == 0.0
@@ -371,7 +371,7 @@ def test_report_thresholds_default_field_level_mix(mocker: MockerFixture):
         report_thresholds_default=(75.0, 60.0, 0.0),
     )
     evaluator.evaluate()
-    ev = evaluator.evaluated_reports_coverage["report-d"]
+    ev = evaluator.evaluated_reports_coverage["report-d.xml"]
     assert ev.overall_coverage_threshold == 80.0   # from group
     assert ev.changed_files_threshold == 60.0       # from report_thresholds_default
     assert ev.per_changed_file_threshold == 0.0     # from report_thresholds_default
@@ -579,7 +579,7 @@ def test_report_overall_coverage_logged_as_na_when_no_metric_weight(mocker: Mock
     messages = [r.message for r in caplog.records]
     assert "Report 'na_report' has no overall coverage data for selected metric; treated as passed." in messages
     assert not any("Report 'na_report' reached overall coverage" in m for m in messages)
-    assert evaluator.evaluated_reports_coverage["na_report"].overall_passed is True
+    assert evaluator.evaluated_reports_coverage["na_report.xml"].overall_passed is True
 
 
 def test_report_changed_files_coverage_logged_as_na_when_no_metric_weight(mocker: MockerFixture, caplog):
@@ -623,7 +623,7 @@ def test_report_changed_files_coverage_logged_as_na_when_no_metric_weight(mocker
     messages = [r.message for r in caplog.records]
     assert "Report 'na_cf_report' has no changed-files coverage data for selected metric; treated as passed." in messages
     assert not any("Report 'na_cf_report' reached average changed files coverage" in m for m in messages)
-    assert evaluator.evaluated_reports_coverage["na_cf_report"].avg_changed_files_passed is True
+    assert evaluator.evaluated_reports_coverage["na_cf_report.xml"].avg_changed_files_passed is True
 
 
 def test_report_changed_files_coverage_logged_for_changed_report(mocker: MockerFixture, caplog):
@@ -777,10 +777,10 @@ def _make_report_with_changed_file_instruction(
 # ---------------------------------------------------------------------------
 
 def test_duplicate_report_name_emits_warning(make_report_file_coverage, mocker, caplog):
-    """Evaluator logs a WARNING when two reports share the same name (title)."""
+    """Evaluator logs a WARNING when two reports share the same XML name (title)."""
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
-    report_a = make_report_file_coverage(name="same-name")
-    report_b = make_report_file_coverage(name="same-name")
+    report_a = make_report_file_coverage(path="module-a/jacoco.xml", name="same-name")
+    report_b = make_report_file_coverage(path="module-b/jacoco.xml", name="same-name")
 
     evaluator = CoverageEvaluator(
         report_files_coverage=[report_a, report_b],
@@ -792,6 +792,24 @@ def test_duplicate_report_name_emits_warning(make_report_file_coverage, mocker, 
         evaluator.evaluate()
 
     assert "Duplicate report name 'same-name' detected" in caplog.text
+
+
+def test_duplicate_report_name_does_not_lose_data(make_report_file_coverage, mocker):
+    """When two reports share the XML name but have different paths, both are preserved."""
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
+    report_a = make_report_file_coverage(path="module-a/jacoco.xml", name="JaCoCo Coverage Report")
+    report_b = make_report_file_coverage(path="module-b/jacoco.xml", name="JaCoCo Coverage Report")
+
+    evaluator = CoverageEvaluator(
+        report_files_coverage=[report_a, report_b],
+        global_min_coverage_overall=0.0,
+        global_min_coverage_changed_files=0.0,
+    )
+    evaluator.evaluate()
+
+    assert "module-a/jacoco.xml" in evaluator.evaluated_reports_coverage
+    assert "module-b/jacoco.xml" in evaluator.evaluated_reports_coverage
+    assert len(evaluator.evaluated_reports_coverage) == 2
 
 
 # ---------------------------------------------------------------------------

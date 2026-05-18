@@ -1222,7 +1222,7 @@ def test_baseline_report_matched_by_name(make_report_file_coverage, make_coverag
     pr_comment_generator.evaluator = evaluator
     pr_comment_generator.bs_evaluator = bs_evaluator
 
-    ev = evaluator.evaluated_reports_coverage["module-a"]
+    ev = evaluator.evaluated_reports_coverage["report.xml"]
     diff_o, _ = pr_comment_generator._calculate_baseline_report_diffs(ev)
     assert abs(diff_o - 20.0) < 0.1
 

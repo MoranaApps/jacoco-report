@@ -96,8 +96,10 @@ class CoverageEvaluator:
         changed_file_counter = 0
 
         # evaluation of all report files (report == input xml file)
+        seen_report_names: set[str] = set()
         for report in self._report_files_coverage:
             evaluated_coverage_report: EvaluatedReportCoverage = EvaluatedReportCoverage(report.name, report.group_name)
+            evaluated_coverage_report.path = report.path
 
             # get report's overall values
             mi, co = report.overall_coverage.get_values_by_metric(m)
@@ -120,14 +122,16 @@ class CoverageEvaluator:
                 evaluated_coverage_report.avg_changed_files_coverage.coverage()
             )
 
-            # save the evaluated report
-            if report.name in self.evaluated_reports_coverage:
+            # Warn about duplicate XML report name; keying by path prevents data loss.
+            if report.name in seen_report_names:
                 logger.warning(
-                    "Duplicate report name '%s' detected; earlier evaluation data will be overwritten."
-                    " Ensure each report has a unique name to avoid incorrect threshold results.",
+                    "Duplicate report name '%s' detected; using file path as unique key to prevent"
+                    " data collision. Consider setting a unique <title> per module in the Maven"
+                    " JaCoCo plugin to avoid confusion in the PR comment.",
                     report.name,
                 )
-            self.evaluated_reports_coverage[report.name] = self._evaluate_report(report, evaluated_coverage_report)
+            seen_report_names.add(report.name)
+            self.evaluated_reports_coverage[report.path] = self._evaluate_report(report, evaluated_coverage_report)
 
         # evaluation of all groups (group == named set of reports with common paths/thresholds)
         for group in self._report_groups:
@@ -215,16 +219,17 @@ class CoverageEvaluator:
         report_violations: list[str] = []
         changed_files_violations: list[str] = []
 
-        for report_path, evaluated_coverage_report in self.evaluated_reports_coverage.items():
+        for evaluated_coverage_report in self.evaluated_reports_coverage.values():
+            report_display = evaluated_coverage_report.name
             if not evaluated_coverage_report.overall_passed:
                 report_violations.append(
-                    f"Report '{report_path}' overall coverage {evaluated_coverage_report.overall_coverage_reached} "
+                    f"Report '{report_display}' overall coverage {evaluated_coverage_report.overall_coverage_reached} "
                     f"is below the threshold {evaluated_coverage_report.overall_coverage_threshold}."
                 )
                 self.reached_threshold_overall = False
             if not evaluated_coverage_report.avg_changed_files_passed:
                 report_violations.append(
-                    f"Report '{report_path}' changed files coverage "
+                    f"Report '{report_display}' changed files coverage "
                     f"{evaluated_coverage_report.avg_changed_files_coverage_reached} is below the threshold "
                     f"{evaluated_coverage_report.changed_files_threshold}."
                 )
@@ -232,7 +237,7 @@ class CoverageEvaluator:
             for key, passed in evaluated_coverage_report.changed_files_passed.items():
                 if not passed:
                     changed_files_violations.append(
-                        f"Report '{report_path}' changed file '{key}' coverage "
+                        f"Report '{report_display}' changed file '{key}' coverage "
                         f"{evaluated_coverage_report.changed_files_coverage_reached[key]} is below the threshold "
                         f"{evaluated_coverage_report.per_changed_file_threshold}."
                     )
