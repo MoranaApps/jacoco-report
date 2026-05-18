@@ -10,8 +10,9 @@ class EvaluatedReportCoverage:
     A class that represents an evaluated coverage of one report file or report group.
     """
 
-    def __init__(self, name: str = "Unknown", group_name: str = "Unknown"):
+    def __init__(self, name: str = "Unknown", group_name: str = "Unknown", path: str = ""):
         self.name: str = name
+        self.path: str = path
         self.group_name: str = group_name
 
         # PR comment data
@@ -36,6 +37,7 @@ class EvaluatedReportCoverage:
         """Convert object to dictionary for JSON serialization"""
         return {
             "name": self.name,
+            "path": self.path,
             "group_name": self.group_name,
             "overall_passed": self.overall_passed,
             "overall_coverage_reached": self.overall_coverage_reached,
@@ -55,7 +57,7 @@ class EvaluatedReportCoverage:
 
     def clone(self) -> "EvaluatedReportCoverage":
         """Return a detached copy of the evaluated coverage object."""
-        clone = EvaluatedReportCoverage(self.name, self.group_name)
+        clone = EvaluatedReportCoverage(self.name, self.group_name, self.path)
         clone.overall_passed = self.overall_passed
         clone.overall_coverage_reached = self.overall_coverage_reached
         clone.overall_coverage_threshold = self.overall_coverage_threshold

@@ -320,7 +320,7 @@ class JaCoCoReport:
         self.reached_threshold_per_change_file = evaluator_for_results.reached_threshold_per_change_file
 
         if fail_unchanged_enabled and filtered_unchanged_reports:
-            filtered_unchanged_report_names = {report.name for report in filtered_unchanged_reports}
+            filtered_unchanged_report_names = {report.path for report in filtered_unchanged_reports}
             self.reached_threshold_fail_unchanged = all(
                 evaluated_report.overall_passed
                 for report_name, evaluated_report in evaluator_for_results.evaluated_reports_coverage.items()
@@ -332,7 +332,7 @@ class JaCoCoReport:
         # generate the comment(s)
         logger.info("Generating PR comment(s).")
         skip_report_names: frozenset[str] = (
-            frozenset(r.name for r in filtered_unchanged_reports)
+            frozenset(r.path for r in filtered_unchanged_reports)
             if skip_unchanged and evaluate_filtered_unchanged and filtered_unchanged_reports
             else frozenset()
         )
