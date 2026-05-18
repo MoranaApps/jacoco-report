@@ -275,24 +275,17 @@ class PRCommentGenerator:
             bs_covered_ch += bs.avg_changed_files_coverage.covered
             bs_missed_ch += bs.avg_changed_files_coverage.missed
 
-        curr_total_o = curr_covered_o + curr_missed_o
-        bs_total_o = bs_covered_o + bs_missed_o
-        curr_total_ch = curr_covered_ch + curr_missed_ch
-        bs_total_ch = bs_covered_ch + bs_missed_ch
+        global_total_o = sum(
+            erc.overall_coverage.covered + erc.overall_coverage.missed
+            for erc in self.evaluator.evaluated_reports_coverage.values()
+        )
+        global_total_ch = sum(
+            erc.avg_changed_files_coverage.covered + erc.avg_changed_files_coverage.missed
+            for erc in self.evaluator.evaluated_reports_coverage.values()
+        )
 
-        diff_o = 0.0
-        if curr_total_o > 0 and bs_total_o > 0:
-            diff_o = (
-                round(curr_covered_o / curr_total_o * 100, 2)
-                - round(bs_covered_o / bs_total_o * 100, 2)
-            )
-
-        diff_ch = 0.0
-        if curr_total_ch > 0 and bs_total_ch > 0:
-            diff_ch = (
-                round(curr_covered_ch / curr_total_ch * 100, 2)
-                - round(bs_covered_ch / bs_total_ch * 100, 2)
-            )
+        diff_o = round((curr_covered_o - bs_covered_o) / global_total_o * 100, 2) if global_total_o > 0 else 0.0
+        diff_ch = round((curr_covered_ch - bs_covered_ch) / global_total_ch * 100, 2) if global_total_ch > 0 else 0.0
 
         return diff_o, diff_ch
 
@@ -548,24 +541,19 @@ class PRCommentGenerator:
             bs_covered_ch += bs.avg_changed_files_coverage.covered
             bs_missed_ch += bs.avg_changed_files_coverage.missed
 
-        curr_total_o = curr_covered_o + curr_missed_o
-        bs_total_o = bs_covered_o + bs_missed_o
-        curr_total_ch = curr_covered_ch + curr_missed_ch
-        bs_total_ch = bs_covered_ch + bs_missed_ch
+        group_total_o = sum(
+            erc.overall_coverage.covered + erc.overall_coverage.missed
+            for erc in self.evaluator.evaluated_reports_coverage.values()
+            if erc.group_name == group_name
+        )
+        group_total_ch = sum(
+            erc.avg_changed_files_coverage.covered + erc.avg_changed_files_coverage.missed
+            for erc in self.evaluator.evaluated_reports_coverage.values()
+            if erc.group_name == group_name
+        )
 
-        diff_o = 0.0
-        if curr_total_o > 0 and bs_total_o > 0:
-            diff_o = (
-                round(curr_covered_o / curr_total_o * 100, 2)
-                - round(bs_covered_o / bs_total_o * 100, 2)
-            )
-
-        diff_ch = 0.0
-        if curr_total_ch > 0 and bs_total_ch > 0:
-            diff_ch = (
-                round(curr_covered_ch / curr_total_ch * 100, 2)
-                - round(bs_covered_ch / bs_total_ch * 100, 2)
-            )
+        diff_o = round((curr_covered_o - bs_covered_o) / group_total_o * 100, 2) if group_total_o > 0 else 0.0
+        diff_ch = round((curr_covered_ch - bs_covered_ch) / group_total_ch * 100, 2) if group_total_ch > 0 else 0.0
 
         return diff_o, diff_ch
 

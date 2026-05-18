@@ -113,8 +113,8 @@ def test_global_table_diff_wrong_with_partial_baseline(jacoco_report: JaCoCoRepo
     Baseline (1 XML file — only Module A):
       Module A: missed=50, covered=50 → round(50/100*100, 2) = 50.0%
 
-    Global diff (intersection: only "Partial Baseline Module A" is matched):
-      round(80/100*100, 2) − round(50/100*100, 2) = 80.0 − 50.0 = +30.0%
+    Global diff (intersection: only "Partial Baseline Module A" matched, weighted to global total):
+      (80 − 50) / 400 × 100 = 30 / 400 × 100 = +7.5%
 
     Per-report diffs (name lookup):
       "Partial Baseline Module A" found in bs → 80.0 − 50.0 = +30.0%
@@ -163,9 +163,9 @@ def test_global_table_diff_wrong_with_partial_baseline(jacoco_report: JaCoCoRepo
 
     generated_comment = mock_add_comment.call_args[0][1]
 
-    # Matched reports: only Module A → diff = 80.0 − 50.0 = +30.0%
-    assert "| **Overall**       | 81.25% | 0.0% | +30.0% | ✅ |" in generated_comment
-    assert "| **Changed Files** | 81.25% | 0.0% | +30.0% | ✅ |" in generated_comment
+    # Global diff: (80−50)/400×100 = 7.5% (weighted to all 4 reports' 400 instructions)
+    assert "| **Overall**       | 81.25% | 0.0% | +7.5% | ✅ |" in generated_comment
+    assert "| **Changed Files** | 81.25% | 0.0% | +7.5% | ✅ |" in generated_comment
 
     # Module A: name matched in baseline → 80.0 − 50.0 = +30.0%
     assert (
@@ -208,20 +208,20 @@ def test_group_table_diff_wrong_with_partial_group_baseline(mocker):
     group-alpha baseline (only Module A at 50%):
       Counter(50, 50) → 50/100 = 50.0%
 
-    group-alpha diff (intersection: only Module A matched):
-      matched Module A current:  Counter(20, 80) → 80/100 = 80.0%
-      matched Module A baseline: Counter(50, 50) → 50/100 = 50.0%
-      diff_o = 80.0 − 50.0 = +30.0%
+    group-alpha diff (intersection: only Module A matched, weighted to group total):
+      group-alpha total: Counter(20+10, 80+90) = 200 instructions
+      matched Module A: curr_covered=80, bs_covered=50
+      diff_o = (80 − 50) / 200 × 100 = 30 / 200 × 100 = +15.0%
 
     group-beta current (Module C + Module D):
       Counter(30+15, 70+85) = Counter(45, 155) → 155/200 = 77.5%
       "group-beta" not in bs_evaluator.evaluated_groups_coverage
       calculate_baseline_group_diffs("group-beta"): returns (0.0, 0.0)
 
-    Global diff (intersection: only Module A matched):
-      matched current:  Counter(20, 80) → 80.0%
-      matched baseline: Counter(50, 50) → 50.0%
-      diff = 80.0 − 50.0 = +30.0%
+    Global diff (intersection: only Module A matched, weighted to global total):
+      global total: 400 instructions (all 4 reports)
+      matched Module A: curr_covered=80, bs_covered=50
+      diff = (80 − 50) / 400 × 100 = 30 / 400 × 100 = +7.5%
     """
     _mock_common_action_inputs(mocker)
 
@@ -276,13 +276,13 @@ def test_group_table_diff_wrong_with_partial_group_baseline(mocker):
     mock_gh = mocker.Mock()
     generator = PRCommentGenerator(mock_gh, evaluator, bs_evaluator, 35)
 
-    # Matched global: only Module A → round(80/100*100,2) − round(50/100*100,2) = 80.0 − 50.0 = +30.0%
+    # Global diff: (80−50)/400×100 = 7.5% (weighted to all 4 reports' 400 instructions)
     global_table = generator.get_basic_table_for_all("✅", "❌")
-    assert "+30.0%" in global_table
+    assert "+7.5%" in global_table
 
-    # group-alpha: only Module A matched → 80.0 − 50.0 = +30.0%
+    # group-alpha diff: (80−50)/200×100 = 15.0% (weighted to group-alpha's 200 instructions)
     groups_table = generator.get_groups_table("✅", "❌")
-    assert "+30.0%" in groups_table
+    assert "+15.0%" in groups_table
 
     # group-beta: name not in baseline groups → diff = 0.0%
     diff_o, diff_ch = generator.calculate_baseline_group_diffs(erc_beta)
@@ -834,9 +834,12 @@ def test_group_flow_partial_baseline_with_explicit_per_group_baseline_paths(
       baseline coverage (only Module A):
         Counter(50, 50) → 50/100 = 50.0%
 
-      group-alpha diff (intersection: only Module A matched):
-        matched current:  Counter(20, 80) → 80.0%
-        matched baseline: Counter(50, 50) → 50.0%
+      group-alpha diff (intersection: only Module A matched, weighted to group total):
+        group-alpha total: 200 instructions (Module A + Module B)
+        matched Module A: curr_covered=80, bs_covered=50
+        diff = (80 − 50) / 200 × 100 = +15.0%
+
+      per-report Module A (name lookup, report-scoped denominator):
         diff = 80.0 − 50.0 = +30.0%
 
     group-beta (Module C + Module D):
@@ -893,8 +896,10 @@ def test_group_flow_partial_baseline_with_explicit_per_group_baseline_paths(
 
     generated_comment = mock_add_comment.call_args[0][1]
 
-    # group-alpha: intersection matched Module A only → 80.0 − 50.0 = +30.0%
+    # Report-level Module A: 80.0 − 50.0 = +30.0% (per-report, report-scoped denominator)
     assert "+30.0%" in generated_comment
+    # Group-alpha: (80−50)/200×100 = +15.0% (weighted to group's 200 instructions)
+    assert "+15.0%" in generated_comment
 
     # group-beta: no baseline configured → no Δ column for this group
     assert "group-beta" in generated_comment

@@ -148,14 +148,14 @@ comment_single_minimalist_instruction_with_bs = """**JaCoCo Coverage Report**
 
 | Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |
 |-------------------|-----|-----|-----|----|
-| **Overall**       | 92.0% | 75.0% | +7.0% | ✅ |
+| **Overall**       | 92.0% | 75.0% | +4.5% | ✅ |
 | **Changed Files** | 89.71% | 80.0% | +9.0% | ✅ |"""
 
 comment_single_minimalist_instruction_with_bs_summary = """**JaCoCo Coverage Report**
 
 | Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |
 |-------------------|-----|-----|-----|----|
-| **Overall**       | 92.0% | 75.0% | +7.0% | ✅ |
+| **Overall**       | 92.0% | 75.0% | +4.5% | ✅ |
 | **Changed Files** | 89.71% | 80.0% | +9.0% | ✅ |
 
 | Report | Coverage (O/Ch) | Threshold (O/Ch) | Δ Coverage (O/Ch) | Status (O/Ch) |
@@ -200,7 +200,7 @@ comment_more_files_single_summary_instruction_with_modules_with_bs = """**JaCoCo
 
 | Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |
 |-------------------|-----|-----|-----|----|
-| **Overall**       | 92.0% | 75.0% | +7.0% | ✅ |
+| **Overall**       | 92.0% | 75.0% | +4.5% | ✅ |
 | **Changed Files** | 89.71% | 80.0% | +9.0% | ✅ |
 
 | Module | Coverage (O/Ch) | Threshold (O/Ch) | Δ Coverage (O/Ch) | Status (O/Ch) |
@@ -252,7 +252,7 @@ comment_more_files_single_summary_instruction_with_modules_no_module_thresholds_
 
 | Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |
 |-------------------|-----|-----|-----|----|
-| **Overall**       | 92.0% | 75.0% | +7.0% | ✅ |
+| **Overall**       | 92.0% | 75.0% | +4.5% | ✅ |
 | **Changed Files** | 89.71% | 80.0% | +9.0% | ✅ |
 
 | Module | Coverage (O/Ch) | Threshold (O/Ch) | Δ Coverage (O/Ch) | Status (O/Ch) |
@@ -306,7 +306,7 @@ comment_more_files_single_detailed_instruction_no_modules_with_bs = """**JaCoCo 
 
 | Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |
 |-------------------|-----|-----|-----|----|
-| **Overall**       | 92.0% | 75.0% | +7.0% | ✅ |
+| **Overall**       | 92.0% | 75.0% | +4.5% | ✅ |
 | **Changed Files** | 89.71% | 80.0% | +9.0% | ✅ |
 
 | Report | Coverage (O/Ch) | Threshold (O/Ch) | Δ Coverage (O/Ch) | Status (O/Ch) |
@@ -366,7 +366,7 @@ comment_more_files_single_detailed_instruction_with_modules_with_bs = """**JaCoC
 
 | Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |
 |-------------------|-----|-----|-----|----|
-| **Overall**       | 92.0% | 75.0% | +7.0% | ✅ |
+| **Overall**       | 92.0% | 75.0% | +4.5% | ✅ |
 | **Changed Files** | 89.71% | 80.0% | +9.0% | ✅ |
 
 | Module | Coverage (O/Ch) | Threshold (O/Ch) | Δ Coverage (O/Ch) | Status (O/Ch) |
@@ -398,7 +398,7 @@ comment_more_files_single_detailed_instruction_with_modules_with_bs_fail_module 
 
 | Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |
 |-------------------|-----|-----|-----|----|
-| **Overall**       | 92.0% | 75.0% | +7.0% | ✅ |
+| **Overall**       | 92.0% | 75.0% | +4.5% | ✅ |
 | **Changed Files** | 89.71% | 80.0% | +9.0% | ✅ |
 
 | Module | Coverage (O/Ch) | Threshold (O/Ch) | Δ Coverage (O/Ch) | Status (O/Ch) |
@@ -422,7 +422,7 @@ comment_more_files_single_detailed_instruction_with_partial_modules_1 = """**JaC
 
 | Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |
 |-------------------|-----|-----|-----|----|
-| **Overall**       | 92.0% | 75.0% | +7.0% | ✅ |
+| **Overall**       | 92.0% | 75.0% | +4.5% | ✅ |
 | **Changed Files** | 89.71% | 80.0% | +9.0% | ✅ |
 
 | Module | Coverage (O/Ch) | Threshold (O/Ch) | Δ Coverage (O/Ch) | Status (O/Ch) |
@@ -446,7 +446,7 @@ comment_more_files_single_detailed_instruction_with_partial_modules_2 = """**JaC
 
 | Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |
 |-------------------|-----|-----|-----|----|
-| **Overall**       | 92.0% | 75.0% | +7.0% | ✅ |
+| **Overall**       | 92.0% | 75.0% | +4.5% | ✅ |
 | **Changed Files** | 89.71% | 80.0% | +9.0% | ✅ |
 
 | Module | Coverage (O/Ch) | Threshold (O/Ch) | Δ Coverage (O/Ch) | Status (O/Ch) |
@@ -470,7 +470,7 @@ comment_more_files_single_detailed_instruction_with_partial_modules_3 = """**JaC
 
 | Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |
 |-------------------|-----|-----|-----|----|
-| **Overall**       | 92.0% | 75.0% | +7.0% | ✅ |
+| **Overall**       | 92.0% | 75.0% | +4.5% | ✅ |
 | **Changed Files** | 89.71% | 80.0% | +9.0% | ✅ |
 
 | Module | Coverage (O/Ch) | Threshold (O/Ch) | Δ Coverage (O/Ch) | Status (O/Ch) |
@@ -525,7 +525,7 @@ comment_more_files_single_detailed_instruction_with_modules_no_module_thresholds
 
 | Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |
 |-------------------|-----|-----|-----|----|
-| **Overall**       | 92.0% | 75.0% | +7.0% | ✅ |
+| **Overall**       | 92.0% | 75.0% | +4.5% | ✅ |
 | **Changed Files** | 89.71% | 80.0% | +9.0% | ✅ |
 
 | Module | Coverage (O/Ch) | Threshold (O/Ch) | Δ Coverage (O/Ch) | Status (O/Ch) |
@@ -581,7 +581,7 @@ comment_more_files_single_detailed_instruction_with_modules_no_module_thresholds
 
 | Metric (instruction) | Coverage | Threshold | Δ Coverage | Status |
 |-------------------|-----|-----|-----|----|
-| **Overall**       | 92.0% | 75.0% | +7.0% | ✅ |
+| **Overall**       | 92.0% | 75.0% | +4.5% | ✅ |
 | **Changed Files** | 89.71% | 80.0% | +9.0% | ✅ |
 
 | Module | Coverage (O/Ch) | Threshold (O/Ch) | Δ Coverage (O/Ch) | Status (O/Ch) |
