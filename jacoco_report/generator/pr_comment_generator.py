@@ -277,8 +277,7 @@ class PRCommentGenerator:
             bs_covered_ch += bs.avg_changed_files_coverage.covered
 
         global_total_o = sum(
-            erc.overall_coverage.covered + erc.overall_coverage.missed
-            for erc in curr_by_path.values()
+            erc.overall_coverage.covered + erc.overall_coverage.missed for erc in curr_by_path.values()
         )
         global_total_ch = sum(
             erc.avg_changed_files_coverage.covered + erc.avg_changed_files_coverage.missed
@@ -547,9 +546,7 @@ class PRCommentGenerator:
 
         group_name = evaluated_coverage.name
         curr_in_group = {
-            path: erc
-            for path, erc in self.evaluator.evaluated_reports_coverage.items()
-            if erc.group_name == group_name
+            path: erc for path, erc in self.evaluator.evaluated_reports_coverage.items() if erc.group_name == group_name
         }
 
         bs_reports = getattr(self.bs_evaluator, "evaluated_reports_coverage", {})
@@ -608,9 +605,7 @@ class PRCommentGenerator:
             return 0.0, 0.0
 
         diff_o = evaluated_coverage.overall_coverage_reached - bs_coverage.overall_coverage_reached
-        diff_ch = (
-            evaluated_coverage.avg_changed_files_coverage_reached - bs_coverage.avg_changed_files_coverage_reached
-        )
+        diff_ch = evaluated_coverage.avg_changed_files_coverage_reached - bs_coverage.avg_changed_files_coverage_reached
         return diff_o, diff_ch
 
     # Full example of the table
