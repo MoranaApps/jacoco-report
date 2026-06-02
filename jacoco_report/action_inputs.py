@@ -513,9 +513,9 @@ class ActionInputs:
             bool: True if the token is valid, False otherwise.
         """
 
-        # Token formats evolve; treat them as opaque and apply a sanity check.
-        # Require a reasonably long, non-whitespace token-like value.
-        return bool(re.fullmatch(r"\S{20,255}", token))
+        # Token formats evolve (including JWT-style tokens > 255 chars);
+        # treat them as opaque and only require a minimum non-whitespace length.
+        return bool(re.fullmatch(r"\S{20,}", token))
 
     @staticmethod
     def validate_inputs() -> None:

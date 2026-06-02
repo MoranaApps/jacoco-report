@@ -128,6 +128,8 @@ def _syntactically_valid_fake_token() -> str:
         "gho_" + "z" * 36,
         "ghr_" + "z" * 36,
         "github_pat_" + "A" * 22 + "_" + "B" * 59,
+        # JWT-style token (400+ chars) as issued by newer GitHub Actions runners
+        "eyJhbGciOiJSUzI1NiJ9." + "A" * 200 + "." + "B" * 172,
     ]
     for candidate in candidates:
         if ActionInputs.is_valid_github_token(candidate):
