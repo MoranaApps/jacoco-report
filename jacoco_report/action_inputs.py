@@ -509,8 +509,14 @@ class ActionInputs:
             bool: True if the token is valid, False otherwise.
         """
 
-        # Check if the token format matches GitHub patterns
-        token_pattern = r"^(gh[ps]_[a-zA-Z0-9]{36}|github_pat_[a-zA-Z0-9]{22}_[a-zA-Z0-9]{59})$"
+        # Accept known GitHub token families and avoid brittle fixed lengths.
+        token_pattern = (
+            r"^("
+            r"gh[pousr]_[A-Za-z0-9]{20,255}"
+            r"|"
+            r"github_pat_[A-Za-z0-9_]{20,255}"
+            r")$"
+        )
         return bool(re.match(token_pattern, token))
 
     @staticmethod

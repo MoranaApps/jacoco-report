@@ -163,6 +163,35 @@ def test_get_token(mocker):
     assert "some_token" == ActionInputs.get_token()
 
 
+@pytest.mark.parametrize(
+    "token",
+    [
+        "ghp_" + "a" * 36,
+        "ghs_" + "b" * 36,
+        "ghu_" + "c" * 36,
+        "gho_" + "d" * 36,
+        "ghr_" + "e" * 36,
+        "github_pat_" + "A" * 22 + "_" + "B" * 59,
+    ],
+)
+def test_is_valid_github_token_accepts_known_formats(token: str) -> None:
+    assert ActionInputs.is_valid_github_token(token)
+
+
+@pytest.mark.parametrize(
+    "token",
+    [
+        "",
+        "-1",
+        "ghx_" + "a" * 36,
+        "ghp_***",
+        "github_pat_invalid",
+    ],
+)
+def test_is_valid_github_token_rejects_invalid_formats(token: str) -> None:
+    assert not ActionInputs.is_valid_github_token(token)
+
+
 def test_get_paths(mocker):
     data = """
     test/path1
