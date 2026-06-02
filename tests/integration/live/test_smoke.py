@@ -117,6 +117,25 @@ def _is_comment_write_forbidden(output: str) -> bool:
     )
 
 
+def _syntactically_valid_fake_token() -> str:
+    """Return a fake token that passes local format validation but is not real."""
+    from jacoco_report.action_inputs import ActionInputs  # local import avoids module-level side effects
+
+    candidates = [
+        "ghs_" + "z" * 36,
+        "ghp_" + "z" * 36,
+        "ghu_" + "z" * 36,
+        "gho_" + "z" * 36,
+        "ghr_" + "z" * 36,
+        "github_pat_" + "A" * 22 + "_" + "B" * 59,
+    ]
+    for candidate in candidates:
+        if ActionInputs.is_valid_github_token(candidate):
+            return candidate
+
+    pytest.skip("No synthetic token format is accepted by ActionInputs.is_valid_github_token.")
+
+
 @pytest.fixture
 def cleanup_comments() -> Generator[list[int], None, None]:
     """Yield a list; append comment IDs to it and they will be deleted on teardown."""
@@ -240,12 +259,11 @@ def test_pagination_handling(cleanup_comments: list[int]) -> None:
 def test_invalid_token_produces_clear_error() -> None:
     """Action exits non-zero and logs a clear error when the token is invalid.
 
-    The token is syntactically valid (passes ``is_valid_github_token``) so
-    the action proceeds past input validation and actually contacts the API,
-    where the 401 response triggers the error path.
+    The token is chosen to pass ``is_valid_github_token`` in the current code,
+    then fail at API auth so the HTTP error path is exercised.
     """
     env = _live_env(
-        INPUT_TOKEN="ghs_" + "z" * 36,
+        INPUT_TOKEN=_syntactically_valid_fake_token(),
         INPUT_PATHS=TEST_PROJECT_GLOB,
         INPUT_COMMENT_LEVEL="minimal",
         INPUT_GLOBAL_THRESHOLDS="0.0*0.0",
