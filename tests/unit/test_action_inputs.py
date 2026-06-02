@@ -181,6 +181,17 @@ def test_is_valid_github_token_accepts_known_formats(token: str) -> None:
 @pytest.mark.parametrize(
     "token",
     [
+        "ghs_" + "a" * 30 + "_" + "b" * 5,
+        "ghs_" + "a" * 30 + "-" + "b" * 5,
+    ],
+)
+def test_is_valid_github_token_accepts_runtime_like_payload_chars(token: str) -> None:
+    assert ActionInputs.is_valid_github_token(token)
+
+
+@pytest.mark.parametrize(
+    "token",
+    [
         "",
         "-1",
         "ghx_" + "a" * 36,
