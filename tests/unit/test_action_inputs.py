@@ -204,9 +204,9 @@ def test_is_valid_github_token_accepts_runtime_like_payload_chars(token: str) ->
     [
         "",
         "-1",
-        "ghx_" + "a" * 36,
-        "ghp_***",
-        "github_pat_invalid",
+        "short_token",
+        "contains space token",
+        "token\twithtab",
     ],
 )
 def test_is_valid_github_token_rejects_invalid_formats(token: str) -> None:

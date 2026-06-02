@@ -513,10 +513,9 @@ class ActionInputs:
             bool: True if the token is valid, False otherwise.
         """
 
-        # Accept known GitHub token families and avoid brittle fixed lengths/charsets.
-        # GitHub token payloads may include characters beyond strict alphanumerics.
-        token_pattern = r"^(" r"gh[pousr]_\S{20,255}" r"|" r"github_pat_\S{20,255}" r")$"
-        return bool(re.match(token_pattern, token))
+        # Token formats evolve; treat them as opaque and apply a sanity check.
+        # Require a reasonably long, non-whitespace token-like value.
+        return bool(re.fullmatch(r"\S{20,255}", token))
 
     @staticmethod
     def validate_inputs() -> None:
