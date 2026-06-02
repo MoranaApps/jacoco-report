@@ -62,7 +62,11 @@ class ActionInputs:
         Get the GitHub token from the action inputs.
         The value is provided by GitHub environment variable and define by GitHub.
         """
-        return get_action_input(TOKEN)
+        token = get_action_input(TOKEN)
+        normalized = token.strip()
+        if normalized.lower().startswith("bearer "):
+            normalized = normalized[7:].strip()
+        return normalized
 
     @overload
     @staticmethod

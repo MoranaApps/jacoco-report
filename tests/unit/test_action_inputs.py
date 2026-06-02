@@ -163,6 +163,16 @@ def test_get_token(mocker):
     assert "some_token" == ActionInputs.get_token()
 
 
+def test_get_token_strips_surrounding_whitespace(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="  some_token\n")
+    assert "some_token" == ActionInputs.get_token()
+
+
+def test_get_token_strips_optional_bearer_prefix(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="Bearer some_token")
+    assert "some_token" == ActionInputs.get_token()
+
+
 @pytest.mark.parametrize(
     "token",
     [
