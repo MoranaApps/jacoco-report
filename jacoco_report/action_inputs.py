@@ -62,7 +62,11 @@ class ActionInputs:
         Get the GitHub token from the action inputs.
         The value is provided by GitHub environment variable and define by GitHub.
         """
-        return get_action_input(TOKEN)
+        token = get_action_input(TOKEN)
+        normalized = token.strip()
+        if normalized.lower().startswith("bearer "):
+            normalized = normalized[7:].strip()
+        return normalized
 
     @overload
     @staticmethod
@@ -509,9 +513,9 @@ class ActionInputs:
             bool: True if the token is valid, False otherwise.
         """
 
-        # Check if the token format matches GitHub patterns
-        token_pattern = r"^(gh[ps]_[a-zA-Z0-9]{36}|github_pat_[a-zA-Z0-9]{22}_[a-zA-Z0-9]{59})$"
-        return bool(re.match(token_pattern, token))
+        # Token formats evolve (including JWT-style tokens > 255 chars);
+        # treat them as opaque and only require a minimum non-whitespace length.
+        return bool(re.fullmatch(r"\S{20,}", token))
 
     @staticmethod
     def validate_inputs() -> None:

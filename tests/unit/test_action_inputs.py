@@ -163,6 +163,56 @@ def test_get_token(mocker):
     assert "some_token" == ActionInputs.get_token()
 
 
+def test_get_token_strips_surrounding_whitespace(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="  some_token\n")
+    assert "some_token" == ActionInputs.get_token()
+
+
+def test_get_token_strips_optional_bearer_prefix(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="Bearer some_token")
+    assert "some_token" == ActionInputs.get_token()
+
+
+@pytest.mark.parametrize(
+    "token",
+    [
+        "ghp_" + "a" * 36,
+        "ghs_" + "b" * 36,
+        "ghu_" + "c" * 36,
+        "gho_" + "d" * 36,
+        "ghr_" + "e" * 36,
+        "github_pat_" + "A" * 22 + "_" + "B" * 59,
+    ],
+)
+def test_is_valid_github_token_accepts_known_formats(token: str) -> None:
+    assert ActionInputs.is_valid_github_token(token)
+
+
+@pytest.mark.parametrize(
+    "token",
+    [
+        "ghs_" + "a" * 30 + "_" + "b" * 5,
+        "ghs_" + "a" * 30 + "-" + "b" * 5,
+    ],
+)
+def test_is_valid_github_token_accepts_runtime_like_payload_chars(token: str) -> None:
+    assert ActionInputs.is_valid_github_token(token)
+
+
+@pytest.mark.parametrize(
+    "token",
+    [
+        "",
+        "-1",
+        "short_token",
+        "contains space token",
+        "token\twithtab",
+    ],
+)
+def test_is_valid_github_token_rejects_invalid_formats(token: str) -> None:
+    assert not ActionInputs.is_valid_github_token(token)
+
+
 def test_get_paths(mocker):
     data = """
     test/path1
