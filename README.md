@@ -74,7 +74,7 @@ jobs:
             **/jacoco.xml
             **/reports/**/*.xml
             ${{ github.workspace }}/**/jacoco.xml
-          global-thresholds: '80*70*60'       # overall * changed-avg * per-changed-file
+          global-thresholds: '80*70'           # overall * changed-files-average
 
 ```
 
