@@ -13,7 +13,7 @@ jobs:
     steps:
       - id: set-matrix
         run: |
-          echo "matrix={\"python-version\": [\"3.12\", \"3.13\"]}" >> $GITHUB_OUTPUT
+          echo "matrix={\"python-version\": [\"3.13\", \"3.14\"]}" >> $GITHUB_OUTPUT
 
   analysis:
     needs: set-matrix
