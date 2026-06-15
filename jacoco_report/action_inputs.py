@@ -4,7 +4,6 @@ A module for handling the inputs provided to the GH action.
 
 import logging
 import sys
-import re
 from typing import Optional
 
 from jacoco_report.utils.constants import (
@@ -414,25 +413,6 @@ class ActionInputs:
         return errors
 
     @staticmethod
-    def is_valid_github_token(token: str) -> bool:
-        """
-        Check if the token format matches GitHub patterns.
-
-        Parameters:
-            token (str): The token to validate.
-
-        Returns:
-            bool: True if the token is valid, False otherwise.
-        """
-
-        # Check if the token format matches GitHub patterns
-        token_pattern = r"^(gh[ps]_[a-zA-Z0-9]{36}|github_pat_[a-zA-Z0-9]{22}_[a-zA-Z0-9]{59})$"
-        # token_pattern = r"^ghp_[a-zA-Z0-9]{36}$"
-        if bool(re.match(token_pattern, token)):
-            return True
-        return False
-
-    @staticmethod
     def validate_inputs() -> None:
         """
         Validates the inputs provided for the GH action.
@@ -442,8 +422,6 @@ class ActionInputs:
         token = ActionInputs.get_token()
         if not isinstance(token, str) or not token.strip():
             errors.append("'token' must be a non-empty string.")
-        elif not ActionInputs.is_valid_github_token(token):
-            errors.append("'token' must be a valid GitHub token.")
 
         paths = ActionInputs.get_paths(raw=True)
         if paths is None:
