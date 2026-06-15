@@ -1,5 +1,3 @@
-import logging
-
 from jacoco_report.action_inputs import ActionInputs
 from jacoco_report.utils.enums import FailOnThresholdEnum
 from main import run
@@ -7,8 +5,6 @@ from main import run
 def test_run_no_violations(mocker):
     # Mock dependencies
     mocker.patch("main.setup_logging")
-    mock_logger = mocker.patch("main.logging.getLogger")
-    mock_logger.return_value = mocker.Mock(spec=logging.Logger)
     mock_validate_inputs = mocker.patch.object(ActionInputs, "validate_inputs")
     mock_jacoco_report = mocker.patch("main.JaCoCoReport")
     mock_set_action_output = mocker.patch("main.set_action_output")
@@ -42,8 +38,6 @@ def test_run_no_violations(mocker):
 def test_run_fail_overall_level(mocker):
     # Mock dependencies
     mocker.patch("main.setup_logging")
-    mock_logger = mocker.patch("main.logging.getLogger")
-    mock_logger.return_value = mocker.Mock(spec=logging.Logger)
     mock_validate_inputs = mocker.patch.object(ActionInputs, "validate_inputs")
     mock_jacoco_report = mocker.patch("main.JaCoCoReport")
     mock_set_action_output = mocker.patch("main.set_action_output")
@@ -80,8 +74,6 @@ def test_run_fail_overall_level(mocker):
 def test_run_fail_changed_files_average_level(mocker):
     # Mock dependencies
     mocker.patch("main.setup_logging")
-    mock_logger = mocker.patch("main.logging.getLogger")
-    mock_logger.return_value = mocker.Mock(spec=logging.Logger)
     mock_validate_inputs = mocker.patch.object(ActionInputs, "validate_inputs")
     mock_jacoco_report = mocker.patch("main.JaCoCoReport")
     mock_set_action_output = mocker.patch("main.set_action_output")
@@ -118,8 +110,6 @@ def test_run_fail_changed_files_average_level(mocker):
 def test_run_fail_per_changed_file_level(mocker):
     # Mock dependencies
     mocker.patch("main.setup_logging")
-    mock_logger = mocker.patch("main.logging.getLogger")
-    mock_logger.return_value = mocker.Mock(spec=logging.Logger)
     mock_validate_inputs = mocker.patch.object(ActionInputs, "validate_inputs")
     mock_jacoco_report = mocker.patch("main.JaCoCoReport")
     mock_set_action_output = mocker.patch("main.set_action_output")
@@ -156,8 +146,6 @@ def test_run_fail_per_changed_file_level(mocker):
 def test_run_fail_disabled(mocker):
     # Mock dependencies
     mocker.patch("main.setup_logging")
-    mock_logger = mocker.patch("main.logging.getLogger")
-    mock_logger.return_value = mocker.Mock(spec=logging.Logger)
     mock_validate_inputs = mocker.patch.object(ActionInputs, "validate_inputs")
     mock_jacoco_report = mocker.patch("main.JaCoCoReport")
     mock_set_action_output = mocker.patch("main.set_action_output")
@@ -195,15 +183,15 @@ def test_run_fail_disabled(mocker):
 def test_run_fail_disabled_level(mocker):
     # Mock dependencies
     mocker.patch("main.setup_logging")
-    mock_logger = mocker.patch("main.logging.getLogger")
-    mock_logger.return_value = mocker.Mock(spec=logging.Logger)
     mock_validate_inputs = mocker.patch.object(ActionInputs, "validate_inputs")
     mock_jacoco_report = mocker.patch("main.JaCoCoReport")
     mock_set_action_output = mocker.patch("main.set_action_output")
     mock_set_action_output_text = mocker.patch("main.set_action_output_text")
     mock_set_action_failed = mocker.patch("main.set_action_failed")
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_fail_on_threshold",
-                 return_value=[FailOnThresholdEnum.OVERALL, FailOnThresholdEnum.CHANGED_FILES_AVERAGE])
+    mocker.patch(
+        "jacoco_report.action_inputs.ActionInputs.get_fail_on_threshold",
+        return_value=[FailOnThresholdEnum.OVERALL, FailOnThresholdEnum.CHANGED_FILES_AVERAGE],
+    )
 
     # Create a mock JaCoCoReport instance
     mock_jr = mock_jacoco_report.return_value
@@ -234,14 +222,15 @@ def test_run_fail_disabled_level(mocker):
 
 def test_run_operational_violation_fails_even_with_fail_unchanged_only(mocker):
     mocker.patch("main.setup_logging")
-    mock_logger = mocker.patch("main.logging.getLogger")
-    mock_logger.return_value = mocker.Mock(spec=logging.Logger)
     mocker.patch.object(ActionInputs, "validate_inputs")
     mock_jacoco_report = mocker.patch("main.JaCoCoReport")
     mock_set_action_output = mocker.patch("main.set_action_output")
     mock_set_action_output_text = mocker.patch("main.set_action_output_text")
     mock_set_action_failed = mocker.patch("main.set_action_failed")
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_fail_on_threshold", return_value=[FailOnThresholdEnum.FAIL_UNCHANGED])
+    mocker.patch(
+        "jacoco_report.action_inputs.ActionInputs.get_fail_on_threshold",
+        return_value=[FailOnThresholdEnum.FAIL_UNCHANGED],
+    )
 
     mock_jr = mock_jacoco_report.return_value
     mock_jr.total_overall_coverage = 0.0
