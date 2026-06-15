@@ -4,7 +4,6 @@ import os
 
 import pytest
 # TODO - remove this dependency
-from unittest.mock import patch
 
 from jacoco_report.action_inputs import ActionInputs
 from jacoco_report.utils.enums import CommentLevelEnum, MetricTypeEnum
@@ -1921,17 +1920,17 @@ modules_thresholds_100_all = {
     "module small": (100.0, 100.0, 100.0),
 }
 
-def test_run_not_pull_request_event(jacoco_report):
-    with patch.object(ActionInputs, 'get_event_name', return_value='push'):
-        jacoco_report.run()
-        assert "Not a pull request event." in jacoco_report.violations
+def test_run_not_pull_request_event(jacoco_report, mocker):
+    mocker.patch.object(ActionInputs, 'get_event_name', return_value='push')
+    jacoco_report.run()
+    assert "Not a pull request event." in jacoco_report.violations
 
-def test_run_no_pr_number(jacoco_report):
-    with patch.object(ActionInputs, 'get_event_name', return_value='pull_request'):
-        with patch.object(ActionInputs, 'get_token', return_value='fake_token'):
-            with patch('jacoco_report.utils.github.GitHub.get_pr_number', return_value=None):
-                jacoco_report.run()
-                assert "No pull request number found." in jacoco_report.violations
+def test_run_no_pr_number(jacoco_report, mocker):
+    mocker.patch.object(ActionInputs, 'get_event_name', return_value='pull_request')
+    mocker.patch.object(ActionInputs, 'get_token', return_value='fake_token')
+    mocker.patch('jacoco_report.utils.github.GitHub.get_pr_number', return_value=None)
+    jacoco_report.run()
+    assert "No pull request number found." in jacoco_report.violations
 
 def test_run_failed_to_retrieve_changed_files(jacoco_report, mocker):
     """Test that action fails gracefully when GitHub API fails to return changed files."""
