@@ -118,24 +118,8 @@ def _is_comment_write_forbidden(output: str) -> bool:
 
 
 def _syntactically_valid_fake_token() -> str:
-    """Return a fake token that passes local format validation but is not real."""
-    from jacoco_report.action_inputs import ActionInputs  # local import avoids module-level side effects
-
-    candidates = [
-        "ghs_" + "z" * 36,
-        "ghp_" + "z" * 36,
-        "ghu_" + "z" * 36,
-        "gho_" + "z" * 36,
-        "ghr_" + "z" * 36,
-        "github_pat_" + "A" * 22 + "_" + "B" * 59,
-        # JWT-style token (400+ chars) as issued by newer GitHub Actions runners
-        "eyJhbGciOiJSUzI1NiJ9." + "A" * 200 + "." + "B" * 172,
-    ]
-    for candidate in candidates:
-        if ActionInputs.is_valid_github_token(candidate):
-            return candidate
-
-    pytest.skip("No synthetic token format is accepted by ActionInputs.is_valid_github_token.")
+    """Return a fake token that is syntactically plausible but not a real credential."""
+    return "ghs_" + "z" * 36
 
 
 @pytest.fixture
@@ -261,8 +245,8 @@ def test_pagination_handling(cleanup_comments: list[int]) -> None:
 def test_invalid_token_produces_clear_error() -> None:
     """Action exits non-zero and logs a clear error when the token is invalid.
 
-    The token is chosen to pass ``is_valid_github_token`` in the current code,
-    then fail at API auth so the HTTP error path is exercised.
+    A syntactically plausible but fake token is used so the HTTP auth error
+    path is exercised.
     """
     env = _live_env(
         INPUT_TOKEN=_syntactically_valid_fake_token(),
