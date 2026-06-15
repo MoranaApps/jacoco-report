@@ -4,7 +4,6 @@ A module for handling the inputs provided to the GH action.
 
 import logging
 import sys
-import re
 from typing import Literal, Optional, overload
 
 import yaml
@@ -502,22 +501,6 @@ class ActionInputs:
         return errors
 
     @staticmethod
-    def is_valid_github_token(token: str) -> bool:
-        """
-        Check if the token format matches GitHub patterns.
-
-        Parameters:
-            token (str): The token to validate.
-
-        Returns:
-            bool: True if the token is valid, False otherwise.
-        """
-
-        # Token formats evolve (including JWT-style tokens > 255 chars);
-        # treat them as opaque and only require a minimum non-whitespace length.
-        return bool(re.fullmatch(r"\S{20,}", token))
-
-    @staticmethod
     def validate_inputs() -> None:
         """
         Validates the inputs provided for the GH action.
@@ -535,8 +518,6 @@ class ActionInputs:
         token = ActionInputs.get_token()
         if not isinstance(token, str) or not token.strip():
             errors.append("'token' must be a non-empty string.")
-        elif not ActionInputs.is_valid_github_token(token):
-            errors.append("'token' must be a valid GitHub token.")
 
         # Validate paths: required unless report-groups is configured
         report_groups_raw: str = ActionInputs.get_report_groups(raw=True)
