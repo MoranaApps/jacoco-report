@@ -261,7 +261,6 @@ def test_run_operational_violation_fails_even_with_fail_unchanged_only(mocker):
 def test_main_sets_coverage_overall_passed_output(mocker):
     """main.run() writes coverage-overall-passed as a GitHub Actions output."""
     mocker.patch("main.setup_logging")
-    mocker.patch("main.logging.getLogger").return_value = mocker.Mock()
     mocker.patch.object(ActionInputs, "validate_inputs")
     mock_jr_cls = mocker.patch("main.JaCoCoReport")
     mock_set_output = mocker.patch("main.set_action_output")
@@ -287,7 +286,6 @@ def test_main_sets_coverage_overall_passed_output(mocker):
 def test_main_sets_coverage_changed_files_passed_false_when_failing(mocker):
     """main.run() correctly writes False when changed-files coverage does not pass."""
     mocker.patch("main.setup_logging")
-    mocker.patch("main.logging.getLogger").return_value = mocker.Mock()
     mocker.patch.object(ActionInputs, "validate_inputs")
     mock_jr_cls = mocker.patch("main.JaCoCoReport")
     mock_set_output = mocker.patch("main.set_action_output")
