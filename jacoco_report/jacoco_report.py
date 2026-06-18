@@ -62,10 +62,25 @@ class JaCoCoReport:
 
         # get report groups (if configured)
         report_groups: list[ReportGroup] = ActionInputs.get_report_groups()
+        global_overall_scope = ActionInputs.get_global_overall_scope()
 
         input_report_paths_to_analyse: list[str] = []
         if report_groups:
-            logger.info("Report groups configured. Skipping top-level paths scan.")
+            logger.info("Report groups configured. Skipping top-level paths scan for group evaluation.")
+            if global_overall_scope == "all":
+                top_level_paths = ActionInputs.get_paths()
+                if top_level_paths:
+                    logger.info(
+                        "global-overall-scope=all: scanning top-level paths to include all reports in global overall."
+                    )
+                    input_report_paths_to_analyse = self.scan_jacoco_xml_files(
+                        paths=top_level_paths, exclude_paths=ActionInputs.get_exclude_paths()
+                    )
+                else:
+                    logger.info(
+                        "global-overall-scope=all but no top-level 'paths' configured; "
+                        "global overall will only include grouped reports."
+                    )
         else:
             logger.info("Scanning for JaCoCo (xml) reports.")
             input_report_paths_to_analyse = self.scan_jacoco_xml_files(
@@ -110,6 +125,20 @@ class JaCoCoReport:
                             "Skipping duplicate report '%s' (already assigned to a group).",
                             report_path,
                         )
+
+            # When global-overall-scope=all, include reports found by the top-level scan
+            # that were not matched by any group. They contribute to global overall but
+            # carry no group_name so they are excluded from per-group threshold evaluation.
+            if global_overall_scope == "all":
+                for report_path in input_report_paths_to_analyse:
+                    if report_path not in seen_report_paths:
+                        logger.warning(
+                            "Report '%s' is not assigned to any report group. "
+                            "Including in global overall coverage (global-overall-scope=all).",
+                            report_path,
+                        )
+                        report_files_coverage.append(parser.parse(report_path))
+                        seen_report_paths.add(report_path)
         else:
             for report_path in input_report_paths_to_analyse:
                 report_files_coverage.append(parser.parse(report_path))

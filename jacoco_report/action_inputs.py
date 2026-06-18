@@ -14,6 +14,8 @@ from jacoco_report.utils.constants import (
     EXCLUDE_PATHS,
     GLOBAL_THRESHOLDS,
     DEFAULT_GLOBAL_THRESHOLDS,
+    GLOBAL_OVERALL_SCOPE,
+    DEFAULT_GLOBAL_OVERALL_SCOPE,
     REPORT_THRESHOLDS_DEFAULT,
     DEFAULT_REPORT_THRESHOLDS_DEFAULT,
     TITLE,
@@ -352,6 +354,16 @@ class ActionInputs:
         )
 
     @staticmethod
+    def get_global_overall_scope() -> str:
+        """
+        Get the global-overall-scope input ('all' or 'groups-only').
+        Controls which reports contribute to global overall coverage when report-groups is configured.
+        'all' includes every report found by the top-level paths scan (default).
+        'groups-only' restricts global overall to reports matched by a group path pattern.
+        """
+        return get_action_input(GLOBAL_OVERALL_SCOPE, DEFAULT_GLOBAL_OVERALL_SCOPE).strip().lower()
+
+    @staticmethod
     def get_update_comment() -> bool:
         """
         Get the update comment from the action inputs.
@@ -519,16 +531,7 @@ class ActionInputs:
         if not isinstance(token, str) or not token.strip():
             errors.append("'token' must be a non-empty string.")
 
-        # Validate paths: required unless report-groups is configured
         report_groups_raw: str = ActionInputs.get_report_groups(raw=True)
-        has_report_groups = False
-        if report_groups_raw and report_groups_raw.strip():
-            try:
-                report_groups_data = yaml.safe_load(report_groups_raw)
-                has_report_groups = isinstance(report_groups_data, list) and len(report_groups_data) > 0
-            except yaml.YAMLError:
-                # Invalid YAML is reported by validate_report_groups below.
-                has_report_groups = False
 
         paths = ActionInputs.get_paths(raw=True)
         if paths is None:
@@ -536,10 +539,8 @@ class ActionInputs:
         elif not isinstance(paths, str):
             errors.append("'paths' must be a list of strings.")
         else:
-            # Check parsed paths list (which strips whitespace) instead of raw string length
             parsed_paths = ActionInputs.get_paths()
-            if not parsed_paths and not has_report_groups:
-                # paths is required only if report-groups is not configured
+            if not parsed_paths:
                 errors.append("'paths' must be a non-empty list of strings.")
 
         global_thresholds = ActionInputs.get_global_thresholds(raw=True)
@@ -626,6 +627,10 @@ class ActionInputs:
         except ValueError as e:
             errors.append(str(e))
 
+        global_overall_scope = ActionInputs.get_global_overall_scope()
+        if global_overall_scope not in ("all", "groups-only"):
+            errors.append("'global-overall-scope' must be 'all' or 'groups-only'.")
+
         update_comment: Optional[bool] = None
         try:
             update_comment = ActionInputs.get_update_comment()
@@ -688,6 +693,7 @@ class ActionInputs:
             "Baseline paths: %s\n"
             "\n"
             "Global thresholds: overall=%s, avg_changed_files=%s\n"
+            "Global overall scope: %s\n"
             "Report thresholds default: %s\n"
             "\n"
             "Report groups: %s\n"
@@ -708,6 +714,7 @@ class ActionInputs:
             ActionInputs.get_baseline_paths(),
             ActionInputs.get_global_overall_threshold(),
             ActionInputs.get_global_changed_files_average_threshold(),
+            ActionInputs.get_global_overall_scope(),
             ActionInputs.get_report_thresholds_default(raw=True),
             report_groups_raw,
             ActionInputs.get_metric(),

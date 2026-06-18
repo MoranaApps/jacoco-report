@@ -5,8 +5,9 @@ inputs:
     description: 'GitHub token used to read PR data and create/update PR comments.'
     required: true
   paths:
-    description: 'Newline-separated paths or glob patterns to JaCoCo XML reports. Optional when report-groups is set.'
+    description: 'Newline-separated paths or glob patterns to JaCoCo XML reports. Defaults to **/jacoco.xml.'
     required: false
+    default: '**/jacoco.xml'
   exclude-paths:
     description: 'Newline-separated paths or globs to exclude from scanning.'
     required: false
@@ -54,6 +55,15 @@ inputs:
       If false, filtered unchanged reports are excluded from both comment rows and threshold evaluation.
     required: false
     default: 'true'
+  global-overall-scope:
+    description: >
+      Controls which reports contribute to the global overall coverage number when report-groups is configured.
+      'all' (default): scans the top-level paths and includes every discovered report in the global overall,
+      even if it is not assigned to any group. Reports outside all groups are included in the global number
+      but do not appear in any group row.
+      'groups-only': only reports matched by a group path pattern count toward global overall (pre-v4 behaviour).
+    required: false
+    default: 'all'
   baseline-paths:
     description: 'Paths to JaCoCo baseline reports.'
     required: false
@@ -166,6 +176,7 @@ runs:
 
         write_multiline_env "INPUT_SKIP_UNCHANGED" "${{ inputs.skip-unchanged }}"
         write_multiline_env "INPUT_EVALUATE_UNCHANGED" "${{ inputs.evaluate-unchanged }}"
+        write_multiline_env "INPUT_GLOBAL_OVERALL_SCOPE" "${{ inputs.global-overall-scope }}"
 
         write_multiline_env "INPUT_BASELINE_PATHS" "${{ inputs.baseline-paths }}"
 
@@ -191,6 +202,7 @@ runs:
         INPUT_REPORT_GROUPS: ${{ env.INPUT_REPORT_GROUPS }}
         INPUT_SKIP_UNCHANGED: ${{ env.INPUT_SKIP_UNCHANGED }}
         INPUT_EVALUATE_UNCHANGED: ${{ env.INPUT_EVALUATE_UNCHANGED }}
+        INPUT_GLOBAL_OVERALL_SCOPE: ${{ env.INPUT_GLOBAL_OVERALL_SCOPE }}
         INPUT_BASELINE_PATHS: ${{ env.INPUT_BASELINE_PATHS }}
         INPUT_UPDATE_COMMENT: ${{ env.INPUT_UPDATE_COMMENT }}
         INPUT_PASS_SYMBOL: ${{ env.INPUT_PASS_SYMBOL }}

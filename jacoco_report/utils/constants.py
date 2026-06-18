@@ -23,6 +23,8 @@ REPORT_GROUPS = "report-groups"
 
 SKIP_UNCHANGED = "skip-unchanged"
 EVALUATE_UNCHANGED = "evaluate-unchanged"
+GLOBAL_OVERALL_SCOPE = "global-overall-scope"
+DEFAULT_GLOBAL_OVERALL_SCOPE = "all"
 UPDATE_COMMENT = "update-comment"
 PASS_SYMBOL = "pass-symbol"
 FAIL_SYMBOL = "fail-symbol"

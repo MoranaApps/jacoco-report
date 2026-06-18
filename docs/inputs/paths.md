@@ -9,8 +9,10 @@ repository-relative patterns and absolute `${{ github.workspace }}` paths are su
 `exclude-paths` is applied after `paths` — any XML file whose path matches an exclude glob is
 dropped from the scan before evaluation begins.
 
-`paths` is required when `report-groups` is not configured. When `report-groups` is set, each
-group's own `paths` list is used instead and the top-level `paths` input can be omitted.
+`paths` defaults to `**/jacoco.xml` and must always be non-empty. When `report-groups` is
+configured each group's own `paths` list controls which reports belong to that group, but the
+top-level `paths` is still used to compute the global overall coverage (see
+[global-overall-scope.md](global-overall-scope.md)).
 
 ## Valid values
 
@@ -68,5 +70,6 @@ Both inputs accept a **newline-separated list** of glob patterns. Leading `*` va
 
 ## See also
 
-- [report-groups.md](report-groups.md) — alternative to top-level `paths` for multi-module projects
+- [report-groups.md](report-groups.md) — organise multi-module projects into named groups
+- [global-overall-scope.md](global-overall-scope.md) — how `paths` interacts with `report-groups` for global overall coverage
 - [debug.md](debug.md) — enable verbose file-scan logging
