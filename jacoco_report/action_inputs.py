@@ -16,6 +16,8 @@ from jacoco_report.utils.constants import (
     DEFAULT_GLOBAL_THRESHOLDS,
     GLOBAL_OVERALL_SCOPE,
     DEFAULT_GLOBAL_OVERALL_SCOPE,
+    GLOBAL_OVERALL_SCOPE_ALL,
+    GLOBAL_OVERALL_SCOPE_GROUPS_ONLY,
     REPORT_THRESHOLDS_DEFAULT,
     DEFAULT_REPORT_THRESHOLDS_DEFAULT,
     TITLE,
@@ -538,10 +540,6 @@ class ActionInputs:
             errors.append("'paths' must be defined.")
         elif not isinstance(paths, str):
             errors.append("'paths' must be a list of strings.")
-        else:
-            parsed_paths = ActionInputs.get_paths()
-            if not parsed_paths:
-                errors.append("'paths' must be a non-empty list of strings.")
 
         global_thresholds = ActionInputs.get_global_thresholds(raw=True)
         if not isinstance(global_thresholds, str):
@@ -628,7 +626,7 @@ class ActionInputs:
             errors.append(str(e))
 
         global_overall_scope = ActionInputs.get_global_overall_scope()
-        if global_overall_scope not in ("all", "groups-only"):
+        if global_overall_scope not in (GLOBAL_OVERALL_SCOPE_ALL, GLOBAL_OVERALL_SCOPE_GROUPS_ONLY):
             errors.append("'global-overall-scope' must be 'all' or 'groups-only'.")
 
         update_comment: Optional[bool] = None

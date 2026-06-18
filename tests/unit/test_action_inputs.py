@@ -34,7 +34,6 @@ failure_cases = [
     ("get_token", 1, "'token' must be a non-empty string."),
     ("get_paths", None, "'paths' must be defined."),
     ("get_paths", 1, "'paths' must be a list of strings."),
-    ("get_paths", "", "'paths' must be a non-empty list of strings."),
     ("get_global_thresholds", "x", "'global-thresholds' must be in the format 'overall*changed-files-average'. Where overall is the minimum coverage overall and changed-files-average is the minimum average coverage of changed files."),
     ("get_global_thresholds", "x*0", "'global-thresholds' overall value must be a float between 0 and 100."),
     ("get_global_thresholds", "0*x", "'global-thresholds' changed-files-average value must be a float between 0 and 100."),
@@ -791,14 +790,13 @@ def test_get_event_name(mocker):
 
 
 # --- Issue 6: whitespace-only paths ---
-def test_validate_inputs_paths_whitespace_only_requires_error_without_groups(mocker):
+def test_validate_inputs_paths_whitespace_only_allowed_without_groups(mocker):
     case = success_case.copy()
     case["get_paths"] = "  \n  "
     case["get_report_groups"] = ""
 
     patchers = apply_mocks(case, mocker)
     try:
-        mock_error = mocker.patch("jacoco_report.action_inputs.logger.error")
         mock_exit = mocker.patch("sys.exit")
         mocker.patch(
             "jacoco_report.action_inputs.ActionInputs.get_paths",
@@ -807,20 +805,18 @@ def test_validate_inputs_paths_whitespace_only_requires_error_without_groups(moc
 
         ActionInputs.validate_inputs()
 
-        mock_error.assert_any_call("%s", "'paths' must be a non-empty list of strings.")
-        mock_exit.assert_called_once_with(1)
+        mock_exit.assert_not_called()
     finally:
         stop_mocks(patchers)
 
 
-def test_validate_inputs_paths_whitespace_only_rejected_even_with_groups(mocker):
+def test_validate_inputs_paths_whitespace_only_allowed_with_groups(mocker):
     case = success_case.copy()
     case["get_paths"] = "  \n  "
     case["get_report_groups"] = "- name: g1\n  paths: ['**']"
 
     patchers = apply_mocks(case, mocker)
     try:
-        mock_error = mocker.patch("jacoco_report.action_inputs.logger.error")
         mock_exit = mocker.patch("sys.exit")
         mocker.patch(
             "jacoco_report.action_inputs.ActionInputs.get_paths",
@@ -829,8 +825,7 @@ def test_validate_inputs_paths_whitespace_only_rejected_even_with_groups(mocker)
 
         ActionInputs.validate_inputs()
 
-        mock_error.assert_any_call("%s", "'paths' must be a non-empty list of strings.")
-        mock_exit.assert_called_once_with(1)
+        mock_exit.assert_not_called()
     finally:
         stop_mocks(patchers)
 
@@ -964,52 +959,46 @@ def test_validate_inputs_default(method, expected_value, mocker):
         stop_mocks(patchers)
 
 
-def test_validate_inputs_rejects_empty_paths_even_when_report_groups_configured(mocker):
+def test_validate_inputs_allows_empty_paths_when_report_groups_configured(mocker):
     case = success_case.copy()
     case["get_paths"] = ""
     case["get_report_groups"] = "- name: group1\n  paths: ['**/jacoco.xml']"
 
     patchers = apply_mocks(case, mocker)
     try:
-        mock_error = mocker.patch("jacoco_report.action_inputs.logger.error")
         mock_exit = mocker.patch("sys.exit")
         ActionInputs.validate_inputs()
-        mock_error.assert_any_call("%s", "'paths' must be a non-empty list of strings.")
-        mock_exit.assert_called_once_with(1)
+        mock_exit.assert_not_called()
     finally:
         stop_mocks(patchers)
 
 
-def test_validate_inputs_requires_paths_when_report_groups_not_configured(mocker):
+def test_validate_inputs_allows_empty_paths_when_report_groups_not_configured(mocker):
     case = success_case.copy()
     case["get_paths"] = ""
     case["get_report_groups"] = ""
 
     patchers = apply_mocks(case, mocker)
     try:
-        mock_error = mocker.patch("jacoco_report.action_inputs.logger.error")
         mock_exit = mocker.patch("sys.exit")
         ActionInputs.validate_inputs()
 
-        mock_error.assert_any_call("%s", "'paths' must be a non-empty list of strings.")
-        mock_exit.assert_called_once_with(1)
+        mock_exit.assert_not_called()
     finally:
         stop_mocks(patchers)
 
 
-def test_validate_inputs_requires_paths_when_report_groups_is_empty_yaml_list(mocker):
+def test_validate_inputs_allows_empty_paths_when_report_groups_is_empty_yaml_list(mocker):
     case = success_case.copy()
     case["get_paths"] = ""
     case["get_report_groups"] = "[]"
 
     patchers = apply_mocks(case, mocker)
     try:
-        mock_error = mocker.patch("jacoco_report.action_inputs.logger.error")
         mock_exit = mocker.patch("sys.exit")
         ActionInputs.validate_inputs()
 
-        mock_error.assert_any_call("%s", "'paths' must be a non-empty list of strings.")
-        mock_exit.assert_called_once_with(1)
+        mock_exit.assert_not_called()
     finally:
         stop_mocks(patchers)
 

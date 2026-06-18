@@ -2825,3 +2825,33 @@ def test_global_overall_scope_all_ungrouped_reports_emit_warning(jacoco_report, 
 
     assert "frontend/jacoco.xml" in caplog.text
     assert "not assigned to any report group" in caplog.text
+
+
+def test_empty_paths_falls_back_to_default_when_no_groups(jacoco_report, mocker):
+    """When paths is empty and no report groups are configured, the runtime falls back to **/jacoco.xml."""
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value="pull_request")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_token", return_value="fake_token")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=[])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_exclude_paths", return_value=[])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups", return_value=[])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_scope", return_value="groups-only")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_unchanged", return_value=False)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=False)
+    mocker.patch("jacoco_report.utils.github.GitHub.get_pr_number", return_value=1)
+    mocker.patch("jacoco_report.utils.github.GitHub.get_pr_changed_files", return_value=[])
+    scan_mock = mocker.patch(
+        "jacoco_report.jacoco_report.JaCoCoReport.scan_jacoco_xml_files",
+        return_value=["some/module/jacoco.xml"],
+    )
+    mocker.patch(
+        "jacoco_report.parser.jacoco_report_parser.JaCoCoReportParser.parse",
+        return_value=mocker.Mock(name="report_file_coverage"),
+    )
+    mocker.patch("jacoco_report.evaluator.coverage_evaluator.CoverageEvaluator.evaluate", return_value=None)
+    mocker.patch("jacoco_report.generator.pr_comment_generator.PRCommentGenerator.generate", return_value=None)
+
+    jacoco_report.run()
+
+    scan_mock.assert_called_once()
+    called_paths = scan_mock.call_args.kwargs.get("paths") or scan_mock.call_args.args[0]
+    assert called_paths == ["**/jacoco.xml"]
