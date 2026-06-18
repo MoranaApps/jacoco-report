@@ -6,7 +6,7 @@ Constants used in the action
 TOKEN = "token"
 
 PATHS = "paths"
-DEFAULT_PATHS = "**/jacoco.xml"  # must match the `default:` value for `paths` in action.yml
+DEFAULT_PATHS = "**/jacoco.xml"
 EXCLUDE_PATHS = "exclude-paths"
 
 GLOBAL_THRESHOLDS = "global-thresholds"

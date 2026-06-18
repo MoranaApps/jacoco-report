@@ -1402,4 +1402,57 @@ def test_title_identity_key_matches_correct_comment(mocker, mock_github, test_ev
     gen.generate()
 
     mock_github.update_comment.assert_called_once_with(42, mocker.ANY)
+
+
+# ---------------------------------------------------------------------------
+# Ungrouped Reports Warning (G14)
+# ---------------------------------------------------------------------------
+
+def test_no_warning_all_reports_grouped(mocker, mock_github, test_evaluator):
+    """No warning when all reports are matched to groups."""
+    gen = PRCommentGenerator(mock_github, test_evaluator, None, pr_number=1, ungrouped_reports=[])
+    _configure_generator_for_comment_tests(gen, mocker, comment_level=CommentLevelEnum.FULL)
+    _set_mixed_comment_level_fixture(gen)
+
+    title, body = gen._get_comment_content(CommentLevelEnum.FULL)
+
+    assert "Warning:" not in body
+    assert "not assigned to any group" not in body
+
+
+def test_warning_one_ungrouped_report(mocker, mock_github, test_evaluator):
+    """Warning section appears when 1 report is unmatched."""
+    gen = PRCommentGenerator(mock_github, test_evaluator, None, pr_number=1, ungrouped_reports=["infra/target/jacoco.xml"])
+    _configure_generator_for_comment_tests(gen, mocker, comment_level=CommentLevelEnum.FULL)
+    _set_mixed_comment_level_fixture(gen)
+
+    title, body = gen._get_comment_content(CommentLevelEnum.FULL)
+
+    assert "Warning:" in body or "warning" in body.lower()
+    assert "not assigned to any group" in body
+    assert "infra/target/jacoco.xml" in body
+
+
+def test_warning_multiple_ungrouped(mocker, mock_github, test_evaluator):
+    """Warning section lists all ungrouped reports."""
+    ungrouped = ["infra/target/jacoco.xml", "tests/target/jacoco.xml"]
+    gen = PRCommentGenerator(mock_github, test_evaluator, None, pr_number=1, ungrouped_reports=ungrouped)
+    _configure_generator_for_comment_tests(gen, mocker, comment_level=CommentLevelEnum.FULL)
+    _set_mixed_comment_level_fixture(gen)
+
+    title, body = gen._get_comment_content(CommentLevelEnum.FULL)
+
+    assert "infra/target/jacoco.xml" in body
+    assert "tests/target/jacoco.xml" in body
+
+
+def test_no_warning_empty_ungrouped_list(mocker, mock_github, test_evaluator):
+    """No warning when ungrouped_reports list is empty."""
+    gen = PRCommentGenerator(mock_github, test_evaluator, None, pr_number=1, ungrouped_reports=[])
+    _configure_generator_for_comment_tests(gen, mocker, comment_level=CommentLevelEnum.FULL)
+    _set_mixed_comment_level_fixture(gen)
+
+    title, body = gen._get_comment_content(CommentLevelEnum.FULL)
+
+    assert "not assigned to any group" not in body
     mock_github.add_comment.assert_not_called()

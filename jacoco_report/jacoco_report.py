@@ -67,7 +67,7 @@ class JaCoCoReport:
 
         input_report_paths_to_analyse: list[str] = []
         if report_groups:
-            logger.info("Report groups configured. Skipping top-level paths scan for group evaluation.")
+            logger.info("Report groups configured.")
             if global_overall_scope == GLOBAL_OVERALL_SCOPE_ALL:
                 top_level_paths = ActionInputs.get_paths()
                 if top_level_paths:
@@ -111,6 +111,7 @@ class JaCoCoReport:
         report_files_coverage: list[ReportFileCoverage] = []
         parser = JaCoCoReportParser(all_changed_files_in_pr)
         seen_report_paths: set[str] = set()
+        ungrouped_reports: list[str] = []
         if report_groups:
             # scan each group's paths independently and tag reports with group name
             # deduplicate by report path to avoid double-counting when groups have overlapping globs
@@ -142,6 +143,7 @@ class JaCoCoReport:
                         )
                         report_files_coverage.append(parser.parse(report_path))
                         seen_report_paths.add(report_path)
+                        ungrouped_reports.append(report_path)
         else:
             for report_path in input_report_paths_to_analyse:
                 report_files_coverage.append(parser.parse(report_path))
@@ -368,7 +370,9 @@ class JaCoCoReport:
             if skip_unchanged and evaluate_filtered_unchanged and filtered_unchanged_reports
             else frozenset()
         )
-        generator = PRCommentGenerator(gh, evaluator_for_results, bs_evaluator, pr_number, skip_report_names)
+        generator = PRCommentGenerator(
+            gh, evaluator_for_results, bs_evaluator, pr_number, skip_report_names, ungrouped_reports
+        )
         generator.generate()
         logger.info("PR comment(s) generated successfully.")
 
