@@ -136,7 +136,8 @@ class JaCoCoReport:
                     if report_path not in seen_report_paths:
                         logger.warning(
                             "Report '%s' is not assigned to any report group. "
-                            "Including in global overall coverage (global-overall-scope=all).",
+                            "Including in global overall coverage (global-overall-scope=all). "
+                            "Set global-overall-scope: groups-only to exclude ungrouped reports.",
                             report_path,
                         )
                         report_files_coverage.append(parser.parse(report_path))

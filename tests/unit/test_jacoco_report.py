@@ -2829,6 +2829,7 @@ def test_global_overall_scope_all_ungrouped_reports_emit_warning(jacoco_report, 
 
     assert "frontend/jacoco.xml" in caplog.text
     assert "not assigned to any report group" in caplog.text
+    assert "groups-only" in caplog.text
 
 
 def test_empty_paths_falls_back_to_default_when_no_groups(jacoco_report, mocker):
