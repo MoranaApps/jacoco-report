@@ -61,7 +61,7 @@ inputs:
       'all' (default): scans the top-level paths and includes every discovered report in the global overall,
       even if it is not assigned to any group. Reports outside all groups are included in the global number
       but do not appear in any group row.
-      'groups-only': only reports matched by a group path pattern count toward global overall (pre-v4 behaviour).
+      'groups-only': only reports matched by a group path pattern count toward global overall (previous behaviour before this input was introduced).
     required: false
     default: 'all'
   baseline-paths:
