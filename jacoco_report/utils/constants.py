@@ -6,6 +6,7 @@ Constants used in the action
 TOKEN = "token"
 
 PATHS = "paths"
+DEFAULT_PATHS = "**/jacoco.xml"
 EXCLUDE_PATHS = "exclude-paths"
 
 GLOBAL_THRESHOLDS = "global-thresholds"
@@ -23,6 +24,10 @@ REPORT_GROUPS = "report-groups"
 
 SKIP_UNCHANGED = "skip-unchanged"
 EVALUATE_UNCHANGED = "evaluate-unchanged"
+GLOBAL_OVERALL_SCOPE = "global-overall-scope"
+GLOBAL_OVERALL_SCOPE_ALL = "all"
+GLOBAL_OVERALL_SCOPE_GROUPS_ONLY = "groups-only"
+DEFAULT_GLOBAL_OVERALL_SCOPE = GLOBAL_OVERALL_SCOPE_ALL
 UPDATE_COMMENT = "update-comment"
 PASS_SYMBOL = "pass-symbol"
 FAIL_SYMBOL = "fail-symbol"

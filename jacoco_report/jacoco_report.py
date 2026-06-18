@@ -12,6 +12,7 @@ from jacoco_report.model.report_file_coverage import ReportFileCoverage
 from jacoco_report.model.report_group import ReportGroup
 from jacoco_report.parser.jacoco_report_parser import JaCoCoReportParser
 from jacoco_report.scanner.jacoco_report_input_scanner import JaCoCoReportInputScanner
+from jacoco_report.utils.constants import DEFAULT_PATHS, GLOBAL_OVERALL_SCOPE_ALL
 from jacoco_report.utils.enums import FailOnThresholdEnum
 from jacoco_report.utils.github import GitHub
 
@@ -62,14 +63,30 @@ class JaCoCoReport:
 
         # get report groups (if configured)
         report_groups: list[ReportGroup] = ActionInputs.get_report_groups()
+        global_overall_scope = ActionInputs.get_global_overall_scope()
 
         input_report_paths_to_analyse: list[str] = []
         if report_groups:
-            logger.info("Report groups configured. Skipping top-level paths scan.")
+            logger.info("Report groups configured.")
+            if global_overall_scope == GLOBAL_OVERALL_SCOPE_ALL:
+                top_level_paths = ActionInputs.get_paths()
+                if top_level_paths:
+                    logger.info(
+                        "global-overall-scope=all: scanning top-level paths to include all reports in global overall."
+                    )
+                    input_report_paths_to_analyse = self.scan_jacoco_xml_files(
+                        paths=top_level_paths, exclude_paths=ActionInputs.get_exclude_paths()
+                    )
+                else:
+                    logger.info(
+                        "global-overall-scope=all but top-level 'paths' is empty; "
+                        "global overall will only include grouped reports."
+                    )
         else:
             logger.info("Scanning for JaCoCo (xml) reports.")
+            paths = ActionInputs.get_paths() or [DEFAULT_PATHS]
             input_report_paths_to_analyse = self.scan_jacoco_xml_files(
-                paths=ActionInputs.get_paths(), exclude_paths=ActionInputs.get_exclude_paths()
+                paths=paths, exclude_paths=ActionInputs.get_exclude_paths()
             )
 
             # skip when no top-level jacoco xml files found
@@ -94,6 +111,7 @@ class JaCoCoReport:
         report_files_coverage: list[ReportFileCoverage] = []
         parser = JaCoCoReportParser(all_changed_files_in_pr)
         seen_report_paths: set[str] = set()
+        ungrouped_reports: list[str] = []
         if report_groups:
             # scan each group's paths independently and tag reports with group name
             # deduplicate by report path to avoid double-counting when groups have overlapping globs
@@ -110,6 +128,22 @@ class JaCoCoReport:
                             "Skipping duplicate report '%s' (already assigned to a group).",
                             report_path,
                         )
+
+            # When global-overall-scope=all, include reports found by the top-level scan
+            # that were not matched by any group. They contribute to global overall but
+            # carry no group_name so they are excluded from per-group threshold evaluation.
+            if global_overall_scope == GLOBAL_OVERALL_SCOPE_ALL:
+                for report_path in input_report_paths_to_analyse:
+                    if report_path not in seen_report_paths:
+                        logger.warning(
+                            "Report '%s' is not assigned to any report group. "
+                            "Including in global overall coverage (global-overall-scope=all). "
+                            "Set global-overall-scope: groups-only to exclude ungrouped reports.",
+                            report_path,
+                        )
+                        report_files_coverage.append(parser.parse(report_path))
+                        seen_report_paths.add(report_path)
+                        ungrouped_reports.append(report_path)
         else:
             for report_path in input_report_paths_to_analyse:
                 report_files_coverage.append(parser.parse(report_path))
@@ -336,7 +370,9 @@ class JaCoCoReport:
             if skip_unchanged and evaluate_filtered_unchanged and filtered_unchanged_reports
             else frozenset()
         )
-        generator = PRCommentGenerator(gh, evaluator_for_results, bs_evaluator, pr_number, skip_report_names)
+        generator = PRCommentGenerator(
+            gh, evaluator_for_results, bs_evaluator, pr_number, skip_report_names, ungrouped_reports
+        )
         generator.generate()
         logger.info("PR comment(s) generated successfully.")
 

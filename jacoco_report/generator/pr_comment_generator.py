@@ -36,12 +36,14 @@ class PRCommentGenerator:
         bs_evaluator: Optional[CoverageEvaluator],
         pr_number: int,
         skip_report_names: frozenset[str] = frozenset(),
+        ungrouped_reports: list[str] | None = None,
     ):
         self.gh: GitHub = gh
         self.evaluator: CoverageEvaluator = evaluator
         self.bs_evaluator: Optional[CoverageEvaluator] = bs_evaluator
         self.pr_number: int = pr_number
         self.skip_report_names: frozenset[str] = skip_report_names
+        self.ungrouped_reports: list[str] = ungrouped_reports or []
         self.github_repository: str = ActionInputs.get_repository()
 
     def generate(self) -> None:
@@ -124,11 +126,38 @@ class PRCommentGenerator:
             elif comment_level != CommentLevelEnum.FULL:
                 body += "\n\nNo rows match the selected comment level."
 
+        ungrouped_warning = self._get_ungrouped_reports_warning()
+        if ungrouped_warning:
+            body += f"\n\n{ungrouped_warning}"
+
         metadata = self._get_metadata_footer()
         if metadata:
             body += f"\n\n{metadata}"
 
         return title, body
+
+    def _get_ungrouped_reports_warning(self) -> str:
+        """Build a warning section for reports not assigned to any group.
+
+        Returns empty string if no ungrouped reports.
+        """
+        if not self.ungrouped_reports:
+            return ""
+
+        count = len(self.ungrouped_reports)
+        report_list = "\n".join(f"- `{report}`" for report in self.ungrouped_reports)
+
+        warning_content = (
+            f"<details><summary>⚠️ Warning: {count} report{'s' if count > 1 else ''} "
+            f"not assigned to any group</summary>\n\n"
+            f"The following reports were found but not matched by configured groups and are only "
+            f"included in **global overall** coverage:\n"
+            f"{report_list}\n\n"
+            f"**Hint:** Review your group path patterns or set `global-overall-scope: groups-only` "
+            f"to exclude ungrouped reports.\n\n"
+            f"</details>"
+        )
+        return warning_content
 
     def _get_metadata_footer(self) -> str:
         """Build the metadata footer appended to every non-NONE PR comment."""

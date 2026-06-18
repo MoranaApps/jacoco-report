@@ -177,3 +177,62 @@ def test_snapshot_skip_unchanged(mocker: MockerFixture) -> None:
     )
 
     _assert_or_write_snapshot("skip_unchanged", captured[0])
+
+
+def test_ungrouped_reports_warning(mocker: MockerFixture) -> None:
+    """Warning section appears when reports found by top-level scan don't match any group.
+
+    Sets up two groups (notification, user-info) with specific paths, but the top-level
+    INPUT_PATHS includes all jacoco.xml files. This means module_large and module small
+    reports will be found but not matched to any group.
+
+    With global-overall-scope=all, these ungrouped reports should:
+    - Be included in global overall coverage
+    - Generate a warning section in the PR comment listing them
+    """
+    captured = mock_github_offline(mocker, _CHANGED_FILES_WITH_GROUPS)
+
+    # Specific group paths (only notification and user-info)
+    _REPORT_GROUPS_WITH_SCOPE = f"""\
+- name: notification
+  paths:
+    - {_NOTIFICATION_GLOB}
+- name: user-info
+  paths:
+    - {_USER_INFO_GLOB}
+"""
+
+    env = make_env_base(
+        INPUT_PATHS=TEST_PROJECT_GLOB,  # Includes all reports (module_large, module small, context/*)
+        INPUT_REPORT_GROUPS=_REPORT_GROUPS_WITH_SCOPE,
+        INPUT_COMMENT_LEVEL="full",
+        INPUT_SKIP_UNCHANGED="false",
+        INPUT_GLOBAL_OVERALL_SCOPE="all",
+    )
+    result = capture_run(env)
+
+    assert result.exit_code == 0, (
+        f"Action exited with code {result.exit_code}.\n"
+        f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}"
+    )
+    assert len(captured) == 1, (
+        f"Expected exactly one comment posted, got {len(captured)}.\n"
+        f"stdout:\n{result.stdout}"
+    )
+
+    comment_body = captured[0]
+
+    # Verify warning section appears
+    assert "Warning:" in comment_body or "warning" in comment_body.lower(), (
+        "Expected warning section in PR comment body"
+    )
+    assert "not assigned to any group" in comment_body, (
+        "Expected ungrouped reports hint in warning section"
+    )
+    assert "global-overall-scope: groups-only" in comment_body, (
+        "Expected configuration hint in warning section"
+    )
+    # Verify that at least one ungrouped report is listed
+    assert "module_large" in comment_body or "module small" in comment_body, (
+        "Expected ungrouped report name in warning section"
+    )

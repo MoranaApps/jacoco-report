@@ -85,9 +85,10 @@ jobs:
 | Name                | Description                                                                                                                                                                                                                    | Required | Default                                          |
 |---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------|--------------------------------------------------|
 | `token`             | GitHub token for authentication with the repository.                                                                                                                                                                           | **Yes**  |                                                  |
-| `paths`             | Newline-separated paths to JaCoCo XML files. Supports wildcard glob patterns. Required when `report-groups` is not set.                                                                                                        | No       | `''`                                             |
+| `paths`             | Newline-separated paths to JaCoCo XML reports. Supports wildcard glob patterns. Defaults to `**/jacoco.xml`; empty values fall back to the default at runtime.                                                                | No       | `**/jacoco.xml`                                  |
 | `exclude-paths`     | Newline-separated paths to exclude from coverage analysis. Supports glob patterns.                                                                                                                                             | No       | `''`                                             |
 | `global-thresholds` | Global thresholds in `overall*changed-files-average` format.                                                                                                                                        | No       | `0.0*0.0`                                        |
+| `global-overall-scope` | Controls which reports contribute to the global overall number when `report-groups` is configured. `all` (default): every report found by `paths` is included, even ungrouped ones. `groups-only`: only grouped reports count. | No | `all` |
 | `report-thresholds-default` | Default thresholds for reports/groups when a group omits a threshold field. Format: `overall*changed-files-average*per-changed-file` (e.g. `75*60*0`). Field-level fallback chain: per-group → this default → 0.0.        | No       | `0.0*0.0*0.0`                                    |
 | `title`             | Title for the coverage report comment added to the Pull Request.                                                                                                                                                               | No       | `JaCoCo Coverage Report`                         |
 | `pr-number`         | Number of the pull request. If not provided, the action will attempt to determine the PR number from the GitHub context.                                                                                                       | No       | `''`                                             |
@@ -162,6 +163,7 @@ The following outputs are set by the JaCoCo GitHub Action:
 
 - [Paths and Exclude Paths](docs/inputs/paths.md)
 - [Global Coverage Thresholds, Per-file Thresholds, and Fail-on-Threshold](docs/inputs/thresholds.md)
+- [Global Overall Scope](docs/inputs/global-overall-scope.md)
 - [Report Groups](docs/inputs/report-groups.md)
 - [Comment Level](docs/inputs/comment-level.md)
 - [Skip Unchanged and Evaluate Unchanged](docs/inputs/skip-unchanged.md)
@@ -213,6 +215,17 @@ The following outputs are set by the JaCoCo GitHub Action:
 
 See [docs/v2-v3-migration-guide.md](docs/v2-v3-migration-guide.md) for a full before/after guide
 covering every breaking change.
+
+**Additional changes introduced in v3.x:**
+
+- **`global-overall-scope` defaults to `all`**: when `report-groups` is configured, the action now
+  runs a top-level `paths` scan in addition to per-group scans. Reports found by that scan but not
+  assigned to any group are included in the global overall number (and a warning is logged for each).
+  If this changes your global threshold results unexpectedly, set `global-overall-scope: 'groups-only'`
+  to restore the previous behaviour.
+- **`paths` defaults to `**/jacoco.xml`**: the input was previously optional when `report-groups` was
+  set. It now has a default value. Remove any explicit `paths: ''` overrides — empty paths are
+  allowed and fall back to `**/jacoco.xml` at runtime when no groups are configured.
 
 ---
 

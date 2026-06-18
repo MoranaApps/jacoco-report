@@ -146,7 +146,7 @@ jobs:
     permissions:
       contents: read
       issues: write
-      pull-requests: read
+      pull-requests: write
     strategy:
       matrix: ${{fromJson(needs.set-matrix.outputs.matrix)}}
     name: Live Integration Test - (Python ${{ matrix.python-version }})
@@ -170,8 +170,10 @@ jobs:
       - name: Run live integration tests
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_REF: ${{ github.ref }}
         run: |
-          pytest tests/integration/live/
+          pytest tests/integration/live/ -v
           exit_code=$?; [ $exit_code -eq 5 ] && exit 0 || exit $exit_code
 
   mypy-check:

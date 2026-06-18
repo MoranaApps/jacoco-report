@@ -4,8 +4,10 @@
 
 The action runs **two independent threshold passes**:
 
-1. **Global pass** — aggregates all reports into a single overall and changed-files-average
-   number and compares them against `global-thresholds`.
+1. **Global pass** — aggregates reports into a single overall and changed-files-average number
+   and compares them against `global-thresholds`. When `report-groups` is configured,
+   `global-overall-scope` controls which reports are included (default `all` — every report found
+   by the top-level `paths` scan; `groups-only` — only grouped reports).
 2. **Per-report / per-group pass** — evaluates each report or group individually using
    `report-thresholds-default` (or per-group `thresholds` when `report-groups` is configured).
 
@@ -151,4 +153,5 @@ differ; `global-thresholds` guards the aggregated total independently.
 ## See also
 
 - [report-groups.md](report-groups.md) — per-group threshold configuration
+- [global-overall-scope.md](global-overall-scope.md) — which reports feed the global pass when groups are configured
 - [skip-unchanged.md](skip-unchanged.md) — `fail-unchanged` threshold dimension
