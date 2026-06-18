@@ -79,7 +79,7 @@ class JaCoCoReport:
                     )
                 else:
                     logger.info(
-                        "global-overall-scope=all but no top-level 'paths' configured; "
+                        "global-overall-scope=all but top-level 'paths' is empty; "
                         "global overall will only include grouped reports."
                     )
         else:

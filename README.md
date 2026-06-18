@@ -211,7 +211,12 @@ The following outputs are set by the JaCoCo GitHub Action:
   fail-on-threshold: 'overall,changed-files-average,per-changed-file'
   ```
 
-### Migrating from v3
+### Migrating from v2
+
+See [docs/v2-v3-migration-guide.md](docs/v2-v3-migration-guide.md) for a full before/after guide
+covering every breaking change.
+
+**Additional changes introduced in v3.x:**
 
 - **`global-overall-scope` defaults to `all`**: when `report-groups` is configured, the action now
   runs a top-level `paths` scan in addition to per-group scans. Reports found by that scan but not
@@ -221,11 +226,6 @@ The following outputs are set by the JaCoCo GitHub Action:
 - **`paths` defaults to `**/jacoco.xml`**: the input was previously optional when `report-groups` was
   set. It now has a default value. Remove any explicit `paths: ''` overrides — empty paths are
   allowed and fall back to `**/jacoco.xml` at runtime when no groups are configured.
-
-### Migrating from v2
-
-See [docs/v2-v3-migration-guide.md](docs/v2-v3-migration-guide.md) for a full before/after guide
-covering every breaking change.
 
 ---
 

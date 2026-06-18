@@ -2506,8 +2506,8 @@ def test_scan_groups_no_overlap_deduplication(jacoco_report, mocker):
     mocker.patch(
         "jacoco_report.jacoco_report.JaCoCoReport.scan_jacoco_xml_files",
         side_effect=[
-            ["group-a.xml"],
-            ["group-b.xml"],
+            ["group-a.xml"],   # group1 ("app") scan
+            ["group-b.xml"],   # group2 ("test") scan
         ],
     )
     parse_mock = mocker.patch(
@@ -2551,8 +2551,8 @@ def test_scan_groups_with_overlap_deduplication(jacoco_report, mocker):
     mocker.patch(
         "jacoco_report.jacoco_report.JaCoCoReport.scan_jacoco_xml_files",
         side_effect=[
-            ["shared.xml", "other.xml"],
-            ["shared.xml"],
+            ["shared.xml", "other.xml"],  # group1 ("all") scan
+            ["shared.xml"],               # group2 ("user-info") scan
         ],
     )
     parse_mock = mocker.patch(
