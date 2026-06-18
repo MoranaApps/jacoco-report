@@ -173,7 +173,10 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_REF: ${{ github.ref }}
         run: |
-          pytest tests/integration/live/
+          echo "Debug: GITHUB_TOKEN=${GITHUB_TOKEN:0:20}..." 
+          echo "Debug: GITHUB_REPOSITORY=$GITHUB_REPOSITORY"
+          echo "Debug: GITHUB_REF=$GITHUB_REF"
+          pytest tests/integration/live/ -v
           exit_code=$?; [ $exit_code -eq 5 ] && exit 0 || exit $exit_code
 
   mypy-check:
