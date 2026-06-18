@@ -13,6 +13,7 @@ success_case = {
     "get_global_thresholds": "0.0*0.0",
     "get_global_overall_threshold": 80.0,
     "get_global_changed_files_average_threshold": 70.0,
+    "get_global_overall_scope": "all",
     "get_report_thresholds_default": "0.0*0.0*0.0",
     "get_title": "Custom Title",
     "get_metric": "instruction",
@@ -33,7 +34,6 @@ failure_cases = [
     ("get_token", 1, "'token' must be a non-empty string."),
     ("get_paths", None, "'paths' must be defined."),
     ("get_paths", 1, "'paths' must be a list of strings."),
-    ("get_paths", "", "'paths' must be a non-empty list of strings."),
     ("get_global_thresholds", "x", "'global-thresholds' must be in the format 'overall*changed-files-average'. Where overall is the minimum coverage overall and changed-files-average is the minimum average coverage of changed files."),
     ("get_global_thresholds", "x*0", "'global-thresholds' overall value must be a float between 0 and 100."),
     ("get_global_thresholds", "0*x", "'global-thresholds' changed-files-average value must be a float between 0 and 100."),
@@ -73,6 +73,7 @@ failure_cases = [
     ("get_report_groups", "- name: group1\n  paths: []", "'report-groups' entry #1 must have a non-empty 'paths' list of non-empty strings."),
     ("get_report_groups", "- name: group1\n  paths: ['**']\n  thresholds: '80'", "'report-groups' entry #1 'thresholds' must be in format 'O*A*P' (e.g. '80*70*60')."),
     ("get_report_groups", "- name: group1\n  paths: ['**']\n  thresholds: 'x*70*60'", "'report-groups' entry #1 'thresholds' overall value 'x' must be a float in [0, 100)."),
+    ("get_global_overall_scope", "invalid", "'global-overall-scope' must be 'all' or 'groups-only'."),
     ("get_pass_symbol", "", "'pass-symbol' must be a non-empty string and have a length from 1."),
     ("get_pass_symbol", 1, "'pass-symbol' must be a non-empty string and have a length from 1."),
     ("get_fail_symbol", "", "'fail-symbol' must be a non-empty string and have a length from 1."),
@@ -789,14 +790,13 @@ def test_get_event_name(mocker):
 
 
 # --- Issue 6: whitespace-only paths ---
-def test_validate_inputs_paths_whitespace_only_requires_error_without_groups(mocker):
+def test_validate_inputs_paths_whitespace_only_allowed_without_groups(mocker):
     case = success_case.copy()
     case["get_paths"] = "  \n  "
     case["get_report_groups"] = ""
 
     patchers = apply_mocks(case, mocker)
     try:
-        mock_error = mocker.patch("jacoco_report.action_inputs.logger.error")
         mock_exit = mocker.patch("sys.exit")
         mocker.patch(
             "jacoco_report.action_inputs.ActionInputs.get_paths",
@@ -805,8 +805,7 @@ def test_validate_inputs_paths_whitespace_only_requires_error_without_groups(moc
 
         ActionInputs.validate_inputs()
 
-        mock_error.assert_any_call("%s", "'paths' must be a non-empty list of strings.")
-        mock_exit.assert_called_once_with(1)
+        mock_exit.assert_not_called()
     finally:
         stop_mocks(patchers)
 
@@ -974,35 +973,88 @@ def test_validate_inputs_allows_empty_paths_when_report_groups_configured(mocker
         stop_mocks(patchers)
 
 
-def test_validate_inputs_requires_paths_when_report_groups_not_configured(mocker):
+def test_validate_inputs_allows_empty_paths_when_report_groups_not_configured(mocker):
     case = success_case.copy()
     case["get_paths"] = ""
     case["get_report_groups"] = ""
 
     patchers = apply_mocks(case, mocker)
     try:
-        mock_error = mocker.patch("jacoco_report.action_inputs.logger.error")
         mock_exit = mocker.patch("sys.exit")
         ActionInputs.validate_inputs()
 
-        mock_error.assert_any_call("%s", "'paths' must be a non-empty list of strings.")
-        mock_exit.assert_called_once_with(1)
+        mock_exit.assert_not_called()
     finally:
         stop_mocks(patchers)
 
 
-def test_validate_inputs_requires_paths_when_report_groups_is_empty_yaml_list(mocker):
+def test_validate_inputs_allows_empty_paths_when_report_groups_is_empty_yaml_list(mocker):
     case = success_case.copy()
     case["get_paths"] = ""
     case["get_report_groups"] = "[]"
 
     patchers = apply_mocks(case, mocker)
     try:
-        mock_error = mocker.patch("jacoco_report.action_inputs.logger.error")
         mock_exit = mocker.patch("sys.exit")
         ActionInputs.validate_inputs()
 
-        mock_error.assert_any_call("%s", "'paths' must be a non-empty list of strings.")
+        mock_exit.assert_not_called()
+    finally:
+        stop_mocks(patchers)
+
+
+# ---------------------------------------------------------------------------
+# global-overall-scope
+# ---------------------------------------------------------------------------
+
+def test_get_global_overall_scope_default(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="all")
+    assert ActionInputs.get_global_overall_scope() == "all"
+
+
+def test_get_global_overall_scope_groups_only(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="groups-only")
+    assert ActionInputs.get_global_overall_scope() == "groups-only"
+
+
+def test_get_global_overall_scope_strips_and_lowercases(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="  ALL  ")
+    assert ActionInputs.get_global_overall_scope() == "all"
+
+
+def test_validate_inputs_accepts_all_scope(mocker):
+    case = success_case.copy()
+    case["get_global_overall_scope"] = "all"
+    patchers = apply_mocks(case, mocker)
+    try:
+        mock_exit = mocker.patch("sys.exit")
+        ActionInputs.validate_inputs()
+        mock_exit.assert_not_called()
+    finally:
+        stop_mocks(patchers)
+
+
+def test_validate_inputs_accepts_groups_only_scope(mocker):
+    case = success_case.copy()
+    case["get_global_overall_scope"] = "groups-only"
+    patchers = apply_mocks(case, mocker)
+    try:
+        mock_exit = mocker.patch("sys.exit")
+        ActionInputs.validate_inputs()
+        mock_exit.assert_not_called()
+    finally:
+        stop_mocks(patchers)
+
+
+def test_validate_inputs_rejects_invalid_global_overall_scope(mocker):
+    case = success_case.copy()
+    case["get_global_overall_scope"] = "invalid"
+    patchers = apply_mocks(case, mocker)
+    try:
+        mock_error = mocker.patch("jacoco_report.action_inputs.logger.error")
+        mock_exit = mocker.patch("sys.exit")
+        ActionInputs.validate_inputs()
+        mock_error.assert_any_call("%s", "'global-overall-scope' must be 'all' or 'groups-only'.")
         mock_exit.assert_called_once_with(1)
     finally:
         stop_mocks(patchers)

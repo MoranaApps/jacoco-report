@@ -5,9 +5,11 @@
 `report-groups` organises JaCoCo reports from multi-module projects into named groups. Each group
 defines its own file globs, optional per-group thresholds, and optional baseline paths.
 
-When `report-groups` is set, the top-level `paths` input can be omitted — the action scans each
-group's `paths` list instead. The top-level `global-thresholds` still run as a **separate
-aggregated pass** over all reports, independent of group thresholds.
+When `report-groups` is set, each group's own `paths` list controls which reports belong to that
+group and which thresholds apply. The top-level `paths` input (default `**/jacoco.xml`) is used
+separately to determine the **global overall coverage** — see
+[global-overall-scope.md](global-overall-scope.md). The top-level `global-thresholds` runs as a
+**separate aggregated pass** over all reports, independent of group thresholds.
 
 ## Schema
 
@@ -172,13 +174,17 @@ report-groups: |
 
 ### Combined with global thresholds
 
-`global-thresholds` always runs as a separate pass over all reports combined.
+`global-thresholds` always runs as a separate pass. By default (`global-overall-scope: all`) it
+covers every report found by the top-level `paths` scan — including any module not assigned to a
+group. Set `global-overall-scope: groups-only` to restrict it to grouped reports only.
 
 ```yaml
 - uses: MoranaApps/jacoco-report@v3
   with:
     token: '${{ secrets.GITHUB_TOKEN }}'
+    paths: '**/jacoco.xml'                # scanned for global overall (default value)
     global-thresholds: '70*0'             # aggregated overall must be ≥ 70 %
+    global-overall-scope: 'all'           # default — includes ungrouped reports in global overall
     report-thresholds-default: '60*50*0'  # default for all groups
     report-groups: |
       - name: core
@@ -218,6 +224,7 @@ report-groups: |
 ## See also
 
 - [thresholds.md](thresholds.md) — `global-thresholds`, `report-thresholds-default`, threshold resolution
+- [global-overall-scope.md](global-overall-scope.md) — controlling which reports count toward global overall
 - [comment-level.md](comment-level.md) — Groups table visibility
 - [baseline-paths.md](baseline-paths.md) — top-level baseline configuration
 - [v2-v3-migration-guide.md](../v2-v3-migration-guide.md) — migrating `modules` / `modules-thresholds` to `report-groups`

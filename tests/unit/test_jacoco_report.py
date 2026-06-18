@@ -1975,6 +1975,7 @@ def test_run_with_report_groups_allows_empty_top_level_paths(jacoco_report, mock
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=[])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_exclude_paths", return_value=[])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups", return_value=[group])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_scope", return_value="groups-only")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_unchanged", return_value=False)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=False)
     mocker.patch("jacoco_report.utils.github.GitHub.get_pr_number", return_value=1)
@@ -2008,6 +2009,7 @@ def test_run_with_report_groups_no_baseline_paths_no_group_warnings(jacoco_repor
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_exclude_paths", return_value=[])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=[])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups", return_value=[group])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_scope", return_value="groups-only")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_unchanged", return_value=False)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=False)
     mocker.patch("jacoco_report.utils.github.GitHub.get_pr_number", return_value=1)
@@ -2043,6 +2045,7 @@ def test_run_with_report_groups_ambiguous_global_baseline_inheritance_skips_grou
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_exclude_paths", return_value=[])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["baseline/**/*.xml"])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups", return_value=[group1, group2])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_scope", return_value="groups-only")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_unchanged", return_value=False)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=False)
     mocker.patch("jacoco_report.utils.github.GitHub.get_pr_number", return_value=1)
@@ -2083,6 +2086,7 @@ def test_run_with_report_groups_explicit_empty_baseline_does_not_inherit_global(
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_exclude_paths", return_value=[])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["baseline/**/*.xml"])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups", return_value=[group1, group2])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_scope", return_value="groups-only")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_unchanged", return_value=False)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=False)
     mocker.patch("jacoco_report.utils.github.GitHub.get_pr_number", return_value=1)
@@ -2488,6 +2492,7 @@ def test_scan_groups_no_overlap_deduplication(jacoco_report, mocker):
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_comment_level", return_value=CommentLevelEnum.FULL)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_threshold", return_value=0.0)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_files_average_threshold", return_value=0.0)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_scope", return_value="groups-only")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=False)
 
     group1 = ReportGroup(name="app", paths=["tests/data/context/notification/**/jacoco*.xml"])
@@ -2501,8 +2506,8 @@ def test_scan_groups_no_overlap_deduplication(jacoco_report, mocker):
     mocker.patch(
         "jacoco_report.jacoco_report.JaCoCoReport.scan_jacoco_xml_files",
         side_effect=[
-            ["group-a.xml"],
-            ["group-b.xml"],
+            ["group-a.xml"],   # group1 ("app") scan
+            ["group-b.xml"],   # group2 ("test") scan
         ],
     )
     parse_mock = mocker.patch(
@@ -2532,6 +2537,7 @@ def test_scan_groups_with_overlap_deduplication(jacoco_report, mocker):
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_comment_level", return_value=CommentLevelEnum.FULL)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_threshold", return_value=0.0)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_files_average_threshold", return_value=0.0)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_scope", return_value="groups-only")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=False)
 
     group1 = ReportGroup(name="all", paths=["tests/data/**/**/jacoco*.xml"])
@@ -2545,8 +2551,8 @@ def test_scan_groups_with_overlap_deduplication(jacoco_report, mocker):
     mocker.patch(
         "jacoco_report.jacoco_report.JaCoCoReport.scan_jacoco_xml_files",
         side_effect=[
-            ["shared.xml", "other.xml"],
-            ["shared.xml"],
+            ["shared.xml", "other.xml"],  # group1 ("all") scan
+            ["shared.xml"],               # group2 ("user-info") scan
         ],
     )
     parse_mock = mocker.patch(
@@ -2674,3 +2680,183 @@ def test_excluded_files_absent_from_evaluated_reports(jacoco_report, mocker, mak
     assert "included.xml" in reports_data
     assert reports_data["included.xml"]["name"] == "included-mod"
     assert not any(v.get("name") == "excluded-mod" for v in reports_data.values())
+
+
+# ---------------------------------------------------------------------------
+# global-overall-scope behaviour
+# ---------------------------------------------------------------------------
+
+def test_global_overall_scope_all_includes_ungrouped_reports(jacoco_report, mocker):
+    """With scope=all, reports outside all groups are parsed and included in evaluation."""
+    from jacoco_report.model.report_group import ReportGroup
+
+    group = ReportGroup(name="backend", paths=["backend/**/jacoco.xml"])
+
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value="pull_request")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_token", return_value="fake_token")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=["**/jacoco.xml"])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_exclude_paths", return_value=[])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups", return_value=[group])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_scope", return_value="all")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_unchanged", return_value=False)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=False)
+    mocker.patch("jacoco_report.utils.github.GitHub.get_pr_number", return_value=1)
+    mocker.patch("jacoco_report.utils.github.GitHub.get_pr_changed_files", return_value=[])
+    mocker.patch(
+        "jacoco_report.jacoco_report.JaCoCoReport.scan_jacoco_xml_files",
+        side_effect=[
+            ["backend/jacoco.xml", "frontend/jacoco.xml"],  # top-level scan (scope=all)
+            ["backend/jacoco.xml"],  # group scan
+        ],
+    )
+    parse_mock = mocker.patch(
+        "jacoco_report.parser.jacoco_report_parser.JaCoCoReportParser.parse",
+        return_value=mocker.Mock(name="report_file_coverage"),
+    )
+    mocker.patch("jacoco_report.evaluator.coverage_evaluator.CoverageEvaluator.evaluate", return_value=None)
+    mocker.patch("jacoco_report.generator.pr_comment_generator.PRCommentGenerator.generate", return_value=None)
+
+    jacoco_report.run()
+
+    assert parse_mock.call_count == 2
+    parsed_paths = [call.args[0] for call in parse_mock.call_args_list]
+    assert "backend/jacoco.xml" in parsed_paths
+    assert "frontend/jacoco.xml" in parsed_paths
+
+
+def test_global_overall_scope_groups_only_excludes_ungrouped_reports(jacoco_report, mocker):
+    """With scope=groups-only, no top-level scan is triggered; ungrouped files are never parsed."""
+    from jacoco_report.model.report_group import ReportGroup
+
+    group = ReportGroup(name="backend", paths=["backend/**/jacoco.xml"])
+
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value="pull_request")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_token", return_value="fake_token")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=["**/jacoco.xml"])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_exclude_paths", return_value=[])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups", return_value=[group])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_scope", return_value="groups-only")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_unchanged", return_value=False)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=False)
+    mocker.patch("jacoco_report.utils.github.GitHub.get_pr_number", return_value=1)
+    mocker.patch("jacoco_report.utils.github.GitHub.get_pr_changed_files", return_value=[])
+    scan_mock = mocker.patch(
+        "jacoco_report.jacoco_report.JaCoCoReport.scan_jacoco_xml_files",
+        side_effect=[
+            ["backend/jacoco.xml"],  # only the group scan; no top-level scan
+        ],
+    )
+    parse_mock = mocker.patch(
+        "jacoco_report.parser.jacoco_report_parser.JaCoCoReportParser.parse",
+        return_value=mocker.Mock(name="report_file_coverage"),
+    )
+    mocker.patch("jacoco_report.evaluator.coverage_evaluator.CoverageEvaluator.evaluate", return_value=None)
+    mocker.patch("jacoco_report.generator.pr_comment_generator.PRCommentGenerator.generate", return_value=None)
+
+    jacoco_report.run()
+
+    assert scan_mock.call_count == 1
+    assert parse_mock.call_count == 1
+    assert parse_mock.call_args_list[0].args[0] == "backend/jacoco.xml"
+
+
+def test_global_overall_scope_all_empty_paths_skips_extra_scan(jacoco_report, mocker):
+    """With scope=all but paths is empty, no extra top-level scan is triggered."""
+    from jacoco_report.model.report_group import ReportGroup
+
+    group = ReportGroup(name="backend", paths=["backend/**/jacoco.xml"])
+
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value="pull_request")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_token", return_value="fake_token")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=[])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_exclude_paths", return_value=[])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups", return_value=[group])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_scope", return_value="all")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_unchanged", return_value=False)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=False)
+    mocker.patch("jacoco_report.utils.github.GitHub.get_pr_number", return_value=1)
+    mocker.patch("jacoco_report.utils.github.GitHub.get_pr_changed_files", return_value=[])
+    scan_mock = mocker.patch(
+        "jacoco_report.jacoco_report.JaCoCoReport.scan_jacoco_xml_files",
+        side_effect=[
+            ["backend/jacoco.xml"],  # only the group scan
+        ],
+    )
+    mocker.patch(
+        "jacoco_report.parser.jacoco_report_parser.JaCoCoReportParser.parse",
+        return_value=mocker.Mock(name="report_file_coverage"),
+    )
+    mocker.patch("jacoco_report.evaluator.coverage_evaluator.CoverageEvaluator.evaluate", return_value=None)
+    mocker.patch("jacoco_report.generator.pr_comment_generator.PRCommentGenerator.generate", return_value=None)
+
+    jacoco_report.run()
+
+    assert scan_mock.call_count == 1
+
+
+def test_global_overall_scope_all_ungrouped_reports_emit_warning(jacoco_report, caplog, mocker):
+    """With scope=all, a warning is logged for each report not assigned to any group."""
+    from jacoco_report.model.report_group import ReportGroup
+
+    group = ReportGroup(name="backend", paths=["backend/**/jacoco.xml"])
+
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value="pull_request")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_token", return_value="fake_token")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=["**/jacoco.xml"])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_exclude_paths", return_value=[])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups", return_value=[group])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_scope", return_value="all")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_unchanged", return_value=False)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=False)
+    mocker.patch("jacoco_report.utils.github.GitHub.get_pr_number", return_value=1)
+    mocker.patch("jacoco_report.utils.github.GitHub.get_pr_changed_files", return_value=[])
+    mocker.patch(
+        "jacoco_report.jacoco_report.JaCoCoReport.scan_jacoco_xml_files",
+        side_effect=[
+            ["backend/jacoco.xml", "frontend/jacoco.xml"],  # top-level scan
+            ["backend/jacoco.xml"],  # group scan
+        ],
+    )
+    mocker.patch(
+        "jacoco_report.parser.jacoco_report_parser.JaCoCoReportParser.parse",
+        return_value=mocker.Mock(name="report_file_coverage"),
+    )
+    mocker.patch("jacoco_report.evaluator.coverage_evaluator.CoverageEvaluator.evaluate", return_value=None)
+    mocker.patch("jacoco_report.generator.pr_comment_generator.PRCommentGenerator.generate", return_value=None)
+
+    with caplog.at_level(logging.WARNING):
+        jacoco_report.run()
+
+    assert "frontend/jacoco.xml" in caplog.text
+    assert "not assigned to any report group" in caplog.text
+    assert "groups-only" in caplog.text
+
+
+def test_empty_paths_falls_back_to_default_when_no_groups(jacoco_report, mocker):
+    """When paths is empty and no report groups are configured, the runtime falls back to **/jacoco.xml."""
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value="pull_request")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_token", return_value="fake_token")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=[])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_exclude_paths", return_value=[])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups", return_value=[])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_scope", return_value="groups-only")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_unchanged", return_value=False)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=False)
+    mocker.patch("jacoco_report.utils.github.GitHub.get_pr_number", return_value=1)
+    mocker.patch("jacoco_report.utils.github.GitHub.get_pr_changed_files", return_value=[])
+    scan_mock = mocker.patch(
+        "jacoco_report.jacoco_report.JaCoCoReport.scan_jacoco_xml_files",
+        return_value=["some/module/jacoco.xml"],
+    )
+    mocker.patch(
+        "jacoco_report.parser.jacoco_report_parser.JaCoCoReportParser.parse",
+        return_value=mocker.Mock(name="report_file_coverage"),
+    )
+    mocker.patch("jacoco_report.evaluator.coverage_evaluator.CoverageEvaluator.evaluate", return_value=None)
+    mocker.patch("jacoco_report.generator.pr_comment_generator.PRCommentGenerator.generate", return_value=None)
+
+    jacoco_report.run()
+
+    scan_mock.assert_called_once()
+    called_paths = scan_mock.call_args.kwargs.get("paths") or scan_mock.call_args.args[0]
+    assert called_paths == ["**/jacoco.xml"]
