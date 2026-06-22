@@ -690,6 +690,99 @@ def test_skip_unchanged_with_report_groups_filters_groupless_unchanged_report(
     assert jr.violations == []
 
 
+def test_skip_unchanged_with_multiple_groups_overall_coverage_includes_all_reports(
+    mocker: MockerFixture, make_report_file_coverage, make_file_coverage, make_coverage
+):
+    """Bug test: overall coverage should include all reports regardless of changes.
+    
+    Setup:
+    - 4 reports (simulating 4 report groups)
+    - Only 1 report has changed files in PR
+    - skip_unchanged=true, evaluate_unchanged=false
+    
+    Expected:
+    - Overall coverage calculated from ALL 4 reports (not just the 1 with changes)
+    - Changed-files coverage only from reports with changes
+    
+    This tests the fix for the bug where overall coverage was calculated
+    only from reports with changed files when skip_unchanged was enabled.
+    """
+    from jacoco_report.model.report_group import ReportGroup
+    
+    # Create 4 reports with different overall coverage values
+    # Report with changes: 80% coverage
+    report_with_changes = make_report_file_coverage(
+        path="report1.xml",
+        name="Report 1 (Changed)",
+        overall_coverage=make_coverage(instruction=Counter(missed=20, covered=80)),
+        changed_files_coverage={"src/Foo.java": make_file_coverage(instruction=Counter(missed=20, covered=80))},
+        group_name="group-1"
+    )
+    
+    # 3 reports without changes: 90%, 70%, 60% coverage respectively
+    report_unchanged_2 = make_report_file_coverage(
+        path="report2.xml",
+        name="Report 2 (Unchanged)",
+        overall_coverage=make_coverage(instruction=Counter(missed=10, covered=90)),
+        changed_files_coverage={},
+        group_name="group-2"
+    )
+    
+    report_unchanged_3 = make_report_file_coverage(
+        path="report3.xml",
+        name="Report 3 (Unchanged)",
+        overall_coverage=make_coverage(instruction=Counter(missed=30, covered=70)),
+        changed_files_coverage={},
+        group_name="group-3"
+    )
+    
+    report_unchanged_4 = make_report_file_coverage(
+        path="report4.xml",
+        name="Report 4 (Unchanged)",
+        overall_coverage=make_coverage(instruction=Counter(missed=40, covered=60)),
+        changed_files_coverage={},
+        group_name="group-4"
+    )
+    
+    reports = [
+        report_with_changes,
+        report_unchanged_2,
+        report_unchanged_3,
+        report_unchanged_4,
+    ]
+    
+    # Create 4 report groups
+    groups = [
+        ReportGroup(name="group-1", paths=["report1.xml"]),
+        ReportGroup(name="group-2", paths=["report2.xml"]),
+        ReportGroup(name="group-3", paths=["report3.xml"]),
+        ReportGroup(name="group-4", paths=["report4.xml"]),
+    ]
+    
+    mocks = _make_run_mocks(
+        mocker,
+        skip_unchanged=True,
+        evaluate_unchanged=False,
+        reports=reports
+    )
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups", return_value=groups)
+    
+    jr = JaCoCoReport()
+    jr.run()
+    
+    # Overall coverage should be: (80 + 90 + 70 + 60) / (100 + 100 + 100 + 100) = 300 / 400 = 75%
+    expected_overall = 75.0
+    
+    # When skip_unchanged=true without evaluate_unchanged, 
+    # the bug is that overall coverage is calculated from ONLY the report with changes (80%)
+    # But it SHOULD include all reports (75%)
+    assert jr.total_overall_coverage == expected_overall, (
+        f"Overall coverage must include all 4 reports (expected {expected_overall}%), "
+        f"not just the report with changes (80%). "
+        f"Got: {jr.total_overall_coverage}%"
+    )
+
+
 def test_fail_on_threshold_list_form_no_warning(mocker: MockerFixture, caplog):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="overall")
     with caplog.at_level(logging.WARNING, logger="jacoco_report.action_inputs"):

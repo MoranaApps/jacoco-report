@@ -182,15 +182,18 @@ def test_skip_unchanged_true_all_comment_levels(
 
 
 def test_filter_before_evaluation_changes_global_coverage(mocker: MockerFixture) -> None:
-    """Global coverage summary differs between skip-unchanged=false and skip-unchanged=true.
+    """Global coverage summary is identical between skip-unchanged=false and skip-unchanged=true.
 
-    With skip-unchanged=false all reports contribute to the global totals.
-    With skip-unchanged=true + evaluate-unchanged=false only the changed report contributes.
+    The overall coverage must ALWAYS include all reports regardless of skip-unchanged setting.
+    skip-unchanged should only filter comment rows and changed-files evaluation, not overall coverage.
 
-    The minimal-level comment bodies must differ, proving the filter runs before the
-    CoverageEvaluator rather than inside the comment generator.
+    With skip-unchanged=false all reports appear in rows.
+    With skip-unchanged=true + evaluate-unchanged=false only the changed report appears in rows,
+    but the global overall coverage still includes all reports.
+
+    The comment bodies may differ due to row filtering, but overall coverage must be identical.
     """
-    # Run 1: no filter — all reports in evaluator.
+    # Run 1: no filter — all reports in comment rows.
     captured_all = mock_github_offline(mocker, _CHANGED_FILES)
     r1 = capture_run(
         make_env_base(
@@ -202,7 +205,7 @@ def test_filter_before_evaluation_changes_global_coverage(mocker: MockerFixture)
     assert r1.exit_code == 0, f"Run 1 failed: {r1.stdout}"
     assert len(captured_all) == 1, f"Expected one comment in run 1, got {len(captured_all)}"
 
-    # Run 2: scan-stage filter active — only module_large in evaluator.
+    # Run 2: scan-stage filter active — only module_large in rows, but all reports in overall coverage.
     captured_filtered = mock_github_offline(mocker, _CHANGED_FILES)
     r2 = capture_run(
         make_env_base(
@@ -222,17 +225,21 @@ def test_filter_before_evaluation_changes_global_coverage(mocker: MockerFixture)
         "Run 1 uses skip-unchanged=false; no report should be scan-stage filtered."
     )
     assert expected_filter_log in r2.stdout, (
-        "Run 2 must log that the unchanged report was filtered before evaluation."
+        "Run 2 must log that the unchanged report was filtered from comment rows."
     )
 
     overall_all = _extract_overall_coverage(captured_all[0])
     overall_filtered = _extract_overall_coverage(captured_filtered[0])
-    assert overall_all != overall_filtered, (
-        "Global Overall coverage must change when unchanged reports are excluded from evaluator input."
+    assert overall_all == overall_filtered, (
+        "Global Overall coverage must be identical in both runs "
+        "(both must include all reports regardless of skip-unchanged). "
+        f"Run 1 (skip=false): {overall_all}%, Run 2 (skip=true): {overall_filtered}%"
     )
 
-    assert captured_all[0] != captured_filtered[0], (
-        "Global coverage summary must differ between skip-unchanged=false (all reports evaluated) "
-        "and skip-unchanged=true (only the changed report evaluated). "
-        "Matching bodies would indicate the filter is not running before the evaluator."
+    # Comment bodies may differ due to row filtering, but the overall summary line must be identical
+    assert "| **Overall**" in captured_all[0], (
+        "Run 1 must include Overall coverage summary line"
+    )
+    assert "| **Overall**" in captured_filtered[0], (
+        "Run 2 must include Overall coverage summary line"
     )
