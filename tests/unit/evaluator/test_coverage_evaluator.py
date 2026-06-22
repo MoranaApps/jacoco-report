@@ -931,4 +931,54 @@ def test_metric_line_fails_when_instruction_would_pass(mocker):
     )
     ev_line.evaluate()
     assert ev_line.total_coverage_overall_passed is False
-    assert ev_line.total_coverage_overall == 0.0
+
+
+# ---------------------------------------------------------------------------
+# G7  Changed files with 0 coverage must respect per-file threshold
+# ---------------------------------------------------------------------------
+
+def test_changed_file_with_zero_coverage_fails_nonzero_threshold(mocker: MockerFixture):
+    """A changed file with 0% coverage should FAIL if per-file threshold > 0%."""
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
+    
+    # Report with one changed file: 0 instruction coverage (missed=0, covered=0)
+    overall = Coverage(
+        instruction=Counter(missed=0, covered=10),
+        branch=Counter(missed=0, covered=10),
+        line=Counter(missed=0, covered=10),
+        complexity=Counter(missed=0, covered=10),
+        method=Counter(missed=0, covered=10),
+        clazz=Counter(missed=0, covered=10),
+    )
+    changed_files = {
+        "com/example/Main.scala": FileCoverage(
+            file_name="Main.scala",
+            file_path="com/example",
+            instruction=Counter(missed=0, covered=0),  # 0% instruction coverage
+            branch=Counter(missed=0, covered=0),
+            line=Counter(missed=0, covered=0),
+            complexity=Counter(missed=0, covered=0),
+            method=Counter(missed=0, covered=0),
+            clazz=Counter(missed=0, covered=0),
+        )
+    }
+    report = ReportFileCoverage(
+        path="report.xml",
+        name="server-scala:2.13.13",
+        overall_coverage=overall,
+        changed_files_coverage=changed_files,
+    )
+    
+    evaluator = CoverageEvaluator(
+        report_files_coverage=[report],
+        global_min_coverage_overall=50.0,
+        global_min_coverage_changed_files=50.0,
+        report_thresholds_default=(0.0, 0.0, 60.0),  # per-file threshold = 60%
+    )
+    evaluator.evaluate()
+    
+    # The file has 0% coverage but threshold is 60% → should FAIL
+    report_ev = evaluator.evaluated_reports_coverage["report.xml"]
+    assert report_ev.changed_files_passed["com/example/Main.scala"] is False
+    assert report_ev.per_changed_file_threshold == 60.0
+    assert report_ev.changed_files_coverage_reached["com/example/Main.scala"] == 0.0

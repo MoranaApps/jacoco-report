@@ -366,22 +366,17 @@ class CoverageEvaluator:
         if not has_avg_changed_files_metric_weight:
             evaluated_coverage_report.avg_changed_files_coverage_reached = 0.0
             evaluated_coverage_report.avg_changed_files_passed = True
-
-            # evaluate the changed files
-            for key, changed_file_coverage in report_coverage.changed_files_coverage.items():
-                evaluated_coverage_report.changed_files_passed[key] = True
-
         else:
             evaluated_coverage_report.avg_changed_files_passed = (
                 evaluated_coverage_report.avg_changed_files_coverage_reached >= changed_files_threshold
             )
 
-            # evaluate the changed files
-            for key, changed_file_coverage in report_coverage.changed_files_coverage.items():
-                evaluated_coverage_report.changed_files_passed[key] = (
-                    changed_file_coverage.get_coverage_by_metric(ActionInputs.get_metric())
-                    >= changed_per_file_threshold
-                )
+        # Evaluate per-file thresholds for all changed files, regardless of metric weight.
+        # Files with 0 coverage must still comply with the per-file threshold.
+        for key, changed_file_coverage in report_coverage.changed_files_coverage.items():
+            evaluated_coverage_report.changed_files_passed[key] = (
+                changed_file_coverage.get_coverage_by_metric(ActionInputs.get_metric()) >= changed_per_file_threshold
+            )
 
         if has_overall_metric_weight:
             logger.info(
