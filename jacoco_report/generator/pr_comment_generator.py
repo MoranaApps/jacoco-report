@@ -103,6 +103,14 @@ class PRCommentGenerator:
                 )
                 filtered_groups = {k: v for k, v in filtered_groups.items() if k in visible_group_names}
 
+            # Filter out reports with no changed files where metric weight is zero
+            # This indicates all changed files were filtered due to zero metric weight.
+            # Only hide when: had_changed_files_before_filtering is True
+            filtered_reports = {k: v for k, v in filtered_reports.items() if not v.had_changed_files_before_filtering}
+
+            # Similar logic for groups
+            filtered_groups = {k: v for k, v in filtered_groups.items() if not v.had_changed_files_before_filtering}
+
             if comment_level != CommentLevelEnum.FULL:
                 filtered_groups = self._filter_evaluated_coverage_rows(filtered_groups, comment_level)
                 filtered_reports = self._filter_evaluated_coverage_rows(filtered_reports, comment_level)
