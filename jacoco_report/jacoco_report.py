@@ -310,11 +310,10 @@ class JaCoCoReport:
         # evaluate the coverage
         logger.info("Evaluating the coverage of the reports.")
         report_thresholds_default = ActionInputs.get_report_thresholds_default()
-        reports_for_evaluation = (
-            report_files_coverage + filtered_unchanged_reports
-            if skip_unchanged and evaluate_filtered_unchanged and filtered_unchanged_reports
-            else report_files_coverage
-        )
+        # Always include all reports for overall coverage calculation.
+        # The skip_unchanged filter should only affect comment rows and changed-files evaluation,
+        # not the overall coverage which must aggregate all reports regardless of changes.
+        reports_for_evaluation = report_files_coverage + filtered_unchanged_reports
         evaluator_for_results: CoverageEvaluator = CoverageEvaluator(
             report_files_coverage=reports_for_evaluation,
             global_min_coverage_overall=ActionInputs.get_global_overall_threshold(),
@@ -365,9 +364,12 @@ class JaCoCoReport:
 
         # generate the comment(s)
         logger.info("Generating PR comment(s).")
+        # Always skip display of filtered unchanged reports when skip_unchanged is enabled,
+        # regardless of evaluate_filtered_unchanged setting. These reports are included in
+        # overall coverage but should not appear as rows in the comment.
         skip_report_names: frozenset[str] = (
             frozenset(r.path for r in filtered_unchanged_reports)
-            if skip_unchanged and evaluate_filtered_unchanged and filtered_unchanged_reports
+            if skip_unchanged and filtered_unchanged_reports
             else frozenset()
         )
         generator = PRCommentGenerator(
