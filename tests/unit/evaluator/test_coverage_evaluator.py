@@ -1064,6 +1064,9 @@ def test_changed_file_with_zero_metric_weight_only_should_hide_report_row(
     
     Expected: If all changed files in a report have zero coverage data for selected metric,
     the report should not display any changed files row.
+    
+    Scenario: Report HAS changed files, but sum of covered+missed for ALL files = 0
+    (because each individual file is filtered out due to zero metric weight)
     """
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
     
@@ -1115,5 +1118,67 @@ def test_changed_file_with_zero_metric_weight_only_should_hide_report_row(
     report_ev = evaluator.evaluated_reports_coverage["report.xml"]
     
     # All changed files have zero metric weight → changed_files_passed dict should be EMPTY
+    # AND aggregate should have zero metric weight
     assert len(report_ev.changed_files_passed) == 0
     assert len(report_ev.changed_files_coverage_reached) == 0
+    assert report_ev.avg_changed_files_coverage.covered == 0
+    assert report_ev.avg_changed_files_coverage.missed == 0
+
+
+def test_changed_file_with_zero_metric_weight_but_data_in_other_metric(
+    mocker: MockerFixture,
+):
+    """File with zero weight for SELECTED metric but HAS data for OTHER metrics.
+    
+    Scenario: Changed file has:
+    - instruction=Counter(0, 0) - selected metric, zero weight
+    - branch=Counter(2, 3) - other metric, has data
+    
+    Expected: File is filtered out (zero weight for selected metric)
+    """
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
+    
+    overall = Coverage(
+        instruction=Counter(missed=0, covered=10),
+        branch=Counter(missed=0, covered=10),
+        line=Counter(missed=0, covered=10),
+        complexity=Counter(missed=0, covered=10),
+        method=Counter(missed=0, covered=10),
+        clazz=Counter(missed=0, covered=10),
+    )
+    changed_files = {
+        "com/example/Main.scala": FileCoverage(
+            file_name="Main.scala",
+            file_path="com/example",
+            instruction=Counter(missed=0, covered=0),  # NO DATA for selected metric
+            branch=Counter(missed=2, covered=3),  # HAS DATA for other metric
+            line=Counter(missed=0, covered=0),
+            complexity=Counter(missed=0, covered=0),
+            method=Counter(missed=0, covered=0),
+            clazz=Counter(missed=0, covered=0),
+        ),
+    }
+    report = ReportFileCoverage(
+        path="report.xml",
+        name="server-scala:2.13.13",
+        overall_coverage=overall,
+        changed_files_coverage=changed_files,
+    )
+    
+    evaluator = CoverageEvaluator(
+        report_files_coverage=[report],
+        global_min_coverage_overall=50.0,
+        global_min_coverage_changed_files=50.0,
+        report_thresholds_default=(0.0, 0.0, 60.0),
+    )
+    evaluator.evaluate()
+    
+    report_ev = evaluator.evaluated_reports_coverage["report.xml"]
+    
+    # File has zero metric weight for SELECTED metric (instruction)
+    # → should be filtered out even though it has data for branch
+    assert "com/example/Main.scala" not in report_ev.changed_files_passed
+    assert "com/example/Main.scala" not in report_ev.changed_files_coverage_reached
+    # Aggregate should also be zero for selected metric
+    assert report_ev.avg_changed_files_coverage.covered == 0
+    assert report_ev.avg_changed_files_coverage.missed == 0

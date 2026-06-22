@@ -121,6 +121,10 @@ class CoverageEvaluator:
                 )
                 evaluated_coverage_report.avg_changed_files_coverage.append(mi, co)
 
+            # If report had changed files but none were added (all filtered), mark it
+            if report.changed_files_coverage and not evaluated_coverage_report.changed_files_coverage_reached:
+                evaluated_coverage_report.had_changed_files_before_filtering = True
+
             # count reached values from raw weights - changed files
             evaluated_coverage_report.avg_changed_files_coverage_reached = (
                 evaluated_coverage_report.avg_changed_files_coverage.coverage()
@@ -154,6 +158,9 @@ class CoverageEvaluator:
                     evaluated_coverage_group.changed_files_coverage_reached.update(
                         evaluated_report_coverage.changed_files_coverage_reached
                     )
+                    # Propagate the flag if any report had changed files that were filtered
+                    if evaluated_report_coverage.had_changed_files_before_filtering:
+                        evaluated_coverage_group.had_changed_files_before_filtering = True
 
             # count reached values from raw weights
             evaluated_coverage_group.overall_coverage_reached = evaluated_coverage_group.overall_coverage.coverage()

@@ -33,6 +33,9 @@ class EvaluatedReportCoverage:
 
         self.per_changed_file_threshold: float = 0.0
 
+        # Flag: True if original report had changed files but all were filtered due to zero metric weight
+        self.had_changed_files_before_filtering: bool = False
+
     def to_dict(self) -> dict:
         """Convert object to dictionary for JSON serialization"""
         return {
@@ -74,4 +77,5 @@ class EvaluatedReportCoverage:
         clone.changed_files_threshold = self.changed_files_threshold
         clone.changed_files_coverage_reached = dict(self.changed_files_coverage_reached)
         clone.per_changed_file_threshold = self.per_changed_file_threshold
+        clone.had_changed_files_before_filtering = self.had_changed_files_before_filtering
         return clone
