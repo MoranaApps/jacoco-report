@@ -109,8 +109,12 @@ class CoverageEvaluator:
 
             # get report's changed files values
             for key, changed_file_coverage in report.changed_files_coverage.items():
-                changed_file_counter += 1
                 mi, co = changed_file_coverage.get_values_by_metric(m)
+                # Skip files with zero metric weight (no coverage data for selected metric)
+                has_file_metric_weight = not (mi == 0 and co == 0)
+                if not has_file_metric_weight:
+                    continue
+                changed_file_counter += 1
                 global_changed_files.append(mi, co)  # sum all reports
                 evaluated_coverage_report.changed_files_coverage_reached[key] = (
                     changed_file_coverage.get_coverage_by_metric(m)
@@ -307,7 +311,8 @@ class CoverageEvaluator:
                 "Group '%s' has no overall coverage data for selected metric; treated as passed.",
                 evaluated_coverage.name,
             )
-        if has_changed_files_for_log:
+        # Log changed files info if there are files with metric weight OR if all files were filtered out (zero metric weight)
+        if has_changed_files_for_log or not has_changed_files_metric_weight:
             if has_changed_files_metric_weight:
                 logger.info(
                     "Group '%s' reached average changed files coverage of %.1f%% with threshold set to %.1f%%",
@@ -371,12 +376,18 @@ class CoverageEvaluator:
                 evaluated_coverage_report.avg_changed_files_coverage_reached >= changed_files_threshold
             )
 
-        # Evaluate per-file thresholds for all changed files, regardless of metric weight.
-        # Files with 0 coverage must still comply with the per-file threshold.
+        # Evaluate per-file thresholds only for changed files that have metric weight.
+        # Files with zero coverage data (covered=0, missed=0) for selected metric are
+        # filtered out and NOT included in changed_files_passed — they won't appear in PR comment tables.
         for key, changed_file_coverage in report_coverage.changed_files_coverage.items():
-            evaluated_coverage_report.changed_files_passed[key] = (
-                changed_file_coverage.get_coverage_by_metric(ActionInputs.get_metric()) >= changed_per_file_threshold
-            )
+            metric = ActionInputs.get_metric()
+            missed, covered = changed_file_coverage.get_values_by_metric(metric)
+            has_file_metric_weight = not (missed == 0 and covered == 0)
+
+            if has_file_metric_weight:
+                evaluated_coverage_report.changed_files_passed[key] = (
+                    changed_file_coverage.get_coverage_by_metric(metric) >= changed_per_file_threshold
+                )
 
         if has_overall_metric_weight:
             logger.info(

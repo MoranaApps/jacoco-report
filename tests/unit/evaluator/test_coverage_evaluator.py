@@ -938,7 +938,11 @@ def test_metric_line_fails_when_instruction_would_pass(mocker):
 # ---------------------------------------------------------------------------
 
 def test_changed_file_with_zero_coverage_fails_nonzero_threshold(mocker: MockerFixture):
-    """A changed file with 0% coverage should FAIL if per-file threshold > 0%."""
+    """A changed file with 0% coverage for selected metric should be FILTERED OUT.
+    
+    Files with zero metric weight (no coverage data) should not appear in the changed_files_passed
+    dict and thus won't be shown in PR comment tables.
+    """
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
     
     # Report with one changed file: 0 instruction coverage (missed=0, covered=0)
@@ -977,8 +981,139 @@ def test_changed_file_with_zero_coverage_fails_nonzero_threshold(mocker: MockerF
     )
     evaluator.evaluate()
     
-    # The file has 0% coverage but threshold is 60% → should FAIL
+    # File has zero metric weight → should NOT be in changed_files_passed dict (filtered out)
     report_ev = evaluator.evaluated_reports_coverage["report.xml"]
-    assert report_ev.changed_files_passed["com/example/Main.scala"] is False
-    assert report_ev.per_changed_file_threshold == 60.0
-    assert report_ev.changed_files_coverage_reached["com/example/Main.scala"] == 0.0
+    assert "com/example/Main.scala" not in report_ev.changed_files_passed
+    assert "com/example/Main.scala" not in report_ev.changed_files_coverage_reached
+
+
+def test_changed_file_with_zero_metric_weight_should_be_filtered_from_table(mocker: MockerFixture):
+    """Files with zero metric weight (no coverage data) should NOT appear in changed files table.
+    
+    Expected behavior:
+    - If a file has zero coverage data (covered=0, missed=0) for selected metric, it should be
+      filtered out and NOT included in changed_files_passed dict
+    - Report/Group should not show a changed files row if all changed files have zero metric weight
+    """
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
+    
+    # Report with:
+    # 1. One changed file with 0 instruction coverage (no data)
+    # 2. One changed file with valid instruction coverage
+    overall = Coverage(
+        instruction=Counter(missed=0, covered=10),
+        branch=Counter(missed=0, covered=10),
+        line=Counter(missed=0, covered=10),
+        complexity=Counter(missed=0, covered=10),
+        method=Counter(missed=0, covered=10),
+        clazz=Counter(missed=0, covered=10),
+    )
+    changed_files = {
+        "com/example/Main.scala": FileCoverage(
+            file_name="Main.scala",
+            file_path="com/example",
+            instruction=Counter(missed=0, covered=0),  # 0% — NO DATA
+            branch=Counter(missed=0, covered=0),
+            line=Counter(missed=0, covered=0),
+            complexity=Counter(missed=0, covered=0),
+            method=Counter(missed=0, covered=0),
+            clazz=Counter(missed=0, covered=0),
+        ),
+        "com/example/Helper.scala": FileCoverage(
+            file_name="Helper.scala",
+            file_path="com/example",
+            instruction=Counter(missed=1, covered=9),  # 90% — HAS DATA
+            branch=Counter(missed=0, covered=10),
+            line=Counter(missed=0, covered=10),
+            complexity=Counter(missed=0, covered=10),
+            method=Counter(missed=0, covered=10),
+            clazz=Counter(missed=0, covered=10),
+        ),
+    }
+    report = ReportFileCoverage(
+        path="report.xml",
+        name="server-scala:2.13.13",
+        overall_coverage=overall,
+        changed_files_coverage=changed_files,
+    )
+    
+    evaluator = CoverageEvaluator(
+        report_files_coverage=[report],
+        global_min_coverage_overall=50.0,
+        global_min_coverage_changed_files=50.0,
+        report_thresholds_default=(0.0, 0.0, 60.0),  # per-file threshold = 60%
+    )
+    evaluator.evaluate()
+    
+    report_ev = evaluator.evaluated_reports_coverage["report.xml"]
+    
+    # Main.scala has zero metric weight → should NOT be in changed_files_passed dict
+    assert "com/example/Main.scala" not in report_ev.changed_files_passed
+    assert "com/example/Main.scala" not in report_ev.changed_files_coverage_reached
+    
+    # Helper.scala has data and 90% > 60% threshold → should be in dict and marked as PASSED
+    assert "com/example/Helper.scala" in report_ev.changed_files_passed
+    assert report_ev.changed_files_passed["com/example/Helper.scala"] is True
+    assert report_ev.changed_files_coverage_reached["com/example/Helper.scala"] == 90.0
+
+
+def test_changed_file_with_zero_metric_weight_only_should_hide_report_row(
+    mocker: MockerFixture,
+):
+    """Report with ONLY files that have zero metric weight should not show changed files row.
+    
+    Expected: If all changed files in a report have zero coverage data for selected metric,
+    the report should not display any changed files row.
+    """
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
+    
+    overall = Coverage(
+        instruction=Counter(missed=0, covered=10),
+        branch=Counter(missed=0, covered=10),
+        line=Counter(missed=0, covered=10),
+        complexity=Counter(missed=0, covered=10),
+        method=Counter(missed=0, covered=10),
+        clazz=Counter(missed=0, covered=10),
+    )
+    changed_files = {
+        "com/example/Main.scala": FileCoverage(
+            file_name="Main.scala",
+            file_path="com/example",
+            instruction=Counter(missed=0, covered=0),  # NO DATA
+            branch=Counter(missed=0, covered=0),
+            line=Counter(missed=0, covered=0),
+            complexity=Counter(missed=0, covered=0),
+            method=Counter(missed=0, covered=0),
+            clazz=Counter(missed=0, covered=0),
+        ),
+        "com/example/Helper.scala": FileCoverage(
+            file_name="Helper.scala",
+            file_path="com/example",
+            instruction=Counter(missed=0, covered=0),  # NO DATA
+            branch=Counter(missed=0, covered=0),
+            line=Counter(missed=0, covered=0),
+            complexity=Counter(missed=0, covered=0),
+            method=Counter(missed=0, covered=0),
+            clazz=Counter(missed=0, covered=0),
+        ),
+    }
+    report = ReportFileCoverage(
+        path="report.xml",
+        name="server-scala:2.13.13",
+        overall_coverage=overall,
+        changed_files_coverage=changed_files,
+    )
+    
+    evaluator = CoverageEvaluator(
+        report_files_coverage=[report],
+        global_min_coverage_overall=50.0,
+        global_min_coverage_changed_files=50.0,
+        report_thresholds_default=(0.0, 0.0, 60.0),
+    )
+    evaluator.evaluate()
+    
+    report_ev = evaluator.evaluated_reports_coverage["report.xml"]
+    
+    # All changed files have zero metric weight → changed_files_passed dict should be EMPTY
+    assert len(report_ev.changed_files_passed) == 0
+    assert len(report_ev.changed_files_coverage_reached) == 0
