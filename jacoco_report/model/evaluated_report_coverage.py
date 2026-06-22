@@ -56,6 +56,7 @@ class EvaluatedReportCoverage:
             "changed_files_threshold": self.changed_files_threshold,
             "changed_files_coverage_reached": self.changed_files_coverage_reached,
             "per_changed_file_threshold": self.per_changed_file_threshold,
+            "had_changed_files_before_filtering": self.had_changed_files_before_filtering,
         }
 
     def clone(self) -> "EvaluatedReportCoverage":
