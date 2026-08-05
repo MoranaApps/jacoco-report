@@ -8,6 +8,7 @@ Covers:
 - comment-level × skip-unchanged combinations across all supported levels
 - fail-on-threshold boolean deprecation warning
 """
+import json
 import logging
 
 import pytest
@@ -486,10 +487,14 @@ def test_operational_failure_marks_fail_unchanged_flag_false(mocker: MockerFixtu
     assert "Failed to retrieve changed files from GitHub API." in jr.violations
 
 
-def test_skip_unchanged_fail_unchanged_mixed_flow_uses_single_evaluator_pass(
+def test_skip_unchanged_fail_unchanged_mixed_flow_uses_two_evaluator_passes(
     mocker: MockerFixture,
     make_report_file_coverage,
 ):
+    """With evaluate_unchanged=False, pass/fail evaluation must be scoped to changed
+    reports only, separately from the informational total that still aggregates all
+    reports. That requires two CoverageEvaluator.evaluate() calls (see issue #211).
+    """
     unchanged = _report_without_changes("Unchanged Report", make_report_file_coverage)
     changed = _report_with_changes("Changed Report", make_report_file_coverage)
 
@@ -506,7 +511,7 @@ def test_skip_unchanged_fail_unchanged_mixed_flow_uses_single_evaluator_pass(
     jr = JaCoCoReport()
     jr.run()
 
-    assert evaluate_spy.call_count == 1
+    assert evaluate_spy.call_count == 2
     assert jr.reached_threshold_fail_unchanged is True
 
 
@@ -781,6 +786,61 @@ def test_skip_unchanged_with_multiple_groups_overall_coverage_includes_all_repor
         f"not just the report with changes (80%). "
         f"Got: {jr.total_overall_coverage}%"
     )
+
+
+def test_skip_unchanged_evaluate_unchanged_false_excludes_unchanged_group_from_violations(
+    mocker: MockerFixture, make_report_file_coverage, make_file_coverage, make_coverage
+):
+    """Regression test for issue #211.
+
+    With skip-unchanged=true and evaluate-unchanged=false, a report group with no changed
+    files must be completely excluded from pass/fail evaluation, even if its own coverage
+    is below its group threshold. Only the group touched by the PR should be evaluated.
+    """
+    from jacoco_report.model.report_group import ReportGroup
+
+    # Group touched by the PR: coverage above its threshold -> should pass.
+    report_changed = make_report_file_coverage(
+        path="report1.xml",
+        name="Report 1 (Changed)",
+        overall_coverage=make_coverage(instruction=Counter(missed=10, covered=90)),
+        changed_files_coverage={"src/Foo.java": make_file_coverage(instruction=Counter(missed=10, covered=90))},
+        group_name="group-1",
+    )
+
+    # Group NOT touched by the PR: coverage well below its threshold.
+    # This must not fail the action when evaluate-unchanged is false.
+    report_unchanged_low = make_report_file_coverage(
+        path="report2.xml",
+        name="Report 2 (Unchanged, low coverage)",
+        overall_coverage=make_coverage(instruction=Counter(missed=90, covered=10)),
+        changed_files_coverage={},
+        group_name="group-2",
+    )
+
+    groups = [
+        ReportGroup(name="group-1", paths=["report1.xml"], min_coverage_overall=80.0),
+        ReportGroup(name="group-2", paths=["report2.xml"], min_coverage_overall=80.0),
+    ]
+
+    mocks = _make_run_mocks(
+        mocker,
+        skip_unchanged=True,
+        evaluate_unchanged=False,
+        reports=[report_changed, report_unchanged_low],
+    )
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups", return_value=groups)
+
+    jr = JaCoCoReport()
+    jr.run()
+
+    assert jr.violations == [], f"Unchanged group must not produce violations, got: {jr.violations}"
+    assert jr.reached_threshold_overall is True
+    # group-2 has no reports contributing to evaluation, so it carries no coverage data
+    # and is treated as passed (zero metric weight) rather than failing on its low coverage.
+    evaluated_groups = json.loads(jr.evaluated_coverage_groups)
+    assert evaluated_groups["group-2"]["overall_passed"] is True
+    mocks["gh"].add_comment.assert_called_once()
 
 
 def test_fail_on_threshold_list_form_no_warning(mocker: MockerFixture, caplog):
