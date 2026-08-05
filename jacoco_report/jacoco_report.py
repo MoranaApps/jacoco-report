@@ -310,18 +310,41 @@ class JaCoCoReport:
         # evaluate the coverage
         logger.info("Evaluating the coverage of the reports.")
         report_thresholds_default = ActionInputs.get_report_thresholds_default()
-        # Always include all reports for overall coverage calculation.
-        # The skip_unchanged filter should only affect comment rows and changed-files evaluation,
-        # not the overall coverage which must aggregate all reports regardless of changes.
+        # Always include all reports for the informational overall coverage percentage.
+        # This must aggregate all reports regardless of changes so the displayed total
+        # reflects the whole codebase (see #202).
         reports_for_evaluation = report_files_coverage + filtered_unchanged_reports
-        evaluator_for_results: CoverageEvaluator = CoverageEvaluator(
+        overall_evaluator: CoverageEvaluator = CoverageEvaluator(
             report_files_coverage=reports_for_evaluation,
             global_min_coverage_overall=ActionInputs.get_global_overall_threshold(),
             global_min_coverage_changed_files=ActionInputs.get_global_changed_files_average_threshold(),
             report_groups=report_groups,
             report_thresholds_default=report_thresholds_default,
         )
-        evaluator_for_results.evaluate()
+        overall_evaluator.evaluate()
+
+        # Pass/fail evaluation (violations, reached_threshold_*, per-group/report status)
+        # must exclude filtered unchanged reports entirely when evaluate_unchanged is False,
+        # per docs/inputs/skip-unchanged.md: they must be "completely excluded from evaluation".
+        if evaluate_unchanged or not filtered_unchanged_reports:
+            evaluator_for_results: CoverageEvaluator = overall_evaluator
+        else:
+            evaluator_for_results = CoverageEvaluator(
+                report_files_coverage=report_files_coverage,
+                global_min_coverage_overall=ActionInputs.get_global_overall_threshold(),
+                global_min_coverage_changed_files=ActionInputs.get_global_changed_files_average_threshold(),
+                report_groups=report_groups,
+                report_thresholds_default=report_thresholds_default,
+            )
+            evaluator_for_results.evaluate()
+            # The comment's summary table still shows the informational total across all
+            # reports; only violations/status below are scoped to changed reports.
+            evaluator_for_results.total_coverage_overall = overall_evaluator.total_coverage_overall
+            evaluator_for_results.total_coverage_overall_passed = overall_evaluator.total_coverage_overall_passed
+            evaluator_for_results.total_coverage_changed_files = overall_evaluator.total_coverage_changed_files
+            evaluator_for_results.total_coverage_changed_files_passed = (
+                overall_evaluator.total_coverage_changed_files_passed
+            )
 
         bs_evaluator: CoverageEvaluator = CoverageEvaluator(
             report_files_coverage=bs_report_files_coverage,
@@ -356,7 +379,7 @@ class JaCoCoReport:
             filtered_unchanged_report_names = {report.path for report in filtered_unchanged_reports}
             self.reached_threshold_fail_unchanged = all(
                 evaluated_report.overall_passed
-                for report_name, evaluated_report in evaluator_for_results.evaluated_reports_coverage.items()
+                for report_name, evaluated_report in overall_evaluator.evaluated_reports_coverage.items()
                 if report_name in filtered_unchanged_report_names
             )
         else:
