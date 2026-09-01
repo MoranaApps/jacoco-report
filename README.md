@@ -20,7 +20,7 @@ Automates the publication of JaCoCo coverage reports directly as comments in pul
 ## Requirements
 
 - **GitHub Token**: A GitHub token with permission to fetch repository data such as Issues and Pull Requests.
-- **Python 3.12+**: Ensure you have Python 3.12 or newer installed on your system.
+- **Python 3.11+**: Ensure you have Python 3.11 or newer installed on your system.
 
 ---
 
@@ -63,7 +63,7 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: '3.11'
 
       - name: Publish JaCoCo Report in PR comments
         uses: MoranaApps/jacoco-report@v3

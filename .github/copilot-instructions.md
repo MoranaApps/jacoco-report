@@ -29,7 +29,7 @@ Must not write implementation code before the test-case table is approved.
 
 ## Language Rules
 
-- Python 3.12+ syntax. Must use type hints on all public functions and classes.
+- Python 3.11+ syntax. Must use type hints on all public functions and classes.
 - Must use `logging` — never `print()`.
 - Must use lazy `%` formatting in all log calls: `logger.info("value: %s", val)`.
 - Must not use f-strings or format strings inside logging calls.

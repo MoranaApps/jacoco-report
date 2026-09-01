@@ -598,14 +598,14 @@ class ActionInputs:
                     )
 
         metric = ActionInputs.get_metric()
-        if not isinstance(metric, str) or metric not in MetricTypeEnum:
+        if not isinstance(metric, str) or metric not in {m.value for m in MetricTypeEnum}:
             errors.append(
                 "'metric' must be a string from these options: 'instruction', "
                 "'line', 'branch', 'complexity', 'method', 'class'."
             )
 
         comment_level = ActionInputs.get_comment_level()
-        if not isinstance(comment_level, str) or comment_level not in CommentLevelEnum:
+        if not isinstance(comment_level, str) or comment_level not in {c.value for c in CommentLevelEnum}:
             errors.append(
                 "'comment-level' must be a string from these options: "
                 "'none', 'minimal', 'full', 'changed', 'failed', 'failed-or-changed'."
