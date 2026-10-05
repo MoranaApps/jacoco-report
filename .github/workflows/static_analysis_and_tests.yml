@@ -148,6 +148,7 @@ jobs:
       issues: write
       pull-requests: write
     strategy:
+      max-parallel: 1
       matrix: ${{fromJson(needs.set-matrix.outputs.matrix)}}
     name: Live Integration Test - (Python ${{ matrix.python-version }})
     steps:
