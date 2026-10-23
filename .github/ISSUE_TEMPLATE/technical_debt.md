@@ -1,7 +1,7 @@
 ---
 name: Technical debt
 about: Issue template for tracking technical debt items that should be addressed
-labels: 'tech-debt'
+labels: 'technical-debt'
 type: 'Task'
 ---
 

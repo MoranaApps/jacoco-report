@@ -6,6 +6,7 @@ from jacoco_report.parser.jacoco_report_parser import JaCoCoReportParser
 from jacoco_report.model.counter import Counter
 from jacoco_report.model.report_file_coverage import ReportFileCoverage
 
+
 @pytest.fixture
 def sample_jacoco_report(tmp_path):
     report_content = """
@@ -31,6 +32,7 @@ def sample_jacoco_report(tmp_path):
     report_path = tmp_path / "jacoco_report.xml"
     report_path.write_text(report_content)
     return str(report_path)
+
 
 @pytest.fixture
 def parser():
@@ -108,7 +110,7 @@ def test_parse_counter_value_error_invalid(parser, sample_jacoco_report, caplog)
     </report>
     """
     report_path = sample_jacoco_report
-    with open(report_path, 'w') as f:
+    with open(report_path, "w") as f:
         f.write(invalid_report_content)
 
     with caplog.at_level(logging.ERROR):
@@ -141,7 +143,7 @@ def test_parse_counter_value_error_missing(parser, sample_jacoco_report, caplog)
     """
 
     report_path = sample_jacoco_report
-    with open(report_path, 'w') as f:
+    with open(report_path, "w") as f:
         f.write(invalid_report_content)
 
     with caplog.at_level(logging.ERROR):

@@ -1,7 +1,7 @@
 ---
 name: Operative task
 about: Issue template for operational tasks.
-labels: 'infrastructure,no RN'
+labels: 'infrastructure,no-RN'
 type: 'Task'
 ---
 

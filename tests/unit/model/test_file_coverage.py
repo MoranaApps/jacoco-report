@@ -20,11 +20,12 @@ def file_coverage():
         line=line,
         complexity=complexity,
         method=method,
-        clazz=clazz
+        clazz=clazz,
     )
 
 
 # __init__
+
 
 def test_initialization():
     instruction = Counter(missed=5, covered=10)
@@ -42,7 +43,7 @@ def test_initialization():
         line=line,
         complexity=complexity,
         method=method,
-        clazz=clazz
+        clazz=clazz,
     )
 
     assert file_coverage.file_name == "file_name"

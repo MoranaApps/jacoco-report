@@ -18,6 +18,7 @@ def coverage():
 
 # __init__
 
+
 def test_initialization():
     instruction = Counter(missed=5, covered=10)
     branch = Counter(missed=3, covered=7)
@@ -37,7 +38,7 @@ def test_initialization():
 
 
 def test_get_coverage_by_metric(coverage, mocker):
-    mock_logger = mocker.patch('jacoco_report.model.coverage.logger')
+    mock_logger = mocker.patch("jacoco_report.model.coverage.logger")
     assert coverage.get_coverage_by_metric(MetricTypeEnum.INSTRUCTION) == round(10 / 15 * 100, 2)
     assert coverage.get_coverage_by_metric(MetricTypeEnum.BRANCH) == round(7 / 10 * 100, 2)
     assert coverage.get_coverage_by_metric(MetricTypeEnum.LINE) == round(8 / 10 * 100, 2)
@@ -47,8 +48,9 @@ def test_get_coverage_by_metric(coverage, mocker):
     assert coverage.get_coverage_by_metric("unknown") == 0.0
     mock_logger.error.assert_called_once_with("Unknown metric type: %s", "unknown")
 
+
 def test_get_values_by_metric(coverage, mocker):
-    mock_logger = mocker.patch('jacoco_report.model.coverage.logger')
+    mock_logger = mocker.patch("jacoco_report.model.coverage.logger")
     assert coverage.get_values_by_metric(MetricTypeEnum.INSTRUCTION) == (5, 10)
     assert coverage.get_values_by_metric(MetricTypeEnum.BRANCH) == (3, 7)
     assert coverage.get_values_by_metric(MetricTypeEnum.LINE) == (2, 8)
@@ -57,6 +59,7 @@ def test_get_values_by_metric(coverage, mocker):
     assert coverage.get_values_by_metric(MetricTypeEnum.CLASS) == (0, 5)
     assert coverage.get_values_by_metric("unknown") == (0, 0)
     mock_logger.error.assert_called_once_with("Unknown metric type: %s", "unknown")
+
 
 def test_str(coverage):
     expected_str = (

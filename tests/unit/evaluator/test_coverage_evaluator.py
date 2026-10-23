@@ -10,6 +10,7 @@ from jacoco_report.model.report_file_coverage import ReportFileCoverage
 from jacoco_report.model.coverage import Coverage
 from jacoco_report.model.report_group import ReportGroup
 
+
 @pytest.fixture
 def sample_report_file_coverage():
     overall_coverage = Coverage(
@@ -18,7 +19,7 @@ def sample_report_file_coverage():
         line=Counter(missed=2, covered=8),
         complexity=Counter(missed=1, covered=9),
         method=Counter(missed=4, covered=6),
-        clazz=Counter(missed=0, covered=5)
+        clazz=Counter(missed=0, covered=5),
     )
     changed_files_coverage = {
         "com/example/Example.java": FileCoverage(
@@ -29,15 +30,16 @@ def sample_report_file_coverage():
             line=Counter(missed=2, covered=8),
             complexity=Counter(missed=1, covered=9),
             method=Counter(missed=4, covered=6),
-            clazz=Counter(missed=0, covered=5)
+            clazz=Counter(missed=0, covered=5),
         )
     }
     return ReportFileCoverage(
         path="sample_report.xml",
         name="Sample Report Name",
         overall_coverage=overall_coverage,
-        changed_files_coverage=changed_files_coverage
+        changed_files_coverage=changed_files_coverage,
     )
+
 
 @pytest.fixture
 def evaluator(sample_report_file_coverage):
@@ -47,15 +49,18 @@ def evaluator(sample_report_file_coverage):
         global_min_coverage_changed_files=50.0,
     )
 
+
 def test_evaluate_overall_coverage(evaluator):
     evaluator.evaluate()
     assert evaluator.total_coverage_overall == pytest.approx(66.67, 0.01)
     assert evaluator.total_coverage_overall_passed is True
 
+
 def test_evaluate_changed_files_coverage(evaluator):
     evaluator.evaluate()
     assert evaluator.total_coverage_changed_files == pytest.approx(90.0, 0.01)
     assert evaluator.total_coverage_changed_files_passed is True
+
 
 def test_evaluate_with_low_thresholds(sample_report_file_coverage):
     evaluator = CoverageEvaluator(
@@ -70,7 +75,10 @@ def test_evaluate_with_low_thresholds(sample_report_file_coverage):
 
 # _review_violations
 
-def test_review_violations_global_overall_coverage_below_threshold(evaluator,):
+
+def test_review_violations_global_overall_coverage_below_threshold(
+    evaluator,
+):
     evaluator.total_coverage_overall = 40.0
     evaluator.total_coverage_changed_files = 90.0
     evaluator.total_coverage_overall_passed = False
@@ -124,6 +132,7 @@ def test_review_violations_global_changed_files_coverage_zero_w_changed_file(eva
 
     assert "Global changed files coverage 0.0 is below the threshold 50.0." in evaluator.violations
 
+
 def test_review_violations_report_overall_coverage_below_threshold(evaluator, mocker: MockerFixture):
     evaluator.total_coverage_overall = 75.0
     evaluator.total_coverage_changed_files = 80.0
@@ -135,12 +144,11 @@ def test_review_violations_report_overall_coverage_below_threshold(evaluator, mo
     report_evaluated_coverage.overall_coverage_reached = 40.0
     report_evaluated_coverage.overall_coverage_threshold = 50.0
 
-    evaluator.evaluated_reports_coverage = {
-        "filepath": report_evaluated_coverage
-    }
+    evaluator.evaluated_reports_coverage = {"filepath": report_evaluated_coverage}
     evaluator.review_violations()
 
     assert "Report 'module-a' overall coverage 40.0 is below the threshold 50.0." in evaluator.violations
+
 
 def test_review_violations_report_changed_files_coverage_below_threshold(evaluator, mocker: MockerFixture):
     evaluator.total_coverage_overall = 75.0
@@ -157,19 +165,14 @@ def test_review_violations_report_changed_files_coverage_below_threshold(evaluat
     report_evaluated_coverage.avg_changed_files_coverage_reached = 40.0
     report_evaluated_coverage.changed_files_threshold = 50.0
 
-    report_evaluated_coverage.changed_files_coverage_reached = {
-        "filepath/report": 40.0
-    }
-    report_evaluated_coverage.changed_files_passed = {
-        "filepath/report": False
-    }
+    report_evaluated_coverage.changed_files_coverage_reached = {"filepath/report": 40.0}
+    report_evaluated_coverage.changed_files_passed = {"filepath/report": False}
 
-    evaluator.evaluated_reports_coverage = {
-        "filepath": report_evaluated_coverage
-    }
+    evaluator.evaluated_reports_coverage = {"filepath": report_evaluated_coverage}
     evaluator.review_violations()
 
     assert "Report 'module-a' changed files coverage 40.0 is below the threshold 50.0." in evaluator.violations
+
 
 def test_evaluate_group_with_zero_coverage(caplog):
     # Create a sample report file coverage
@@ -179,7 +182,7 @@ def test_evaluate_group_with_zero_coverage(caplog):
         line=Counter(missed=0, covered=0),
         complexity=Counter(missed=0, covered=0),
         method=Counter(missed=0, covered=0),
-        clazz=Counter(missed=0, covered=0)
+        clazz=Counter(missed=0, covered=0),
     )
     changed_files_coverage = {
         "file1.java": FileCoverage(
@@ -190,7 +193,7 @@ def test_evaluate_group_with_zero_coverage(caplog):
             line=Counter(missed=0, covered=0),
             complexity=Counter(missed=0, covered=0),
             method=Counter(missed=0, covered=0),
-            clazz=Counter(missed=0, covered=0)
+            clazz=Counter(missed=0, covered=0),
         )
     }
     report_file_coverage = ReportFileCoverage(
@@ -198,7 +201,6 @@ def test_evaluate_group_with_zero_coverage(caplog):
         name="Sample Report Name",
         overall_coverage=overall_coverage,
         changed_files_coverage=changed_files_coverage,
-
     )
 
     # Create an instance of CoverageEvaluator
@@ -232,14 +234,20 @@ def _make_minimal_report(name: str, group_name: str) -> ReportFileCoverage:
         method=Counter(missed=0, covered=10),
         clazz=Counter(missed=0, covered=10),
     )
-    return ReportFileCoverage(path=f"{name}.xml", name=name, overall_coverage=overall,
-                              changed_files_coverage={}, group_name=group_name)
+    return ReportFileCoverage(
+        path=f"{name}.xml", name=name, overall_coverage=overall, changed_files_coverage={}, group_name=group_name
+    )
 
 
 def test_threshold_uses_group_when_matched(mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
-    group = ReportGroup(name="team-a", paths=["**"], min_coverage_overall=70.0,
-                        min_coverage_changed_files=60.0, min_coverage_per_changed_file=50.0)
+    group = ReportGroup(
+        name="team-a",
+        paths=["**"],
+        min_coverage_overall=70.0,
+        min_coverage_changed_files=60.0,
+        min_coverage_per_changed_file=50.0,
+    )
     report = _make_minimal_report("report-a", "team-a")
     evaluator = CoverageEvaluator(
         report_files_coverage=[report],
@@ -294,6 +302,7 @@ def test_threshold_partial_group_thresholds_fall_back_to_report_thresholds_defau
 
 
 # --- Task 29: report-thresholds-default fallback chain tests ---
+
 
 def test_report_thresholds_default_fallback_all_explicit(mocker: MockerFixture):
     """All three threshold fields set on the group — report_thresholds_default is never used."""
@@ -372,9 +381,9 @@ def test_report_thresholds_default_field_level_mix(mocker: MockerFixture):
     )
     evaluator.evaluate()
     ev = evaluator.evaluated_reports_coverage["report-d.xml"]
-    assert ev.overall_coverage_threshold == 80.0   # from group
-    assert ev.changed_files_threshold == 60.0       # from report_thresholds_default
-    assert ev.per_changed_file_threshold == 0.0     # from report_thresholds_default
+    assert ev.overall_coverage_threshold == 80.0  # from group
+    assert ev.changed_files_threshold == 60.0  # from report_thresholds_default
+    assert ev.per_changed_file_threshold == 0.0  # from report_thresholds_default
 
 
 def test_global_thresholds_unaffected_by_report_thresholds_default(mocker: MockerFixture):
@@ -438,6 +447,7 @@ def test_evaluate_populates_evaluated_groups_coverage():
 
 
 # --- Issue 2: EvaluatedReportCoverage group_name initialization ---
+
 
 def test_group_name_populated_in_evaluated_coverage():
     """Test that EvaluatedReportCoverage properly initializes group_name field"""
@@ -506,6 +516,7 @@ def test_group_name_in_serialized_output():
 
 # --- Task 36: Enhanced logging (thresholds + reached values) ---
 
+
 def _make_report_with_changed_file(name: str, group_name: str = "Unknown") -> ReportFileCoverage:
     overall = Coverage(
         instruction=Counter(missed=2, covered=8),
@@ -528,8 +539,11 @@ def _make_report_with_changed_file(name: str, group_name: str = "Unknown") -> Re
         )
     }
     return ReportFileCoverage(
-        path=f"{name}.xml", name=name, overall_coverage=overall,
-        changed_files_coverage=changed_files, group_name=group_name,
+        path=f"{name}.xml",
+        name=name,
+        overall_coverage=overall,
+        changed_files_coverage=changed_files,
+        group_name=group_name,
     )
 
 
@@ -621,7 +635,9 @@ def test_report_changed_files_coverage_logged_as_na_when_no_metric_weight(mocker
         evaluator.evaluate()
 
     messages = [r.message for r in caplog.records]
-    assert "Report 'na_cf_report' has no changed-files coverage data for selected metric; treated as passed." in messages
+    assert (
+        "Report 'na_cf_report' has no changed-files coverage data for selected metric; treated as passed." in messages
+    )
     assert not any("Report 'na_cf_report' reached average changed files coverage" in m for m in messages)
     assert evaluator.evaluated_reports_coverage["na_cf_report.xml"].avg_changed_files_passed is True
 
@@ -640,7 +656,9 @@ def test_report_changed_files_coverage_logged_for_changed_report(mocker: MockerF
 
     messages = [r.message for r in caplog.records]
     assert "Report 'atum_reader' reached overall coverage of 80.0% with threshold set to 75.0%" in messages
-    assert "Report 'atum_reader' reached average changed files coverage of 90.0% with threshold set to 82.0%" in messages
+    assert (
+        "Report 'atum_reader' reached average changed files coverage of 90.0% with threshold set to 82.0%" in messages
+    )
 
 
 def test_group_overall_coverage_logged(mocker: MockerFixture, caplog):
@@ -665,8 +683,10 @@ def test_group_changed_files_coverage_logged(mocker: MockerFixture, caplog):
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
     report = _make_report_with_changed_file("rep-b", "frontend")
     group = ReportGroup(
-        name="frontend", paths=["**"],
-        min_coverage_overall=60.0, min_coverage_changed_files=55.0,
+        name="frontend",
+        paths=["**"],
+        min_coverage_overall=60.0,
+        min_coverage_changed_files=55.0,
     )
     evaluator = CoverageEvaluator(
         report_files_coverage=[report],
@@ -733,7 +753,9 @@ def test_group_changed_files_coverage_logged_when_metric_has_zero_weight(
     assert "Group 'frontend' has no changed-files coverage data for selected metric; treated as passed." in messages
     assert not any("Group 'frontend' reached average changed files coverage" in m for m in messages)
     assert evaluator.evaluated_groups_coverage["frontend"].avg_changed_files_passed is True
-    assert not any("Group 'frontend' changed files coverage 0.0 is below the threshold 55.0." in v for v in evaluator.violations)
+    assert not any(
+        "Group 'frontend' changed files coverage 0.0 is below the threshold 55.0." in v for v in evaluator.violations
+    )
 
 
 def _make_report_with_changed_file_instruction(
@@ -770,11 +792,10 @@ def _make_report_with_changed_file_instruction(
     )
 
 
-
-
 # ---------------------------------------------------------------------------
 # G4a  Duplicate report name triggers evaluator warning
 # ---------------------------------------------------------------------------
+
 
 def test_duplicate_report_name_emits_warning(make_report_file_coverage, mocker, caplog):
     """Evaluator logs a WARNING when two reports share the same XML name (title)."""
@@ -815,6 +836,7 @@ def test_duplicate_report_name_does_not_lose_data(make_report_file_coverage, moc
 # ---------------------------------------------------------------------------
 # G5  Baseline has no effect on threshold evaluation
 # ---------------------------------------------------------------------------
+
 
 def test_baseline_does_not_affect_threshold_evaluation(make_report_file_coverage, make_coverage, mocker):
     """High-coverage baseline does not cause a low-coverage current report to pass thresholds."""
@@ -880,6 +902,7 @@ def test_low_baseline_does_not_cause_high_coverage_to_fail(make_report_file_cove
 # G11  Selected metric affects threshold comparison, not just display
 # ---------------------------------------------------------------------------
 
+
 def test_metric_instruction_passes_when_line_would_fail(mocker):
     """Instruction coverage passes an 80% threshold; line coverage (0%) would fail the same threshold."""
     report = ReportFileCoverage(
@@ -937,14 +960,15 @@ def test_metric_line_fails_when_instruction_would_pass(mocker):
 # G7  Changed files with 0 coverage must respect per-file threshold
 # ---------------------------------------------------------------------------
 
+
 def test_changed_file_with_zero_coverage_fails_nonzero_threshold(mocker: MockerFixture):
     """A changed file with 0% coverage for selected metric should be FILTERED OUT.
-    
+
     Files with zero metric weight (no coverage data) should not appear in the changed_files_passed
     dict and thus won't be shown in PR comment tables.
     """
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
-    
+
     # Report with one changed file: 0 instruction coverage (missed=0, covered=0)
     overall = Coverage(
         instruction=Counter(missed=0, covered=10),
@@ -972,7 +996,7 @@ def test_changed_file_with_zero_coverage_fails_nonzero_threshold(mocker: MockerF
         overall_coverage=overall,
         changed_files_coverage=changed_files,
     )
-    
+
     evaluator = CoverageEvaluator(
         report_files_coverage=[report],
         global_min_coverage_overall=50.0,
@@ -980,7 +1004,7 @@ def test_changed_file_with_zero_coverage_fails_nonzero_threshold(mocker: MockerF
         report_thresholds_default=(0.0, 0.0, 60.0),  # per-file threshold = 60%
     )
     evaluator.evaluate()
-    
+
     # File has zero metric weight → should NOT be in changed_files_passed dict (filtered out)
     report_ev = evaluator.evaluated_reports_coverage["report.xml"]
     assert "com/example/Main.scala" not in report_ev.changed_files_passed
@@ -989,14 +1013,14 @@ def test_changed_file_with_zero_coverage_fails_nonzero_threshold(mocker: MockerF
 
 def test_changed_file_with_zero_metric_weight_should_be_filtered_from_table(mocker: MockerFixture):
     """Files with zero metric weight (no coverage data) should NOT appear in changed files table.
-    
+
     Expected behavior:
     - If a file has zero coverage data (covered=0, missed=0) for selected metric, it should be
       filtered out and NOT included in changed_files_passed dict
     - Report/Group should not show a changed files row if all changed files have zero metric weight
     """
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
-    
+
     # Report with:
     # 1. One changed file with 0 instruction coverage (no data)
     # 2. One changed file with valid instruction coverage
@@ -1036,7 +1060,7 @@ def test_changed_file_with_zero_metric_weight_should_be_filtered_from_table(mock
         overall_coverage=overall,
         changed_files_coverage=changed_files,
     )
-    
+
     evaluator = CoverageEvaluator(
         report_files_coverage=[report],
         global_min_coverage_overall=50.0,
@@ -1044,13 +1068,13 @@ def test_changed_file_with_zero_metric_weight_should_be_filtered_from_table(mock
         report_thresholds_default=(0.0, 0.0, 60.0),  # per-file threshold = 60%
     )
     evaluator.evaluate()
-    
+
     report_ev = evaluator.evaluated_reports_coverage["report.xml"]
-    
+
     # Main.scala has zero metric weight → should NOT be in changed_files_passed dict
     assert "com/example/Main.scala" not in report_ev.changed_files_passed
     assert "com/example/Main.scala" not in report_ev.changed_files_coverage_reached
-    
+
     # Helper.scala has data and 90% > 60% threshold → should be in dict and marked as PASSED
     assert "com/example/Helper.scala" in report_ev.changed_files_passed
     assert report_ev.changed_files_passed["com/example/Helper.scala"] is True
@@ -1061,15 +1085,15 @@ def test_changed_file_with_zero_metric_weight_only_should_hide_report_row(
     mocker: MockerFixture,
 ):
     """Report with ONLY files that have zero metric weight should not show changed files row.
-    
+
     Expected: If all changed files in a report have zero coverage data for selected metric,
     the report should not display any changed files row.
-    
+
     Scenario: Report HAS changed files, but sum of covered+missed for ALL files = 0
     (because each individual file is filtered out due to zero metric weight)
     """
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
-    
+
     overall = Coverage(
         instruction=Counter(missed=0, covered=10),
         branch=Counter(missed=0, covered=10),
@@ -1106,7 +1130,7 @@ def test_changed_file_with_zero_metric_weight_only_should_hide_report_row(
         overall_coverage=overall,
         changed_files_coverage=changed_files,
     )
-    
+
     evaluator = CoverageEvaluator(
         report_files_coverage=[report],
         global_min_coverage_overall=50.0,
@@ -1114,9 +1138,9 @@ def test_changed_file_with_zero_metric_weight_only_should_hide_report_row(
         report_thresholds_default=(0.0, 0.0, 60.0),
     )
     evaluator.evaluate()
-    
+
     report_ev = evaluator.evaluated_reports_coverage["report.xml"]
-    
+
     # All changed files have zero metric weight → changed_files_passed dict should be EMPTY
     # AND aggregate should have zero metric weight
     assert len(report_ev.changed_files_passed) == 0
@@ -1129,15 +1153,15 @@ def test_changed_file_with_zero_metric_weight_but_data_in_other_metric(
     mocker: MockerFixture,
 ):
     """File with zero weight for SELECTED metric but HAS data for OTHER metrics.
-    
+
     Scenario: Changed file has:
     - instruction=Counter(0, 0) - selected metric, zero weight
     - branch=Counter(2, 3) - other metric, has data
-    
+
     Expected: File is filtered out (zero weight for selected metric)
     """
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
-    
+
     overall = Coverage(
         instruction=Counter(missed=0, covered=10),
         branch=Counter(missed=0, covered=10),
@@ -1164,7 +1188,7 @@ def test_changed_file_with_zero_metric_weight_but_data_in_other_metric(
         overall_coverage=overall,
         changed_files_coverage=changed_files,
     )
-    
+
     evaluator = CoverageEvaluator(
         report_files_coverage=[report],
         global_min_coverage_overall=50.0,
@@ -1172,9 +1196,9 @@ def test_changed_file_with_zero_metric_weight_but_data_in_other_metric(
         report_thresholds_default=(0.0, 0.0, 60.0),
     )
     evaluator.evaluate()
-    
+
     report_ev = evaluator.evaluated_reports_coverage["report.xml"]
-    
+
     # File has zero metric weight for SELECTED metric (instruction)
     # → should be filtered out even though it has data for branch
     assert "com/example/Main.scala" not in report_ev.changed_files_passed

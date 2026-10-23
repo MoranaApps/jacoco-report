@@ -10,6 +10,20 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  context-check:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    name: CONTEXT.md check
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check CONTEXT.md files are up to date
+        run: bash .claude/skills/context-md/check.sh --base "origin/${{ github.base_ref }}" --strict
+
   set-matrix:
     runs-on: ubuntu-latest
     outputs:

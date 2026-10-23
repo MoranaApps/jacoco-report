@@ -34,28 +34,71 @@ failure_cases = [
     ("get_token", 1, "'token' must be a non-empty string."),
     ("get_paths", None, "'paths' must be defined."),
     ("get_paths", 1, "'paths' must be a list of strings."),
-    ("get_global_thresholds", "x", "'global-thresholds' must be in the format 'overall*changed-files-average'. Where overall is the minimum coverage overall and changed-files-average is the minimum average coverage of changed files."),
+    (
+        "get_global_thresholds",
+        "x",
+        "'global-thresholds' must be in the format 'overall*changed-files-average'. Where overall is the minimum coverage overall and changed-files-average is the minimum average coverage of changed files.",
+    ),
     ("get_global_thresholds", "x*0", "'global-thresholds' overall value must be a float between 0 and 100."),
-    ("get_global_thresholds", "0*x", "'global-thresholds' changed-files-average value must be a float between 0 and 100."),
+    (
+        "get_global_thresholds",
+        "0*x",
+        "'global-thresholds' changed-files-average value must be a float between 0 and 100.",
+    ),
     ("get_global_thresholds", "-1*0", "'global-thresholds' overall value must be a float between 0 and 100."),
-    ("get_global_thresholds", "0*-1", "'global-thresholds' changed-files-average value must be a float between 0 and 100."),
+    (
+        "get_global_thresholds",
+        "0*-1",
+        "'global-thresholds' changed-files-average value must be a float between 0 and 100.",
+    ),
     ("get_global_thresholds", "101*0", "'global-thresholds' overall value must be a float between 0 and 100."),
-    ("get_global_thresholds", "0*101", "'global-thresholds' changed-files-average value must be a float between 0 and 100."),
+    (
+        "get_global_thresholds",
+        "0*101",
+        "'global-thresholds' changed-files-average value must be a float between 0 and 100.",
+    ),
     (
         "get_global_thresholds",
         "1*2*3",
-        "'global-thresholds' must be in the format 'overall*changed-files-average' "
-        "with exactly two components.",
+        "'global-thresholds' must be in the format 'overall*changed-files-average' " "with exactly two components.",
     ),
     ("get_global_thresholds", True, "'global-thresholds' must be a string or not defined."),
-    ("get_report_thresholds_default", "x", "'report-thresholds-default' must be in the format 'overall*changed-files-average*per-changed-file'."),
-    ("get_report_thresholds_default", "1*2*3*4", "'report-thresholds-default' must be in the format 'overall*changed-files-average*per-changed-file' with exactly three components."),
-    ("get_report_thresholds_default", "x*0*0", "'report-thresholds-default' overall value must be a float between 0 and 100."),
-    ("get_report_thresholds_default", "0*x*0", "'report-thresholds-default' changed-files-average value must be a float between 0 and 100."),
-    ("get_report_thresholds_default", "0*0*x", "'report-thresholds-default' per-changed-file value must be a float between 0 and 100."),
+    (
+        "get_report_thresholds_default",
+        "x",
+        "'report-thresholds-default' must be in the format 'overall*changed-files-average*per-changed-file'.",
+    ),
+    (
+        "get_report_thresholds_default",
+        "1*2*3*4",
+        "'report-thresholds-default' must be in the format 'overall*changed-files-average*per-changed-file' with exactly three components.",
+    ),
+    (
+        "get_report_thresholds_default",
+        "x*0*0",
+        "'report-thresholds-default' overall value must be a float between 0 and 100.",
+    ),
+    (
+        "get_report_thresholds_default",
+        "0*x*0",
+        "'report-thresholds-default' changed-files-average value must be a float between 0 and 100.",
+    ),
+    (
+        "get_report_thresholds_default",
+        "0*0*x",
+        "'report-thresholds-default' per-changed-file value must be a float between 0 and 100.",
+    ),
     ("get_report_thresholds_default", True, "'report-thresholds-default' must be a string or not defined."),
-    ("get_metric", "", "'metric' must be a string from these options: 'instruction', 'line', 'branch', 'complexity', 'method', 'class'."),
-    ("get_metric", 1, "'metric' must be a string from these options: 'instruction', 'line', 'branch', 'complexity', 'method', 'class'."),
+    (
+        "get_metric",
+        "",
+        "'metric' must be a string from these options: 'instruction', 'line', 'branch', 'complexity', 'method', 'class'.",
+    ),
+    (
+        "get_metric",
+        1,
+        "'metric' must be a string from these options: 'instruction', 'line', 'branch', 'complexity', 'method', 'class'.",
+    ),
     (
         "get_comment_level",
         "",
@@ -70,9 +113,21 @@ failure_cases = [
     ),
     ("get_report_groups", "not_a_list", "'report-groups' must be a YAML list."),
     ("get_report_groups", "- name: ''\n  paths: ['**']", "'report-groups' entry #1 must have a non-empty 'name'."),
-    ("get_report_groups", "- name: group1\n  paths: []", "'report-groups' entry #1 must have a non-empty 'paths' list of non-empty strings."),
-    ("get_report_groups", "- name: group1\n  paths: ['**']\n  thresholds: '80'", "'report-groups' entry #1 'thresholds' must be in format 'O*A*P' (e.g. '80*70*60')."),
-    ("get_report_groups", "- name: group1\n  paths: ['**']\n  thresholds: 'x*70*60'", "'report-groups' entry #1 'thresholds' overall value 'x' must be a float in [0, 100)."),
+    (
+        "get_report_groups",
+        "- name: group1\n  paths: []",
+        "'report-groups' entry #1 must have a non-empty 'paths' list of non-empty strings.",
+    ),
+    (
+        "get_report_groups",
+        "- name: group1\n  paths: ['**']\n  thresholds: '80'",
+        "'report-groups' entry #1 'thresholds' must be in format 'O*A*P' (e.g. '80*70*60').",
+    ),
+    (
+        "get_report_groups",
+        "- name: group1\n  paths: ['**']\n  thresholds: 'x*70*60'",
+        "'report-groups' entry #1 'thresholds' overall value 'x' must be a float in [0, 100).",
+    ),
     ("get_global_overall_scope", "invalid", "'global-overall-scope' must be 'all' or 'groups-only'."),
     ("get_pass_symbol", "", "'pass-symbol' must be a non-empty string and have a length from 1."),
     ("get_pass_symbol", 1, "'pass-symbol' must be a non-empty string and have a length from 1."),
@@ -133,7 +188,7 @@ def test_validate_inputs_rejects_noncanonical_comment_level_aliases(comment_leve
         mock_error.assert_any_call(
             "%s",
             "'comment-level' must be a string from these options: "
-            "'none', 'minimal', 'full', 'changed', 'failed', 'failed-or-changed'."
+            "'none', 'minimal', 'full', 'changed', 'failed', 'failed-or-changed'.",
         )
         mock_exit.assert_called_once_with(1)
     finally:
@@ -294,9 +349,7 @@ def test_get_report_thresholds_default_two_components_warns_per_changed_file(moc
         (str(call.args[0]) % tuple(call.args[1:])) if len(call.args) > 1 else str(call.args[0])
         for call in mock_warning.call_args_list
     ]
-    assert any(
-        "Adding default value for per-changed-file threshold." in message for message in warning_messages
-    )
+    assert any("Adding default value for per-changed-file threshold." in message for message in warning_messages)
 
 
 def test_get_global_thresholds_two_components_parsed(mocker):
@@ -318,7 +371,9 @@ def test_get_global_thresholds_invalid_component_logs_warning_without_warning_pr
         (str(call.args[0]) % tuple(call.args[1:])) if len(call.args) > 1 else str(call.args[0])
         for call in mock_warning.call_args_list
     ]
-    assert any("Cannot convert 'overall' part ('x') to float. Defaulting to 0.0." in message for message in warning_messages)
+    assert any(
+        "Cannot convert 'overall' part ('x') to float. Defaulting to 0.0." in message for message in warning_messages
+    )
     assert not any("Warning: Cannot convert" in message for message in warning_messages)
 
 
@@ -344,6 +399,7 @@ failure_cases_modes = [
     ("   ", "JaCoCo Coverage Report"),
     ("Custom title", "Custom title"),
 ]
+
 
 @pytest.mark.parametrize("input_title, expected_title", failure_cases_modes)
 def test_get_title(input_title, expected_title, mocker):
@@ -591,7 +647,10 @@ def test_get_fail_on_threshold_overall(mocker):
 
 def test_get_fail_on_threshold_overall_changed_average(mocker):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="overall\nchanged-files-average")
-    assert ActionInputs.get_fail_on_threshold() == [FailOnThresholdEnum.OVERALL, FailOnThresholdEnum.CHANGED_FILES_AVERAGE]
+    assert ActionInputs.get_fail_on_threshold() == [
+        FailOnThresholdEnum.OVERALL,
+        FailOnThresholdEnum.CHANGED_FILES_AVERAGE,
+    ]
 
 
 def test_get_fail_on_threshold_accepts_fail_unchanged(mocker):
@@ -641,7 +700,10 @@ def test_validate_inputs_rejects_invalid_skip_unchanged_literal(mocker):
     case = success_case.copy()
     patchers = apply_mocks(case, mocker)
     try:
-        mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_unchanged", side_effect=ValueError("'skip-unchanged' must be a boolean ('true' or 'false')."))
+        mocker.patch(
+            "jacoco_report.action_inputs.ActionInputs.get_skip_unchanged",
+            side_effect=ValueError("'skip-unchanged' must be a boolean ('true' or 'false')."),
+        )
         mock_error = mocker.patch("jacoco_report.action_inputs.logger.error")
         mock_exit = mocker.patch("sys.exit")
 
@@ -757,6 +819,7 @@ def test_get_baseline_paths_raw(mocker):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value=data)
     assert data == ActionInputs.get_baseline_paths(raw=True)
 
+
 def test_get_pr_number(mocker):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="123")
     gh = mocker.Mock(spec=GitHub)
@@ -780,9 +843,11 @@ def test_get_pr_number(mocker):
     assert ActionInputs.get_pr_number(gh) is None
     mock_logger.error.assert_called_once_with("'pr-number' input '%s' is not a valid integer.", "not_a_number")
 
+
 def test_get_metric(mocker):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="branch")
     assert ActionInputs.get_metric() == "branch"
+
 
 def test_get_event_name(mocker):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="push")
@@ -887,7 +952,9 @@ def test_get_report_groups_empty_paths_raises_value_error(mocker):
 
 
 def test_get_report_groups_invalid_threshold_format_raises_value_error(mocker):
-    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="- name: g1\n  paths: ['**']\n  thresholds: '80'")
+    mocker.patch(
+        "jacoco_report.action_inputs.get_action_input", return_value="- name: g1\n  paths: ['**']\n  thresholds: '80'"
+    )
 
     with pytest.raises(ValueError) as exc_info:
         ActionInputs.get_report_groups(raw=False)
@@ -936,12 +1003,16 @@ failure_cases_defaults = [
     ("get_update_comment", True),
     ("get_pass_symbol", "✅"),
     ("get_fail_symbol", "❌"),
-    ("get_fail_on_threshold", [FailOnThresholdEnum.OVERALL, FailOnThresholdEnum.CHANGED_FILES_AVERAGE, FailOnThresholdEnum.PER_CHANGED_FILE]),
+    (
+        "get_fail_on_threshold",
+        [FailOnThresholdEnum.OVERALL, FailOnThresholdEnum.CHANGED_FILES_AVERAGE, FailOnThresholdEnum.PER_CHANGED_FILE],
+    ),
     ("get_debug", False),
     ("get_global_thresholds", (0.0, 0.0)),
     ("get_global_overall_threshold", 0.0),
     ("get_global_changed_files_average_threshold", 0.0),
 ]
+
 
 @pytest.mark.parametrize("method, expected_value", failure_cases_defaults)
 def test_validate_inputs_default(method, expected_value, mocker):
@@ -1006,6 +1077,7 @@ def test_validate_inputs_allows_empty_paths_when_report_groups_is_empty_yaml_lis
 # ---------------------------------------------------------------------------
 # global-overall-scope
 # ---------------------------------------------------------------------------
+
 
 def test_get_global_overall_scope_default(mocker):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="all")

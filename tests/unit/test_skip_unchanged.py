@@ -8,6 +8,7 @@ Covers:
 - comment-level × skip-unchanged combinations across all supported levels
 - fail-on-threshold boolean deprecation warning
 """
+
 import json
 import logging
 
@@ -23,8 +24,8 @@ from jacoco_report.model.file_coverage import FileCoverage
 from jacoco_report.model.report_file_coverage import ReportFileCoverage
 from jacoco_report.utils.enums import CommentLevelEnum
 
-
 # --- helpers ---
+
 
 def _make_run_mocks(
     mocker: MockerFixture,
@@ -44,13 +45,19 @@ def _make_run_mocks(
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_evaluate_unchanged", return_value=evaluate_unchanged)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=[])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_threshold", return_value=0.0)
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_files_average_threshold", return_value=0.0)
+    mocker.patch(
+        "jacoco_report.action_inputs.ActionInputs.get_global_changed_files_average_threshold", return_value=0.0
+    )
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_comment_level", return_value=CommentLevelEnum.FULL)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups", return_value=[])
     mocker.patch(
         "jacoco_report.action_inputs.ActionInputs.get_fail_on_threshold",
-        return_value=fail_on_threshold if fail_on_threshold is not None else ["overall", "changed-files-average", "per-changed-file"],
+        return_value=(
+            fail_on_threshold
+            if fail_on_threshold is not None
+            else ["overall", "changed-files-average", "per-changed-file"]
+        ),
     )
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_title", return_value="JaCoCo")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=False)
@@ -64,9 +71,11 @@ def _make_run_mocks(
     mocker.patch("jacoco_report.jacoco_report.GitHub", return_value=gh_mock)
 
     n = len(reports)
-    mocker.patch.object(JaCoCoReport, "scan_jacoco_xml_files", side_effect=lambda paths, exclude_paths: (
-        [f"dummy_{i}.xml" for i in range(n)] if paths else []
-    ))
+    mocker.patch.object(
+        JaCoCoReport,
+        "scan_jacoco_xml_files",
+        side_effect=lambda paths, exclude_paths: ([f"dummy_{i}.xml" for i in range(n)] if paths else []),
+    )
 
     parser_mock = mocker.patch("jacoco_report.jacoco_report.JaCoCoReportParser")
     instance = parser_mock.return_value
@@ -76,8 +85,16 @@ def _make_run_mocks(
 
 
 def _report_with_changes(name: str, make_report_file_coverage) -> ReportFileCoverage:
-    fc = FileCoverage("Foo.java", "src", Counter(0, 10), Counter(0, 10), Counter(0, 10),
-                      Counter(0, 10), Counter(0, 10), Counter(0, 10))
+    fc = FileCoverage(
+        "Foo.java",
+        "src",
+        Counter(0, 10),
+        Counter(0, 10),
+        Counter(0, 10),
+        Counter(0, 10),
+        Counter(0, 10),
+        Counter(0, 10),
+    )
     return make_report_file_coverage(path=f"{name}.xml", name=name, changed_files_coverage={"src/Foo.java": fc})
 
 
@@ -87,9 +104,8 @@ def _report_without_changes(name: str, make_report_file_coverage) -> ReportFileC
 
 # --- scan-stage filter tests ---
 
-def test_skip_unchanged_filters_report_with_no_changed_files(
-    mocker: MockerFixture, make_report_file_coverage, caplog
-):
+
+def test_skip_unchanged_filters_report_with_no_changed_files(mocker: MockerFixture, make_report_file_coverage, caplog):
     unchanged = _report_without_changes("Report A", make_report_file_coverage)
     changed = _report_with_changes("Report B", make_report_file_coverage)
 
@@ -207,7 +223,9 @@ def test_skip_unchanged_all_filtered_evaluate_unchanged_true_checks_overall_thre
         evaluate_unchanged=True,
         reports=[unchanged],
     )
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_thresholds_default", return_value=(50.0, 0.0, 0.0))
+    mocker.patch(
+        "jacoco_report.action_inputs.ActionInputs.get_report_thresholds_default", return_value=(50.0, 0.0, 0.0)
+    )
 
     jr = JaCoCoReport()
     jr.run()
@@ -307,7 +325,9 @@ def test_skip_unchanged_evaluate_unchanged_true_checks_filtered_report_in_mixed_
         evaluate_unchanged=True,
         reports=[unchanged, changed],
     )
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_thresholds_default", return_value=(50.0, 0.0, 0.0))
+    mocker.patch(
+        "jacoco_report.action_inputs.ActionInputs.get_report_thresholds_default", return_value=(50.0, 0.0, 0.0)
+    )
 
     jr = JaCoCoReport()
     jr.run()
@@ -429,7 +449,9 @@ def test_skip_unchanged_true_fail_unchanged_enabled_evaluates_filtered_reports(
         fail_on_threshold=["fail-unchanged"],
         reports=[unchanged],
     )
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_thresholds_default", return_value=(50.0, 0.0, 0.0))
+    mocker.patch(
+        "jacoco_report.action_inputs.ActionInputs.get_report_thresholds_default", return_value=(50.0, 0.0, 0.0)
+    )
 
     jr = JaCoCoReport()
     jr.run()
@@ -456,7 +478,9 @@ def test_skip_unchanged_true_fail_unchanged_disabled_excludes_filtered_reports(
         fail_on_threshold=["overall"],
         reports=[unchanged],
     )
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_thresholds_default", return_value=(50.0, 0.0, 0.0))
+    mocker.patch(
+        "jacoco_report.action_inputs.ActionInputs.get_report_thresholds_default", return_value=(50.0, 0.0, 0.0)
+    )
 
     jr = JaCoCoReport()
     jr.run()
@@ -519,6 +543,7 @@ def test_skip_unchanged_fail_unchanged_mixed_flow_uses_two_evaluator_passes(
 #
 # 2 (skip-unchanged: true / false) × 6 comment levels = 12 cases.
 
+
 @pytest.fixture
 def evaluator_with_changed(make_report_file_coverage, make_file_coverage):
     fc = make_file_coverage(instruction=Counter(missed=0, covered=10))
@@ -539,20 +564,23 @@ def gh_mock(mocker: MockerFixture):
     return m
 
 
-@pytest.mark.parametrize("skip_unchanged,comment_level", [
-    (False, "none"),
-    (False, "minimal"),
-    (False, "full"),
-    (False, "changed"),
-    (False, "failed"),
-    (False, "failed-or-changed"),
-    (True, "none"),
-    (True, "minimal"),
-    (True, "full"),
-    (True, "changed"),
-    (True, "failed"),
-    (True, "failed-or-changed"),
-])
+@pytest.mark.parametrize(
+    "skip_unchanged,comment_level",
+    [
+        (False, "none"),
+        (False, "minimal"),
+        (False, "full"),
+        (False, "changed"),
+        (False, "failed"),
+        (False, "failed-or-changed"),
+        (True, "none"),
+        (True, "minimal"),
+        (True, "full"),
+        (True, "changed"),
+        (True, "failed"),
+        (True, "failed-or-changed"),
+    ],
+)
 def test_comment_level_x_skip_unchanged_comment_posted(
     mocker: MockerFixture,
     gh_mock,
@@ -568,14 +596,17 @@ def test_comment_level_x_skip_unchanged_comment_posted(
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_fail_symbol", return_value="❌")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_threshold", return_value=0.0)
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_files_average_threshold", return_value=0.0)
+    mocker.patch(
+        "jacoco_report.action_inputs.ActionInputs.get_global_changed_files_average_threshold", return_value=0.0
+    )
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=[])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups", return_value=[])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=False)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_repository", return_value="owner/repo")
 
-    bs_evaluator = CoverageEvaluator(report_files_coverage=[], global_min_coverage_overall=0.0,
-                                      global_min_coverage_changed_files=0.0)
+    bs_evaluator = CoverageEvaluator(
+        report_files_coverage=[], global_min_coverage_overall=0.0, global_min_coverage_changed_files=0.0
+    )
     generator = PRCommentGenerator(gh_mock, evaluator_with_changed, bs_evaluator, pr_number=1)
     generator.generate()
 
@@ -599,7 +630,9 @@ def test_comment_level_none_still_suppresses_comment(
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_fail_symbol", return_value="❌")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_threshold", return_value=0.0)
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_files_average_threshold", return_value=0.0)
+    mocker.patch(
+        "jacoco_report.action_inputs.ActionInputs.get_global_changed_files_average_threshold", return_value=0.0
+    )
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=[])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups", return_value=[])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=True)
@@ -607,8 +640,9 @@ def test_comment_level_none_still_suppresses_comment(
 
     gh_mock.get_comments.return_value = [{"id": 99, "body": "**JaCoCo**\n\nold content"}]
 
-    bs_evaluator = CoverageEvaluator(report_files_coverage=[], global_min_coverage_overall=0.0,
-                                      global_min_coverage_changed_files=0.0)
+    bs_evaluator = CoverageEvaluator(
+        report_files_coverage=[], global_min_coverage_overall=0.0, global_min_coverage_changed_files=0.0
+    )
     generator = PRCommentGenerator(gh_mock, evaluator_with_changed, bs_evaluator, pr_number=1)
     generator.generate()
 
@@ -630,14 +664,17 @@ def test_minimal_comment_contains_only_global_table(
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_fail_symbol", return_value="❌")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_threshold", return_value=0.0)
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_files_average_threshold", return_value=0.0)
+    mocker.patch(
+        "jacoco_report.action_inputs.ActionInputs.get_global_changed_files_average_threshold", return_value=0.0
+    )
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=[])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups", return_value=[])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=False)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_repository", return_value="owner/repo")
 
-    bs_evaluator = CoverageEvaluator(report_files_coverage=[], global_min_coverage_overall=0.0,
-                                      global_min_coverage_changed_files=0.0)
+    bs_evaluator = CoverageEvaluator(
+        report_files_coverage=[], global_min_coverage_overall=0.0, global_min_coverage_changed_files=0.0
+    )
     generator = PRCommentGenerator(gh_mock, evaluator_with_changed, bs_evaluator, pr_number=1)
     generator.generate()
 
@@ -650,6 +687,7 @@ def test_minimal_comment_contains_only_global_table(
 
 
 # --- fail-on-threshold boolean removal ---
+
 
 def test_fail_on_threshold_true_is_rejected(mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="true")
@@ -667,6 +705,7 @@ def test_fail_on_threshold_false_is_rejected(mocker: MockerFixture):
 
 # --- skip-unchanged with report groups ---
 
+
 def test_skip_unchanged_with_report_groups_filters_groupless_unchanged_report(
     mocker: MockerFixture, make_report_file_coverage, make_file_coverage, caplog
 ):
@@ -677,9 +716,7 @@ def test_skip_unchanged_with_report_groups_filters_groupless_unchanged_report(
     changed = make_report_file_coverage(
         name="Changed Report", changed_files_coverage={"src/Foo.java": fc}, group_name="team-a"
     )
-    unchanged = make_report_file_coverage(
-        name="Unchanged Report", changed_files_coverage={}, group_name="team-a"
-    )
+    unchanged = make_report_file_coverage(name="Unchanged Report", changed_files_coverage={}, group_name="team-a")
 
     group = ReportGroup(name="team-a", paths=["**/jacoco.xml"])
 
@@ -699,21 +736,21 @@ def test_skip_unchanged_with_multiple_groups_overall_coverage_includes_all_repor
     mocker: MockerFixture, make_report_file_coverage, make_file_coverage, make_coverage
 ):
     """Bug test: overall coverage should include all reports regardless of changes.
-    
+
     Setup:
     - 4 reports (simulating 4 report groups)
     - Only 1 report has changed files in PR
     - skip_unchanged=true, evaluate_unchanged=false
-    
+
     Expected:
     - Overall coverage calculated from ALL 4 reports (not just the 1 with changes)
     - Changed-files coverage only from reports with changes
-    
+
     This tests the fix for the bug where overall coverage was calculated
     only from reports with changed files when skip_unchanged was enabled.
     """
     from jacoco_report.model.report_group import ReportGroup
-    
+
     # Create 4 reports with different overall coverage values
     # Report with changes: 80% coverage
     report_with_changes = make_report_file_coverage(
@@ -721,41 +758,41 @@ def test_skip_unchanged_with_multiple_groups_overall_coverage_includes_all_repor
         name="Report 1 (Changed)",
         overall_coverage=make_coverage(instruction=Counter(missed=20, covered=80)),
         changed_files_coverage={"src/Foo.java": make_file_coverage(instruction=Counter(missed=20, covered=80))},
-        group_name="group-1"
+        group_name="group-1",
     )
-    
+
     # 3 reports without changes: 90%, 70%, 60% coverage respectively
     report_unchanged_2 = make_report_file_coverage(
         path="report2.xml",
         name="Report 2 (Unchanged)",
         overall_coverage=make_coverage(instruction=Counter(missed=10, covered=90)),
         changed_files_coverage={},
-        group_name="group-2"
+        group_name="group-2",
     )
-    
+
     report_unchanged_3 = make_report_file_coverage(
         path="report3.xml",
         name="Report 3 (Unchanged)",
         overall_coverage=make_coverage(instruction=Counter(missed=30, covered=70)),
         changed_files_coverage={},
-        group_name="group-3"
+        group_name="group-3",
     )
-    
+
     report_unchanged_4 = make_report_file_coverage(
         path="report4.xml",
         name="Report 4 (Unchanged)",
         overall_coverage=make_coverage(instruction=Counter(missed=40, covered=60)),
         changed_files_coverage={},
-        group_name="group-4"
+        group_name="group-4",
     )
-    
+
     reports = [
         report_with_changes,
         report_unchanged_2,
         report_unchanged_3,
         report_unchanged_4,
     ]
-    
+
     # Create 4 report groups
     groups = [
         ReportGroup(name="group-1", paths=["report1.xml"]),
@@ -763,22 +800,17 @@ def test_skip_unchanged_with_multiple_groups_overall_coverage_includes_all_repor
         ReportGroup(name="group-3", paths=["report3.xml"]),
         ReportGroup(name="group-4", paths=["report4.xml"]),
     ]
-    
-    mocks = _make_run_mocks(
-        mocker,
-        skip_unchanged=True,
-        evaluate_unchanged=False,
-        reports=reports
-    )
+
+    mocks = _make_run_mocks(mocker, skip_unchanged=True, evaluate_unchanged=False, reports=reports)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups", return_value=groups)
-    
+
     jr = JaCoCoReport()
     jr.run()
-    
+
     # Overall coverage should be: (80 + 90 + 70 + 60) / (100 + 100 + 100 + 100) = 300 / 400 = 75%
     expected_overall = 75.0
-    
-    # When skip_unchanged=true without evaluate_unchanged, 
+
+    # When skip_unchanged=true without evaluate_unchanged,
     # the bug is that overall coverage is calculated from ONLY the report with changes (80%)
     # But it SHOULD include all reports (75%)
     assert jr.total_overall_coverage == expected_overall, (

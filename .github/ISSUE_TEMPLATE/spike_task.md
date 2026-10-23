@@ -1,7 +1,7 @@
 ---
 name: Spike
 about: Issue template for spikes, research and investigation tasks
-labels: 'spike'
+labels: 'spike,no-RN'
 type: 'Task'
 ---
 

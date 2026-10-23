@@ -73,11 +73,7 @@ def capture_run(env_overrides: dict[str, str]) -> ActionResult:
         with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as tmp:
             tmp_output_path = tmp.name
 
-        for key in [
-            env_key
-            for env_key in os.environ
-            if env_key.startswith("INPUT_") or env_key.startswith("GITHUB_")
-        ]:
+        for key in [env_key for env_key in os.environ if env_key.startswith("INPUT_") or env_key.startswith("GITHUB_")]:
             del os.environ[key]
 
         os.environ.update(env_overrides)

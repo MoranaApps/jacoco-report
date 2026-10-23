@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "hooks": {
+    "agentStop": [
+      {
+        "type": "command",
+        "bash": "bash .claude/skills/context-md/check.sh --hook",
+        "timeoutSec": 30
+      }
+    ]
+  }
+}

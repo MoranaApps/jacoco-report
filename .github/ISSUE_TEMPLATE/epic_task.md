@@ -1,7 +1,7 @@
 ---
 name: Epic
 about: A larger task consisting of more deliverables
-labels: 'epic'
+labels: 'epic,no-RN'
 type: 'Epic'
 ---
 
