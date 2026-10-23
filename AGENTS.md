@@ -60,5 +60,7 @@ These rules apply to every task in this repository. Project facts live in the `C
 - `make format`: `black $(git ls-files '*.py')` (writes); `make check` only verifies with
   `black --check`.
 - `make check`: lint + test + build + `black --check` — everything that must pass before work is
-  done. The same four gates run in CI (`.github/workflows/static_analysis_and_tests.yml`) across
-  Python 3.11–3.14, plus a `context-check` job on pull requests (see the `context-md` skill).
+  done. The same four gates run in CI (`.github/workflows/static_analysis_and_tests.yml`); only
+  `unit-tests` runs across the full Python 3.11–3.15 matrix, the other gates run once on 3.11 (the
+  oldest supported version), plus a `context-check` job on pull requests (see the `context-md`
+  skill).
