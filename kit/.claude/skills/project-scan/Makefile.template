@@ -1,0 +1,29 @@
+# Standard commands, the same in every project, for people and agents alike.
+# Each target wraps the project's real tools. Copy to Makefile (or merge into an
+# existing one), replace each placeholder with the real command, and delete the "exit 1".
+# Usage: make <target>. One test file or test: make test T=<path>
+
+.PHONY: help setup run build test lint format check
+
+help: ## List the targets
+	@grep -E '^[a-z]+:.*## ' $(MAKEFILE_LIST) | sed 's/:.*## /\t/'
+
+setup: ## Install dependencies and prepare a local environment
+	@echo "make setup: replace with the install command, for example: pip install -r requirements.txt" && exit 1
+
+run: ## Start the application locally
+	@echo "make run: replace with the start command" && exit 1
+
+build: ## Build everything that ships
+	@echo "make build: replace with the build command" && exit 1
+
+test: ## Run all tests, or one file or test with T=<path>
+	@echo "make test: replace with the test command, passing $(T) through, for example: pytest $(T)" && exit 1
+
+lint: ## Lint and type-check
+	@echo "make lint: replace with the lint command" && exit 1
+
+format: ## Format the code
+	@echo "make format: replace with the format command" && exit 1
+
+check: lint test build ## Everything that must pass before work is done

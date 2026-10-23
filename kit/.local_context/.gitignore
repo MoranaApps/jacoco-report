@@ -1,0 +1,5 @@
+# Everything in .local_context/ stays on your machine.
+# Only this file and README.md are committed, so the convention is visible to the team.
+*
+!/.gitignore
+!/README.md
