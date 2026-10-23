@@ -45,7 +45,7 @@ jobs:
             {"title": "No entry 🚫", "label": "duplicate"},
             {"title": "No entry 🚫", "label": "invalid"},
             {"title": "No entry 🚫", "label": "wontfix"},
-            {"title": "No entry 🚫", "label": "no RN"},
+            {"title": "No entry 🚫", "label": "no-RN"},
             {"title": "Breaking Changes 💥", "label": "breaking-change"},
             {"title": "New Features 🎉", "label": "enhancement"},
             {"title": "New Features 🎉", "label": "feature"},
@@ -54,7 +54,7 @@ jobs:
             {"title": "Silent-live 🤫", "label": "silent-live"},
             {"title": "Documentation 📜", "label": "documentation"}
           ]'
-          skip-release-notes-labels: 'no RN'
+          skip-release-notes-labels: 'no-RN'
           verbose: true
 
           warnings: true
