@@ -28,17 +28,17 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
+      oldest-version: ${{ steps.set-matrix.outputs.oldest-version }}
     steps:
       - id: set-matrix
         run: |
-          echo "matrix={\"python-version\": [\"3.11\", \"3.12\", \"3.13\", \"3.14\"]}" >> $GITHUB_OUTPUT
+          echo "matrix={\"python-version\": [\"3.11\", \"3.12\", \"3.13\", \"3.14\", \"3.15\"]}" >> $GITHUB_OUTPUT
+          echo "oldest-version=3.11" >> $GITHUB_OUTPUT
 
   analysis:
     needs: set-matrix
     runs-on: ubuntu-latest
-    strategy:
-      matrix: ${{fromJson(needs.set-matrix.outputs.matrix)}}
-    name: Pylint Analysis - (Python ${{ matrix.python-version }})
+    name: Pylint Analysis - (Python ${{ needs.set-matrix.outputs.oldest-version }})
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7.0.1
@@ -48,7 +48,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v7.1.0
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: ${{ needs.set-matrix.outputs.oldest-version }}
           cache: 'pip'
 
       - name: Install dependencies
@@ -75,9 +75,7 @@ jobs:
   code-format-check:
     needs: set-matrix
     runs-on: ubuntu-latest
-    strategy:
-      matrix: ${{fromJson(needs.set-matrix.outputs.matrix)}}
-    name: Black Format Check - (Python ${{ matrix.python-version }})
+    name: Black Format Check - (Python ${{ needs.set-matrix.outputs.oldest-version }})
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7.0.1
@@ -87,7 +85,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v7.1.0
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: ${{ needs.set-matrix.outputs.oldest-version }}
           cache: 'pip'
 
       - name: Install dependencies
@@ -128,9 +126,7 @@ jobs:
   integration-tests:
     needs: set-matrix
     runs-on: ubuntu-latest
-    strategy:
-      matrix: ${{fromJson(needs.set-matrix.outputs.matrix)}}
-    name: Integration Tests - (Python ${{ matrix.python-version }})
+    name: Integration Tests - (Python ${{ needs.set-matrix.outputs.oldest-version }})
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7.0.1
@@ -141,7 +137,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v7.1.0
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: ${{ needs.set-matrix.outputs.oldest-version }}
           cache: 'pip'
 
       - name: Install dependencies
@@ -161,10 +157,7 @@ jobs:
       contents: read
       issues: write
       pull-requests: write
-    strategy:
-      max-parallel: 1
-      matrix: ${{fromJson(needs.set-matrix.outputs.matrix)}}
-    name: Live Integration Test - (Python ${{ matrix.python-version }})
+    name: Live Integration Test - (Python ${{ needs.set-matrix.outputs.oldest-version }})
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7.0.1
@@ -175,7 +168,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v7.1.0
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: ${{ needs.set-matrix.outputs.oldest-version }}
           cache: 'pip'
 
       - name: Install dependencies
@@ -194,9 +187,7 @@ jobs:
   mypy-check:
     needs: set-matrix
     runs-on: ubuntu-latest
-    strategy:
-      matrix: ${{fromJson(needs.set-matrix.outputs.matrix)}}
-    name: Mypy Type Check - (Python ${{ matrix.python-version }})
+    name: Mypy Type Check - (Python ${{ needs.set-matrix.outputs.oldest-version }})
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7.0.1
@@ -206,7 +197,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v7.1.0
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: ${{ needs.set-matrix.outputs.oldest-version }}
           cache: 'pip'
 
       - name: Install dependencies

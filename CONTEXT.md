@@ -9,7 +9,9 @@ who want coverage visible directly in PR review, without digging through CI logs
 
 ## Tech stack
 
-- Python 3.11+ (CI matrix: 3.11, 3.12, 3.13, 3.14; `pyproject.toml`/`.pylintrc` target py311)
+- Python 3.11+ (CI matrix: 3.11, 3.12, 3.13, 3.14, 3.15 — only `unit-tests` runs the full matrix;
+  `analysis`/`code-format-check`/`mypy-check`/`integration-tests`/`live-integration-test` run once on
+  3.11, the oldest supported version; `pyproject.toml`/`.pylintrc` target py311)
 - No packaging layer: this is a GitHub composite Action (`action.yml`), not a pip package. Deps are
   pinned flat in `requirements.txt` (`requests`, `pyyaml`, dev tools); no `src/` layout.
 - Libraries: `requests` (GitHub REST API), `pyyaml` (`report-groups` input parsing)
