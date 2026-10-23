@@ -25,7 +25,6 @@ from jacoco_report.model.evaluated_report_coverage import EvaluatedReportCoverag
 from jacoco_report.model.report_group import ReportGroup
 from jacoco_report.utils.enums import CommentLevelEnum
 
-
 # ---------------------------------------------------------------------------
 # Helpers shared across tests
 # ---------------------------------------------------------------------------
@@ -89,14 +88,13 @@ def _mock_common_action_inputs(mocker) -> None:
     )
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_pass_symbol", return_value="✅")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_fail_symbol", return_value="❌")
-    mocker.patch(
-        "jacoco_report.action_inputs.ActionInputs.get_repository", return_value="MoranaApps/jacoco-report"
-    )
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_repository", return_value="MoranaApps/jacoco-report")
 
 
 # ---------------------------------------------------------------------------
 # 1. Integration test — global table with partial baseline
 # ---------------------------------------------------------------------------
+
 
 def test_global_table_diff_wrong_with_partial_baseline(jacoco_report: JaCoCoReport, mocker):
     """
@@ -169,22 +167,12 @@ def test_global_table_diff_wrong_with_partial_baseline(jacoco_report: JaCoCoRepo
 
     # Module A: name matched in baseline → 80.0 − 50.0 = +30.0%
     assert (
-        "| `Partial Baseline Module A` | 80.0% / 80.0% | 0.0% / 0.0% | +30.0% / +30.0% | ✅/✅ |"
-        in generated_comment
+        "| `Partial Baseline Module A` | 80.0% / 80.0% | 0.0% / 0.0% | +30.0% / +30.0% | ✅/✅ |" in generated_comment
     )
     # Modules B/C/D: name not in baseline → 0.0%
-    assert (
-        "| `Partial Baseline Module B` | 90.0% / 90.0% | 0.0% / 0.0% | 0.0% / 0.0% | ✅/✅ |"
-        in generated_comment
-    )
-    assert (
-        "| `Partial Baseline Module C` | 70.0% / 70.0% | 0.0% / 0.0% | 0.0% / 0.0% | ✅/✅ |"
-        in generated_comment
-    )
-    assert (
-        "| `Partial Baseline Module D` | 85.0% / 85.0% | 0.0% / 0.0% | 0.0% / 0.0% | ✅/✅ |"
-        in generated_comment
-    )
+    assert "| `Partial Baseline Module B` | 90.0% / 90.0% | 0.0% / 0.0% | 0.0% / 0.0% | ✅/✅ |" in generated_comment
+    assert "| `Partial Baseline Module C` | 70.0% / 70.0% | 0.0% / 0.0% | 0.0% / 0.0% | ✅/✅ |" in generated_comment
+    assert "| `Partial Baseline Module D` | 85.0% / 85.0% | 0.0% / 0.0% | 0.0% / 0.0% | ✅/✅ |" in generated_comment
 
     # FileA: report in bs AND file in bs → 80.0 − 50.0 = +30.0%
     assert "| 80.0% | 0.0% | +30.0% | ✅ |" in generated_comment
@@ -197,6 +185,7 @@ def test_global_table_diff_wrong_with_partial_baseline(jacoco_report: JaCoCoRepo
 # ---------------------------------------------------------------------------
 # 2. Unit test — group table with partial group baseline
 # ---------------------------------------------------------------------------
+
 
 def test_group_table_diff_wrong_with_partial_group_baseline(mocker):
     """
@@ -294,6 +283,7 @@ def test_group_table_diff_wrong_with_partial_group_baseline(mocker):
 # 3. Sanity check — per-report diffs via name lookup
 # ---------------------------------------------------------------------------
 
+
 def test_per_report_diffs_correct_despite_wrong_global_diff(mocker):
     """
     _calculate_baseline_report_diffs does a name lookup in bs_evaluator.evaluated_reports_coverage.
@@ -367,6 +357,7 @@ def test_per_report_diffs_correct_despite_wrong_global_diff(mocker):
 # ---------------------------------------------------------------------------
 # 4. Unit test — global diff when all reports have matching baselines
 # ---------------------------------------------------------------------------
+
 
 def test_global_diff_correct_when_all_reports_have_baseline(mocker):
     """
@@ -452,6 +443,7 @@ def test_global_diff_correct_when_all_reports_have_baseline(mocker):
 # 5. Unit test — no Δ column when baseline evaluator has no data
 # ---------------------------------------------------------------------------
 
+
 def test_no_delta_column_when_baseline_evaluator_has_no_data(mocker):
     """
     When bs_evaluator's dictionaries are empty, _has_baseline_data() returns False
@@ -503,6 +495,7 @@ def test_no_delta_column_when_baseline_evaluator_has_no_data(mocker):
 # ---------------------------------------------------------------------------
 # 6. Unit test — group diffs when all group reports have baselines
 # ---------------------------------------------------------------------------
+
 
 def test_group_table_diff_correct_when_all_group_reports_have_baseline(mocker):
     """
@@ -602,6 +595,7 @@ def test_group_table_diff_correct_when_all_group_reports_have_baseline(mocker):
 # 7. Unit test — per-file diffs: matched report gets a diff, unmatched gets 0.0%
 # ---------------------------------------------------------------------------
 
+
 def test_per_file_diff_correct_and_zero_for_unmatched_reports(mocker):
     """
     generate_changed_files_table_with_baseline looks up the baseline in two steps:
@@ -628,11 +622,19 @@ def test_per_file_diff_correct_and_zero_for_unmatched_reports(mocker):
     file_b = "com/partial_baseline/module_b/FileB.java"
 
     erc_a = _make_erc(
-        "Module A", 80.0, 80.0, (20, 80), (20, 80),
+        "Module A",
+        80.0,
+        80.0,
+        (20, 80),
+        (20, 80),
         changed_files={file_a: 80.0},
     )
     erc_b = _make_erc(
-        "Module B", 90.0, 90.0, (10, 90), (10, 90),
+        "Module B",
+        90.0,
+        90.0,
+        (10, 90),
+        (10, 90),
         changed_files={file_b: 90.0},
     )
 
@@ -647,7 +649,11 @@ def test_per_file_diff_correct_and_zero_for_unmatched_reports(mocker):
     evaluator.evaluated_groups_coverage = {}
 
     bs_a = _make_erc(
-        "Module A", 50.0, 50.0, (50, 50), (50, 50),
+        "Module A",
+        50.0,
+        50.0,
+        (50, 50),
+        (50, 50),
         changed_files={file_a: 50.0},
     )
     # Module B intentionally absent from the baseline evaluator
@@ -676,6 +682,7 @@ def test_per_file_diff_correct_and_zero_for_unmatched_reports(mocker):
 # ---------------------------------------------------------------------------
 # 8. Unit test — Δ column appears even when NO report names match baseline
 # ---------------------------------------------------------------------------
+
 
 def test_global_diff_misleading_when_no_report_names_match_baseline(mocker):
     """
@@ -728,9 +735,7 @@ def test_global_diff_misleading_when_no_report_names_match_baseline(mocker):
     bs_evaluator.total_coverage_changed_files = 80.0
     bs_evaluator.total_coverage_changed_files_passed = True
     bs_evaluator.evaluated_reports_coverage = {
-        "Completely Different Module": _make_erc(
-            "Completely Different Module", 80.0, 80.0, (20, 80), (20, 80)
-        ),
+        "Completely Different Module": _make_erc("Completely Different Module", 80.0, 80.0, (20, 80), (20, 80)),
     }
     bs_evaluator.evaluated_groups_coverage = {}
 
@@ -753,6 +758,7 @@ def test_global_diff_misleading_when_no_report_names_match_baseline(mocker):
 # ---------------------------------------------------------------------------
 # 9. Unit test — 1 report + 1 matching baseline → global == per-report diff
 # ---------------------------------------------------------------------------
+
 
 def test_global_diff_correct_single_report_single_baseline_match(mocker):
     """
@@ -813,9 +819,8 @@ def test_global_diff_correct_single_report_single_baseline_match(mocker):
 # 10. Integration test — groups with explicit per-group baseline paths
 # ---------------------------------------------------------------------------
 
-def test_group_flow_partial_baseline_with_explicit_per_group_baseline_paths(
-    jacoco_report: JaCoCoReport, mocker
-):
+
+def test_group_flow_partial_baseline_with_explicit_per_group_baseline_paths(jacoco_report: JaCoCoReport, mocker):
     """
     Integration test exercising the grouped code path in jacoco_report.run().
     Each group has baseline_paths explicitly set (baseline_paths_configured=True).
@@ -909,6 +914,7 @@ def test_group_flow_partial_baseline_with_explicit_per_group_baseline_paths(
 # 11. Unit test — per-file diff is 0.0% when file is absent from baseline
 # ---------------------------------------------------------------------------
 
+
 def test_per_file_diff_zero_when_changed_file_absent_from_baseline(mocker):
     """
     Even when the report name matches the baseline, a specific file that does not
@@ -942,7 +948,11 @@ def test_per_file_diff_zero_when_changed_file_absent_from_baseline(mocker):
     file_new = "com/partial_baseline/module_a/FileNew.java"
 
     erc_a = _make_erc(
-        "Module A", 80.0, 77.5, (20, 80), (22, 78),
+        "Module A",
+        80.0,
+        77.5,
+        (20, 80),
+        (22, 78),
         changed_files={
             file_a: 80.0,
             file_new: 75.0,  # new file — in current but not in baseline
@@ -960,9 +970,13 @@ def test_per_file_diff_zero_when_changed_file_absent_from_baseline(mocker):
     evaluator.evaluated_groups_coverage = {}
 
     bs_a = _make_erc(
-        "Module A", 50.0, 50.0, (50, 50), (50, 50),
+        "Module A",
+        50.0,
+        50.0,
+        (50, 50),
+        (50, 50),
         changed_files={
-            file_a: 50.0,   # FileA.java present in baseline at 50%
+            file_a: 50.0,  # FileA.java present in baseline at 50%
             # FileNew.java intentionally absent
         },
     )

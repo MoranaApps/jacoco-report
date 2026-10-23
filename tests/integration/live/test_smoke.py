@@ -34,13 +34,8 @@ _REPO: str = os.environ.get("GITHUB_REPOSITORY", "")
 _REF: str = os.environ.get("GITHUB_REF", "")
 
 pytestmark = pytest.mark.skipif(
-    not _TOKEN
-    or not _REPO
-    or not re.fullmatch(r"refs/pull/\d+/merge", _REF),
-    reason=(
-        "Live tests require GITHUB_TOKEN, GITHUB_REPOSITORY, and "
-        "GITHUB_REF in refs/pull/<n>/merge format"
-    ),
+    not _TOKEN or not _REPO or not re.fullmatch(r"refs/pull/\d+/merge", _REF),
+    reason=("Live tests require GITHUB_TOKEN, GITHUB_REPOSITORY, and " "GITHUB_REF in refs/pull/<n>/merge format"),
 )
 
 
@@ -101,20 +96,13 @@ def _delete_comment(comment_id: int) -> None:
     """Delete a single PR comment by ID."""
     url = f"https://api.github.com/repos/{_REPO}/issues/comments/{comment_id}"
     resp = requests.delete(url, headers=_api_headers(), timeout=30)
-    assert resp.status_code == 204, (
-        f"Delete comment {comment_id} returned HTTP {resp.status_code}"
-    )
+    assert resp.status_code == 204, f"Delete comment {comment_id} returned HTTP {resp.status_code}"
 
 
 def _is_comment_write_forbidden(output: str) -> bool:
     """Return whether output indicates 403 forbidden on PR issue-comments API writes."""
     normalized = output.lower()
-    return (
-        "403" in normalized
-        and "forbidden" in normalized
-        and "/issues/" in normalized
-        and "/comments" in normalized
-    )
+    return "403" in normalized and "forbidden" in normalized and "/issues/" in normalized and "/comments" in normalized
 
 
 def _syntactically_valid_fake_token() -> str:
@@ -173,8 +161,7 @@ def test_comment_creation(cleanup_comments: list[int]) -> None:
         )
 
     assert result.exit_code == 0, (
-        f"Action exited with code {result.exit_code}.\n"
-        f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}"
+        f"Action exited with code {result.exit_code}.\n" f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}"
     )
 
     after_comments = _fetch_all_comments(pr_number)
@@ -262,13 +249,8 @@ def test_invalid_token_produces_clear_error() -> None:
     )
     combined = result.stdout + result.stderr
     normalized = combined.lower()
-    assert (
-        "http error occurred" in normalized
-        and (
-            "401" in normalized
-            or "unauthorized" in normalized
-            or "bad credentials" in normalized
-        )
+    assert "http error occurred" in normalized and (
+        "401" in normalized or "unauthorized" in normalized or "bad credentials" in normalized
     ), (
         "Expected an explicit authentication failure indicator for an invalid token "
         "(HTTP 401 / unauthorized / bad credentials).\n"

@@ -135,7 +135,7 @@ python3 main.py
 ## Run Pylint Check Locally
 
 This project uses [Pylint](https://pypi.org/project/pylint/) for static code analysis.
-Configuration is in `.pylintrc`. The target score is **10.0/10** (`fail-under=10`).
+Configuration is in `.pylintrc`. The minimum score is **9.5/10** (`fail-under=9.5`), matching CI's gate.
 
 ```shell
 pylint $(git ls-files '*.py')
@@ -147,11 +147,11 @@ To lint a single file:
 pylint jacoco_report/jacoco_report.py
 ```
 
-Expected output example:
+Expected output example (exact score may vary, must stay at or above 9.5):
 
 ```text
 ------------------------------------------------------------------
-Your code has been rated at 10.00/10
+Your code has been rated at 9.97/10
 ```
 
 ---

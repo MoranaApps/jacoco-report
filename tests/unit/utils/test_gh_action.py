@@ -1,6 +1,5 @@
 from jacoco_report.utils.gh_action import get_action_input, set_action_output, set_action_failed, set_action_output_text
 
-
 # get_input
 
 
@@ -23,6 +22,7 @@ def test_get_input_without_hyphen(mocker):
 
 
 # set_output
+
 
 def test_set_output_default(mocker):
     mocker.patch("os.getenv", return_value="default_output.txt")

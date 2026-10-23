@@ -16,6 +16,7 @@ from jacoco_report.utils.enums import CommentLevelEnum, MetricTypeEnum
 def mock_github(mocker):
     return mocker.Mock()
 
+
 @pytest.fixture
 def test_evaluator(mocker):
     ce = CoverageEvaluator(
@@ -28,6 +29,7 @@ def test_evaluator(mocker):
     ce.total_coverage_changed_files = 78.4
     ce.total_coverage_changed_files_passed = False
     return ce
+
 
 @pytest.fixture
 def pr_comment_generator(mock_github, test_evaluator):
@@ -57,8 +59,7 @@ def _make_evaluated_coverage(
     coverage.avg_changed_files_coverage = Counter(0, len(changed_files or {}))
     coverage.changed_files_coverage_reached = changed_files or {}
     coverage.changed_files_passed = {
-        path: changed_passed if score >= changed_threshold else False
-        for path, score in (changed_files or {}).items()
+        path: changed_passed if score >= changed_threshold else False for path, score in (changed_files or {}).items()
     }
     return coverage
 
@@ -70,7 +71,9 @@ def _configure_generator_for_comment_tests(generator, mocker, *, comment_level):
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_fail_symbol", return_value="❌")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_threshold", return_value=80.0)
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_files_average_threshold", return_value=80.0)
+    mocker.patch(
+        "jacoco_report.action_inputs.ActionInputs.get_global_changed_files_average_threshold", return_value=80.0
+    )
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=False)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_repository", return_value="owner/repo")
     generator.gh.get_comments.return_value = []
@@ -94,23 +97,31 @@ def _set_mixed_comment_level_fixture(pr_comment_generator):
         "unchanged-report": _make_evaluated_coverage("unchanged-report", changed_files={}),
     }
 
+
 def test_get_basic_table(pr_comment_generator, mocker):
     table = pr_comment_generator.get_basic_table(
-        "✅", "❌", MetricTypeEnum.INSTRUCTION,
-        85.2, True, 80.0,
-        78.4, False, 80.0
+        "✅", "❌", MetricTypeEnum.INSTRUCTION, 85.2, True, 80.0, 78.4, False, 80.0
     )
 
     assert "| **Overall**       | 85.2% | 80.0% | ✅ |" in table
     assert "| **Changed Files** | 78.4% | 80.0% | ❌ |" in table
 
+
 def test_get_changed_files_table_without_baseline(pr_comment_generator):
     table = pr_comment_generator.generate_changed_files_table_without_baseline("✅", "❌")
-    assert "| File Path | Coverage | Threshold | Status |\n|-----------|----------|-----------|--------|\n\nNo changed file in reports." in table
+    assert (
+        "| File Path | Coverage | Threshold | Status |\n|-----------|----------|-----------|--------|\n\nNo changed file in reports."
+        in table
+    )
+
 
 def test_get_changed_files_table_with_baseline(pr_comment_generator):
     table = pr_comment_generator.generate_changed_files_table_with_baseline("✅", "❌")
-    assert "| File Path | Coverage | Threshold | Δ Coverage | Status |\n|-----------|----------|-----------|------------|--------|\n\nNo changed file in reports." in table
+    assert (
+        "| File Path | Coverage | Threshold | Δ Coverage | Status |\n|-----------|----------|-----------|------------|--------|\n\nNo changed file in reports."
+        in table
+    )
+
 
 def test_calculate_group_diff(pr_comment_generator, mocker):
     # Current report: overall = 80/100 = 80.0%, changed = 85/100 = 85.0%, group="module-a"
@@ -138,6 +149,7 @@ def test_calculate_group_diff(pr_comment_generator, mocker):
     assert diff_o == 10.0
     assert diff_ch == 10.0
 
+
 def test_calculate_group_diff_no_group_in_baseline(pr_comment_generator, mocker):
     # Mock the baseline evaluator with no groups
     mock_baseline_evaluator = mocker.Mock()
@@ -156,6 +168,7 @@ def test_calculate_group_diff_no_group_in_baseline(pr_comment_generator, mocker)
     assert diff_o == 0.0
     assert diff_ch == 0.0
 
+
 def test_generate_changed_files_table_with_baseline(pr_comment_generator, mocker):
     # Mock the necessary methods and attributes
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["baseline.xml"])
@@ -167,22 +180,16 @@ def test_generate_changed_files_table_with_baseline(pr_comment_generator, mocker
     pr_comment_generator.pr_number = 1
 
     # Mock the evaluator with some values
-    pr_comment_generator.evaluator.evaluated_reports_coverage = {
-        "report1": EvaluatedReportCoverage("report1")
-    }
+    pr_comment_generator.evaluator.evaluated_reports_coverage = {"report1": EvaluatedReportCoverage("report1")}
     pr_comment_generator.evaluator.evaluated_reports_coverage["report1"].changed_files_coverage_reached = {
         "file1.java": 80.0
     }
     pr_comment_generator.evaluator.evaluated_reports_coverage["report1"].changed_files_threshold = 75.0
-    pr_comment_generator.evaluator.evaluated_reports_coverage["report1"].changed_files_passed = {
-        "file1.java": True
-    }
+    pr_comment_generator.evaluator.evaluated_reports_coverage["report1"].changed_files_passed = {"file1.java": True}
 
     # Mock the baseline evaluator with some values
     pr_comment_generator.bs_evaluator = mocker.Mock()
-    pr_comment_generator.bs_evaluator.evaluated_reports_coverage = {
-        "report1": EvaluatedReportCoverage("report1")
-    }
+    pr_comment_generator.bs_evaluator.evaluated_reports_coverage = {"report1": EvaluatedReportCoverage("report1")}
     pr_comment_generator.bs_evaluator.evaluated_reports_coverage["report1"].changed_files_coverage_reached = {
         "file1.java": 70.0
     }
@@ -196,6 +203,7 @@ def test_generate_changed_files_table_with_baseline(pr_comment_generator, mocker
 | [file1.java](https://github.com/fake_repo/pull/1/files#diff-fakehash) | 80.0% | 0.0% | +10.0% | ✅ |"""
     assert table == expected_table
 
+
 def test_generate_changed_files_table_with_baseline_no_evaluated_report_coverage(pr_comment_generator, mocker):
     # Mock the necessary methods and attributes
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["baseline.xml"])
@@ -207,22 +215,16 @@ def test_generate_changed_files_table_with_baseline_no_evaluated_report_coverage
     pr_comment_generator.pr_number = 1
 
     # Mock the evaluator with some values
-    pr_comment_generator.evaluator.evaluated_reports_coverage = {
-        "report1": EvaluatedReportCoverage("report1")
-    }
+    pr_comment_generator.evaluator.evaluated_reports_coverage = {"report1": EvaluatedReportCoverage("report1")}
     pr_comment_generator.evaluator.evaluated_reports_coverage["report1"].changed_files_coverage_reached = {
         "file1.java": 80.0
     }
     pr_comment_generator.evaluator.evaluated_reports_coverage["report1"].changed_files_threshold = 75.0
-    pr_comment_generator.evaluator.evaluated_reports_coverage["report1"].changed_files_passed = {
-        "file1.java": True
-    }
+    pr_comment_generator.evaluator.evaluated_reports_coverage["report1"].changed_files_passed = {"file1.java": True}
 
     # Mock the baseline evaluator with some values
     pr_comment_generator.bs_evaluator = mocker.Mock()
-    pr_comment_generator.bs_evaluator.evaluated_reports_coverage = {
-        "report21": EvaluatedReportCoverage("report21")
-    }
+    pr_comment_generator.bs_evaluator.evaluated_reports_coverage = {"report21": EvaluatedReportCoverage("report21")}
     pr_comment_generator.bs_evaluator.evaluated_reports_coverage["report21"].changed_files_coverage_reached = {
         "file1.java": 70.0
     }
@@ -236,6 +238,7 @@ def test_generate_changed_files_table_with_baseline_no_evaluated_report_coverage
 | [file1.java](https://github.com/fake_repo/pull/1/files#diff-fakehash) | 80.0% | 0.0% | 0.0% | ✅ |"""
     assert table == expected_table
 
+
 def test_generate_changed_files_table_with_baseline_no_changed_file(pr_comment_generator, mocker):
     # Mock the necessary methods and attributes
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["baseline.xml"])
@@ -247,22 +250,16 @@ def test_generate_changed_files_table_with_baseline_no_changed_file(pr_comment_g
     pr_comment_generator.pr_number = 1
 
     # Mock the evaluator with some values
-    pr_comment_generator.evaluator.evaluated_reports_coverage = {
-        "report1": EvaluatedReportCoverage("report1")
-    }
+    pr_comment_generator.evaluator.evaluated_reports_coverage = {"report1": EvaluatedReportCoverage("report1")}
     pr_comment_generator.evaluator.evaluated_reports_coverage["report1"].changed_files_coverage_reached = {
         "file1.java": 80.0
     }
     pr_comment_generator.evaluator.evaluated_reports_coverage["report1"].changed_files_threshold = 75.0
-    pr_comment_generator.evaluator.evaluated_reports_coverage["report1"].changed_files_passed = {
-        "file1.java": True
-    }
+    pr_comment_generator.evaluator.evaluated_reports_coverage["report1"].changed_files_passed = {"file1.java": True}
 
     # Mock the baseline evaluator with some values
     pr_comment_generator.bs_evaluator = mocker.Mock()
-    pr_comment_generator.bs_evaluator.evaluated_reports_coverage = {
-        "report1": EvaluatedReportCoverage("report1")
-    }
+    pr_comment_generator.bs_evaluator.evaluated_reports_coverage = {"report1": EvaluatedReportCoverage("report1")}
     pr_comment_generator.bs_evaluator.evaluated_reports_coverage["report1"].changed_files_coverage_reached = {
         "file2.java": 70.0
     }
@@ -340,11 +337,16 @@ def test_get_groups_table_with_baseline(pr_comment_generator, mocker):
 
 def test_reports_table_uses_group_thresholds_when_groups_configured(pr_comment_generator, mocker):
     from jacoco_report.model.report_group import ReportGroup
+
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=[])
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups",
-                 return_value=[ReportGroup("backend", ["**/jacoco.xml"])])
+    mocker.patch(
+        "jacoco_report.action_inputs.ActionInputs.get_report_groups",
+        return_value=[ReportGroup("backend", ["**/jacoco.xml"])],
+    )
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_threshold", return_value=50.0)
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_files_average_threshold", return_value=50.0)
+    mocker.patch(
+        "jacoco_report.action_inputs.ActionInputs.get_global_changed_files_average_threshold", return_value=50.0
+    )
 
     ev = EvaluatedReportCoverage("backend-report")
     ev.overall_coverage_reached = 90.0
@@ -428,7 +430,9 @@ def test_report_table_without_report_groups_keeps_name_sort(pr_comment_generator
 
     assert table.index("`alpha-report`") < table.index("`beta-report`")
 
+
 # --- Issue 1: get_groups_table baseline decision logic ---
+
 
 def test_get_groups_table_baseline_decision_global_only(pr_comment_generator, mocker):
     """Test that get_groups_table shows baseline Δ when global baseline-paths is set"""
@@ -472,7 +476,7 @@ def test_get_groups_table_baseline_decision_group_only(pr_comment_generator, moc
     """Test that get_groups_table shows baseline Δ when group has per-group baseline-paths"""
     # Global baseline-paths is empty
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=[])
-    
+
     ev = EvaluatedReportCoverage("backend", group_name="backend")
     ev.overall_coverage_reached = 85.0
     ev.avg_changed_files_coverage_reached = 80.0
@@ -499,7 +503,9 @@ def test_get_groups_table_baseline_decision_group_only(pr_comment_generator, moc
 def test_get_reports_table_baseline_decision_group_only(pr_comment_generator, mocker):
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=[])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_threshold", return_value=50.0)
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_files_average_threshold", return_value=50.0)
+    mocker.patch(
+        "jacoco_report.action_inputs.ActionInputs.get_global_changed_files_average_threshold", return_value=50.0
+    )
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups", return_value=[])
 
     ev = EvaluatedReportCoverage("backend-report")
@@ -528,7 +534,9 @@ def test_get_basic_table_baseline_decision_group_only(pr_comment_generator, mock
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=[])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value=MetricTypeEnum.INSTRUCTION)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_threshold", return_value=50.0)
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_changed_files_average_threshold", return_value=50.0)
+    mocker.patch(
+        "jacoco_report.action_inputs.ActionInputs.get_global_changed_files_average_threshold", return_value=50.0
+    )
 
     pr_comment_generator.evaluator.total_coverage_overall = 85.0
     pr_comment_generator.evaluator.total_coverage_overall_passed = True
@@ -550,7 +558,7 @@ def test_get_basic_table_baseline_decision_group_only(pr_comment_generator, mock
 def test_get_groups_table_baseline_decision_no_baseline(pr_comment_generator, mocker):
     """Test that get_groups_table omits baseline Δ when no baseline data available"""
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=[])
-    
+
     ev = EvaluatedReportCoverage("backend")
     ev.overall_coverage_reached = 85.0
     ev.avg_changed_files_coverage_reached = 80.0
@@ -616,6 +624,7 @@ def test_calculate_baseline_group_diffs_no_data_returns_zero(pr_comment_generato
 
 # --- comment-level expansion ---
 
+
 def test_generate_skips_github_comment_for_none(pr_comment_generator, mocker):
     _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="none")
 
@@ -680,17 +689,46 @@ def test_none_leaves_existing_comment_when_update_comment_disabled(pr_comment_ge
         ),
         (
             "changed",
-            ["| Metric (instruction) |", "| Group |", "| Report |", "| File Path |", "`changed-group`", "`changed-report`", "`failing-report`", "[Foo.java]", "[Bar.java]"],
+            [
+                "| Metric (instruction) |",
+                "| Group |",
+                "| Report |",
+                "| File Path |",
+                "`changed-group`",
+                "`changed-report`",
+                "`failing-report`",
+                "[Foo.java]",
+                "[Bar.java]",
+            ],
             ["`unchanged-group`", "`unchanged-report`", "`failing-group`"],
         ),
         (
             "failed",
-            ["| Metric (instruction) |", "| Group |", "| Report |", "| File Path |", "`failing-group`", "`failing-report`", "[Bar.java]"],
+            [
+                "| Metric (instruction) |",
+                "| Group |",
+                "| Report |",
+                "| File Path |",
+                "`failing-group`",
+                "`failing-report`",
+                "[Bar.java]",
+            ],
             ["`changed-group`", "`changed-report`", "`unchanged-group`", "`unchanged-report`", "[Foo.java]"],
         ),
         (
             "failed-or-changed",
-            ["| Metric (instruction) |", "| Group |", "| Report |", "| File Path |", "`changed-group`", "`failing-group`", "`changed-report`", "`failing-report`", "[Foo.java]", "[Bar.java]"],
+            [
+                "| Metric (instruction) |",
+                "| Group |",
+                "| Report |",
+                "| File Path |",
+                "`changed-group`",
+                "`failing-group`",
+                "`changed-report`",
+                "`failing-report`",
+                "[Foo.java]",
+                "[Bar.java]",
+            ],
             ["`unchanged-group`", "`unchanged-report`"],
         ),
     ],
@@ -867,6 +905,7 @@ def test_filtered_comment_levels_empty_result_do_not_render_detail_table_headers
 
 # --- skip_report_names row-filtering ---
 
+
 def test_skip_report_names_hides_specified_reports_from_rendered_rows(pr_comment_generator, mocker):
     _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="full")
     pr_comment_generator.evaluator.evaluated_groups_coverage = {}
@@ -927,9 +966,7 @@ def test_skip_report_names_hides_group_when_all_group_reports_are_skipped(pr_com
         "frontend": _make_evaluated_coverage("frontend"),
     }
     pr_comment_generator.evaluator.evaluated_reports_coverage = {
-        "backend-report": _make_evaluated_coverage(
-            "backend-report", group_name="backend", changed_files={}
-        ),
+        "backend-report": _make_evaluated_coverage("backend-report", group_name="backend", changed_files={}),
         "frontend-report": _make_evaluated_coverage(
             "frontend-report", group_name="frontend", changed_files={"src/Foo.java": 80.0}
         ),
@@ -946,6 +983,7 @@ def test_skip_report_names_hides_group_when_all_group_reports_are_skipped(pr_com
 
 
 # --- metadata footer ---
+
 
 def test_metadata_footer_all_fields(pr_comment_generator, mocker):
     _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="minimal")
@@ -1055,6 +1093,7 @@ def _make_empty_evaluator():
 # G2  Column header reflects selected metric type
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.parametrize("metric", ["instruction", "line", "branch", "complexity", "method", "class"])
 def test_basic_table_header_reflects_selected_metric(pr_comment_generator, metric):
     """get_basic_table header label changes with the metric parameter."""
@@ -1073,6 +1112,7 @@ def test_basic_table_with_baseline_header_reflects_metric(pr_comment_generator):
 # ---------------------------------------------------------------------------
 # G3  Custom pass/fail symbols appear in every table type
 # ---------------------------------------------------------------------------
+
 
 def test_custom_pass_symbol_appears_in_basic_table(pr_comment_generator):
     """Custom pass symbol is rendered in Status column of the global summary table."""
@@ -1192,6 +1232,7 @@ def test_custom_fail_symbol_in_changed_files_table(pr_comment_generator):
 # G4b  Baseline delta matched by report title
 # ---------------------------------------------------------------------------
 
+
 def test_baseline_report_matched_by_name(make_report_file_coverage, make_coverage, mocker, pr_comment_generator):
     """Baseline delta for a report uses its name (title) as the match key."""
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
@@ -1227,7 +1268,9 @@ def test_baseline_report_matched_by_name(make_report_file_coverage, make_coverag
     assert abs(diff_o - 20.0) < 0.1
 
 
-def test_baseline_mismatched_name_yields_zero_delta(make_report_file_coverage, make_coverage, mocker, pr_comment_generator):
+def test_baseline_mismatched_name_yields_zero_delta(
+    make_report_file_coverage, make_coverage, mocker, pr_comment_generator
+):
     """When the report name has no matching baseline entry, delta is 0.0."""
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
 
@@ -1256,6 +1299,7 @@ def test_baseline_mismatched_name_yields_zero_delta(make_report_file_coverage, m
 # G6  Title change orphans old comment; new comment is created
 # ---------------------------------------------------------------------------
 
+
 def test_title_change_creates_new_comment_orphans_old(mocker, mock_github, test_evaluator):
     """Changing title creates a new comment; the old comment with the previous title is not touched."""
     empty_bs = _make_empty_evaluator()
@@ -1276,10 +1320,12 @@ def test_title_change_creates_new_comment_orphans_old(mocker, mock_github, test_
 # G7  Two distinct titles produce two independent comments
 # ---------------------------------------------------------------------------
 
+
 def test_two_generators_with_different_titles_post_independently(mocker, mock_github):
     """Two PRCommentGenerators with distinct titles each post their own comment independently."""
-    ev_a = CoverageEvaluator(report_files_coverage=[], global_min_coverage_overall=0.0,
-                              global_min_coverage_changed_files=0.0)
+    ev_a = CoverageEvaluator(
+        report_files_coverage=[], global_min_coverage_overall=0.0, global_min_coverage_changed_files=0.0
+    )
     ev_a.total_coverage_overall = 85.0
     ev_a.total_coverage_overall_passed = True
     ev_a.total_coverage_changed_files = 80.0
@@ -1295,8 +1341,9 @@ def test_two_generators_with_different_titles_post_independently(mocker, mock_gi
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_title", return_value="Team B Coverage")
     mock_github.get_comments.return_value = [{"id": 1, "body": "**Team A Coverage**\n\nteam a content"}]
 
-    ev_b = CoverageEvaluator(report_files_coverage=[], global_min_coverage_overall=0.0,
-                              global_min_coverage_changed_files=0.0)
+    ev_b = CoverageEvaluator(
+        report_files_coverage=[], global_min_coverage_overall=0.0, global_min_coverage_changed_files=0.0
+    )
     ev_b.total_coverage_overall = 90.0
     ev_b.total_coverage_overall_passed = True
     ev_b.total_coverage_changed_files = 85.0
@@ -1311,6 +1358,7 @@ def test_two_generators_with_different_titles_post_independently(mocker, mock_gi
 # ---------------------------------------------------------------------------
 # G8  debug flag has no effect on comment content
 # ---------------------------------------------------------------------------
+
 
 def test_debug_flag_does_not_change_comment_body(mocker, mock_github, test_evaluator):
     """Comment body is byte-for-byte identical whether get_debug() returns True or False."""
@@ -1345,6 +1393,7 @@ def test_debug_flag_not_consulted_during_generate(mocker, mock_github, test_eval
 # G12  update-comment: false appends even when a matching title already exists
 # ---------------------------------------------------------------------------
 
+
 def test_update_comment_false_appends_despite_matching_title(mocker, mock_github, test_evaluator):
     """update-comment=false causes add_comment to be called even when an existing comment matches the title."""
     empty_bs = _make_empty_evaluator()
@@ -1375,6 +1424,7 @@ def test_update_comment_false_appends_across_comment_levels(mocker, mock_github,
 # ---------------------------------------------------------------------------
 # G13  Title identity key does not match comments with a different title
 # ---------------------------------------------------------------------------
+
 
 def test_title_identity_key_does_not_match_different_title(mocker, mock_github, test_evaluator):
     """Generator with 'New JaCoCo' title does not update a comment that starts with 'Old JaCoCo'."""
@@ -1408,6 +1458,7 @@ def test_title_identity_key_matches_correct_comment(mocker, mock_github, test_ev
 # Ungrouped Reports Warning (G14)
 # ---------------------------------------------------------------------------
 
+
 def test_no_warning_all_reports_grouped(mocker, mock_github, test_evaluator):
     """No warning when all reports are matched to groups."""
     gen = PRCommentGenerator(mock_github, test_evaluator, None, pr_number=1, ungrouped_reports=[])
@@ -1422,7 +1473,9 @@ def test_no_warning_all_reports_grouped(mocker, mock_github, test_evaluator):
 
 def test_warning_one_ungrouped_report(mocker, mock_github, test_evaluator):
     """Warning section appears when 1 report is unmatched."""
-    gen = PRCommentGenerator(mock_github, test_evaluator, None, pr_number=1, ungrouped_reports=["infra/target/jacoco.xml"])
+    gen = PRCommentGenerator(
+        mock_github, test_evaluator, None, pr_number=1, ungrouped_reports=["infra/target/jacoco.xml"]
+    )
     _configure_generator_for_comment_tests(gen, mocker, comment_level=CommentLevelEnum.FULL)
     _set_mixed_comment_level_fixture(gen)
 

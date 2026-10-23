@@ -4,6 +4,7 @@ from jacoco_report.scanner.jacoco_report_input_scanner import JaCoCoReportInputS
 
 # __init__
 
+
 def test_initialization():
     paths = ["path/to/reports"]
     exclude_paths = ["path/to/exclude"]
@@ -15,12 +16,11 @@ def test_initialization():
 
 # scan
 
+
 def test_scan_exact_paths_one_input(mocker):
     file_path_1 = "tests/data/test_project/module small/target/jacoco.xml"
 
-    scanner = JaCoCoReportInputScanner(
-        [file_path_1],
-        [])
+    scanner = JaCoCoReportInputScanner([file_path_1], [])
 
     result = scanner.scan()
 
@@ -32,9 +32,7 @@ def test_scan_exact_paths_more_inputs(mocker):
     file_path_1 = "tests/data/test_project/module small/target/jacoco.xml"
     file_path_2 = "tests/data/test_project/module_large/jacoco.xml"
 
-    scanner = JaCoCoReportInputScanner(
-        [file_path_1, file_path_2],
-        [])
+    scanner = JaCoCoReportInputScanner([file_path_1, file_path_2], [])
 
     result = scanner.scan()
 
@@ -47,9 +45,7 @@ def test_scan_exact_paths_more_inputs_with_exclude(mocker):
     file_path_1 = "tests/data/test_project/module small/target/jacoco.xml"
     file_path_2 = "tests/data/test_project/module_large/target/jacoco.xml"
 
-    scanner = JaCoCoReportInputScanner(
-        [file_path_1, file_path_2],
-        [file_path_2])
+    scanner = JaCoCoReportInputScanner([file_path_1, file_path_2], [file_path_2])
 
     result = scanner.scan()
 
@@ -69,9 +65,7 @@ def test_scan_exact_paths_more_inputs_with_exclude(mocker):
 def test_scan_blob_paths_no_exclude(mocker):
     blob_path = "tests/data/test_project/**/jacoco.xml"
 
-    scanner = JaCoCoReportInputScanner(
-        [blob_path],
-        [])
+    scanner = JaCoCoReportInputScanner([blob_path], [])
 
     result = scanner.scan()
 
@@ -82,9 +76,7 @@ def test_scan_blob_paths_with_exact_exclude(mocker):
     blob_path = "tests/data/test_project/**/jacoco.xml"
     ex_path = "tests/data/test_project/module_large/jacoco.xml"
 
-    scanner = JaCoCoReportInputScanner(
-        [blob_path],
-        [ex_path])
+    scanner = JaCoCoReportInputScanner([blob_path], [ex_path])
 
     result = scanner.scan()
 
@@ -101,9 +93,7 @@ def test_scan_blob_paths_with_blob_exclude(mocker):
     blob_path = "tests/data/test_project/**/jacoco.xml"
     ex_blob_path = "tests/data/test_project/module*/**/jacoco.xml"
 
-    scanner = JaCoCoReportInputScanner(
-        [blob_path],
-        [ex_blob_path])
+    scanner = JaCoCoReportInputScanner([blob_path], [ex_blob_path])
 
     result = scanner.scan()
 
@@ -126,6 +116,7 @@ def test_scan_blob_paths_with_blob_exclude(mocker):
 # G1 / G14  Scanner logs matched file paths at DEBUG level
 # ---------------------------------------------------------------------------
 
+
 def test_scanner_logs_matched_xml_file_at_debug_level(tmp_path, caplog):
     """Scanner emits a DEBUG log message containing the absolute path of each matched XML file."""
     xml_file = tmp_path / "jacoco.xml"
@@ -136,7 +127,8 @@ def test_scanner_logs_matched_xml_file_at_debug_level(tmp_path, caplog):
 
     debug_msgs = [r.message for r in caplog.records if r.levelno == logging.DEBUG]
     assert any("Found 'xml' file" in m for m in debug_msgs)
-    assert any(str(xml_file) in m for m in debug_msgs)
+    # Scanner always reports forward-slash paths, regardless of OS.
+    assert any(xml_file.as_posix() in m for m in debug_msgs)
 
 
 def test_scanner_does_not_log_non_xml_files(tmp_path, caplog):

@@ -5,6 +5,7 @@ from jacoco_report.model.counter import Counter
 
 # __init__
 
+
 def test_initialization():
     instruction = Counter(missed=5, covered=10)
     branch = Counter(missed=3, covered=7)
@@ -15,19 +16,16 @@ def test_initialization():
 
     overall_coverage = Coverage(instruction, branch, line, complexity, method, clazz)
     changed_files_coverage = {
-        "file1": FileCoverage(
-            "file_name1", "file_path1",
-            instruction, branch, line, complexity, method, clazz),
-        "file2": FileCoverage(
-            "file_name2", "file_path2",
-            instruction, branch, line, complexity, method, clazz)
+        "file1": FileCoverage("file_name1", "file_path1", instruction, branch, line, complexity, method, clazz),
+        "file2": FileCoverage("file_name2", "file_path2", instruction, branch, line, complexity, method, clazz),
     }
 
     coverage_report = ReportFileCoverage(
         path="path/to/report",
         name="Report title",
         overall_coverage=overall_coverage,
-        changed_files_coverage=changed_files_coverage)
+        changed_files_coverage=changed_files_coverage,
+    )
 
     assert coverage_report.path == "path/to/report"
     assert coverage_report.group_name == "Unknown"

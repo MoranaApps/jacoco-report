@@ -2,6 +2,7 @@ from jacoco_report.action_inputs import ActionInputs
 from jacoco_report.utils.enums import FailOnThresholdEnum
 from main import run
 
+
 def test_run_no_violations(mocker):
     # Mock dependencies
     mocker.patch("main.setup_logging")
@@ -258,6 +259,7 @@ def test_run_operational_violation_fails_even_with_fail_unchanged_only(mocker):
 # G15  coverage-overall-passed and coverage-changed-files-passed set as outputs
 # ---------------------------------------------------------------------------
 
+
 def test_main_sets_coverage_overall_passed_output(mocker):
     """main.run() writes coverage-overall-passed as a GitHub Actions output."""
     mocker.patch("main.setup_logging")
@@ -291,8 +293,10 @@ def test_main_sets_coverage_changed_files_passed_false_when_failing(mocker):
     mock_set_output = mocker.patch("main.set_action_output")
     mocker.patch("main.set_action_output_text")
     mock_set_failed = mocker.patch("main.set_action_failed")
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_fail_on_threshold",
-                 return_value=["overall", "changed-files-average"])
+    mocker.patch(
+        "jacoco_report.action_inputs.ActionInputs.get_fail_on_threshold",
+        return_value=["overall", "changed-files-average"],
+    )
 
     mock_jr = mock_jr_cls.return_value
     mock_jr.total_overall_coverage = 85.0
@@ -312,6 +316,4 @@ def test_main_sets_coverage_changed_files_passed_false_when_failing(mocker):
 
     mock_set_output.assert_any_call("coverage-overall-passed", "True")
     mock_set_output.assert_any_call("coverage-changed-files-passed", "False")
-    mock_set_failed.assert_called_once_with(
-        messages=["Changed files coverage below threshold."], fail=True
-    )
+    mock_set_failed.assert_called_once_with(messages=["Changed files coverage below threshold."], fail=True)

@@ -29,9 +29,9 @@ class JaCoCoReportInputScanner:
         for path in self.paths:
             resolved_paths = glob.glob(path, root_dir=".", recursive=True)
             for resolved_path in resolved_paths:
-                abs_path = os.path.abspath(resolved_path)
+                abs_path = self._to_posix_abspath(resolved_path)
 
-                if os.path.isfile(abs_path) and abs_path.endswith(".xml"):
+                if os.path.isfile(resolved_path) and abs_path.endswith(".xml"):
                     logger.debug("Found 'xml' file: %s", abs_path)
                     jacoco_files.add(abs_path)
 
@@ -39,6 +39,14 @@ class JaCoCoReportInputScanner:
         for exclude_path in self.exclude_paths:
             for file in glob.glob(exclude_path, recursive=True):
                 if file.endswith(".xml"):
-                    jacoco_files.discard(os.path.abspath(file))
+                    jacoco_files.discard(self._to_posix_abspath(file))
 
         return list(jacoco_files)
+
+    @staticmethod
+    def _to_posix_abspath(path: str) -> str:
+        """
+        Resolves a path to an absolute path with forward slashes, regardless of OS,
+        so results are consistent between Windows and POSIX systems.
+        """
+        return os.path.abspath(path).replace(os.sep, "/")

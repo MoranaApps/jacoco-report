@@ -44,11 +44,21 @@ These rules apply to every task in this repository. Project facts live in the `C
 
 ## This project
 
-<!-- Fill this in with a project scan or by hand. Every project should offer these standard commands, wrapping its real tools; the project-scan skill explains how. -->
-
-- `make setup`: ...
-- `make run`: ...
-- `make build`: ...
-- `make test`: ... (one file or test: `make test T=<path>`)
-- `make lint` and `make format`: ...
-- `make check`: everything that must pass before work is done: ...
+- `make setup`: `pip install -r requirements.txt`. Needs Python 3.11+; optionally inside a venv
+  (`python3 -m venv .venv && source .venv/bin/activate` first).
+- `make run`: `python3 main.py`, with every `INPUT_*` input env var and the GitHub-context env vars
+  (`GITHUB_REPOSITORY`, `GITHUB_EVENT_NAME`, `GITHUB_REF`) set — see `DEVELOPER.md` → "Run Scripts
+  Locally" for a template. Needs network access to the GitHub API and a real or sandbox PR to act
+  against.
+- `make build`: `python3 -m py_compile $(git ls-files '*.py')` — a syntax sanity check. This project
+  ships its Python source directly through `action.yml`; there is no compiled or packaged artifact.
+- `make test` (one file or test: `make test T=<path>`): runs unit + offline integration tests with
+  coverage (`pytest --cov=. tests/ --ignore=tests/integration/live --cov-fail-under=80`).
+  `tests/integration/live/` needs a real `GITHUB_TOKEN`, `GITHUB_REPOSITORY` and a PR-shaped
+  `GITHUB_REF`; it's run separately and skipped on forks in CI.
+- `make lint`: `pylint $(git ls-files '*.py')` (min score 9.5/10) and `mypy .`.
+- `make format`: `black $(git ls-files '*.py')` (writes); `make check` only verifies with
+  `black --check`.
+- `make check`: lint + test + build + `black --check` — everything that must pass before work is
+  done. The same four gates run in CI (`.github/workflows/static_analysis_and_tests.yml`) across
+  Python 3.11–3.14, plus a `context-check` job on pull requests (see the `context-md` skill).

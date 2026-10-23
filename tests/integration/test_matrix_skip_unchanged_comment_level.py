@@ -46,9 +46,7 @@ def _extract_overall_coverage(comment_body: str) -> float:
 
 
 @pytest.mark.parametrize("comment_level", _COMMENT_LEVELS)
-def test_skip_unchanged_false_all_comment_levels(
-    mocker: MockerFixture, comment_level: str
-) -> None:
+def test_skip_unchanged_false_all_comment_levels(mocker: MockerFixture, comment_level: str) -> None:
     """skip-unchanged=false: all reports reach evaluation for every comment level.
 
     Verifies:
@@ -69,18 +67,13 @@ def test_skip_unchanged_false_all_comment_levels(
     )
 
     assert result.exit_code == 0, (
-        f"[skip=false, level={comment_level!r}] Unexpected exit code {result.exit_code}.\n"
-        f"stdout:\n{result.stdout}"
+        f"[skip=false, level={comment_level!r}] Unexpected exit code {result.exit_code}.\n" f"stdout:\n{result.stdout}"
     )
 
     if comment_level == "none":
-        assert len(captured) == 0, (
-            f"[skip=false, level=none] comment-level=none must suppress the comment"
-        )
+        assert len(captured) == 0, f"[skip=false, level=none] comment-level=none must suppress the comment"
     else:
-        assert len(captured) == 1, (
-            f"[skip=false, level={comment_level!r}] Expected one comment, got {len(captured)}"
-        )
+        assert len(captured) == 1, f"[skip=false, level={comment_level!r}] Expected one comment, got {len(captured)}"
 
     if comment_level == "full":
         assert _UNCHANGED_REPORT in captured[0], (
@@ -91,8 +84,7 @@ def test_skip_unchanged_false_all_comment_levels(
 
     if comment_level in ("changed", "failed-or-changed"):
         assert _CHANGED_REPORT in captured[0], (
-            f"[skip=false, level={comment_level!r}] {_CHANGED_REPORT!r} must appear "
-            f"(it has changed files)"
+            f"[skip=false, level={comment_level!r}] {_CHANGED_REPORT!r} must appear " f"(it has changed files)"
         )
         assert _UNCHANGED_REPORT not in captured[0], (
             f"[skip=false, level={comment_level!r}] {_UNCHANGED_REPORT!r} must be absent — "
@@ -102,15 +94,12 @@ def test_skip_unchanged_false_all_comment_levels(
     if comment_level == "failed":
         # At 0% thresholds all reports pass — no failing rows in tables.
         assert "No rows match the selected comment level." in captured[0], (
-            f"[skip=false, level=failed] Expected 'No rows match' message "
-            f"(all reports pass at 0% threshold)"
+            f"[skip=false, level=failed] Expected 'No rows match' message " f"(all reports pass at 0% threshold)"
         )
 
 
 @pytest.mark.parametrize("comment_level", _COMMENT_LEVELS)
-def test_skip_unchanged_true_all_comment_levels(
-    mocker: MockerFixture, comment_level: str
-) -> None:
+def test_skip_unchanged_true_all_comment_levels(mocker: MockerFixture, comment_level: str) -> None:
     """skip-unchanged=true + evaluate-unchanged=false: unchanged reports filtered before evaluation.
 
     Verifies:
@@ -133,29 +122,22 @@ def test_skip_unchanged_true_all_comment_levels(
     )
 
     assert result.exit_code == 0, (
-        f"[skip=true, level={comment_level!r}] Unexpected exit code {result.exit_code}.\n"
-        f"stdout:\n{result.stdout}"
+        f"[skip=true, level={comment_level!r}] Unexpected exit code {result.exit_code}.\n" f"stdout:\n{result.stdout}"
     )
 
-    expected_filter_log = (
-        f"Filtering report '{_UNCHANGED_REPORT}' from evaluation and comment rows: no changed files."
-    )
+    expected_filter_log = f"Filtering report '{_UNCHANGED_REPORT}' from evaluation and comment rows: no changed files."
     assert expected_filter_log in result.stdout, (
         f"[skip=true, level={comment_level!r}] Expected exact scan-stage filter log for "
         f"{_UNCHANGED_REPORT!r} in stdout.\nstdout:\n{result.stdout}"
     )
-    assert f"Filtering report '{_CHANGED_REPORT}'" not in result.stdout, (
-        f"[skip=true, level={comment_level!r}] {_CHANGED_REPORT!r} has changed files and must not be filtered."
-    )
+    assert (
+        f"Filtering report '{_CHANGED_REPORT}'" not in result.stdout
+    ), f"[skip=true, level={comment_level!r}] {_CHANGED_REPORT!r} has changed files and must not be filtered."
 
     if comment_level == "none":
-        assert len(captured) == 0, (
-            f"[skip=true, level=none] comment-level=none must suppress the comment"
-        )
+        assert len(captured) == 0, f"[skip=true, level=none] comment-level=none must suppress the comment"
     else:
-        assert len(captured) == 1, (
-            f"[skip=true, level={comment_level!r}] Expected one comment, got {len(captured)}"
-        )
+        assert len(captured) == 1, f"[skip=true, level={comment_level!r}] Expected one comment, got {len(captured)}"
 
     if comment_level == "full":
         assert _UNCHANGED_REPORT not in captured[0], (
@@ -176,8 +158,7 @@ def test_skip_unchanged_true_all_comment_levels(
     if comment_level == "failed":
         # At 0% thresholds the surviving report (module_large) passes — no failing rows.
         assert "No rows match the selected comment level." in captured[0], (
-            f"[skip=true, level=failed] Expected 'No rows match' message "
-            f"(module_large passes at 0% threshold)"
+            f"[skip=true, level=failed] Expected 'No rows match' message " f"(module_large passes at 0% threshold)"
         )
 
 
@@ -218,15 +199,11 @@ def test_filter_before_evaluation_changes_global_coverage(mocker: MockerFixture)
     assert r2.exit_code == 0, f"Run 2 failed: {r2.stdout}"
     assert len(captured_filtered) == 1, f"Expected one comment in run 2, got {len(captured_filtered)}"
 
-    expected_filter_log = (
-        f"Filtering report '{_UNCHANGED_REPORT}' from evaluation and comment rows: no changed files."
-    )
-    assert expected_filter_log not in r1.stdout, (
-        "Run 1 uses skip-unchanged=false; no report should be scan-stage filtered."
-    )
-    assert expected_filter_log in r2.stdout, (
-        "Run 2 must log that the unchanged report was filtered from comment rows."
-    )
+    expected_filter_log = f"Filtering report '{_UNCHANGED_REPORT}' from evaluation and comment rows: no changed files."
+    assert (
+        expected_filter_log not in r1.stdout
+    ), "Run 1 uses skip-unchanged=false; no report should be scan-stage filtered."
+    assert expected_filter_log in r2.stdout, "Run 2 must log that the unchanged report was filtered from comment rows."
 
     overall_all = _extract_overall_coverage(captured_all[0])
     overall_filtered = _extract_overall_coverage(captured_filtered[0])
@@ -237,9 +214,5 @@ def test_filter_before_evaluation_changes_global_coverage(mocker: MockerFixture)
     )
 
     # Comment bodies may differ due to row filtering, but the overall summary line must be identical
-    assert "| **Overall**" in captured_all[0], (
-        "Run 1 must include Overall coverage summary line"
-    )
-    assert "| **Overall**" in captured_filtered[0], (
-        "Run 2 must include Overall coverage summary line"
-    )
+    assert "| **Overall**" in captured_all[0], "Run 1 must include Overall coverage summary line"
+    assert "| **Overall**" in captured_filtered[0], "Run 2 must include Overall coverage summary line"
