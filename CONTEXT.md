@@ -127,6 +127,9 @@ service is needed.
   PR's changed-file list by substring containment, after first trying to resolve it on disk via
   `os.walk` from the current working directory — ambiguous if a relative path repeats across modules.
 - Pylint's real gate is `>=9.5` (`.pylintrc` `fail-under=9.5`, same number CI checks) — not 10/10.
+- The `secrets` context is not allowed in a step- or job-level `if:`; GitHub rejects the whole workflow
+  file as invalid and no job in it runs (issue #240: `renovate.yml` never auto-merged). Expose the
+  secret via an `env:` var (e.g. `HAS_REVIEW_TOKEN: ${{ secrets.X != '' }}`) and test that instead.
 
 ## Read more
 
