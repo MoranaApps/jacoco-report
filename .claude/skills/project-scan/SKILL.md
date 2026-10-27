@@ -11,7 +11,7 @@ The goal is the lay of the land: a short root `CONTEXT.md` and working build and
 
 ## Steps
 
-1. **Run the survey** from the repository root: `bash <this skill's folder>/survey.sh`, using the path of [survey.sh](survey.sh) next to this file. It is read-only and prints a compact overview: languages, structure, build and CI files, scripts, test locations, existing docs, recent commits, most-changed files and local notes. If you can't run it, gather the same facts with file listings and searches.
+1. **Run the survey** from the repository root: `bash <this skill's folder>/survey.sh`, using the path of [survey.sh](survey.sh) next to this file. It is read-only and prints a compact overview: languages, structure, build and CI files, scripts, test locations, existing docs, installed packs, recent commits, most-changed files and local notes. If you can't run it, gather the same facts with file listings and searches.
 2. **Read only what the survey points to**, in this order:
    - the README and existing `CONTEXT.md` or `AGENTS.md` files,
    - the main build or dependency file,
@@ -27,7 +27,8 @@ The goal is the lay of the land: a short root `CONTEXT.md` and working build and
 5. **Add area `CONTEXT.md` files** (for example `backend/`, `ui/`, each service) where the detail an agent needs would push the root past about 150 lines. Each starts with `Parent: ../CONTEXT.md`, adds only its own detail, and links the real documents (decision records, specs, guides) instead of restating them.
 6. **Fill in the "This project" section of `AGENTS.md`**: the profile, proposed from evidence as the `project-profile` skill describes and marked "(proposed)" until the user confirms it; the standard commands (`make setup`, `run`, `build`, `test`, `lint`, `format`, `check`) and what each runs, plus anything else that must pass before work counts as done. Write commands and what they need, never results: pass counts, durations, dates and current failures go stale and belong in your report. Add "(unverified)" to a command you couldn't run.
 7. **Standard commands.** The survey lists missing standard targets. Don't add them yourself. In your report, propose the missing targets, each wrapping the project's real command, using [Makefile.template](Makefile.template) as the shape. Until they exist, list the real commands under the standard names in "This project".
-8. **Report** briefly: the proposed profile and its evidence, what you wrote, what is unverified, the conflicts you found, the standard targets to add, and questions only a person can answer.
+8. **Installed packs.** The survey's "Installed packs" section lists the packs agd installed. Compare each with the stack you found. A pack named after a framework, platform or datastore (for example `flask`, `react`, `spring`, `relational-database`, `terraform`, `aws`, `heroku`) is unused when no dependency, build file, configuration or code uses that technology. For each unused pack, propose `agd remove <pack>` in your report, with one line of evidence. Never run it yourself. Never propose removing `core`, a pack that isn't about a technology (such as `research` or `copilot-hook`), or a pack you aren't sure about. Skip this step when the section says None.
+9. **Report** briefly: the proposed profile and its evidence, what you wrote, what is unverified, the conflicts you found, the standard targets to add, the packs to remove, and questions only a person can answer.
 
 Don't rewrite `README.md` or other docs written for people. If they are wrong, list what's wrong in your report.
 

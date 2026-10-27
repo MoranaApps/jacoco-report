@@ -134,6 +134,19 @@ done
 grep -E '(^|/)(adr|adrs|decisions)/[^/]+\.md$' "$list" | sed 's|/[^/]*$||' | sort | uniq -c \
   | sed -E 's/^ *([0-9]+) (.*)$/- \2\/: \1 decision records/'
 
+# Packs that agd installed ("pack <source> <pack>" lines), one line per source, to compare with the stack.
+section "Installed packs (.agd.lock)"
+if [ -f .agd.lock ]; then
+  packs=$(awk '$1 == "pack" && NF == 3 {
+    if (!($2 in p)) order[++n] = $2
+    p[$2] = p[$2] (p[$2] != "" ? ", " : "") $3
+  }
+  END { for (i = 1; i <= n; i++) print "- " order[i] ": " p[order[i]] }' .agd.lock)
+  if [ -n "$packs" ]; then printf '%s\n' "$packs"; else echo "None listed in .agd.lock."; fi
+else
+  echo "None: no .agd.lock, so agd doesn't manage this project."
+fi
+
 if [ "$is_git" = 1 ]; then
   section "Recent commits"
   recent=$(git log -12 --format='- %ad %s' --date=short 2>/dev/null)

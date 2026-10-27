@@ -1,6 +1,6 @@
 # Written by agd. Commit it, and don't edit it by hand.
 agd-lock 1
-source agentic-defaults https://github.com/Zejnilovic/agentic-defaults.git 0.5.0
+source agentic-defaults https://github.com/Zejnilovic/agentic-defaults.git 0.5.1
 pack agentic-defaults copilot-hook
 pack agentic-defaults core
 pack agentic-defaults research
@@ -15,15 +15,15 @@ file agentic-defaults .claude/agents/security-reviewer.md d597de3ee84e16d16e8ef8
 file agentic-defaults .claude/agents/tester.md c0ea884b984ef0cc577aba773183d74623d57eff
 file agentic-defaults .claude/skills/commits-and-prs/SKILL.md 4641a52c2a19b8cbaedd92471ec5058621162ad6
 file agentic-defaults .claude/skills/context-md/SKILL.md ff278cd71d988032dfce9af51de26b0a3af672a7
-file agentic-defaults .claude/skills/context-md/check.sh f64e4946b2f43643274849213a4731def39fcd87
+file agentic-defaults .claude/skills/context-md/check.sh c0a063cda334423a18d395639bbe4c013690c8c1
 file agentic-defaults .claude/skills/context-md/template.md 71329d58f77de8140e231e2f8db38ca91bcecc3f
 file agentic-defaults .claude/skills/debugging/SKILL.md 1276b8673e5f3f769722e246420e1b08082e3856
 file agentic-defaults .claude/skills/diagrams/SKILL.md c8474c298c6ae2e4e6c503c28dda06ec4f35833c
 file agentic-defaults .claude/skills/implementation/SKILL.md ad929cb0f30f854851234677fa123326d22ee96a
 file agentic-defaults .claude/skills/project-profile/SKILL.md bf2a0eb668ec99f57ff47ed5d1b9b5cc9cd15022
 file agentic-defaults .claude/skills/project-scan/Makefile.template 768dac7abc2202bcbbd57e80da92452ebe99ab9b
-file agentic-defaults .claude/skills/project-scan/SKILL.md 5376cb122813d7874cc708f1a48c3b0e0ff19dd2
-file agentic-defaults .claude/skills/project-scan/survey.sh 7c5e83016a8e20f40fdd8ad5f2d90ab55b24941d
+file agentic-defaults .claude/skills/project-scan/SKILL.md dc20d03bbb6879f0c10126e1fae5350925d4ba8f
+file agentic-defaults .claude/skills/project-scan/survey.sh e43f3a645cacc1e7a4e21a4c306b8c67c1d18cd5
 file agentic-defaults .claude/skills/research/SKILL.md 57606d1571230a764947acbcf8127cf0dc581994
 file agentic-defaults .claude/skills/session-retro/SKILL.md e74ae7e08f986f49586ac220b21c6de4b75150c2
 file agentic-defaults .claude/skills/session-retro/stats.sh 56014e4185750e210fb9042ba12ba69d2c554ac3
@@ -33,5 +33,5 @@ file agentic-defaults .claude/skills/tdd/SKILL.md 4eee36c658346fd539877673769daf
 file agentic-defaults .github/hooks/context-check.json cec1cddfaaed0c46361b4d85ed74430be9016e66
 file agentic-defaults .local_context/.gitignore df90fb6a6b2efd527f157e12d77bc2a9b2df8267
 file agentic-defaults .local_context/README.md ec0170479c699722c702f300567bde2cc07e2058
-file agentic-defaults AGENTS.md 8e0d5eb3863302e3231b0453750f7d02242a6777
+file agentic-defaults AGENTS.md e824236238302335101605e3b802a547d75e112c
 file agentic-defaults CLAUDE.md 43c994c2d3617f947bcb5adf1933e21dabe46bb5
