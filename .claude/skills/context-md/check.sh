@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# From agentic-defaults. Kit updates replace this file: don't edit it. Project rules go in AGENTS.md "This project".
 # Lists CONTEXT.md files that may need an update: code under them changed, but they didn't.
 # A nudge, not a verdict: internal refactors and bug fixes that restore documented behavior need no update.
 # Read-only. Works with bash 3.2 (macOS) and Git Bash (Windows).
@@ -22,7 +23,7 @@ while [ $# -gt 0 ]; do
     --base) base="${2:-}"; shift 2 ;;
     --strict) strict=1; shift ;;
     --hook) hook=1; shift ;;
-    -h|--help) sed -n '2,15p' "$0"; exit 0 ;;
+    -h|--help) sed -n '3,16p' "$0"; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; exit 2 ;;
   esac
 done

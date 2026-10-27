@@ -1,3 +1,5 @@
+<!-- From agentic-defaults. Kit updates replace this file: don't edit it. Project rules go in AGENTS.md "This project". -->
+
 # .local_context
 
 Private working files that help AI assistants with a task. Everything here except this README and `.gitignore` stays on your machine and is never committed.
@@ -11,6 +13,8 @@ One folder per task or research topic, for example `.local_context/csv-export/`:
 - logs, error output and sample data, scrubbed of real customer data,
 - `plan.md`: the task's plan, written by the assistants as the work goes,
 - `sources.md` and `research.md`: collected sources and research answers.
+
+Session retro notes, written when you ask for one (the `session-retro` skill), go in `feedback/`.
 
 ## How assistants use it
 

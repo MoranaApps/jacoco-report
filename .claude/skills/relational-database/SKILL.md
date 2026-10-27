@@ -3,6 +3,8 @@ name: relational-database
 description: Practices for relational databases (PostgreSQL, MySQL or MariaDB, SQLite) - schema changes, migrations with Alembic, Flyway, Liquibase or the framework's tool, constraints, indexes, queries and data fixes. Use when changing schema, writing a migration, tuning SQL, changing data in bulk, or reviewing such changes.
 ---
 
+<!-- From agentic-defaults. Kit updates replace this file except a "## This project" section at the end, which belongs to the project. Edit nothing else. Rules for all work go in AGENTS.md "This project". -->
+
 # Relational database
 
 Data outlives code, and a bad migration can lose data that no rollback brings back. This skill is stricter than the others.
@@ -12,7 +14,7 @@ Follow the project first. Read the data layer's `CONTEXT.md`, the last few migra
 ## Schema changes
 
 - One migration per logical change, with a descriptive name. Never edit a migration that has already run anywhere shared; add a new one.
-- **Expand, then contract.** Add the new column or table, ship code that writes and reads it, backfill, and only remove the old shape in a later change. Never rename or drop in the same step as code that still uses the old shape.
+- **Expand, then contract** `(production)`. Add the new column or table, ship code that writes and reads it, backfill, and only remove the old shape in a later change. Never rename or drop in the same step as code that still uses the old shape.
 - New columns on existing tables are nullable or have a default, so existing rows and running code keep working.
 - Enforce rules that are always true in the database itself: `NOT NULL`, foreign keys, unique and check constraints.
 - Index every new foreign key and the columns new queries filter or sort on. Not every column.
@@ -25,7 +27,7 @@ Follow the project first. Read the data layer's `CONTEXT.md`, the last few migra
 - **Liquibase**: one change per changeset with a unique `id` and `author`. Never change an applied changeset.
 - **Framework tools** (Django, Rails, Prisma and so on): use them, and read the SQL they generate for anything on a large table.
 
-## Engine traps
+## Engine traps on large tables `(production)`
 
 - **PostgreSQL**: build indexes on large tables with `CREATE INDEX CONCURRENTLY`, which can't run inside a transaction, so check how your migration tool handles that. Add constraints to large tables as `NOT VALID`, then `VALIDATE CONSTRAINT` separately. Set a `lock_timeout` for migrations that take strong locks.
 - **MySQL and MariaDB**: DDL commits implicitly, so a failed migration can leave half its changes applied. Keep one DDL statement per migration where you can, and prefer online DDL (`ALGORITHM=INPLACE, LOCK=NONE`) on large tables.
@@ -35,7 +37,7 @@ Follow the project first. Read the data layer's `CONTEXT.md`, the last few migra
 
 - Parameterized queries only. Never build SQL from strings that contain input.
 - Select the columns you need, paginate unbounded lists, and avoid N+1 queries. Check the plan (`EXPLAIN`) for new queries on large tables.
-- Backfills and fixes go in a migration or a reviewed script, run in batches on large tables, and are safe to run twice.
+- Backfills and fixes go in a migration or a reviewed script and are safe to run twice. `(production)`: run them in batches on large tables.
 
 ## Tests
 

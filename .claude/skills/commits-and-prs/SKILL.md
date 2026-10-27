@@ -3,6 +3,8 @@ name: commits-and-prs
 description: How to split work into commits, write commit messages, and prepare and describe pull requests. Use when committing, writing a commit message, opening or describing a pull request, or splitting a large change.
 ---
 
+<!-- From agentic-defaults. Kit updates replace this file except a "## This project" section at the end, which belongs to the project. Edit nothing else. Rules for all work go in AGENTS.md "This project". -->
+
 # Commits and pull requests
 
 ## Follow the project first
@@ -29,7 +31,7 @@ Check the project's conventions before applying this skill: recent messages (`gi
 
 ## Pull requests
 
-- **One purpose per pull request, small enough to review in one sitting.** Split larger work: put preparatory refactoring in its own pull request first, then the feature. Hide unfinished features behind a flag rather than holding back a huge branch.
+- **One purpose per pull request, small enough to review in one sitting.** Split larger work: put preparatory refactoring in its own pull request first, then the feature. `(production)`: hide unfinished features behind a switch rather than holding back a huge branch.
 - **Before opening one**, bring the branch up to date, run the tests, read your own diff once as a reviewer would, and update any affected `CONTEXT.md`.
 - **Title**: written like a commit subject.
 - **Description**: short, with only the sections that apply:

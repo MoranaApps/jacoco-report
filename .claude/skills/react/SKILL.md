@@ -3,6 +3,8 @@ name: react
 description: Practices for React frontends in TypeScript or JavaScript - components, hooks, state, data fetching, forms, accessibility, security and tests with React Testing Library. Use when building or changing React UI, or reviewing such changes.
 ---
 
+<!-- From agentic-defaults. Kit updates replace this file except a "## This project" section at the end, which belongs to the project. Edit nothing else. Rules for all work go in AGENTS.md "This project". -->
+
 # React
 
 Follow the project first. Read the UI's `CONTEXT.md`, find the closest existing page or component, and reuse its components, styling (Tailwind, CSS modules, a component library), data fetching (TanStack Query, SWR, RTK Query), form library and router. Don't add a second library for the same job. The project's conventions win over this list.

@@ -1,3 +1,4 @@
+# From agentic-defaults. Kit updates replace this file: don't edit it. Project rules go in AGENTS.md "This project".
 # Everything in .local_context/ stays on your machine.
 # Only this file and README.md are committed, so the convention is visible to the team.
 *

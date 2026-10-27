@@ -3,6 +3,8 @@ name: context-md
 description: Write and maintain CONTEXT.md files, the per-directory notes that give AI agents the facts, conventions, decisions and gotchas they can't quickly get from the code. Use when creating a module, when a change makes a CONTEXT.md wrong or incomplete, or when asked to document a directory for agents.
 ---
 
+<!-- From agentic-defaults. Kit updates replace this file except a "## This project" section at the end, which belongs to the project. Edit nothing else. Rules for all work go in AGENTS.md "This project". -->
+
 # CONTEXT.md files
 
 A `CONTEXT.md` gives an AI agent what it can't quickly learn from the code: what this part is for, how it is meant to be used, the rules it relies on, and what will bite. People can read it too, but agents are the audience.

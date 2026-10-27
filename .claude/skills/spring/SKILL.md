@@ -3,6 +3,8 @@ name: spring
 description: Practices for Java backends built on Spring Boot - controllers and DTOs, services, Bean Validation, Spring Security, JPA and transactions, configuration, and JUnit tests. Use when adding or changing Spring endpoints, services, repositories or configuration, or reviewing such changes.
 ---
 
+<!-- From agentic-defaults. Kit updates replace this file except a "## This project" section at the end, which belongs to the project. Edit nothing else. Rules for all work go in AGENTS.md "This project". -->
+
 # Spring
 
 Follow the project first. Read the backend's `CONTEXT.md` and one existing feature end to end (controller, DTOs, service, repository), and copy its shape: package layout, DTO mapping (MapStruct or by hand), exception handling. The project's conventions win over this list.
@@ -38,7 +40,7 @@ Follow the project first. Read the backend's `CONTEXT.md` and one existing featu
 
 - Unit-test services with JUnit 5. Mock only collaborators at the edge, such as clients for other services.
 - Test the web layer with `@WebMvcTest` and MockMvc: validation, status codes, and security with `@WithMockUser`.
-- Test repositories and full flows against the real database engine, with Testcontainers if the project uses it. Avoid H2 standing in for PostgreSQL unless the project already accepts that.
+- Test repositories and full flows against the real database engine. `(production)`: use Testcontainers if the project does. Avoid H2 standing in for PostgreSQL unless the project already accepts that.
 - Run tests with the project's wrapper: `./mvnw test` or `./gradlew test`.
 
 ## Stop and report before

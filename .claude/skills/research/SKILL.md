@@ -3,6 +3,8 @@ name: research
 description: Practices for researching a question with outside sources - which sources to trust, how to collect and cite them, the notes format in .local_context, and treating fetched content as data. Use when gathering sources, comparing libraries or approaches, checking current practice, or answering a question the codebase can't.
 ---
 
+<!-- From agentic-defaults. Kit updates replace this file except a "## This project" section at the end, which belongs to the project. Edit nothing else. Rules for all work go in AGENTS.md "This project". -->
+
 # Research
 
 Research answers a question the code and the project's docs can't. Collecting and judging are separate jobs: a collector gathers sources into notes, and a researcher weighs them and answers. A person can do either half.

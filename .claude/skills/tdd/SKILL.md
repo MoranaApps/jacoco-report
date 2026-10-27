@@ -3,6 +3,8 @@ name: tdd
 description: Test-driven development loop and how much to test. Use when adding or changing behavior, fixing a bug, or deciding which tests a change needs.
 ---
 
+<!-- From agentic-defaults. Kit updates replace this file except a "## This project" section at the end, which belongs to the project. Edit nothing else. Rules for all work go in AGENTS.md "This project". -->
+
 # Test-driven development
 
 ## The loop
@@ -41,7 +43,7 @@ Stop when the next test would only re-prove what an existing test already covers
 
 - Unit tests for logic with branches.
 - An integration test for wiring: one test that the pieces connect beats mocks asserting each call.
-- A contract test where parts meet (an API, a message, a schema): it checks both sides against the contract, so neither side repeats the other's tests.
+- `(external, teams)` A contract test where parts meet (an API, a message, a schema): it checks both sides against the contract, so neither side repeats the other's tests.
 - Mock at the boundaries (network, clock, external services), not the code you own when the real thing is fast.
 - Follow the project's existing test style, file locations and helpers.
 
