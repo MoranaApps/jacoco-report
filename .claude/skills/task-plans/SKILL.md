@@ -3,6 +3,8 @@ name: task-plans
 description: Turn a ticket and notes into a local plan file that carries the goal, design and step checklist from discovery to done, lets agents hand work over, and updates the ticket at handover. Use when starting work that spans several steps, sessions or agents, when turning .local_context notes into a plan, or when updating, handing over or closing a plan.
 ---
 
+<!-- From agentic-defaults. Kit updates replace this file except a "## This project" section at the end, which belongs to the project. Edit nothing else. Rules for all work go in AGENTS.md "This project". -->
+
 # Task plans
 
 A plan holds one task's goal, design and steps. It is the shared memory between sessions and agents: pass its path instead of re-explaining the task. It is a working file, not a record. The ticket, decision records and `CONTEXT.md` hold what lasts.
@@ -26,7 +28,7 @@ Start from [template.md](template.md). Fill in only the sections the current sta
    - Write each Must as a behavior someone can check in a test or the running system: "An approver sees only entries from their own projects", not "permission support". The reviewer checks each one at the end.
 2. **Planning** (status `planned`). Fill in Approach, Steps and Decisions. Resolve every open question, or record it under Risks as accepted.
    - Each step delivers a working, tested increment and names the agent that does it, files, the test, a Verify command and a "done when". Every Must is covered by a step.
-   - **Contract first.** When the work crosses a boundary (an API, a message, a database schema, a shared type), step 1 changes only the contract and its contract tests. Later steps implement each side against it, one step per layer: database, backend, frontend.
+   - **Contract first.** When the work crosses a boundary (an API, a message, a database schema, a shared type), step 1 changes only the contract, plus its contract tests when the profile is `(external, teams)`. Later steps implement each side against it, one step per layer: database, backend, frontend.
    - Never water a requirement down to make it fit ("for now", "placeholder", "v1"). Split it into another step or task and say so.
    - Write steps concretely enough that a developer on a smaller model can do one without re-reading the whole design.
 3. **Delivery** (status `in progress`). Work one step at a time and tick it off (`- [x]`) when its Verify command passes. If a step hits a wall, record it under Blockers (see below) and stop.

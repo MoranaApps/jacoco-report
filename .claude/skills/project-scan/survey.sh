@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# From agentic-defaults. Kit updates replace this file: don't edit it. Project rules go in AGENTS.md "This project".
 # Read-only survey of a project for AI discovery. Prints a compact Markdown overview.
 # Needs only git and POSIX tools; uses scc or tokei for language stats when installed.
 # Works with bash 3.2 (macOS) and Git Bash (Windows).
@@ -37,6 +38,8 @@ if [ "$is_git" = 1 ]; then
   echo "- Branch: $(git branch --show-current 2>/dev/null)"
   echo "- Commits: $(git rev-list --count HEAD 2>/dev/null || echo 0)"
   echo "- Last commit: $(git log -1 --format=%cd --date=short 2>/dev/null)"
+  # A count only, never names or emails: a hint for the project profile's Team dimension.
+  echo "- Contributors, last 12 months: $(git log --since='12 months ago' --format='%ae' 2>/dev/null | sort -u | grep -c .)"
 else
   echo "- Not a git repository"
 fi
@@ -63,7 +66,7 @@ echo
 echo "Root files: $(awk -F/ 'NF == 1' "$list" | head -40 | tr '\n' ' ')"
 
 section "Build, dependency, runtime and CI files"
-grep -E '(^|/)(package\.json|package-lock\.json|yarn\.lock|pnpm-lock\.yaml|pnpm-workspace\.yaml|bun\.lockb?|nx\.json|turbo\.json|lerna\.json|deno\.jsonc?|tsconfig\.json|pyproject\.toml|setup\.py|setup\.cfg|requirements[^/]*\.txt|Pipfile|Pipfile\.lock|poetry\.lock|uv\.lock|tox\.ini|go\.mod|Cargo\.toml|pom\.xml|build\.gradle(\.kts)?|settings\.gradle(\.kts)?|build\.sbt|[^/]+\.csproj|[^/]+\.sln|Gemfile|composer\.json|mix\.exs|build\.zig|CMakeLists\.txt|Makefile|justfile|Taskfile\.ya?ml|Dockerfile[^/]*|(docker-)?compose[^/]*\.ya?ml|Chart\.yaml|main\.tf|Jenkinsfile|\.gitlab-ci\.yml|azure-pipelines[^/]*\.ya?ml|\.github/workflows/[^/]+\.ya?ml|\.env\.example|\.tool-versions|mise\.toml|\.nvmrc|\.python-version)$' "$list" \
+grep -E '(^|/)(package\.json|package-lock\.json|yarn\.lock|pnpm-lock\.yaml|pnpm-workspace\.yaml|bun\.lockb?|nx\.json|turbo\.json|lerna\.json|deno\.jsonc?|tsconfig\.json|pyproject\.toml|setup\.py|setup\.cfg|requirements[^/]*\.txt|Pipfile|Pipfile\.lock|poetry\.lock|uv\.lock|tox\.ini|go\.mod|Cargo\.toml|pom\.xml|build\.gradle(\.kts)?|settings\.gradle(\.kts)?|build\.sbt|[^/]+\.csproj|[^/]+\.sln|Gemfile|composer\.json|mix\.exs|build\.zig|CMakeLists\.txt|Makefile|justfile|Taskfile\.ya?ml|Dockerfile[^/]*|(docker-)?compose[^/]*\.ya?ml|Chart\.yaml|main\.tf|root\.hcl|terragrunt\.hcl|\.terraform\.lock\.hcl|\.tflint\.hcl|\.pre-commit-config\.yaml|Procfile|Jenkinsfile|\.gitlab-ci\.yml|azure-pipelines[^/]*\.ya?ml|\.github/workflows/[^/]+\.ya?ml|\.env\.example|\.tool-versions|mise\.toml|\.nvmrc|\.python-version)$' "$list" \
   | awk -F/ 'NF <= 4' | head -40 | bullets
 
 section "Scripts and tasks"
@@ -130,6 +133,19 @@ done
 # Decision records, wherever they live.
 grep -E '(^|/)(adr|adrs|decisions)/[^/]+\.md$' "$list" | sed 's|/[^/]*$||' | sort | uniq -c \
   | sed -E 's/^ *([0-9]+) (.*)$/- \2\/: \1 decision records/'
+
+# Packs that agd installed ("pack <source> <pack>" lines), one line per source, to compare with the stack.
+section "Installed packs (.agd.lock)"
+if [ -f .agd.lock ]; then
+  packs=$(awk '$1 == "pack" && NF == 3 {
+    if (!($2 in p)) order[++n] = $2
+    p[$2] = p[$2] (p[$2] != "" ? ", " : "") $3
+  }
+  END { for (i = 1; i <= n; i++) print "- " order[i] ": " p[order[i]] }' .agd.lock)
+  if [ -n "$packs" ]; then printf '%s\n' "$packs"; else echo "None listed in .agd.lock."; fi
+else
+  echo "None: no .agd.lock, so agd doesn't manage this project."
+fi
 
 if [ "$is_git" = 1 ]; then
   section "Recent commits"

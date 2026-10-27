@@ -3,6 +3,8 @@ name: implementation
 description: Working rules for implementing a task or plan step - delivering it fully and test-first, handling problems the plan didn't mention, walls, tests that break, dependencies, when to stop, and what to report. Use when writing or changing code for a task.
 ---
 
+<!-- From agentic-defaults. Kit updates replace this file except a "## This project" section at the end, which belongs to the project. Edit nothing else. Rules for all work go in AGENTS.md "This project". -->
+
 # Implementation
 
 ## Input
@@ -47,6 +49,14 @@ If a step can't be done as planned (a missing API, a library that doesn't behave
 ## Dependencies
 
 Install only packages the task or plan names. If an install fails, stop and report. Never try a similar-looking name or an alternative package instead: a misspelled package name can belong to a fake or malicious package.
+
+## Live systems
+
+Infrastructure, deployments and data outside a local or test setup are changed by the user, never by you.
+
+- **Run freely**: plans and dry runs (`terraform plan`, `terragrunt plan`) and read-only commands (`describe`, `list`, `show`, logs, status).
+- **Hand to the user**: everything that applies, deploys, scales, restarts, rolls back, or creates, changes or deletes a resource, even when asked to "just do it". Give the exact command, the folder to run it from, and one line on what it changes.
+- **Don't print secrets**: skip read-only commands that show secret values, such as `terraform output -json`, `terraform state pull` or a secret store's get command. Refer to secrets by name.
 
 ## Don't get stuck reading
 

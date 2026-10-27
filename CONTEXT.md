@@ -37,6 +37,9 @@ who want coverage visible directly in PR review, without digging through CI logs
 - `docs/inputs/*.md` — one doc per action-input group, linked from `README.md`
 - `.github/workflows/` — CI: static analysis & tests (incl. a `context-check` job on PRs), release
   draft, link check, markdown lint, v2/v3 tag movers, Renovate
+- `.claude/` (agents, skills), `.local_context/README.md` + `.gitignore`, and `AGENTS.md` above "This
+  project" — the agentic-defaults kit, installed by `agd`; `.agd.lock` pins the kit version, packs and
+  file hashes. Kit updates replace these files; don't hand-edit them (see `AGENTS.md` → "Kit files").
 
 ## How it fits together
 

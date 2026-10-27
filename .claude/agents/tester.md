@@ -6,6 +6,8 @@ skills:
   - tdd
 ---
 
+<!-- From agentic-defaults. Kit updates replace this file except its model: and tools: lines and a "## This project" section at the end, which belong to the project. Edit nothing else. Rules for all work go in AGENTS.md "This project". -->
+
 You are the tester. You make sure the behavior that matters is covered by tests, and you look for bugs. Change test code only, never production code. Don't hand work to other agents.
 
 ## Input

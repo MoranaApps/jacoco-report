@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# From agentic-defaults. Kit updates replace this file: don't edit it. Project rules go in AGENTS.md "This project".
 # Lists CONTEXT.md files that may need an update: code under them changed, but they didn't.
 # A nudge, not a verdict: internal refactors and bug fixes that restore documented behavior need no update.
 # Read-only. Works with bash 3.2 (macOS) and Git Bash (Windows).
@@ -22,7 +23,7 @@ while [ $# -gt 0 ]; do
     --base) base="${2:-}"; shift 2 ;;
     --strict) strict=1; shift ;;
     --hook) hook=1; shift ;;
-    -h|--help) sed -n '2,15p' "$0"; exit 0 ;;
+    -h|--help) sed -n '3,16p' "$0"; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; exit 2 ;;
   esac
 done
@@ -37,8 +38,8 @@ fi
 root=$(git rev-parse --show-toplevel 2>/dev/null) || { echo "Not a git repository." >&2; exit 2; }
 cd "$root" || exit 2
 
-changed=$(mktemp); owners=$(mktemp)
-trap 'rm -f "$changed" "$owners"' EXIT
+changed=$(mktemp); owners=$(mktemp); kit=$(mktemp)
+trap 'rm -f "$changed" "$owners" "$kit"' EXIT
 
 # -z gives raw paths; without it git puts quotes around paths that contain quotes or backslashes.
 {
@@ -53,11 +54,25 @@ trap 'rm -f "$changed" "$owners"' EXIT
   fi
 } | tr '\0' '\n' | sort -u > "$changed"
 
+# Files installed by agd belong to their source, not to the project: skip every path .agd.lock lists
+# ("file <source> <path> <blob>"), in the working tree, at HEAD and, with --base, where the branch started,
+# so files that an update or "agd remove" deleted are skipped too.
+{
+  [ -f .agd.lock ] && cat .agd.lock
+  git show HEAD:.agd.lock 2>/dev/null
+  if [ -n "$base" ]; then
+    start=$(git merge-base "$base" HEAD 2>/dev/null) && git show "$start:.agd.lock" 2>/dev/null
+  fi
+} | awk '$1 == "file" && NF >= 4 { path = $3; for (i = 4; i < NF; i++) path = path " " $i; print path }' | sort -u > "$kit"
+
 # Changes that never require a CONTEXT.md update: docs, private notes, housekeeping files, tests, lock files.
-skip='(^|/)CONTEXT\.md$|\.md$|^docs?/|^\.local_context/|(^|/)(LICENSE|COPYING|NOTICE|CHANGELOG|VERSION)[^/]*$|(^|/)\.(gitignore|gitattributes|editorconfig|mailmap)$|(^|/)(test|tests|__tests__|spec|specs|e2e)/|(^|/)test_[^/]+\.py$|_test\.[a-z]+$|\.(test|spec)\.[a-z]+$|Tests?\.(java|kt|cs|swift|scala)$|(^|/)(package-lock\.json|yarn\.lock|pnpm-lock\.yaml|poetry\.lock|uv\.lock|Cargo\.lock|go\.sum|Gemfile\.lock|composer\.lock)$'
+skip='(^|/)CONTEXT\.md$|^\.agd\.lock$|\.md$|^docs?/|^\.local_context/|(^|/)(LICENSE|COPYING|NOTICE|CHANGELOG|VERSION)[^/]*$|(^|/)\.(gitignore|gitattributes|editorconfig|mailmap)$|(^|/)(test|tests|__tests__|spec|specs|e2e)/|(^|/)test_[^/]+\.py$|_test\.[a-z]+$|\.(test|spec)\.[a-z]+$|Tests?\.(java|kt|cs|swift|scala)$|(^|/)(package-lock\.json|yarn\.lock|pnpm-lock\.yaml|poetry\.lock|uv\.lock|Cargo\.lock|go\.sum|Gemfile\.lock|composer\.lock)$'
 
 # Pair each changed code file with the nearest CONTEXT.md above it.
-grep -Ev "$skip" "$changed" | while IFS= read -r file; do
+grep -Ev "$skip" "$changed" | awk -v kit="$kit" '
+  BEGIN { while ((getline line < kit) > 0) installed[line] = 1 }
+  !($0 in installed)
+' | while IFS= read -r file; do
   [ -n "$file" ] || continue
   dir=$(dirname "$file")
   owner="-"
