@@ -3,23 +3,15 @@ agd-lock 1
 source agentic-defaults https://github.com/Zejnilovic/agentic-defaults.git 0.5.0
 pack agentic-defaults copilot-hook
 pack agentic-defaults core
-pack agentic-defaults flask
-pack agentic-defaults react
-pack agentic-defaults relational-database
 pack agentic-defaults research
-pack agentic-defaults spring
 file agentic-defaults .claude/agents/analyst.md a3a29f01968ce33420c66e006e4db5374a8e5468
 file agentic-defaults .claude/agents/architect.md decde52a81d9e698716b0a20d4b46f8077a3cab0
 file agentic-defaults .claude/agents/developer.md 03f7326dd1e64d7e2bcf3a67d56b5f102b75b77d
 file agentic-defaults .claude/agents/documenter.md 7dabb6043a1ea836c51d4a8adb55daadd82386c8
-file agentic-defaults .claude/agents/flask-developer.md deed4b1b9f85e043e7679a31c46c3314bba56f36
-file agentic-defaults .claude/agents/react-developer.md 917253545211de9b44c5b368e5256d88a5901bd2
-file agentic-defaults .claude/agents/relational-database-developer.md c2c997c03d6983266ec15817e48d418e444d7d50
 file agentic-defaults .claude/agents/research-collector.md 9485105b218ca1a11ea8ff095b98fed30ef31fb8
 file agentic-defaults .claude/agents/researcher.md 4c5015c9585528c9b110011e4079ee6049af4799
 file agentic-defaults .claude/agents/reviewer.md 7623b24897d46933ea6b547ebb77924bbaf20821
 file agentic-defaults .claude/agents/security-reviewer.md d597de3ee84e16d16e8ef88e4dbe2c6b534acc5b
-file agentic-defaults .claude/agents/spring-developer.md ba912bb1f5f47cae0d721d64f506603008f28f15
 file agentic-defaults .claude/agents/tester.md c0ea884b984ef0cc577aba773183d74623d57eff
 file agentic-defaults .claude/skills/commits-and-prs/SKILL.md 4641a52c2a19b8cbaedd92471ec5058621162ad6
 file agentic-defaults .claude/skills/context-md/SKILL.md ff278cd71d988032dfce9af51de26b0a3af672a7
@@ -27,18 +19,14 @@ file agentic-defaults .claude/skills/context-md/check.sh f64e4946b2f436432748492
 file agentic-defaults .claude/skills/context-md/template.md 71329d58f77de8140e231e2f8db38ca91bcecc3f
 file agentic-defaults .claude/skills/debugging/SKILL.md 1276b8673e5f3f769722e246420e1b08082e3856
 file agentic-defaults .claude/skills/diagrams/SKILL.md c8474c298c6ae2e4e6c503c28dda06ec4f35833c
-file agentic-defaults .claude/skills/flask/SKILL.md 8d5b29e52999362b8be895d23fb770774036f1a2
 file agentic-defaults .claude/skills/implementation/SKILL.md ad929cb0f30f854851234677fa123326d22ee96a
 file agentic-defaults .claude/skills/project-profile/SKILL.md bf2a0eb668ec99f57ff47ed5d1b9b5cc9cd15022
 file agentic-defaults .claude/skills/project-scan/Makefile.template 768dac7abc2202bcbbd57e80da92452ebe99ab9b
 file agentic-defaults .claude/skills/project-scan/SKILL.md 5376cb122813d7874cc708f1a48c3b0e0ff19dd2
 file agentic-defaults .claude/skills/project-scan/survey.sh 7c5e83016a8e20f40fdd8ad5f2d90ab55b24941d
-file agentic-defaults .claude/skills/react/SKILL.md eebd4fbc307767215e0a20ece8d76b3ac39f402d
-file agentic-defaults .claude/skills/relational-database/SKILL.md b0caaf1bb9da0b64cd5a3308feb139a4dac3105e
 file agentic-defaults .claude/skills/research/SKILL.md 57606d1571230a764947acbcf8127cf0dc581994
 file agentic-defaults .claude/skills/session-retro/SKILL.md e74ae7e08f986f49586ac220b21c6de4b75150c2
 file agentic-defaults .claude/skills/session-retro/stats.sh 56014e4185750e210fb9042ba12ba69d2c554ac3
-file agentic-defaults .claude/skills/spring/SKILL.md dd4b9c9196603144c9ed0a7ebc4f92fe73b72384
 file agentic-defaults .claude/skills/task-plans/SKILL.md 4955f9ea00c015575e923a633b69b3822edf258c
 file agentic-defaults .claude/skills/task-plans/template.md 990eb69164a517575852523528a24b7e327c0400
 file agentic-defaults .claude/skills/tdd/SKILL.md 4eee36c658346fd539877673769dafd21088ccc2
