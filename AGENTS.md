@@ -49,7 +49,7 @@ Files and parts marked "From agentic-defaults" are replaced when the kit updates
 
 ## This project
 
-- Profile: stage `production`, audience `public`, team `several`, handles `none` (see the
+- Profile: stage `production`, audience `public`, team `solo`, handles `none` (see the
   `project-profile` skill). A released public GitHub Action: callers pin the `v2`/`v3` major tags, so
   `action.yml` inputs/outputs and `docs/inputs/*.md` are the versioned contract — no breaking change
   without a migration path (as `docs/v2-v3-migration-guide.md` did for v3).
