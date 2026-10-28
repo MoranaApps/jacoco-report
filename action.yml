@@ -125,21 +125,31 @@ runs:
       id: setup
       run: |
         # Every python call runs with -I: the working directory is the caller's checkout, and -I keeps it off sys.path.
-        if ! command -v python >/dev/null 2>&1; then
-          echo "::error::python is not on PATH. Add an actions/setup-python step before this action."
-          exit 1
-        fi
-        echo "Current Python version: $(python -I --version 2>&1)"
+        # `python` first, so existing callers keep their interpreter; `python3` is the fallback (Homebrew, Debian/Ubuntu).
         minimal_required_version="3.11.0"
-        if ! python -I -c 'import sys; sys.exit(sys.version_info < (3, 11))'; then
+        python_cmd=""
+        for python_candidate in python python3; do
+          command -v "$python_candidate" >/dev/null 2>&1 || continue
+          echo "Found $python_candidate: $("$python_candidate" -I --version 2>&1)"
+          if "$python_candidate" -I -c 'import sys; sys.exit(sys.version_info < (3, 11))'; then
+            python_cmd="$python_candidate"
+            break
+          fi
+        done
+        if [ -z "$python_cmd" ]; then
+          if ! command -v python >/dev/null 2>&1 && ! command -v python3 >/dev/null 2>&1; then
+            echo "::error::Neither python nor python3 is on PATH. Add an actions/setup-python step before this action."
+            exit 1
+          fi
           echo "::error::Python version is less than $minimal_required_version"
           exit 1
         fi
+        echo "Current Python version: $("$python_cmd" -I --version 2>&1)"
         echo "Python version meets the minimum requirement of $minimal_required_version"
 
         # A new private dir per call: no stale bin/python after a Python switch, and no venv planted by an earlier step.
         venv_dir="$(mktemp -d "$RUNNER_TEMP/jacoco-report-venv.XXXXXX")"
-        python -I -m venv "$venv_dir"
+        "$python_cmd" -I -m venv "$venv_dir"
         venv_python="$venv_dir/bin/python"
         echo "python=$venv_python" >> "$GITHUB_OUTPUT"
         "$venv_python" -I -m pip install -r "$GITHUB_ACTION_PATH/requirements.txt"

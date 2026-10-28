@@ -20,7 +20,7 @@ Automates the publication of JaCoCo coverage reports directly as comments in pul
 ## Requirements
 
 - **GitHub Token**: A GitHub token with permission to fetch repository data such as Issues and Pull Requests.
-- **Python 3.11+**: Ensure you have Python 3.11 or newer installed on your system. The command must be named `python` on `PATH`, not only `python3`; on GitHub-hosted runners, add an `actions/setup-python` step before this action.
+- **Python 3.11+**: Python 3.11 or newer must be available as `python` or `python3` on `PATH`. On GitHub-hosted runners, we recommend an `actions/setup-python` step to pin the version.
 - **Runner**: Linux or macOS (`ubuntu-*`, `macos-*`). Windows runners are not supported.
 
 ---

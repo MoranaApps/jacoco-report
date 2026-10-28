@@ -1,5 +1,6 @@
 import os
 import re
+import shutil
 import subprocess
 from pathlib import Path
 from unittest import mock
@@ -224,6 +225,92 @@ def test_setup_emits_an_error_annotation_when_python_is_too_old(tmp_path):
     assert result.returncode != 0
     assert "::error::Python version is less than 3.11.0" in result.stdout
     assert list(tmp_path.glob("jacoco-report-venv*")) == []
+
+
+VENV_CAPABLE_FAKE = (
+    '#!/bin/bash\ncase "$*" in\n'
+    '  "-I --version") echo "Python 3.12.0" ;;\n'
+    '  "-I -m venv "*) mkdir -p "${@: -1}/bin" && cp "$0" "${@: -1}/bin/python" ;;\n'
+    "esac\nexit 0\n"
+)
+TOO_OLD_FAKE = (
+    '#!/bin/bash\ncase "$*" in\n  "-I --version") echo "Python 3.10.12" ;;\n  *"-c"*) exit 1 ;;\n  *) exit 0 ;;\nesac\n'
+)
+
+
+def _fake_bin(tmp_path, fakes):
+    # Only the fake interpreters and the tools the step needs: no /usr/bin, so no real python can be picked up.
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    for tool in ("mktemp", "mkdir", "cp"):
+        (fake_bin / tool).symlink_to(shutil.which(tool))
+    for name, script in fakes.items():
+        (fake_bin / name).write_text(script, encoding="utf-8")
+        (fake_bin / name).chmod(0o755)
+    return fake_bin
+
+
+def _run_setup(tmp_path, fake_bin):
+    env = {
+        "PATH": str(fake_bin),
+        "RUNNER_TEMP": str(tmp_path),
+        "GITHUB_OUTPUT": str(tmp_path / "output"),
+        "GITHUB_ACTION_PATH": str(ACTION_YML.parent),
+    }
+    return subprocess.run(
+        ["/bin/bash", "--noprofile", "--norc", "-eo", "pipefail", "-c", _step(SETUP_ID)["run"]],
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+
+def test_setup_uses_python3_when_only_python3_is_on_path(tmp_path):
+    fake_bin = _fake_bin(tmp_path, {"python3": VENV_CAPABLE_FAKE})
+    result = _run_setup(tmp_path, fake_bin)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "Current Python version: Python 3.12.0" in result.stdout
+    venv_python = Path((tmp_path / "output").read_text(encoding="utf-8").removeprefix("python=").strip())
+    assert venv_python.is_file()
+    assert venv_python.parent.parent.parent == tmp_path
+
+
+def test_setup_skips_a_too_old_python_and_uses_python3(tmp_path):
+    # `python` is on PATH but reports 3.10, so the version check fails for it and `python3` is chosen.
+    fake_bin = _fake_bin(tmp_path, {"python": TOO_OLD_FAKE, "python3": VENV_CAPABLE_FAKE})
+    result = _run_setup(tmp_path, fake_bin)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "::error::" not in result.stdout
+    assert "Current Python version: Python 3.12.0" in result.stdout
+    venv_python = Path((tmp_path / "output").read_text(encoding="utf-8").removeprefix("python=").strip())
+    assert venv_python.is_file()
+
+
+def test_setup_emits_an_error_annotation_when_only_python3_is_too_old(tmp_path):
+    fake_bin = _fake_bin(tmp_path, {"python3": TOO_OLD_FAKE})
+    result = _run_setup(tmp_path, fake_bin)
+    assert result.returncode != 0
+    assert "::error::Python version is less than 3.11.0" in result.stdout
+    assert list(tmp_path.glob("jacoco-report-venv*")) == []
+
+
+def test_setup_error_names_both_python_and_python3_when_neither_is_on_path(tmp_path):
+    fake_bin = _fake_bin(tmp_path, {})
+    result = _run_setup(tmp_path, fake_bin)
+    assert result.returncode != 0
+    assert "::error::" in result.stdout
+    assert "python3" in result.stdout and "python " in result.stdout
+    assert "actions/setup-python" in result.stdout
+    assert list(tmp_path.glob("jacoco-report-venv*")) == []
+
+
+def test_setup_logs_the_version_of_each_python_it_rejects(tmp_path):
+    fake_bin = _fake_bin(tmp_path, {"python": TOO_OLD_FAKE, "python3": TOO_OLD_FAKE})
+    result = _run_setup(tmp_path, fake_bin)
+    assert result.returncode != 0
+    assert "Found python: Python 3.10.12" in result.stdout
+    assert "Found python3: Python 3.10.12" in result.stdout
 
 
 def test_python_detector_skips_prose_and_comments_but_finds_real_calls():

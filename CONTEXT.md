@@ -159,9 +159,10 @@ service is needed.
 - `action.yml` has exactly two steps, `setup` ("Install Python dependencies") and the Run step; a test
   fails if one is added or removed.
 - `setup` runs every Python call with `-I`: the cwd is the caller's checkout, and a planted module there
-  must not run. It emits `::error::` and fails if `python` is not on PATH (with an `actions/setup-python`
-  hint) or is below 3.11. It creates
-  `venv_dir="$(mktemp -d "$RUNNER_TEMP/jacoco-report-venv.XXXXXX")"` per call with `python -I -m venv` and
+  must not run. It picks the first of `python`, then `python3`, that is on PATH and is 3.11+
+  (`$python_cmd`; `python` first keeps existing callers on their interpreter). It emits `::error::` and
+  fails if neither is on PATH (with an `actions/setup-python` hint) or none is 3.11+. It creates
+  `venv_dir="$(mktemp -d "$RUNNER_TEMP/jacoco-report-venv.XXXXXX")"` per call with `"$python_cmd" -I -m venv` and
   writes that venv's `bin/python` to output `python`. The Run step gets it as `JACOCO_REPORT_PYTHON`
   (`steps.setup.outputs.python`). No `activate`, no `.venv`, nothing written into `GITHUB_WORKSPACE`.
 - The Run step runs `"$JACOCO_REPORT_PYTHON" -B -E -s "$GITHUB_ACTION_PATH/main.py"`. It is the one step
