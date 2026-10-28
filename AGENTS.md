@@ -73,3 +73,10 @@ Files and parts marked "From agentic-defaults" are replaced when the kit updates
   `unit-tests` runs across the full Python 3.11–3.15 matrix, the other gates run once on 3.11 (the
   oldest supported version), plus a `context-check` job on pull requests (see the `context-md`
   skill).
+- Use the agentic-defaults kit's agents and skills proactively whenever one fits the task, rather
+  than doing the work inline. This is the owner's standing request to spawn agents, and it overrides
+  "Hand work to an agent only when…" above. For example: review → `reviewer` agent, `security-reviewer`
+  agent and `code-review` skill; tests → `tdd` skill and `tester` agent; implementation → `developer`
+  agent and `implementation` skill; docs and `CONTEXT.md` → `documenter` agent and `context-md` skill;
+  commits and PRs → `commits-and-prs` skill; plans → `task-plans` skill and `architect` agent. Run
+  independent agents in parallel.
