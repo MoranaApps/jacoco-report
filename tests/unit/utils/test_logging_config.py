@@ -4,6 +4,7 @@ import os
 import re
 import subprocess
 import sys
+import threading
 import warnings
 from pathlib import Path
 
@@ -151,23 +152,6 @@ def test_traceback_line_break_never_starts_a_workflow_command():
     assert "| ::stop-commands::t" in text
 
 
-def test_first_line_that_starts_with_command_is_neutralized_without_timestamp_prefix():
-    """A format without a leading timestamp must not let the first line start a workflow command."""
-    record = logging.LogRecord("test", logging.INFO, __file__, 1, "::add-mask::x", (), None)
-    text = logging_config.WorkflowCommandSafeFormatter("%(message)s").format(record)
-
-    assert text == "| ::add-mask::x"
-
-
-@pytest.mark.parametrize("msg", ["  ::add-mask::x", "\t::add-mask::x"], ids=["spaces", "tab"])
-def test_first_line_with_leading_whitespace_before_command_is_neutralized(msg):
-    """The runner may trim leading whitespace, so a first line indented before `::` is neutralized too."""
-    text = _format_record(msg)
-
-    assert not text.lstrip().startswith("::")
-    assert text.lstrip().startswith("| ")
-
-
 def test_plain_text_is_unchanged():
     """Ordinary messages without line breaks are not altered."""
     assert _format_record("coverage 97.44%") == "coverage 97.44%"
@@ -252,6 +236,40 @@ def test_uncaught_exception_still_exits_with_code_one():
     assert result.returncode == 1
     assert "ValueError" in result.stdout
     assert not any(line.lstrip().startswith("::") for line in result.stdout.split("\n"))
+
+
+def _run_in_thread(target) -> None:
+    worker = threading.Thread(target=target)
+    worker.start()
+    worker.join()
+
+
+def test_thread_exception_is_logged_through_safe_formatter(mock_logging_setup, monkeypatch):
+    """An exception that ends a thread is logged at ERROR with its traceback, and its line breaks stay neutralized."""
+    stream = _output_of_root_handler(mock_logging_setup, monkeypatch)
+
+    def fail():
+        raise ValueError("bad path\n::add-mask::secret")
+
+    _run_in_thread(fail)
+
+    output = stream.getvalue()
+    assert " - ERROR - " in output
+    assert "Traceback" in output
+    assert "| ::add-mask::secret" in output
+    assert not any(line.lstrip().startswith("::") for line in output.split("\n"))
+
+
+def test_thread_system_exit_is_not_logged(mock_logging_setup, monkeypatch):
+    """SystemExit in a thread is silent, as the default thread hook makes it."""
+    stream = _output_of_root_handler(mock_logging_setup, monkeypatch)
+
+    def leave():
+        sys.exit(3)
+
+    _run_in_thread(leave)
+
+    assert stream.getvalue() == ""
 
 
 def test_python_warning_goes_through_safe_formatter(mock_logging_setup, monkeypatch):

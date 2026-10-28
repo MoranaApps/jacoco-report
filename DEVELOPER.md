@@ -239,7 +239,7 @@ In CI these run only when `github.event.pull_request.head.repo.full_name == gith
 ### Action Self-Test (CI only)
 
 The `self-test` job in `.github/workflows/static_analysis_and_tests.yml` runs the composite action
-itself (`uses: ./`) on every pull request, so a break in `action.yml` (install step, input
+itself (`uses: ./`) on ubuntu and macOS for every pull request, so a break in `action.yml` (install step, input
 pass-through, output mapping) fails CI instead of reaching users. It runs read-only
 (`comment-level: none`, `update-comment: false`), so it also runs on fork PRs, and asserts exact
 output values computed from fixture XMLs in `tests/data/test_project/`. If you change those fixtures,

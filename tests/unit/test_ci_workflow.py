@@ -1,26 +1,29 @@
 import re
 from pathlib import Path
 
+import pytest
 import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 CI_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "static_analysis_and_tests.yml"
+WORKFLOW_FILES = sorted((REPO_ROOT / ".github" / "workflows").glob("*.yml"))
 REQUIREMENTS_PATHS = ["requirements.txt", "requirements-dev.txt"]
 FULL_SHA = re.compile(r"[0-9a-f]{40}")
 THIRD_PARTY_USES = re.compile(r"[\w.-]+/[\w.-]+(/[\w./-]+)?@(?P<ref>[^\s#]+)")
+DOCKER_DIGEST_USES = re.compile(r"docker://[\w./-]+@sha256:[0-9a-f]{64}")
 PINNED_USES_WITH_COMMENT = re.compile(r"uses:\s*(?P<uses>\S+)\s+#\s*v?\d\S*\s*$", re.MULTILINE)
 
 
-def _workflow() -> dict:
-    return yaml.safe_load(CI_WORKFLOW.read_text(encoding="utf-8"))
+def _workflow(path: Path = CI_WORKFLOW) -> dict:
+    return yaml.safe_load(path.read_text(encoding="utf-8"))
 
 
-def _all_steps() -> list[dict]:
-    return [step for job in _workflow()["jobs"].values() for step in job.get("steps", [])]
+def _all_steps(path: Path = CI_WORKFLOW) -> list[dict]:
+    return [step for job in _workflow(path)["jobs"].values() for step in job.get("steps", [])]
 
 
-def _third_party_uses() -> list[str]:
-    return [step["uses"] for step in _all_steps() if "uses" in step and not step["uses"].startswith("./")]
+def _third_party_uses(path: Path = CI_WORKFLOW) -> list[str]:
+    return [step["uses"] for step in _all_steps(path) if "uses" in step and not step["uses"].startswith("./")]
 
 
 def test_setup_python_steps_with_pip_cache_cover_both_requirement_files():
@@ -44,10 +47,16 @@ def test_no_run_script_in_the_workflow_contains_an_expression():
             assert "${{" not in step["run"], f"'{step.get('name', step.get('id'))}' has `${{{{ … }}}}` in run"
 
 
-def test_every_third_party_uses_is_pinned_to_a_full_commit_sha():
-    uses_values = _third_party_uses()
-    assert uses_values, "detector found no third-party actions"
-    for uses in uses_values:
+def test_the_detector_finds_third_party_actions_in_the_workflows():
+    assert any(_third_party_uses(path) for path in WORKFLOW_FILES), "detector found no third-party actions"
+
+
+@pytest.mark.parametrize("workflow", WORKFLOW_FILES, ids=lambda path: path.name)
+def test_every_third_party_uses_is_pinned_to_a_full_commit_sha(workflow):
+    for uses in _third_party_uses(workflow):
+        if uses.startswith("docker://"):
+            assert DOCKER_DIGEST_USES.fullmatch(uses), f"{uses} is not pinned to a sha256 image digest"
+            continue
         match = THIRD_PARTY_USES.fullmatch(uses)
         assert match, f"unparsable uses: {uses}"
         assert FULL_SHA.fullmatch(match.group("ref")), f"{uses} is not pinned to a 40-hex commit SHA"
@@ -68,8 +77,9 @@ def test_version_comment_accepts_a_bare_number_without_v():
     assert PINNED_USES_WITH_COMMENT.search("uses: actions/foo@" + "a" * 40 + " # v4.2.0\n")
 
 
-def test_every_pinned_third_party_uses_has_a_version_comment():
+@pytest.mark.parametrize("workflow", WORKFLOW_FILES, ids=lambda path: path.name)
+def test_every_pinned_third_party_uses_has_a_version_comment(workflow):
     # The version comment is what Renovate and readers use to tell which release a SHA is.
-    text = CI_WORKFLOW.read_text(encoding="utf-8")
+    text = workflow.read_text(encoding="utf-8")
     commented = {match.group("uses") for match in PINNED_USES_WITH_COMMENT.finditer(text)}
-    assert commented == set(_third_party_uses())
+    assert commented == set(_third_party_uses(workflow))

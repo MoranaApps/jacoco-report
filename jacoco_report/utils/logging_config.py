@@ -6,6 +6,7 @@ import logging
 import os
 import re
 import sys
+import threading
 from types import TracebackType
 
 from jacoco_report.utils.gh_action import break_legacy_command_prefix
@@ -29,8 +30,6 @@ class WorkflowCommandSafeFormatter(logging.Formatter):
 
     def format(self, record: logging.LogRecord) -> str:
         text = _LINE_BREAK.sub("\n| ", super().format(record))
-        if text.lstrip().startswith("::"):
-            text = "| " + text
         return break_legacy_command_prefix(text)
 
 
@@ -46,6 +45,17 @@ def _log_uncaught_exception(
         sys.__excepthook__(exc_type, exc_value, exc_traceback)
         return
     logging.error("Uncaught exception, the action stops.", exc_info=(exc_type, exc_value, exc_traceback))
+
+
+def _log_thread_exception(args: threading.ExceptHookArgs) -> None:
+    """
+    Log an exception that ends a thread through the logger, as `_log_uncaught_exception` does for the main thread.
+
+    SystemExit is ignored, as the default thread hook ignores it.
+    """
+    if issubclass(args.exc_type, SystemExit):
+        return
+    logging.error("Uncaught exception in a thread.", exc_info=args.exc_value)
 
 
 def setup_logging() -> None:
@@ -69,8 +79,9 @@ def setup_logging() -> None:
     )
     sys.stdout.flush()
 
-    # Route uncaught exceptions and Python warnings (stderr) through the same formatter
+    # Route uncaught exceptions in the main and other threads, and Python warnings (stderr), through the same formatter
     sys.excepthook = _log_uncaught_exception
+    threading.excepthook = _log_thread_exception
     logging.captureWarnings(True)
 
     logging.info("Logging configuration set up.")

@@ -33,42 +33,54 @@ def get_action_input(name: str, default: str = "", prefix: str = "INPUT_") -> st
     return os.getenv(f'{prefix}{name.replace("-", "_").upper()}', default=default)
 
 
+def _write_action_output(name: str, value: str, default_output_path: str) -> None:
+    """
+    Append one output to the GITHUB_OUTPUT file, in the heredoc form for every value.
+
+    A newline in a value would otherwise start a new line of the file, which the runner reads as another
+    output. The delimiter is random, so no value line can equal it and end the heredoc early, as in
+    actions/toolkit. A name with a line break is refused before anything is written.
+
+    @param name: The name of the output parameter. Must not contain a line break.
+    @param value: The value of the output parameter.
+    @param default_output_path: The file path used when 'GITHUB_OUTPUT' is not set.
+    @raise ValueError: If the name contains a line break.
+    """
+    if "\n" in name or "\r" in name:
+        raise ValueError(f"Output name {name!r} contains a line break; refusing to write it.")
+    delimiter = f"ghadelimiter_{uuid.uuid4()}"
+    output_file = os.getenv("GITHUB_OUTPUT", default_output_path)
+    with open(output_file, "a", encoding="utf-8") as f:
+        f.write(f"{name}<<{delimiter}\n")
+        f.write(f"{value}\n")
+        f.write(f"{delimiter}\n")
+
+
 def set_action_output(name: str, value: str, default_output_path: str = "default_output.txt") -> None:
     """
     Write an action output to a file in the format expected by GitHub Actions.
 
-    This function writes the output in a specific format that includes the name of the
-    output and its value. The output is appended to the specified file.
+    The output is appended to the file named by 'GITHUB_OUTPUT'.
 
-    @param name: The name of the output parameter.
+    @param name: The name of the output parameter. Must not contain a line break.
     @param value: The value of the output parameter.
     @param default_output_path: The default file path to which the output is written if the
+    'GITHUB_OUTPUT' environment variable is not set. Defaults to "default_output.txt".
     @return: None
     """
-    output_file = os.getenv("GITHUB_OUTPUT", default_output_path)
-    with open(output_file, "a", encoding="utf-8") as f:
-        f.write(f"{name}={value}\n")
+    _write_action_output(name, value, default_output_path)
 
 
 def set_action_output_text(name: str, value: str, default_output_path: str = "default_output.txt") -> None:
     """
     Write an action output to a file in the format expected by GitHub Actions.
 
-    @param name: The name of the output parameter.
+    @param name: The name of the output parameter. Must not contain a line break.
     @param value: The value of the output parameter.
     @param default_output_path: The default file path to which the output is written if the
     'GITHUB_OUTPUT' environment variable is not set. Defaults to "default_output.txt".
     """
-    # A fixed delimiter would end the heredoc early at a value line equal to it, so the delimiter is random,
-    # as in actions/toolkit. Refuse a name or value that contains it, before anything is written.
-    delimiter = f"ghadelimiter_{uuid.uuid4()}"
-    if delimiter in name or delimiter in value:
-        raise ValueError(f"Output '{name}' contains the generated delimiter; refusing to write it.")
-    output_file = os.getenv("GITHUB_OUTPUT", default_output_path)
-    with open(output_file, "a", encoding="utf-8") as f:
-        f.write(f"{name}<<{delimiter}\n")
-        f.write(f"{value}\n")
-        f.write(f"{delimiter}\n")
+    _write_action_output(name, value, default_output_path)
 
 
 def escape_workflow_command_data(value: str) -> str:

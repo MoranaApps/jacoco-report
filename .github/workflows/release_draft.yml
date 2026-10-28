@@ -14,19 +14,19 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
 
-      - uses: actions/setup-python@v7.1.0
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.14'
           cache: 'pip'
 
       - name: Check format of received tag
         id: check-version-tag
-        uses: AbsaOSS/version-tag-check@v1.0.0
+        uses: AbsaOSS/version-tag-check@4145e48bf3f77a5afff2ec9afdd8afb6b53bce34 # v1.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.TOKEN }}
         with:
@@ -36,7 +36,7 @@ jobs:
 
       - name: Generate Release Notes
         id: generate_release_notes
-        uses: AbsaOSS/generate-release-notes@master
+        uses: AbsaOSS/generate-release-notes@4592187ca123598c8f0bd6de06311c9f5cd8b773 # v1.3.3
         env:
           GITHUB_TOKEN: ${{ secrets.TOKEN }}
         with:
@@ -61,7 +61,7 @@ jobs:
           print-empty-chapters: true
 
       - name: Create and Push Tag
-        uses: actions/github-script@v9
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
             const tag = core.getInput('tag-name')
@@ -80,7 +80,7 @@ jobs:
           tag-name: ${{ github.event.inputs.tag-name }}
 
       - name: Create Draft Release
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         env:
           GITHUB_TOKEN: ${{ secrets.TOKEN }}
         with:

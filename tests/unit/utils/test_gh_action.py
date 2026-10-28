@@ -43,7 +43,7 @@ def test_get_input_without_hyphen(mocker):
 # set_output
 
 
-def test_set_output_default(mocker):
+def test_set_output_default(mocker, fixed_delimiter):
     mocker.patch("os.getenv", return_value="default_output.txt")
     mock_open = mocker.patch("builtins.open", new_callable=mocker.mock_open)
 
@@ -51,10 +51,12 @@ def test_set_output_default(mocker):
 
     mock_open.assert_called_with("default_output.txt", "a", encoding="utf-8")
     handle = mock_open()
-    handle.write.assert_any_call("test-output=test_value\n")
+    handle.write.assert_any_call(f"test-output<<{FIXED_DELIMITER}\n")
+    handle.write.assert_any_call("test_value\n")
+    handle.write.assert_any_call(f"{FIXED_DELIMITER}\n")
 
 
-def test_set_output_custom_path(mocker):
+def test_set_output_custom_path(mocker, fixed_delimiter):
     mocker.patch("os.getenv", return_value="custom_output.txt")
     mock_open = mocker.patch("builtins.open", new_callable=mocker.mock_open)
 
@@ -62,7 +64,9 @@ def test_set_output_custom_path(mocker):
 
     mock_open.assert_called_with("custom_output.txt", "a", encoding="utf-8")
     handle = mock_open()
-    handle.write.assert_any_call("custom-output=custom_value\n")
+    handle.write.assert_any_call(f"custom-output<<{FIXED_DELIMITER}\n")
+    handle.write.assert_any_call("custom_value\n")
+    handle.write.assert_any_call(f"{FIXED_DELIMITER}\n")
 
 
 # set_output_text
@@ -95,7 +99,10 @@ def test_set_output_text_custom_path(mocker, fixed_delimiter):
 
 
 def _read_output_file(path) -> dict[str, str]:
-    """Parse a GITHUB_OUTPUT file the way the runner does: `name<<delimiter` up to a line equal to the delimiter."""
+    """
+    Parse a GITHUB_OUTPUT file the way the runner does: `name=value` on one line, or `name<<delimiter`
+    up to a line equal to the delimiter.
+    """
     outputs: dict[str, str] = {}
     lines = path.read_text(encoding="utf-8").split("\n")
     i = 0
@@ -103,10 +110,15 @@ def _read_output_file(path) -> dict[str, str]:
         if not lines[i]:
             i += 1
             continue
-        name, delimiter = lines[i].split("<<", 1)
-        end = lines.index(delimiter, i + 1)
-        outputs[name] = "\n".join(lines[i + 1 : end])
-        i = end + 1
+        key, _, rest = lines[i].partition("=")
+        if "<<" in key:
+            name, delimiter = key.split("<<", 1)
+            end = lines.index(delimiter, i + 1)
+            outputs[name] = "\n".join(lines[i + 1 : end])
+            i = end + 1
+        else:
+            outputs[key] = rest
+            i += 1
     return outputs
 
 
@@ -120,24 +132,25 @@ def test_set_output_text_value_with_eof_line_round_trips_as_one_output(tmp_path,
     assert _read_output_file(output_file) == {"report": value}
 
 
-def test_set_output_text_value_with_delimiter_is_refused_and_nothing_written(mocker, tmp_path, monkeypatch):
+@pytest.mark.parametrize("writer", [set_action_output, set_action_output_text], ids=["plain", "text"])
+def test_output_value_with_newline_does_not_create_extra_output(writer, tmp_path, monkeypatch):
     output_file = tmp_path / "github_output"
     monkeypatch.setenv("GITHUB_OUTPUT", str(output_file))
-    mocker.patch("uuid.uuid4", return_value=FIXED_UUID)
+    value = "first\nsecond=injected"
 
-    with pytest.raises(ValueError):
-        set_action_output_text("report", f"a\n{FIXED_DELIMITER}\nb=c")
+    writer("report", value)
 
-    assert not output_file.exists()
+    assert _read_output_file(output_file) == {"report": value}
 
 
-def test_set_output_text_name_with_delimiter_is_refused(mocker, tmp_path, monkeypatch):
+@pytest.mark.parametrize("writer", [set_action_output, set_action_output_text], ids=["plain", "text"])
+@pytest.mark.parametrize("name", ["a\nb=c", "a\rb=c"], ids=["lf", "cr"])
+def test_output_name_with_line_break_is_refused_and_nothing_written(writer, name, tmp_path, monkeypatch):
     output_file = tmp_path / "github_output"
     monkeypatch.setenv("GITHUB_OUTPUT", str(output_file))
-    mocker.patch("uuid.uuid4", return_value=FIXED_UUID)
 
     with pytest.raises(ValueError):
-        set_action_output_text(FIXED_DELIMITER, "value")
+        writer(name, "value")
 
     assert not output_file.exists()
 

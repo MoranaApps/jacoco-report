@@ -1,6 +1,7 @@
 import logging
 import os
 import sys
+import threading
 import warnings
 
 import pytest
@@ -59,12 +60,14 @@ def restore_environ_after_test():
 
 @pytest.fixture(autouse=True)
 def restore_process_hooks_after_test():
-    """setup_logging replaces the process-wide excepthook and warnings output; put them back after every test."""
+    """setup_logging replaces the process-wide excepthooks and warnings output; put them back after every test."""
     excepthook = sys.excepthook
+    thread_excepthook = threading.excepthook
     showwarning = warnings.showwarning
     yield
     logging.captureWarnings(False)
     sys.excepthook = excepthook
+    threading.excepthook = thread_excepthook
     warnings.showwarning = showwarning
 
 

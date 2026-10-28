@@ -14,22 +14,9 @@ ACTION_YML = Path(__file__).resolve().parents[2] / "action.yml"
 SETUP_ID = "setup"
 RUN_ID = "jacoco-report-to-pr-comment"
 RUN_STEP_EXTRA_ENV = {"JACOCO_REPORT_PYTHON": "${{ steps.setup.outputs.python }}"}
-# -B: no __pycache__ in the caller's checkout (-E drops PYTHONDONTWRITEBYTECODE). -E -s: see the Run step comment.
-RUN_STEP_SCRIPT = '"$JACOCO_REPORT_PYTHON" -B -E -s "$GITHUB_ACTION_PATH/main.py"'
 
 INPUT_REFERENCE = re.compile(r"^\$\{\{\s*inputs\.([a-z-]+)\s*\}\}$")
 TOKEN_REFERENCE = re.compile(r"inputs\.token", re.IGNORECASE)
-# A python command word at command position: line start, or after `;` `&` `|` `(` `!` `$(` or if/then/else/do.
-# Prose such as `echo "Using python 3.11"` or `command -v python` has no such prefix, so it is not a command word.
-# Matches bare `python`/`python3`, or a variable such as "$venv_python" or $JACOCO_REPORT_PYTHON.
-PYTHON_COMMAND = re.compile(
-    r"""(?:^|[;&|(!]|\$\(|\b(?:if|then|else|do)\b)\s*"?(?:python3?|\$\{?\w*(?i:python)\w*\}?)"?(?=\s|$)"""
-)
-UNQUOTED_PATH = re.compile(r"""(?<!")\$\{?(?:RUNNER_TEMP|GITHUB_ACTION_PATH|GITHUB_OUTPUT)\b""")
-PORTABILITY_BANS = {
-    "grep -P": re.compile(r"grep\s+-[a-zA-Z]*P"),
-    ".venv": re.compile(r"\.venv\b"),
-}
 
 
 def _load_action():
@@ -51,32 +38,6 @@ def _label(step):
 
 def _run_scripts():
     return [(_label(step), step["run"]) for step in _steps() if "run" in step]
-
-
-def _strip_comments(script):
-    # Drops `# …` comments: a `#` at line start or after whitespace, outside quotes. `$#` and `"#"` stay.
-    lines = []
-    for line in script.splitlines():
-        quote = None
-        cut = len(line)
-        for index, char in enumerate(line):
-            if quote:
-                if char == quote:
-                    quote = None
-            elif char in "\"'":
-                quote = char
-            elif char == "#" and (index == 0 or line[index - 1].isspace()):
-                cut = index
-                break
-        lines.append(line[:cut])
-    return "\n".join(lines)
-
-
-def _python_invocations(script):
-    # Yields (line, text after the command word) for every python command in a run script.
-    for line in _strip_comments(script).splitlines():
-        for match in PYTHON_COMMAND.finditer(line):
-            yield line.strip(), line[match.end() :]
 
 
 def _strings(obj):
@@ -138,8 +99,13 @@ def test_run_step_env_maps_every_input_with_the_real_reader():
     assert extra_env == RUN_STEP_EXTRA_ENV
 
 
-def test_action_has_exactly_setup_and_run_steps():
-    assert [step.get("id") for step in _steps()] == [SETUP_ID, RUN_ID]
+def _setup_env(tmp_path, fake_bin):
+    return {
+        "PATH": str(fake_bin),
+        "RUNNER_TEMP": str(tmp_path),
+        "GITHUB_OUTPUT": str(tmp_path / "output"),
+        "GITHUB_ACTION_PATH": str(ACTION_YML.parent),
+    }
 
 
 def test_setup_makes_a_fresh_venv_under_runner_temp_and_passes_its_interpreter_via_github_output(tmp_path):
@@ -250,13 +216,9 @@ def _fake_bin(tmp_path, fakes):
     return fake_bin
 
 
-def _run_setup(tmp_path, fake_bin):
-    env = {
-        "PATH": str(fake_bin),
-        "RUNNER_TEMP": str(tmp_path),
-        "GITHUB_OUTPUT": str(tmp_path / "output"),
-        "GITHUB_ACTION_PATH": str(ACTION_YML.parent),
-    }
+def _run_setup(tmp_path, fake_bin, env=None):
+    if env is None:
+        env = _setup_env(tmp_path, fake_bin)
     return subprocess.run(
         ["/bin/bash", "--noprofile", "--norc", "-eo", "pipefail", "-c", _step(SETUP_ID)["run"]],
         env=env,
@@ -313,55 +275,73 @@ def test_setup_logs_the_version_of_each_python_it_rejects(tmp_path):
     assert "Found python3: Python 3.10.12" in result.stdout
 
 
-def test_python_detector_skips_prose_and_comments_but_finds_real_calls():
-    script = "\n".join(
-        [
-            'echo "Using python 3.11"',
-            'echo "Please install python first"',
-            "# python -I is only a comment",
-            "  python -I -m venv x  # python -m pip",
-            'echo "Version: $(python3 -I --version)"',
-            'if ! "$venv_python" -I -c "import sys"; then',
-        ]
+def test_setup_runs_every_python_call_with_dash_i(tmp_path):
+    # -I keeps the caller's checkout (the working directory) off sys.path. The fake logs every call it gets,
+    # including the venv's own python that runs pip, so a call without -I shows up in the log.
+    calls_log = tmp_path / "calls.log"
+    fake = (
+        "#!/bin/bash\n"
+        f'echo "$*" >> "{calls_log}"\n'
+        'case "$*" in\n'
+        '  "-I --version") echo "Python 3.12.0" ;;\n'
+        '  "-I -m venv "*) mkdir -p "${@: -1}/bin" && cp "$0" "${@: -1}/bin/python" ;;\n'
+        "esac\nexit 0\n"
     )
-    assert [line for line, _ in _python_invocations(script)] == [
-        "python -I -m venv x",
-        'echo "Version: $(python3 -I --version)"',
-        'if ! "$venv_python" -I -c "import sys"; then',
+    fake_bin = _fake_bin(tmp_path, {"python": fake})
+    result = _run_setup(tmp_path, fake_bin)
+    assert result.returncode == 0, result.stdout + result.stderr
+    calls = calls_log.read_text(encoding="utf-8").splitlines()
+    assert any(" -m venv " in call for call in calls), calls
+    assert any(" -m pip " in call for call in calls), calls
+    assert all(call.startswith("-I ") for call in calls), calls
+
+
+def test_setup_falls_back_to_tmpdir_when_runner_temp_is_unset(tmp_path):
+    # Under `act` RUNNER_TEMP is unset. The venv must land under TMPDIR, not fail at the filesystem root.
+    fake_bin = _fake_bin(tmp_path, {"python": VENV_CAPABLE_FAKE})
+    env = _setup_env(tmp_path, fake_bin)
+    del env["RUNNER_TEMP"]
+    env["TMPDIR"] = str(tmp_path)
+    result = _run_setup(tmp_path, fake_bin, env=env)
+    assert result.returncode == 0, result.stdout + result.stderr
+    venv_python = Path((tmp_path / "output").read_text(encoding="utf-8").removeprefix("python=").strip())
+    assert venv_python.is_file()
+    assert venv_python.parent.parent.parent == tmp_path
+    assert venv_python.parent.parent.name.startswith("jacoco-report-venv.")
+
+
+def test_run_step_runs_main_with_dash_b_only_and_clears_only_pythonpath(tmp_path):
+    # The fake interpreter records its argv and the Python env it sees. Only -B is passed, PYTHONPATH is
+    # cleared, and other Python env vars such as PYTHONIOENCODING reach the interpreter.
+    record = tmp_path / "record.txt"
+    fake_python = tmp_path / "fake-python"
+    fake_python.write_text(
+        "#!/bin/bash\n"
+        'printf "%s\\n" "$@" > "$RECORD"\n'
+        'printf "PYTHONPATH=%s\\n" "${PYTHONPATH-<unset>}" >> "$RECORD"\n'
+        'printf "PYTHONIOENCODING=%s\\n" "${PYTHONIOENCODING-<unset>}" >> "$RECORD"\n',
+        encoding="utf-8",
+    )
+    fake_python.chmod(0o755)
+    env = {
+        "PATH": "/usr/bin:/bin",
+        "GITHUB_ACTION_PATH": str(ACTION_YML.parent),
+        "JACOCO_REPORT_PYTHON": str(fake_python),
+        "PYTHONPATH": "/caller/job/path",
+        "PYTHONIOENCODING": "utf-8",
+        "RECORD": str(record),
+    }
+    result = subprocess.run(
+        ["/bin/bash", "--noprofile", "--norc", "-eo", "pipefail", "-c", _step(RUN_ID)["run"]],
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert record.read_text(encoding="utf-8").splitlines() == [
+        "-B",
+        str(ACTION_YML.parent / "main.py"),
+        "PYTHONPATH=<unset>",
+        "PYTHONIOENCODING=utf-8",
     ]
-
-
-def test_setup_python_calls_all_run_isolated():
-    # Python puts the working directory on sys.path, and that is the caller's checkout. `-I` drops it, so a
-    # planted argparse.py or pip/ there can't run in the setup step.
-    invocations = list(_python_invocations(_step(SETUP_ID)["run"]))
-    # Guard that the detector still sees the calls that matter, so the -I check below can't pass on an empty list.
-    for module in ("venv", "pip"):
-        assert any(re.search(rf"-m\s+{module}\b", rest) for _, rest in invocations), f"no `-m {module}` call detected"
-    for line, rest in invocations:
-        assert re.match(r"\s+-I(\s|$)", rest), f"python invocation without -I: {line}"
-
-
-def test_run_step_runs_main_with_the_venv_interpreter():
-    # Not -I: it implies -P, which would keep main.py's directory off sys.path and break `import jacoco_report`.
-    assert _step(RUN_ID)["run"].strip() == RUN_STEP_SCRIPT
-
-
-def test_run_scripts_are_portable_and_leave_no_venv_in_the_workspace():
-    for label, script in _run_scripts():
-        for name, pattern in PORTABILITY_BANS.items():
-            assert (
-                pattern.search(_strip_comments(script)) is None
-            ), f"{label}: `{name}` is not portable or touches the workspace"
-
-
-def test_run_scripts_quote_every_path_variable():
-    for label, script in _run_scripts():
-        assert UNQUOTED_PATH.search(_strip_comments(script)) is None, f"{label}: unquoted path variable"
-
-
-def test_strip_comments_keeps_code_and_drops_only_comments():
-    assert _strip_comments("# uses .venv\necho ok  # and .venv\n") == "\necho ok  "
-    assert _strip_comments('echo "a # .venv"') == 'echo "a # .venv"'
-    assert _strip_comments("echo $# .venv") == "echo $# .venv"
-    assert ".venv" in _strip_comments("python3 -m venv .venv")

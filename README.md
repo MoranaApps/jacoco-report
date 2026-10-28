@@ -229,6 +229,8 @@ covering every breaking change.
 - **`paths` defaults to `**/jacoco.xml`**: the input was previously optional when `report-groups` was
   set. It now has a default value. Remove any explicit `paths: ''` overrides — empty paths are
   allowed and fall back to `**/jacoco.xml` at runtime when no groups are configured.
+- **v3.4.0: inputs are not exported to later steps, no `.venv` is left in the workspace, and the job's
+  `PYTHONPATH` is ignored.** See [section 8 of the migration guide](docs/v2-v3-migration-guide.md#other-caller-visible-changes-in-v340).
 
 ---
 
