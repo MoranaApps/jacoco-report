@@ -854,6 +854,28 @@ def test_get_event_name(mocker):
     assert ActionInputs.get_event_name() == "push"
 
 
+@pytest.mark.parametrize(
+    "action_path, expected_ref",
+    [
+        ("/home/runner/work/_actions/MoranaApps/jacoco-report/v3", "v3"),
+        (
+            "/home/runner/work/_actions/MoranaApps/jacoco-report/3f2a9c1d8e7b6a5f4e3d2c1b0a9f8e7d6c5b4a39",
+            "3f2a9c1d8e7b6a5f4e3d2c1b0a9f8e7d6c5b4a39",
+        ),
+        ("/home/runner/work/_actions/MoranaApps/jacoco-report/feature/x", "feature/x"),
+        ("/Users/runner/work/_actions/MoranaApps/jacoco-report/v3.0.0", "v3.0.0"),
+        ("/home/runner/work/jacoco-report/jacoco-report", ""),
+        ("", ""),
+    ],
+)
+def test_get_action_ref_parses_ref_from_action_path(monkeypatch, action_path, expected_ref):
+    if action_path:
+        monkeypatch.setenv("GITHUB_ACTION_PATH", action_path)
+    else:
+        monkeypatch.delenv("GITHUB_ACTION_PATH", raising=False)
+    assert ActionInputs.get_action_ref() == expected_ref
+
+
 # --- Issue 6: whitespace-only paths ---
 def test_validate_inputs_paths_whitespace_only_allowed_without_groups(mocker):
     case = success_case.copy()

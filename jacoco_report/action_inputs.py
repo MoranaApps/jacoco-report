@@ -4,6 +4,7 @@ A module for handling the inputs provided to the GH action.
 
 import logging
 import os
+import re
 import sys
 from typing import Literal, Optional, overload
 
@@ -36,8 +37,7 @@ from jacoco_report.utils.constants import (
     BASELINE_PATHS,
     CA_BUNDLE,
     GITHUB_RUN_ID,
-    GITHUB_RUN_STARTED_AT,
-    GITHUB_ACTION_REF,
+    GITHUB_ACTION_PATH,
 )
 
 from jacoco_report.model.report_group import ReportGroup
@@ -46,6 +46,10 @@ from jacoco_report.utils.gh_action import get_action_input
 from jacoco_report.utils.github import GitHub
 
 logger = logging.getLogger(__name__)
+
+
+# `<runner work dir>/_actions/<owner>/<repo>/<ref>`; the ref may contain `/`
+_ACTION_PATH_REF_PATTERN = re.compile(r"/_actions/[^/]+/[^/]+/(.+?)/*$")
 
 
 def _is_valid_threshold_float(value: str) -> bool:
@@ -774,18 +778,16 @@ class ActionInputs:
         return get_action_input(GITHUB_RUN_ID, prefix="")
 
     @staticmethod
-    def get_run_started_at() -> str:
-        """
-        Get the ISO 8601 timestamp when the run started (GITHUB_RUN_STARTED_AT).
-        """
-        return get_action_input(GITHUB_RUN_STARTED_AT, prefix="")
-
-    @staticmethod
     def get_action_ref() -> str:
         """
-        Get the ref (tag/SHA) used to invoke this action (GITHUB_ACTION_REF).
+        Get the ref (tag, SHA or branch) this action was invoked with, e.g. "v3".
+
+        Parsed from GITHUB_ACTION_PATH (`.../_actions/<owner>/<repo>/<ref>`), because GITHUB_ACTION_REF is
+        empty in composite action steps (actions/runner#2473). Returns "" when the path does not match,
+        e.g. for a local `uses: ./` action whose path is the workspace.
         """
-        return get_action_input(GITHUB_ACTION_REF, prefix="")
+        match = _ACTION_PATH_REF_PATTERN.search(get_action_input(GITHUB_ACTION_PATH, prefix=""))
+        return match.group(1) if match else ""
 
     @staticmethod
     def __parse_paths(paths: str) -> list[str]:

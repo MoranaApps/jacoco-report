@@ -130,7 +130,6 @@ def test_global_table_diff_wrong_with_partial_baseline(jacoco_report: JaCoCoRepo
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value="pull_request")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_run_id", return_value="")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_action_ref", return_value="")
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_run_started_at", return_value="")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_token", return_value="fake_token")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_comment_level", return_value=CommentLevelEnum.FULL)
     mocker.patch(
@@ -878,7 +877,6 @@ def test_group_flow_partial_baseline_with_explicit_per_group_baseline_paths(jaco
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value="pull_request")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_run_id", return_value="")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_action_ref", return_value="")
-    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_run_started_at", return_value="")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_token", return_value="fake_token")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_comment_level", return_value=CommentLevelEnum.FULL)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=[])

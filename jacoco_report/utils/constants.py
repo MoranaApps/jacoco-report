@@ -45,5 +45,9 @@ CHANGED_FILE = "changed-file"
 
 # GitHub-injected metadata environment variables (no INPUT_ prefix)
 GITHUB_RUN_ID = "GITHUB_RUN_ID"
-GITHUB_RUN_STARTED_AT = "GITHUB_RUN_STARTED_AT"
-GITHUB_ACTION_REF = "GITHUB_ACTION_REF"
+# GITHUB_ACTION_REF is empty in composite action steps (actions/runner#2473), so the ref is parsed from this path
+GITHUB_ACTION_PATH = "GITHUB_ACTION_PATH"
+
+# PR comment footer: where the action lives
+ACTION_REPOSITORY = "MoranaApps/jacoco-report"
+ACTION_REPOSITORY_URL = f"https://github.com/{ACTION_REPOSITORY}"
