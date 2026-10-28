@@ -11,10 +11,27 @@ from typing import Any, Optional
 import requests
 from requests import Session
 
+from jacoco_report.utils.constants import (
+    DEFAULT_GITHUB_API_URL,
+    DEFAULT_GITHUB_SERVER_URL,
+    GITHUB_API_URL,
+    GITHUB_SERVER_URL,
+)
+
 logger = logging.getLogger(__name__)
 
 # (connect, read) seconds for every GitHub API call
 REQUEST_TIMEOUT = (10, 60)
+
+
+def get_api_url() -> str:
+    """REST API base URL from the runner's GITHUB_API_URL (not an action input); github.com's when unset."""
+    return os.getenv(GITHUB_API_URL) or DEFAULT_GITHUB_API_URL
+
+
+def get_server_url() -> str:
+    """Server base URL from the runner's GITHUB_SERVER_URL (not an action input); github.com's when unset."""
+    return os.getenv(GITHUB_SERVER_URL) or DEFAULT_GITHUB_SERVER_URL
 
 
 class GitHub:
@@ -22,20 +39,21 @@ class GitHub:
     A class representing the GitHub API.
     """
 
-    def __init__(self, token: str, ca_bundle: str = ""):
+    def __init__(self, token: str, ca_bundle: str = "", api_url: str = DEFAULT_GITHUB_API_URL):
         """
         Initializes the GitHub API object.
 
         Parameters:
             token (str): The GitHub token.
             ca_bundle (str): Path to a PEM CA bundle for TLS verification. Empty means the requests default.
+            api_url (str): Base URL of the REST API, e.g. "https://ghes.example.com/api/v3".
 
         Returns:
             None
         """
         self.__token = token
         self.__session: Optional[Session] = None
-        self.__gh_url = "https://api.github.com"
+        self.__gh_url = api_url
         # Passed per request, not as session.verify: requests lets REQUESTS_CA_BUNDLE/CURL_CA_BUNDLE override
         # session.verify, and the action input must win.
         self.__request_kwargs: dict[str, Any] = {"verify": ca_bundle} if ca_bundle else {}
@@ -51,7 +69,6 @@ class GitHub:
         self.__session = requests.Session()
         headers = {
             "Authorization": f"Bearer {self.__token}",
-            "Host": "api.github.com",
         }
         self.__session.headers.update(headers)
 

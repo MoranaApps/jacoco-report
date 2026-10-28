@@ -14,7 +14,7 @@ from jacoco_report.parser.jacoco_report_parser import JaCoCoReportParser
 from jacoco_report.scanner.jacoco_report_input_scanner import JaCoCoReportInputScanner
 from jacoco_report.utils.constants import DEFAULT_PATHS, GLOBAL_OVERALL_SCOPE_ALL
 from jacoco_report.utils.enums import FailOnThresholdEnum
-from jacoco_report.utils.github import GitHub
+from jacoco_report.utils.github import GitHub, get_api_url
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +52,7 @@ class JaCoCoReport:
             return
         logger.info("Event is a pull request.")
 
-        gh = GitHub(ActionInputs.get_token(), ActionInputs.get_ca_bundle())
+        gh = GitHub(ActionInputs.get_token(), ActionInputs.get_ca_bundle(), get_api_url())
         pr_number = ActionInputs.get_pr_number(gh=gh)
         if pr_number is None:
             logger.error("Not a pull request event. Ending run of Jacoco Report.")
