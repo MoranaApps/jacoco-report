@@ -265,6 +265,9 @@ Replace the shell syntax with a GitHub expression, which the runner evaluates be
 - **`PYTHONPATH` from your job is ignored by the action.** The action clears it for its own Python process.
   Other `PYTHON*` variables, such as `PYTHONIOENCODING` and `PYTHONUTF8`, are still honored.
   Nothing to change for the action; set `PYTHONPATH` only in the steps that need it.
+- **Runtime dependencies are hash-checked.** `setup` installs the locked runtime packages with `--require-hashes`.
+  A pip mirror set through `PIP_INDEX_URL` must serve PyPI's files unchanged; a mirror that rebuilds a package fails
+  the hash check. Byte-identical proxies (Artifactory, Nexus, devpi) work.
 
 ---
 

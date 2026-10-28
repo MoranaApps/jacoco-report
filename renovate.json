@@ -7,6 +7,9 @@
       "matchManagers": [
         "pip_requirements"
       ],
+      "matchFileNames": [
+        "requirements-dev.txt"
+      ],
       "groupName": "Python Dependencies",
       "groupSlug": "python-deps",
       "matchUpdateTypes": [
@@ -18,8 +21,46 @@
         "auto-update",
         "no-RN"
       ]
+    },
+    {
+      "matchManagers": [
+        "pip-compile"
+      ],
+      "matchFileNames": [
+        "requirements.in",
+        "requirements.txt"
+      ],
+      "groupName": "Python Runtime Dependencies",
+      "groupSlug": "python-runtime-deps",
+      "automerge": false,
+      "minimumReleaseAge": "7 days",
+      "labels": [
+        "auto-update",
+        "no-RN"
+      ]
+    },
+    {
+      "matchManagers": [
+        "pip_requirements"
+      ],
+      "matchFileNames": [
+        "requirements.txt"
+      ],
+      "enabled": false
     }
   ],
+  "pip-compile": {
+    "managerFilePatterns": [
+      "/(^|/)requirements\\.txt$/"
+    ]
+  },
+  "lockFileMaintenance": {
+    "enabled": true,
+    "labels": [
+      "auto-update",
+      "no-RN"
+    ]
+  },
   "labels": [
     "auto-update"
   ],
