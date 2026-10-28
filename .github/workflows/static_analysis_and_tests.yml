@@ -274,6 +274,58 @@ jobs:
           check hostile-title-not-expanded absent "$(if [ -e "$RUNNER_TEMP/jacoco-pwned" ]; then echo present; else echo absent; fi)"
           exit $failed
 
+      - name: Locate certifi's CA bundle
+        id: ca
+        run: |
+          python -m pip install -r requirements.txt
+          echo "path=$(python -I -c 'import certifi; print(certifi.where())')" >> "$GITHUB_OUTPUT"
+
+      # A valid bundle must pass. This proves the plumbing only: default trust would pass too.
+      - name: Run the action with ca-bundle
+        id: jacoco-report-ca
+        uses: ./
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          paths: tests/data/test_project/module_large/jacoco.xml
+          comment-level: none
+          update-comment: 'false'
+          ca-bundle: ${{ steps.ca.outputs.path }}
+
+      # Setup creates a venv before the Run step, so an unchanged venv count proves the missing run stopped in setup.
+      - name: Count action venvs before the missing ca-bundle run
+        id: venvs-before
+        run: |
+          count="$(find "$RUNNER_TEMP" -maxdepth 1 -name 'jacoco-report-venv.*' -type d | wc -l | tr -d ' ')"
+          echo "count=$count" >> "$GITHUB_OUTPUT"
+
+      # A missing bundle must fail. Only this run proves the setup check, so it is allowed to fail.
+      - name: Run the action with a missing ca-bundle
+        id: jacoco-report-ca-missing
+        continue-on-error: true
+        uses: ./
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          paths: tests/data/test_project/module_large/jacoco.xml
+          comment-level: none
+          update-comment: 'false'
+          ca-bundle: does-not-exist.pem
+
+      - name: Assert the missing ca-bundle run failed
+        env:
+          OUTCOME: ${{ steps.jacoco-report-ca-missing.outcome }}
+          VENVS_BEFORE: ${{ steps.venvs-before.outputs.count }}
+        run: |
+          venvs_after="$(find "$RUNNER_TEMP" -maxdepth 1 -name 'jacoco-report-venv.*' -type d | wc -l | tr -d ' ')"
+          if [ "$OUTCOME" != "failure" ]; then
+            echo "::error::missing ca-bundle run: expected outcome 'failure', got '$OUTCOME'"
+            exit 1
+          fi
+          if [ "$venvs_after" != "$VENVS_BEFORE" ]; then
+            echo "::error::missing ca-bundle run created a venv ($VENVS_BEFORE before, $venvs_after after): it did not stop in setup"
+            exit 1
+          fi
+          echo "OK: missing ca-bundle run failed in setup before any venv was created"
+
   mypy-check:
     needs: set-matrix
     runs-on: ubuntu-latest

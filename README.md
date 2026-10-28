@@ -11,6 +11,7 @@ Automates the publication of JaCoCo coverage reports directly as comments in pul
   - [Action Inputs](#action-inputs)
   - [Outputs](#outputs)
   - [Examples](#examples)
+- [Self-hosted runner behind a corporate proxy](#self-hosted-runner-behind-a-corporate-proxy)
 - [Troubleshooting](#troubleshooting)
 - [Migrating from v2](#migrating-from-v2)
 - [Developer](#developer)
@@ -62,7 +63,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.11'
 
@@ -106,6 +107,7 @@ Input values are passed to the action exactly as written: `$VAR`, `$(…)` and b
 | `fail-symbol`       | Symbol for failing checks in PR comments (e.g., ❌, **Failed**).                                                                                                                                                               | No       | `❌`                                              |
 | `fail-on-threshold` | List value (comma- or newline-separated) of thresholds that must pass: `overall`, `changed-files-average`, `per-changed-file`, `fail-unchanged`. Leave empty to disable.                                                     | No       | `overall,changed-files-average,per-changed-file` |
 | `debug`             | Enables detailed logging. Automatically activated when `RUNNER_DEBUG=1` (GitHub runner debug mode).                                                                                                                             | No       | `false`                                          |
+| `ca-bundle`         | Path (absolute, or relative to the workspace) to a PEM CA bundle trusted for the action's pip install and all GitHub API calls. Use behind a TLS-intercepting proxy. See [docs/inputs/ca-bundle.md](docs/inputs/ca-bundle.md). | No       | `''`                                             |
 
 ---
 
@@ -174,6 +176,31 @@ The following outputs are set by the JaCoCo GitHub Action:
 - [Symbols and Metric Type](docs/inputs/symbols-and-metric.md)
 - [PR Number, Title, and Update Comment](docs/inputs/pr-settings.md)
 - [Debug Mode](docs/inputs/debug.md)
+- [Custom CA Bundle](docs/inputs/ca-bundle.md)
+
+---
+
+## Self-hosted runner behind a corporate proxy
+
+If the runner's HTTPS traffic is re-signed by a corporate proxy, the action fails on the pip install or on the
+GitHub API calls with a certificate error. Point `ca-bundle` at a PEM file that contains the proxy's root CA:
+
+```yaml
+- name: Publish JaCoCo Report in PR comments
+  uses: MoranaApps/jacoco-report@v3
+  with:
+    token: '${{ secrets.GITHUB_TOKEN }}'
+    ca-bundle: /etc/ssl/certs/corp-root-ca.pem
+```
+
+Take the file from the runner image or from trusted content, never from a file a pull request can change: a PR that
+replaces it could make the action send the token over a connection verified against an attacker's CA.
+
+If some traffic bypasses the proxy, the file must also contain the public roots. See
+[docs/inputs/ca-bundle.md](docs/inputs/ca-bundle.md) for the trust rules and a full workflow.
+
+`REQUESTS_CA_BUNDLE` set in the step's `env:` also works as a **legacy fallback** when `ca-bundle` is empty.
+Prefer `ca-bundle`: it applies to pip and the API calls alike, and it overrides `REQUESTS_CA_BUNDLE` when both are set.
 
 ---
 

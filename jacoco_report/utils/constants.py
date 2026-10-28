@@ -36,6 +36,8 @@ DEBUG = "debug"
 
 BASELINE_PATHS = "baseline-paths"
 
+CA_BUNDLE = "ca-bundle"
+
 # fail-on-threshold values
 OVERALL = "overall"
 CHANGED_FILES_AVERAGE = "changed-files-average"

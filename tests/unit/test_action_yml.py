@@ -14,6 +14,7 @@ ACTION_YML = Path(__file__).resolve().parents[2] / "action.yml"
 SETUP_ID = "setup"
 RUN_ID = "jacoco-report-to-pr-comment"
 RUN_STEP_EXTRA_ENV = {"JACOCO_REPORT_PYTHON": "${{ steps.setup.outputs.python }}"}
+SETUP_STEP_ENV = {"INPUT_CA_BUNDLE": "${{ inputs.ca-bundle }}"}
 
 INPUT_REFERENCE = re.compile(r"^\$\{\{\s*inputs\.([a-z-]+)\s*\}\}$")
 TOKEN_REFERENCE = re.compile(r"inputs\.token", re.IGNORECASE)
@@ -66,10 +67,15 @@ def test_token_is_passed_only_to_the_run_step_env():
     token_values = [key for key, value in run_step["env"].items() if TOKEN_REFERENCE.search(str(value))]
     assert token_values == ["INPUT_TOKEN"], f"inputs.token is passed under {token_values}"
 
-    # No other step may contain an expression at all, so none can reference the token or github.token.
+    # No other step may reference the token or github.token. Each non-Run step's env is an exact allowlist,
+    # and no expression may appear outside that env.
     for step in _steps():
-        if step.get("id") != RUN_ID:
-            assert not any("${{" in text for text in _strings(step)), f"{_label(step)} contains an expression"
+        if step.get("id") == RUN_ID:
+            continue
+        expected_env = SETUP_STEP_ENV if step.get("id") == SETUP_ID else {}
+        assert step.get("env", {}) == expected_env, f"{_label(step)} env: {step.get('env')}"
+        step_outside_env = {key: value for key, value in step.items() if key != "env"}
+        assert not any("${{" in text for text in _strings(step_outside_env)), f"{_label(step)} contains an expression"
 
     # The Run step's expressions live only in its env, and test_run_step_env_maps_every_input pins that map.
     run_step_outside_env = {key: value for key, value in run_step.items() if key != "env"}
@@ -216,12 +222,13 @@ def _fake_bin(tmp_path, fakes):
     return fake_bin
 
 
-def _run_setup(tmp_path, fake_bin, env=None):
+def _run_setup(tmp_path, fake_bin, env=None, cwd=None):
     if env is None:
         env = _setup_env(tmp_path, fake_bin)
     return subprocess.run(
         ["/bin/bash", "--noprofile", "--norc", "-eo", "pipefail", "-c", _step(SETUP_ID)["run"]],
         env=env,
+        cwd=cwd,
         capture_output=True,
         text=True,
         check=False,
@@ -345,3 +352,110 @@ def test_run_step_runs_main_with_dash_b_only_and_clears_only_pythonpath(tmp_path
         "PYTHONPATH=<unset>",
         "PYTHONIOENCODING=utf-8",
     ]
+
+
+def test_ca_bundle_input_is_optional_and_defaults_to_empty():
+    ca_bundle = _load_action()["inputs"]["ca-bundle"]
+    assert ca_bundle["required"] is False
+    assert ca_bundle["default"] == ""
+
+
+def _ca_bundle_fake_bin(tmp_path):
+    # The venv python is a copy of this fake. The pip call records its argv and the CA env vars it sees.
+    fake = (
+        "#!/bin/bash\n"
+        'case "$*" in\n'
+        '  "-I --version") echo "Python 3.12.0" ;;\n'
+        '  "-I -m venv "*) mkdir -p "${@: -1}/bin" && cp "$0" "${@: -1}/bin/python" ;;\n'
+        '  *"-m pip "*)\n'
+        '    printf "%s\\n" "$*" "PIP_CERT=${PIP_CERT-<unset>}" "REQUESTS_CA_BUNDLE=${REQUESTS_CA_BUNDLE-<unset>}" '
+        '"CURL_CA_BUNDLE=${CURL_CA_BUNDLE-<unset>}" > "$RECORD" ;;\n'
+        "esac\nexit 0\n"
+    )
+    return _fake_bin(tmp_path, {"python": fake})
+
+
+def test_setup_rejects_a_ca_bundle_that_is_not_a_file(tmp_path):
+    fake_bin = _ca_bundle_fake_bin(tmp_path)
+    env = _setup_env(tmp_path, fake_bin)
+    env["INPUT_CA_BUNDLE"] = str(tmp_path / "missing-7f3a.pem")
+    result = _run_setup(tmp_path, fake_bin, env=env)
+    assert result.returncode != 0
+    assert "::error::" in result.stdout
+    # The raw path is not echoed: a crafted value could inject workflow commands.
+    assert "missing-7f3a.pem" not in result.stdout + result.stderr
+    assert list(tmp_path.glob("jacoco-report-venv*")) == []
+
+
+def test_setup_passes_the_ca_bundle_to_pip_and_overrides_requests_env_vars(tmp_path):
+    fake_bin = _ca_bundle_fake_bin(tmp_path)
+    bundle = tmp_path / "proxy-ca.pem"
+    bundle.write_text("-----BEGIN CERTIFICATE-----\n", encoding="utf-8")
+    record = tmp_path / "record.txt"
+    env = _setup_env(tmp_path, fake_bin)
+    env.update(
+        {
+            "INPUT_CA_BUNDLE": str(bundle),
+            "REQUESTS_CA_BUNDLE": "/caller/requests.pem",
+            "CURL_CA_BUNDLE": "/caller/curl.pem",
+            "RECORD": str(record),
+        }
+    )
+    result = _run_setup(tmp_path, fake_bin, env=env)
+    assert result.returncode == 0, result.stdout + result.stderr
+    pip_call, *ca_env = record.read_text(encoding="utf-8").splitlines()
+    assert "-m pip install -r" in pip_call
+    assert ca_env == [f"PIP_CERT={bundle}", "REQUESTS_CA_BUNDLE=<unset>", "CURL_CA_BUNDLE=<unset>"]
+
+
+def test_setup_leaves_pip_ca_env_alone_when_ca_bundle_is_unset(tmp_path):
+    # An empty input is the default, so it counts as unset.
+    fake_bin = _ca_bundle_fake_bin(tmp_path)
+    record = tmp_path / "record.txt"
+    env = _setup_env(tmp_path, fake_bin)
+    env.update({"INPUT_CA_BUNDLE": "", "REQUESTS_CA_BUNDLE": "/caller/requests.pem", "RECORD": str(record)})
+    result = _run_setup(tmp_path, fake_bin, env=env)
+    assert result.returncode == 0, result.stdout + result.stderr
+    _, *ca_env = record.read_text(encoding="utf-8").splitlines()
+    assert ca_env == ["PIP_CERT=<unset>", "REQUESTS_CA_BUNDLE=/caller/requests.pem", "CURL_CA_BUNDLE=<unset>"]
+
+
+def test_setup_trims_a_ca_bundle_with_surrounding_whitespace_before_checking_and_passing_it(tmp_path):
+    # `>` in a caller's workflow adds a trailing newline; Python strips it, so bash must too.
+    fake_bin = _ca_bundle_fake_bin(tmp_path)
+    bundle = tmp_path / "proxy-ca.pem"
+    bundle.write_text("-----BEGIN CERTIFICATE-----\n", encoding="utf-8")
+    record = tmp_path / "record.txt"
+    env = _setup_env(tmp_path, fake_bin)
+    env.update({"INPUT_CA_BUNDLE": f"  {bundle}\n", "RECORD": str(record)})
+    result = _run_setup(tmp_path, fake_bin, env=env)
+    assert result.returncode == 0, result.stdout + result.stderr
+    _, *ca_env = record.read_text(encoding="utf-8").splitlines()
+    assert ca_env[0] == f"PIP_CERT={bundle}"
+
+
+def test_setup_treats_a_whitespace_only_ca_bundle_as_unset(tmp_path):
+    # Python's ActionInputs.get_ca_bundle() returns "" for this, so the caller's REQUESTS_CA_BUNDLE must pass through.
+    fake_bin = _ca_bundle_fake_bin(tmp_path)
+    record = tmp_path / "record.txt"
+    env = _setup_env(tmp_path, fake_bin)
+    env.update({"INPUT_CA_BUNDLE": " \n\t", "REQUESTS_CA_BUNDLE": "/caller/requests.pem", "RECORD": str(record)})
+    result = _run_setup(tmp_path, fake_bin, env=env)
+    assert result.returncode == 0, result.stdout + result.stderr
+    _, *ca_env = record.read_text(encoding="utf-8").splitlines()
+    assert ca_env == ["PIP_CERT=<unset>", "REQUESTS_CA_BUNDLE=/caller/requests.pem", "CURL_CA_BUNDLE=<unset>"]
+
+
+def test_setup_resolves_a_relative_ca_bundle_from_the_working_directory(tmp_path):
+    # Setup and the Run step share the workspace cwd, so a relative path must resolve the same way in both.
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    (workspace / "ca.pem").write_text("-----BEGIN CERTIFICATE-----\n", encoding="utf-8")
+    fake_bin = _ca_bundle_fake_bin(tmp_path)
+    record = tmp_path / "record.txt"
+    env = _setup_env(tmp_path, fake_bin)
+    env.update({"INPUT_CA_BUNDLE": "ca.pem", "RECORD": str(record)})
+    result = _run_setup(tmp_path, fake_bin, env=env, cwd=workspace)
+    assert result.returncode == 0, result.stdout + result.stderr
+    _, *ca_env = record.read_text(encoding="utf-8").splitlines()
+    assert ca_env[0] == "PIP_CERT=ca.pem"

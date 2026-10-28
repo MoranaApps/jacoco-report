@@ -81,6 +81,7 @@ export INPUT_FAIL_ON_THRESHOLD="overall,changed-files-average,per-changed-file"
 export INPUT_PASS_SYMBOL="✅"
 export INPUT_FAIL_SYMBOL="❌"
 export INPUT_DEBUG="false"
+export INPUT_CA_BUNDLE=""
 
 # Required GitHub context variables
 export GITHUB_REPOSITORY="MoranaApps/jacoco-report-dev"
@@ -117,6 +118,7 @@ export INPUT_FAIL_ON_THRESHOLD="overall,changed-files-average,per-changed-file"
 export INPUT_PASS_SYMBOL="✅"
 export INPUT_FAIL_SYMBOL="❌"
 export INPUT_DEBUG="true"
+export INPUT_CA_BUNDLE=""
 
 export GITHUB_REPOSITORY="MoranaApps/jacoco-report-dev"
 export GITHUB_EVENT_NAME="pull_request"
