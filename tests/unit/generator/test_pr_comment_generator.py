@@ -1518,3 +1518,43 @@ def test_no_warning_empty_ungrouped_list(mocker, mock_github, test_evaluator):
 
     assert "not assigned to any group" not in body
     mock_github.add_comment.assert_not_called()
+
+
+# GitHub Enterprise Server: comment links follow GITHUB_SERVER_URL, not github.com
+
+
+def test_server_url_defaults_to_github_com_when_unset(mock_github, test_evaluator, monkeypatch):
+    monkeypatch.delenv("GITHUB_SERVER_URL", raising=False)
+    generator = PRCommentGenerator(mock_github, test_evaluator, None, 1)
+    assert generator.github_server_url == "https://github.com"
+
+
+def test_run_link_uses_server_url(mock_github, test_evaluator, mocker, monkeypatch):
+    monkeypatch.setenv("GITHUB_SERVER_URL", "https://ghes.example.com/")
+    generator = PRCommentGenerator(mock_github, test_evaluator, None, 1)
+    _configure_generator_for_comment_tests(generator, mocker, comment_level="minimal")
+    generator.github_repository = "owner/repo"
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_run_id", return_value="42")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value="pull_request")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_action_ref", return_value="v3.0.0")
+
+    generator.generate()
+
+    body = generator.gh.add_comment.call_args[0][1]
+    assert "Run [42](https://ghes.example.com/owner/repo/actions/runs/42) · Event:" in body
+    assert "https://github.com/owner/repo" not in body
+    assert GENERATED_BY_LINE in body
+
+
+def test_changed_file_link_uses_server_url(mock_github, test_evaluator, mocker, monkeypatch):
+    monkeypatch.setenv("GITHUB_SERVER_URL", "https://ghes.example.com")
+    generator = PRCommentGenerator(mock_github, test_evaluator, None, 1)
+    generator.github_repository = "owner/repo"
+    mocker.patch("hashlib.sha256", return_value=mocker.Mock(hexdigest=lambda: "fakehash"))
+    generator.evaluator.evaluated_reports_coverage = {
+        "report1": _make_evaluated_coverage("report1", changed_files={"src/Foo.java": 82.0}),
+    }
+
+    table = generator.generate_changed_files_table_without_baseline("✅", "❌")
+
+    assert "[Foo.java](https://ghes.example.com/owner/repo/pull/1/files#diff-fakehash)" in table

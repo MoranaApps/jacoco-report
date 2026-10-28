@@ -35,6 +35,55 @@ def test_get_pr_changed_files_none_response(mocker):
     assert files is None
 
 
+# custom API base (GitHub Enterprise Server)
+
+
+def test_get_pr_changed_files_uses_custom_api_url_without_trailing_slash(mocker):
+    mocker.patch(
+        "os.getenv", side_effect=lambda key: "fake_repo" if key == "GITHUB_REPOSITORY" else "refs/pull/1/merge"
+    )
+    mock_send = mocker.patch.object(GitHub, "send_request", return_value=None)
+    github = GitHub("fake_token", api_url="https://ghes.example.com/api/v3/")
+
+    github.get_pr_changed_files()
+
+    assert mock_send.call_args.args[1] == "https://ghes.example.com/api/v3/repos/fake_repo/pulls/1/files"
+
+
+def test_add_comment_uses_custom_api_url(mocker, monkeypatch):
+    monkeypatch.setenv("GITHUB_REPOSITORY", "fake_repo")
+    mock_send = mocker.patch.object(GitHub, "send_request", return_value=None)
+    github = GitHub("fake_token", api_url="https://ghes.example.com/api/v3/")
+
+    github.add_comment(1, "Test comment")
+
+    assert mock_send.call_args.args[1] == "https://ghes.example.com/api/v3/repos/fake_repo/issues/1/comments"
+
+
+def _capture_request_headers(mocker):
+    """Patch the transport so the real requests session runs and the headers of the prepared request are recorded."""
+    seen = []
+
+    def fake_send(request, **kwargs):
+        seen.append(dict(request.headers))
+        response = requests.Response()
+        response.status_code = 200
+        response.raw = io.BytesIO(b"[]")
+        return response
+
+    mocker.patch("requests.adapters.HTTPAdapter.send", side_effect=fake_send)
+    return seen
+
+
+def test_session_sends_no_host_header_and_keeps_authorization(mocker):
+    seen = _capture_request_headers(mocker)
+
+    GitHub("fake_token", api_url="https://ghes.example.com/api/v3").send_request("GET", "https://ghes.example.com/x")
+
+    assert "Host" not in seen[0]
+    assert seen[0]["Authorization"] == "Bearer fake_token"
+
+
 # send_request
 
 

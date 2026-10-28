@@ -46,6 +46,7 @@ class PRCommentGenerator:
         self.skip_report_names: frozenset[str] = skip_report_names
         self.ungrouped_reports: list[str] = ungrouped_reports or []
         self.github_repository: str = ActionInputs.get_repository()
+        self.github_server_url: str = ActionInputs.get_server_url()
 
     def generate(self) -> None:
         """
@@ -179,7 +180,7 @@ class PRCommentGenerator:
         run_parts: list[str] = []
         if run_id:
             if self.github_repository:
-                url = f"https://github.com/{self.github_repository}/actions/runs/{run_id}"
+                url = f"{self.github_server_url}/{self.github_repository}/actions/runs/{run_id}"
                 run_parts.append(f"Run [{run_id}]({url})")
             else:
                 run_parts.append(f"Run `{run_id}`")
@@ -674,7 +675,7 @@ class PRCommentGenerator:
                 filename = _escape_md_link_text(os.path.basename(file_key))
                 file_hash = hashlib.sha256(file_key.encode("utf-8")).hexdigest()
                 file_as_link_to_diff = (
-                    f"https://github.com/{self.github_repository}/pull/{self.pr_number}/files#diff-{file_hash}"
+                    f"{self.github_server_url}/{self.github_repository}/pull/{self.pr_number}/files#diff-{file_hash}"
                 )
 
                 line = (
@@ -759,7 +760,7 @@ class PRCommentGenerator:
                 filename = _escape_md_link_text(os.path.basename(file_key))
                 file_hash = hashlib.sha256(file_key.encode("utf-8")).hexdigest()
                 file_as_link_to_diff = (
-                    f"https://github.com/{self.github_repository}/pull/{self.pr_number}/files#diff-{file_hash}"
+                    f"{self.github_server_url}/{self.github_repository}/pull/{self.pr_number}/files#diff-{file_hash}"
                 )
 
                 if bs_erc is None or file_key not in bs_erc.changed_files_coverage_reached:

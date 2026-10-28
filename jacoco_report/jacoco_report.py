@@ -52,7 +52,7 @@ class JaCoCoReport:
             return
         logger.info("Event is a pull request.")
 
-        gh = GitHub(ActionInputs.get_token(), ActionInputs.get_ca_bundle())
+        gh = GitHub(ActionInputs.get_token(), ActionInputs.get_ca_bundle(), ActionInputs.get_api_url())
         pr_number = ActionInputs.get_pr_number(gh=gh)
         if pr_number is None:
             logger.error("Not a pull request event. Ending run of Jacoco Report.")

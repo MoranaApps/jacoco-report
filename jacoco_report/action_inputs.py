@@ -37,6 +37,10 @@ from jacoco_report.utils.constants import (
     BASELINE_PATHS,
     CA_BUNDLE,
     GITHUB_RUN_ID,
+    GITHUB_API_URL,
+    GITHUB_SERVER_URL,
+    DEFAULT_GITHUB_API_URL,
+    DEFAULT_GITHUB_SERVER_URL,
     GITHUB_ACTION_PATH,
 )
 
@@ -776,6 +780,20 @@ class ActionInputs:
         Get the GitHub Actions run ID from environment variables.
         """
         return get_action_input(GITHUB_RUN_ID, prefix="")
+
+    @staticmethod
+    def get_api_url() -> str:
+        """
+        Get the GitHub REST API base URL from GITHUB_API_URL. Unset or blank means github.com; no trailing slash.
+        """
+        return (get_action_input(GITHUB_API_URL, prefix="").strip().rstrip("/")) or DEFAULT_GITHUB_API_URL
+
+    @staticmethod
+    def get_server_url() -> str:
+        """
+        Get the GitHub server base URL from GITHUB_SERVER_URL. Unset or blank means github.com; no trailing slash.
+        """
+        return (get_action_input(GITHUB_SERVER_URL, prefix="").strip().rstrip("/")) or DEFAULT_GITHUB_SERVER_URL
 
     @staticmethod
     def get_action_ref() -> str:
