@@ -91,6 +91,13 @@ inputs:
     description: 'Enable detail logging.'
     required: false
     default: 'false'
+  ca-bundle:
+    description: >
+      Path to a PEM CA bundle (e.g. a TLS-intercepting proxy's root CA), relative to the workspace or absolute.
+      Used for the action's pip install and GitHub API calls; for API calls it replaces the default trust store.
+      Empty: default trust (REQUESTS_CA_BUNDLE still honored).
+    required: false
+    default: ''
 
 outputs:
   coverage-overall:
@@ -123,7 +130,21 @@ runs:
     # as a step output. Run scripts contain no `${{ … }}` expressions: they use runner-provided env vars only.
     - name: Install Python dependencies
       id: setup
+      # Composite steps get no INPUT_* vars, so pip needs its CA bundle passed in explicitly.
+      env:
+        INPUT_CA_BUNDLE: ${{ inputs.ca-bundle }}
       run: |
+        # Trim once, as ActionInputs.get_ca_bundle() does, so bash and Python agree on "unset" and on the path.
+        ca_bundle="${INPUT_CA_BUNDLE:-}"
+        ca_bundle="${ca_bundle#"${ca_bundle%%[![:space:]]*}"}"
+        ca_bundle="${ca_bundle%"${ca_bundle##*[![:space:]]}"}"
+
+        # A bad ca-bundle fails here, before any venv exists. The message omits the path: workflow-command injection.
+        if [ -n "$ca_bundle" ] && [ ! -f "$ca_bundle" ]; then
+          echo "::error::ca-bundle must be an existing PEM file. Relative paths resolve from the workspace."
+          exit 1
+        fi
+
         # Every python call runs with -I: the working directory is the caller's checkout, and -I keeps it off sys.path.
         # `python` first, so existing callers keep their interpreter; `python3` is the fallback (Homebrew, Debian/Ubuntu).
         minimal_required_version="3.11.0"
@@ -152,6 +173,12 @@ runs:
         "$python_cmd" -I -m venv "$venv_dir"
         venv_python="$venv_dir/bin/python"
         echo "python=$venv_python" >> "$GITHUB_OUTPUT"
+        # pip's vendored requests lets REQUESTS_CA_BUNDLE/CURL_CA_BUNDLE override --cert, so the input must clear them.
+        # Step-local only: not written to the job's env file, so later steps never see it.
+        if [ -n "$ca_bundle" ]; then
+          export PIP_CERT="$ca_bundle"
+          unset REQUESTS_CA_BUNDLE CURL_CA_BUNDLE
+        fi
         "$venv_python" -I -m pip install -r "$GITHUB_ACTION_PATH/requirements.txt"
       shell: bash
 
@@ -182,6 +209,7 @@ runs:
         INPUT_FAIL_SYMBOL: ${{ inputs.fail-symbol }}
         INPUT_FAIL_ON_THRESHOLD: ${{ inputs.fail-on-threshold }}
         INPUT_DEBUG: ${{ inputs.debug }}
+        INPUT_CA_BUNDLE: ${{ inputs.ca-bundle }}
       run: |
         unset PYTHONPATH
         "$JACOCO_REPORT_PYTHON" -B "$GITHUB_ACTION_PATH/main.py"

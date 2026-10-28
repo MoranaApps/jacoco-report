@@ -3,6 +3,7 @@ A module for handling the inputs provided to the GH action.
 """
 
 import logging
+import os
 import sys
 from typing import Literal, Optional, overload
 
@@ -33,6 +34,7 @@ from jacoco_report.utils.constants import (
     METRIC,
     PR_NUMBER,
     BASELINE_PATHS,
+    CA_BUNDLE,
     GITHUB_RUN_ID,
     GITHUB_RUN_STARTED_AT,
     GITHUB_ACTION_REF,
@@ -458,6 +460,23 @@ class ActionInputs:
         return ActionInputs.__parse_paths(baseline_paths)
 
     @staticmethod
+    def get_ca_bundle() -> str:
+        """
+        Get the ca-bundle path from the action inputs. An empty string means unset.
+        """
+        return get_action_input(CA_BUNDLE, "").strip()
+
+    @staticmethod
+    def validate_ca_bundle() -> list[str]:
+        """
+        Validate the ca-bundle input: when set, it must be an existing file.
+        """
+        ca_bundle = ActionInputs.get_ca_bundle()
+        if ca_bundle and not os.path.isfile(ca_bundle):
+            return [f"'ca-bundle' must be a path to an existing PEM file: '{ca_bundle}'."]
+        return []
+
+    @staticmethod
     def validate_report_groups(raw_input: str) -> list[str]:
         """
         Validate the report-groups YAML input string.
@@ -655,6 +674,8 @@ class ActionInputs:
         except ValueError as e:
             errors.append(str(e))
 
+        errors.extend(ActionInputs.validate_ca_bundle())
+
         ActionInputs._log_configuration(
             report_groups_raw=report_groups_raw,
             skip_unchanged=skip_unchanged,
@@ -689,6 +710,7 @@ class ActionInputs:
             "Paths: %s\n"
             "Exclude paths: %s\n"
             "Baseline paths: %s\n"
+            "CA bundle: %s\n"
             "\n"
             "Global thresholds: overall=%s, avg_changed_files=%s\n"
             "Global overall scope: %s\n"
@@ -710,6 +732,7 @@ class ActionInputs:
             ActionInputs.get_paths(),
             ActionInputs.get_exclude_paths(),
             ActionInputs.get_baseline_paths(),
+            ActionInputs.get_ca_bundle(),
             ActionInputs.get_global_overall_threshold(),
             ActionInputs.get_global_changed_files_average_threshold(),
             ActionInputs.get_global_overall_scope(),

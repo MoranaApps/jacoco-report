@@ -2947,3 +2947,15 @@ def test_empty_paths_falls_back_to_default_when_no_groups(jacoco_report, mocker)
     scan_mock.assert_called_once()
     called_paths = scan_mock.call_args.kwargs.get("paths") or scan_mock.call_args.args[0]
     assert called_paths == ["**/jacoco.xml"]
+
+
+def test_run_builds_github_client_with_ca_bundle(jacoco_report, mocker):
+    mocker.patch.object(ActionInputs, "get_event_name", return_value="pull_request")
+    mocker.patch.object(ActionInputs, "get_token", return_value="fake_token")
+    mocker.patch.object(ActionInputs, "get_ca_bundle", return_value="/etc/ssl/corp-ca.pem")
+    mock_gh_class = mocker.patch("jacoco_report.jacoco_report.GitHub")
+    mock_gh_class.return_value.get_pr_number.return_value = None
+
+    jacoco_report.run()
+
+    mock_gh_class.assert_called_once_with("fake_token", "/etc/ssl/corp-ca.pem")

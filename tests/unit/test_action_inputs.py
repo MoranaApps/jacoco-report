@@ -1130,3 +1130,68 @@ def test_validate_inputs_rejects_invalid_global_overall_scope(mocker):
         mock_exit.assert_called_once_with(1)
     finally:
         stop_mocks(patchers)
+
+
+# get_ca_bundle
+
+
+@pytest.mark.parametrize(
+    "raw_value, expected",
+    [
+        ("/etc/ssl/corp-ca.pem", "/etc/ssl/corp-ca.pem"),
+        ("  /etc/ssl/corp-ca.pem \n", "/etc/ssl/corp-ca.pem"),
+        ("", ""),
+        ("   ", ""),
+    ],
+)
+def test_get_ca_bundle(raw_value, expected, mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value=raw_value)
+    assert ActionInputs.get_ca_bundle() == expected
+
+
+def test_validate_inputs_rejects_missing_ca_bundle_file(tmp_path, mocker):
+    missing = str(tmp_path / "missing.pem")
+    patchers = apply_mocks(success_case, mocker)
+    try:
+        mocker.patch.object(ActionInputs, "get_ca_bundle", return_value=missing)
+        mock_error = mocker.patch("jacoco_report.action_inputs.logger.error")
+        mock_exit = mocker.patch("sys.exit")
+
+        ActionInputs.validate_inputs()
+
+        mock_error.assert_any_call("%s", f"'ca-bundle' must be a path to an existing PEM file: '{missing}'.")
+        mock_exit.assert_called_once_with(1)
+    finally:
+        stop_mocks(patchers)
+
+
+def test_validate_inputs_accepts_existing_ca_bundle_file(tmp_path, mocker):
+    pem = tmp_path / "corp-ca.pem"
+    pem.write_text("-----BEGIN CERTIFICATE-----\n", encoding="utf-8")
+    patchers = apply_mocks(success_case, mocker)
+    try:
+        mocker.patch.object(ActionInputs, "get_ca_bundle", return_value=str(pem))
+        mock_error = mocker.patch("jacoco_report.action_inputs.logger.error")
+        mock_exit = mocker.patch("sys.exit")
+
+        ActionInputs.validate_inputs()
+
+        mock_error.assert_not_called()
+        mock_exit.assert_not_called()
+    finally:
+        stop_mocks(patchers)
+
+
+def test_validate_inputs_accepts_unset_ca_bundle(mocker):
+    patchers = apply_mocks(success_case, mocker)
+    try:
+        mocker.patch.object(ActionInputs, "get_ca_bundle", return_value="")
+        mock_error = mocker.patch("jacoco_report.action_inputs.logger.error")
+        mock_exit = mocker.patch("sys.exit")
+
+        ActionInputs.validate_inputs()
+
+        mock_error.assert_not_called()
+        mock_exit.assert_not_called()
+    finally:
+        stop_mocks(patchers)
