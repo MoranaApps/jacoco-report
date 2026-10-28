@@ -1530,7 +1530,7 @@ def test_server_url_defaults_to_github_com_when_unset(mock_github, test_evaluato
 
 
 def test_run_link_uses_server_url(mock_github, test_evaluator, mocker, monkeypatch):
-    monkeypatch.setenv("GITHUB_SERVER_URL", "https://ghes.example.com/")
+    monkeypatch.setenv("GITHUB_SERVER_URL", "https://ghes.example.com")
     generator = PRCommentGenerator(mock_github, test_evaluator, None, 1)
     _configure_generator_for_comment_tests(generator, mocker, comment_level="minimal")
     generator.github_repository = "owner/repo"

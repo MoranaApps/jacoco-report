@@ -47,7 +47,7 @@ CHANGED_FILE = "changed-file"
 GITHUB_RUN_ID = "GITHUB_RUN_ID"
 # GITHUB_ACTION_REF is empty in composite action steps (actions/runner#2473), so the ref is parsed from this path
 GITHUB_ACTION_PATH = "GITHUB_ACTION_PATH"
-# GitHub Enterprise Server: the runner sets these to the instance's own URLs (github.com when unset)
+# GitHub Enterprise Server: runner default variables (not action inputs); the defaults are local-run/test fallbacks
 GITHUB_API_URL = "GITHUB_API_URL"
 GITHUB_SERVER_URL = "GITHUB_SERVER_URL"
 DEFAULT_GITHUB_API_URL = "https://api.github.com"

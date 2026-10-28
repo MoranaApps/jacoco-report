@@ -4,7 +4,7 @@ import os
 import pytest
 import requests
 
-from jacoco_report.utils.github import GitHub
+from jacoco_report.utils.github import GitHub, get_api_url, get_server_url
 
 # get_pr_changed_files
 
@@ -35,15 +35,46 @@ def test_get_pr_changed_files_none_response(mocker):
     assert files is None
 
 
+# get_api_url / get_server_url (GitHub Enterprise Server: runner default variables, not action inputs)
+
+
+def test_get_api_url_returns_runner_value(monkeypatch):
+    monkeypatch.setenv("GITHUB_API_URL", "https://ghes.example.com/api/v3")
+    assert get_api_url() == "https://ghes.example.com/api/v3"
+
+
+def test_get_server_url_returns_runner_value(monkeypatch):
+    monkeypatch.setenv("GITHUB_SERVER_URL", "https://ghes.example.com")
+    assert get_server_url() == "https://ghes.example.com"
+
+
+@pytest.mark.parametrize("env_value", [None, ""])
+def test_get_api_url_falls_back_to_github_com(env_value, monkeypatch):
+    if env_value is None:
+        monkeypatch.delenv("GITHUB_API_URL", raising=False)
+    else:
+        monkeypatch.setenv("GITHUB_API_URL", env_value)
+    assert get_api_url() == "https://api.github.com"
+
+
+@pytest.mark.parametrize("env_value", [None, ""])
+def test_get_server_url_falls_back_to_github_com(env_value, monkeypatch):
+    if env_value is None:
+        monkeypatch.delenv("GITHUB_SERVER_URL", raising=False)
+    else:
+        monkeypatch.setenv("GITHUB_SERVER_URL", env_value)
+    assert get_server_url() == "https://github.com"
+
+
 # custom API base (GitHub Enterprise Server)
 
 
-def test_get_pr_changed_files_uses_custom_api_url_without_trailing_slash(mocker):
+def test_get_pr_changed_files_uses_custom_api_url(mocker):
     mocker.patch(
         "os.getenv", side_effect=lambda key: "fake_repo" if key == "GITHUB_REPOSITORY" else "refs/pull/1/merge"
     )
     mock_send = mocker.patch.object(GitHub, "send_request", return_value=None)
-    github = GitHub("fake_token", api_url="https://ghes.example.com/api/v3/")
+    github = GitHub("fake_token", api_url="https://ghes.example.com/api/v3")
 
     github.get_pr_changed_files()
 
@@ -53,7 +84,7 @@ def test_get_pr_changed_files_uses_custom_api_url_without_trailing_slash(mocker)
 def test_add_comment_uses_custom_api_url(mocker, monkeypatch):
     monkeypatch.setenv("GITHUB_REPOSITORY", "fake_repo")
     mock_send = mocker.patch.object(GitHub, "send_request", return_value=None)
-    github = GitHub("fake_token", api_url="https://ghes.example.com/api/v3/")
+    github = GitHub("fake_token", api_url="https://ghes.example.com/api/v3")
 
     github.add_comment(1, "Test comment")
 

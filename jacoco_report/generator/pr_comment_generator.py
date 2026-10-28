@@ -13,7 +13,7 @@ from jacoco_report.evaluator.coverage_evaluator import CoverageEvaluator
 from jacoco_report.model.evaluated_report_coverage import EvaluatedReportCoverage
 from jacoco_report.utils.constants import ACTION_REPOSITORY, ACTION_REPOSITORY_URL
 from jacoco_report.utils.enums import CommentLevelEnum
-from jacoco_report.utils.github import GitHub
+from jacoco_report.utils.github import GitHub, get_server_url
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +46,7 @@ class PRCommentGenerator:
         self.skip_report_names: frozenset[str] = skip_report_names
         self.ungrouped_reports: list[str] = ungrouped_reports or []
         self.github_repository: str = ActionInputs.get_repository()
-        self.github_server_url: str = ActionInputs.get_server_url()
+        self.github_server_url: str = get_server_url()
 
     def generate(self) -> None:
         """

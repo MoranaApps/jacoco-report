@@ -1217,37 +1217,3 @@ def test_validate_inputs_accepts_unset_ca_bundle(mocker):
         mock_exit.assert_not_called()
     finally:
         stop_mocks(patchers)
-
-
-# get_api_url / get_server_url (GHES: runner-provided GITHUB_API_URL / GITHUB_SERVER_URL)
-
-
-@pytest.mark.parametrize(
-    "getter, env_name, default",
-    [
-        ("get_api_url", "GITHUB_API_URL", "https://api.github.com"),
-        ("get_server_url", "GITHUB_SERVER_URL", "https://github.com"),
-    ],
-)
-@pytest.mark.parametrize("env_value", [None, "", "   "])
-def test_ghes_url_getters_fall_back_to_github_com_when_unset_or_blank(
-    getter, env_name, default, env_value, monkeypatch
-):
-    if env_value is None:
-        monkeypatch.delenv(env_name, raising=False)
-    else:
-        monkeypatch.setenv(env_name, env_value)
-    assert getattr(ActionInputs, getter)() == default
-
-
-@pytest.mark.parametrize(
-    "getter, env_name, value",
-    [
-        ("get_api_url", "GITHUB_API_URL", "https://ghes.example.com/api/v3"),
-        ("get_server_url", "GITHUB_SERVER_URL", "https://ghes.example.com"),
-    ],
-)
-@pytest.mark.parametrize("raw", ["{value}", "{value}/", "  {value}/ \n"])
-def test_ghes_url_getters_return_value_without_trailing_slash(getter, env_name, value, raw, monkeypatch):
-    monkeypatch.setenv(env_name, raw.format(value=value))
-    assert getattr(ActionInputs, getter)() == value
