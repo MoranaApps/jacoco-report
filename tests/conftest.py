@@ -1,3 +1,9 @@
+import logging
+import os
+import sys
+import threading
+import warnings
+
 import pytest
 from typing import Callable, Optional
 
@@ -10,6 +16,67 @@ from jacoco_report.model.evaluated_report_coverage import EvaluatedReportCoverag
 from jacoco_report.model.file_coverage import FileCoverage
 from jacoco_report.model.report_file_coverage import ReportFileCoverage
 from jacoco_report.utils.github import GitHub
+
+
+def snapshot_environ() -> dict[str, str]:
+    return dict(os.environ)
+
+
+def restore_environ(snapshot: dict[str, str]) -> None:
+    """Keys added since the snapshot are removed; changed or deleted ones are set back to their snapshot value."""
+    for key in set(os.environ) - set(snapshot):
+        del os.environ[key]
+    for key, value in snapshot.items():
+        if os.environ.get(key) != value:
+            os.environ[key] = value
+
+
+def snapshot_root_logger() -> tuple[list[logging.Handler], int]:
+    root = logging.getLogger()
+    return root.handlers[:], root.level
+
+
+def restore_root_logger(snapshot: tuple[list[logging.Handler], int]) -> None:
+    """Handlers added since the snapshot are closed, so a StreamHandler left behind does not keep its stream."""
+    handlers, level = snapshot
+    root = logging.getLogger()
+    added = [handler for handler in root.handlers if handler not in handlers]
+    root.handlers[:] = handlers
+    root.setLevel(level)
+    for handler in added:
+        handler.close()
+
+
+@pytest.fixture(autouse=True)
+def restore_environ_after_test():
+    """A test that writes os.environ (e.g. INPUT_DEBUG) must not leak it into later tests.
+
+    Session and module fixtures run before this snapshot, so what they set stays.
+    """
+    snapshot = snapshot_environ()
+    yield
+    restore_environ(snapshot)
+
+
+@pytest.fixture(autouse=True)
+def restore_process_hooks_after_test():
+    """setup_logging replaces the process-wide excepthooks and warnings output; put them back after every test."""
+    excepthook = sys.excepthook
+    thread_excepthook = threading.excepthook
+    showwarning = warnings.showwarning
+    yield
+    logging.captureWarnings(False)
+    sys.excepthook = excepthook
+    threading.excepthook = thread_excepthook
+    warnings.showwarning = showwarning
+
+
+@pytest.fixture(autouse=True)
+def restore_root_logger_after_test():
+    """setup_logging's basicConfig(force=True) replaces the root handlers and level; put them back after every test."""
+    snapshot = snapshot_root_logger()
+    yield
+    restore_root_logger(snapshot)
 
 
 @pytest.fixture

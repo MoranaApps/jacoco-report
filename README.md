@@ -20,7 +20,8 @@ Automates the publication of JaCoCo coverage reports directly as comments in pul
 ## Requirements
 
 - **GitHub Token**: A GitHub token with permission to fetch repository data such as Issues and Pull Requests.
-- **Python 3.11+**: Ensure you have Python 3.11 or newer installed on your system.
+- **Python 3.11+**: Python 3.11 or newer must be available as `python` or `python3` on `PATH`. On GitHub-hosted runners, we recommend an `actions/setup-python` step to pin the version.
+- **Runner**: Linux or macOS (`ubuntu-*`, `macos-*`). Windows runners are not supported.
 
 ---
 
@@ -81,6 +82,8 @@ jobs:
 ---
 
 ### Action Inputs
+
+Input values are passed to the action exactly as written: `$VAR`, `$(…)` and backticks are not expanded by the shell. To use a runner value or environment variable, write an expression such as `${{ github.workspace }}` or `${{ env.MY_VAR }}`. This changed in v3.4.0; see [section 8 of the migration guide](docs/v2-v3-migration-guide.md#8-input-values--no-longer-shell-expanded).
 
 | Name                | Description                                                                                                                                                                                                                    | Required | Default                                          |
 |---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------|--------------------------------------------------|
@@ -226,6 +229,8 @@ covering every breaking change.
 - **`paths` defaults to `**/jacoco.xml`**: the input was previously optional when `report-groups` was
   set. It now has a default value. Remove any explicit `paths: ''` overrides — empty paths are
   allowed and fall back to `**/jacoco.xml` at runtime when no groups are configured.
+- **v3.4.0: inputs are not exported to later steps, no `.venv` is left in the workspace, and the job's
+  `PYTHONPATH` is ignored.** See [section 8 of the migration guide](docs/v2-v3-migration-guide.md#other-caller-visible-changes-in-v340).
 
 ---
 

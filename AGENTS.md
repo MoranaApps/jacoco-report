@@ -53,7 +53,8 @@ Files and parts marked "From agentic-defaults" are replaced when the kit updates
   `project-profile` skill). A released public GitHub Action: callers pin the `v2`/`v3` major tags, so
   `action.yml` inputs/outputs and `docs/inputs/*.md` are the versioned contract — no breaking change
   without a migration path (as `docs/v2-v3-migration-guide.md` did for v3).
-- `make setup`: `pip install -r requirements.txt`. Needs Python 3.11+; optionally inside a venv
+- `make setup`: `pip install -r requirements-dev.txt` (runtime plus dev tools; `requirements.txt` is
+  what the action installs). Needs Python 3.11+; optionally inside a venv
   (`python3 -m venv .venv && source .venv/bin/activate` first).
 - `make run`: `python3 main.py`, with every `INPUT_*` input env var and the GitHub-context env vars
   (`GITHUB_REPOSITORY`, `GITHUB_EVENT_NAME`, `GITHUB_REF`) set — see `DEVELOPER.md` → "Run Scripts
@@ -73,3 +74,10 @@ Files and parts marked "From agentic-defaults" are replaced when the kit updates
   `unit-tests` runs across the full Python 3.11–3.15 matrix, the other gates run once on 3.11 (the
   oldest supported version), plus a `context-check` job on pull requests (see the `context-md`
   skill).
+- Use the agentic-defaults kit's agents and skills proactively whenever one fits the task, rather
+  than doing the work inline. This is the owner's standing request to spawn agents, and it overrides
+  "Hand work to an agent only when…" above. For example: review → `reviewer` agent, `security-reviewer`
+  agent and `code-review` skill; tests → `tdd` skill and `tester` agent; implementation → `developer`
+  agent and `implementation` skill; docs and `CONTEXT.md` → `documenter` agent and `context-md` skill;
+  commits and PRs → `commits-and-prs` skill; plans → `task-plans` skill and `architect` agent. Run
+  independent agents in parallel.

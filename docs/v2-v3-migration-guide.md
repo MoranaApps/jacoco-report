@@ -1,6 +1,7 @@
 # v2 → v3 Migration Guide
 
-This guide covers every breaking change between v2.1.x and v3.0.0.
+This guide covers every breaking change between v2.1.x and v3.0.0,
+plus the v3.4.0 changes in section 8.
 Each section shows a before/after workflow snippet and explains the new behaviour.
 
 ---
@@ -16,6 +17,8 @@ Each section shows a before/after workflow snippet and explains the new behaviou
 | 5 | Unchanged reports | [`skip-unchanged`](#5-skip-unchanged--scan-stage-filter-breaking-semantic-change) | Reworked — now a scan-stage filter |
 | 6 | Threshold failure | [`fail-on-threshold: true/false`](#6-fail-on-threshold--list-form-only) | Deprecated — use list form |
 | 7 | Comment detail level | [`comment-level: minimal/full`](#7-comment-level--expanded-option-set) | Expanded to six levels |
+| 8 | Input expansion (v3.4.0) | [`$VAR`, `$(…)` in inputs](#8-input-values--no-longer-shell-expanded) | Not expanded — use `${{ … }}` expressions |
+| 9 | Other v3.4.0 changes | [inputs not exported, no `.venv`, `PYTHONPATH` ignored](#other-caller-visible-changes-in-v340) | See section 8 |
 
 ---
 
@@ -227,6 +230,41 @@ v3 adds four new levels. The existing `minimal` and `full` levels are unchanged.
 ```yaml
     comment-level: 'failed-or-changed'
 ```
+
+---
+
+## 8. Input values — no longer shell-expanded
+
+Up to v3.3.x (and in v2), the action passed inputs through bash,
+so `$VAR`, `$(…)` and backticks in an input were expanded by accident.
+From v3.4.0, each input reaches the action as an environment variable, and the value is used exactly as written.
+Workflows pinned to `v3` pick this up automatically.
+A workflow that relied on that expansion now fails quietly: `paths` finds no files, or `title` shows the literal text.
+
+Replace the shell syntax with a GitHub expression, which the runner evaluates before the action starts:
+
+| Before v3.4.0 | From v3.4.0 |
+|----------------|----------------|
+| `$GITHUB_WORKSPACE/**/jacoco.xml` | `${{ github.workspace }}/**/jacoco.xml` |
+| `$RUNNER_TEMP/reports/jacoco.xml` | `${{ runner.temp }}/reports/jacoco.xml` |
+| `$MY_VAR` (set in the workflow `env:` block) | `${{ env.MY_VAR }}` |
+| `$(date +%F)` | Compute it in an earlier step, expose it as an output, and use `${{ steps.<id>.outputs.<name> }}` |
+
+```yaml
+    paths: ${{ github.workspace }}/**/jacoco.xml
+```
+
+### Other caller-visible changes in v3.4.0
+
+- **Inputs are no longer exported to later steps.** The action no longer writes its inputs (`INPUT_*`, including
+  `token`) to `$GITHUB_ENV`. Later steps in your job no longer see them. To pass a value on, write the same
+  `${{ … }}` expression in that step's `env:` or `with:`, or use an [output](../README.md#outputs) of this action.
+- **No `.venv` in your workspace.** Each call creates a fresh virtual environment in a temporary directory:
+  `$RUNNER_TEMP`, else `$TMPDIR`, else `/tmp`. Do not rely on `.venv/bin/python` or
+  `source .venv/bin/activate` after the action. A later step that needs Python creates its own environment.
+- **`PYTHONPATH` from your job is ignored by the action.** The action clears it for its own Python process.
+  Other `PYTHON*` variables, such as `PYTHONIOENCODING` and `PYTHONUTF8`, are still honored.
+  Nothing to change for the action; set `PYTHONPATH` only in the steps that need it.
 
 ---
 

@@ -9,6 +9,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   context-check:
     if: github.event_name == 'pull_request'
@@ -16,13 +19,15 @@ jobs:
     name: CONTEXT.md check
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
 
       - name: Check CONTEXT.md files are up to date
-        run: bash .claude/skills/context-md/check.sh --base "origin/${{ github.base_ref }}" --strict
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: bash .claude/skills/context-md/check.sh --base "origin/$BASE_REF" --strict
 
   set-matrix:
     runs-on: ubuntu-latest
@@ -41,19 +46,22 @@ jobs:
     name: Pylint Analysis - (Python ${{ needs.set-matrix.outputs.oldest-version }})
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@v7.1.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: ${{ needs.set-matrix.outputs.oldest-version }}
           cache: 'pip'
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
 
       - name: Install dependencies
         run: |
-          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
 
       - name: Analyze code with Pylint
         id: analyze-code
@@ -78,19 +86,22 @@ jobs:
     name: Black Format Check - (Python ${{ needs.set-matrix.outputs.oldest-version }})
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@v7.1.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: ${{ needs.set-matrix.outputs.oldest-version }}
           cache: 'pip'
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
 
       - name: Install dependencies
         run: |
-          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
 
       - name: Check code format with Black
         id: check-format
@@ -105,20 +116,23 @@ jobs:
     name: Unit Tests - (Python ${{ matrix.python-version }})
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@v7.1.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
 
       - name: Install dependencies
         run: |
-          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
 
       - name: Run unit tests with coverage
         run: pytest tests/unit/ --cov=. --cov-fail-under=80 --cov-report=html
@@ -129,20 +143,23 @@ jobs:
     name: Integration Tests - (Python ${{ needs.set-matrix.outputs.oldest-version }})
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@v7.1.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: ${{ needs.set-matrix.outputs.oldest-version }}
           cache: 'pip'
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
 
       - name: Install dependencies
         run: |
-          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
 
       - name: Run integration tests
         run: |
@@ -160,20 +177,23 @@ jobs:
     name: Live Integration Test - (Python ${{ needs.set-matrix.outputs.oldest-version }})
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@v7.1.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: ${{ needs.set-matrix.outputs.oldest-version }}
           cache: 'pip'
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
 
       - name: Install dependencies
         run: |
-          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
 
       - name: Run live integration tests
         env:
@@ -187,22 +207,29 @@ jobs:
   self-test:
     if: github.event_name == 'pull_request'
     needs: set-matrix
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
     permissions:
       contents: read
       pull-requests: read
-    name: Action Self-Test - (Python ${{ needs.set-matrix.outputs.oldest-version }})
+    name: Action Self-Test - (${{ matrix.os }}, Python ${{ needs.set-matrix.outputs.oldest-version }})
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@v7.1.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: ${{ needs.set-matrix.outputs.oldest-version }}
           cache: 'pip'
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
 
       # comment-level none + update-comment false makes no comment API call, so this read-only
       # run also works on fork PRs, whose GITHUB_TOKEN cannot write.
@@ -216,6 +243,8 @@ jobs:
             tests/data/test_project/context/**/jacoco.xml
           comment-level: none
           update-comment: 'false'
+          # Hostile on purpose: if the title were ever shell-expanded, the marker file would be created.
+          title: 'x $(touch "$RUNNER_TEMP/jacoco-pwned") `touch "$RUNNER_TEMP/jacoco-pwned"` "y"'
 
       # Expected values follow from the fixture XMLs in `paths`; update them when those fixtures change.
       - name: Assert action outputs
@@ -242,6 +271,7 @@ jobs:
           check coverage-changed-files-passed True "$COVERAGE_CHANGED_FILES_PASSED"
           check "reports-coverage entries" 8 "$(jq length <<< "$REPORTS_COVERAGE")"
           check groups-coverage '{}' "$(jq -c . <<< "$GROUPS_COVERAGE")"
+          check hostile-title-not-expanded absent "$(if [ -e "$RUNNER_TEMP/jacoco-pwned" ]; then echo present; else echo absent; fi)"
           exit $failed
 
   mypy-check:
@@ -250,19 +280,22 @@ jobs:
     name: Mypy Type Check - (Python ${{ needs.set-matrix.outputs.oldest-version }})
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@v7.1.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: ${{ needs.set-matrix.outputs.oldest-version }}
           cache: 'pip'
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
 
       - name: Install dependencies
         run: |
-          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
       - name: Check types with Mypy
         id: check-types
         run: |
