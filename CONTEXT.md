@@ -134,6 +134,10 @@ service is needed.
 - The `secrets` context is not allowed in a step- or job-level `if:`; GitHub rejects the whole workflow
   file as invalid and no job in it runs (issue #240: `renovate.yml` never auto-merged). Expose the
   secret via an `env:` var (e.g. `HAS_REVIEW_TOKEN: ${{ secrets.X != '' }}`) and test that instead.
+- `action.yml` hands inputs to `main.py` only via the Run step's `env:` (`INPUT_<NAME>: ${{ inputs.<name> }}`,
+  `-` → `_`, upper-cased) — a new input needs a line there. Never interpolate `${{ inputs.* }}` into a
+  `run:` script (shell injection) or write to `$GITHUB_ENV` (leaks the token into the caller's later
+  steps); `tests/unit/test_action_yml.py` enforces all three.
 - The `self-test` CI job asserts exact action outputs (`coverage-overall` 91.62, 8 reports) computed
   from `tests/data/test_project/module_large/` + `context/**` fixture XMLs; editing those XMLs means
   updating the expected values in `static_analysis_and_tests.yml`. It runs with `comment-level: none`
