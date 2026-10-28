@@ -1,3 +1,7 @@
 * @miroslavpojer
 
-/requirements*.txt
+/requirements.in @miroslavpojer
+/requirements.txt @miroslavpojer
+
+# Dev pins stay unowned, so automerge can merge their minor and patch updates without a review.
+/requirements-dev.txt

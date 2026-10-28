@@ -1,4 +1,4 @@
--r requirements.txt
+-r requirements.in
 pylint==4.1.3
 black==26.10.1
 pytest==9.2.0

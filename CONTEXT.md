@@ -12,9 +12,9 @@ who want coverage visible directly in PR review, without digging through CI logs
 - Python 3.11+ (CI matrix: 3.11, 3.12, 3.13, 3.14, 3.15 — only `unit-tests` runs the full matrix;
   `analysis`/`code-format-check`/`mypy-check`/`integration-tests`/`live-integration-test`/`self-test`
   run once on 3.11, the oldest supported version; `pyproject.toml`/`.pylintrc` target py311)
-- No packaging layer: this is a GitHub composite Action (`action.yml`), not a pip package. Deps are
-  pinned flat in `requirements.txt` (runtime) and `requirements-dev.txt` (`-r requirements.txt` plus
-  dev tools); no `src/` layout.
+- No packaging layer: this is a GitHub composite Action (`action.yml`), not a pip package. Runtime deps are
+  declared in `requirements.in` and locked with hashes in `requirements.txt` (pip-compile output);
+  `requirements-dev.txt` (`-r requirements.in` plus dev tools) is flat and unhashed; no `src/` layout.
 - Libraries: `requests` (GitHub REST API), `pyyaml` (`report-groups` input parsing)
 - Dev tooling: pylint, black (line-length 120), mypy, pytest + pytest-cov + pytest-mock
 - CI: GitHub Actions (`.github/workflows/`); Renovate for dependency updates
@@ -139,6 +139,13 @@ service is needed.
   (`utils/logging_config.py`), which prefixes each continuation line with `| `, not by escaping at call
   sites: one place covers every log call and traceback, and intentional multi-line blocks stay readable.
   `::stop-commands::` was rejected: the formatter, the excepthooks and `captureWarnings` cover every channel.
+- Dev pins stay unhashed on top of `-r requirements.in`: a single-platform pip-compile lock lacks Windows-only deps
+  (e.g. `colorama` for pytest/pylint), which breaks Windows dev installs.
+- `renovate.yml` gates on the PR's changed files, not on labels: Renovate adds labels after it opens the PR, so a
+  label check races on `opened`.
+- No `--only-binary=:all:` for pip: `--require-hashes` checks sdists too, but an sdist build's isolated env fetches
+  build tools unhashed. pyyaml 6.0.3 has no cp315 or pure wheel, so 3.15 builds it. Rejected: it would break 3.15
+  callers. Revisit when pyyaml ships cp315 wheels (#278).
 
 ## Invariants and gotchas
 
@@ -209,11 +216,13 @@ service is needed.
 - Runners: the `action.yml` scripts run on ubuntu and macos runners (`shell: bash`). Windows runners are not
   a support target (owner decision). This is about the runners callers use, not dev machines (see the
   `_to_posix_abspath` bullet). No `grep -P`.
-- Dependencies: `requirements.txt` is runtime only (`requests`, `pyyaml`), and `action.yml`'s `setup` step
-  installs it into callers' jobs. `requirements-dev.txt` starts with `-r requirements.txt`; `make setup` and
-  the CI jobs that need dev tools install it. A new runtime import (anything `main.py` or `jacoco_report/`
-  imports) must go in `requirements.txt`: otherwise the action breaks in callers' jobs while the tests still
-  pass, because the dev install includes it.
+- Dependencies: `requirements.in` holds the runtime top-level pins (`requests`, `pyyaml`). `requirements.txt` is
+  its lock (`--generate-hashes`); `action.yml`'s `setup` installs it into callers' jobs with `--require-hashes`.
+  Never hand-edit `requirements.txt`: regenerate it with the command in its header (`DEVELOPER.md` → "Update
+  Dependencies"). `requirements-dev.txt` starts with `-r requirements.in`; `make setup` and the CI jobs that need
+  dev tools install it. A new runtime import (anything `main.py` or `jacoco_report/` imports) must go in
+  `requirements.in` and the lock must be regenerated: otherwise the action breaks in callers' jobs while the tests
+  still pass, because the dev install includes it.
 - `set_action_failed` escapes each message with `escape_workflow_command_data` (`%`, `\r`, `\n`; `%`
   first, then `break_legacy_command_prefix`, as in the formatter bullet). Messages can contain text from PR report XMLs, so an unescaped newline could forge a workflow
   command such as `::add-mask::`. Any new `::command::` print must go through it.
@@ -243,6 +252,19 @@ service is needed.
   deliberately no retry: a POST of a PR comment isn't idempotent (debt JR-04b). `get_comments` turns a failed
   page into the pages read so far (`[]` on page 1), which callers read as "no existing comment": with
   `update-comment: true` that adds a second comment instead of updating the first.
+- Runtime deps (`requirements.in`, `requirements.txt`) never automerge. Three controls, all required:
+  - `renovate.json`: the `pip-compile` rule for those two files sets `automerge: false`; `pip_requirements` is
+    disabled for `requirements.txt`; `pip-compile` `managerFilePatterns` matches `requirements.txt` only;
+    `lockFileMaintenance` is enabled (its PRs are reviewed too). The runtime rule has `minimumReleaseAge: "7 days"`:
+    a runtime PR opens only once the release is 7 days old. Vulnerability-fix PRs skip the wait (`vulnerabilityAlerts`
+    sets no `minimumReleaseAge`); lock file maintenance does not wait (`--upgrade` takes the latest version).
+  - `.github/workflows/renovate.yml`: step `runtime-gate` reads the PR's changed files from the GitHub API into a
+    variable first. If `requirements.in` or `requirements.txt` changed, it sets `runtime-changed=true`, and the
+    PAT approval and `gh pr merge --auto` steps are skipped. A failed file-list call fails the step, so nothing is
+    approved or merged. The job is a required status check, so it must still succeed on those PRs.
+  - `.github/CODEOWNERS`: `/requirements.in` and `/requirements.txt` have an owner, but `RENOVATE_REVIEW_TOKEN` is the
+    owner's PAT (MoranaApps org), so its approval counts as code-owner review. For Renovate PRs the gate is the only
+    control that matters. `/requirements-dev.txt` is unowned, so dev minor/patch automerge still works.
 
 ## Read more
 

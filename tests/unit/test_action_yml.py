@@ -459,3 +459,15 @@ def test_setup_resolves_a_relative_ca_bundle_from_the_working_directory(tmp_path
     assert result.returncode == 0, result.stdout + result.stderr
     _, *ca_env = record.read_text(encoding="utf-8").splitlines()
     assert ca_env[0] == "PIP_CERT=ca.pem"
+
+
+def test_setup_installs_the_hash_checked_runtime_lock(tmp_path):
+    # The pip call must name the lock and require hashes: an unhashed or unlocked install lets PyPI float transitive deps.
+    fake_bin = _ca_bundle_fake_bin(tmp_path)
+    record = tmp_path / "record.txt"
+    env = _setup_env(tmp_path, fake_bin)
+    env["RECORD"] = str(record)
+    result = _run_setup(tmp_path, fake_bin, env=env)
+    assert result.returncode == 0, result.stdout + result.stderr
+    pip_call = record.read_text(encoding="utf-8").splitlines()[0]
+    assert pip_call == f"-I -m pip install -r {ACTION_YML.parent / 'requirements.txt'} --require-hashes"

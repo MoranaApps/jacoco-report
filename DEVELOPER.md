@@ -35,6 +35,26 @@ pip install -r requirements-dev.txt
 
 ---
 
+## Update Dependencies
+
+- Runtime dependencies (installed into callers' jobs): list top-level pins in `requirements.in`. The
+  hash-checked lock `requirements.txt` is generated; never edit it by hand.
+- Dev tools: pin them in `requirements-dev.txt` (not hashed; it starts with `-r requirements.in`).
+- After changing `requirements.in`, regenerate the lock from the repo root with Python 3.11. The command needs
+  `uv` (`uv` fetches Python 3.11 and pip-tools itself; `make setup` does not install it). Or, in a Python 3.11
+  venv with `pip install pip-tools`, run the `pip-compile` part alone:
+
+  ```shell
+  uvx --python 3.11 --from pip-tools pip-compile --generate-hashes --output-file=requirements.txt requirements.in
+  # or, in the pip-tools venv:
+  pip-compile --generate-hashes --output-file=requirements.txt requirements.in
+  ```
+
+- Renovate opens runtime updates as PRs that never automerge. Review and merge them by hand. Dev-tool
+  minor and patch updates still automerge. See `CONTEXT.md` → "Invariants and gotchas".
+
+---
+
 ## Branch Naming Convention
 
 | Type | Pattern | Example |

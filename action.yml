@@ -179,7 +179,7 @@ runs:
           export PIP_CERT="$ca_bundle"
           unset REQUESTS_CA_BUNDLE CURL_CA_BUNDLE
         fi
-        "$venv_python" -I -m pip install -r "$GITHUB_ACTION_PATH/requirements.txt"
+        "$venv_python" -I -m pip install -r "$GITHUB_ACTION_PATH/requirements.txt" --require-hashes
       shell: bash
 
     # Inputs reach main.py only through this step's env: never interpolate `${{ inputs.* }}` into a
