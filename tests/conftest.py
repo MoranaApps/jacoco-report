@@ -17,20 +17,44 @@ from jacoco_report.model.report_file_coverage import ReportFileCoverage
 from jacoco_report.utils.github import GitHub
 
 
-@pytest.fixture(autouse=True)
-def restore_environ_after_test():
-    """A test that writes os.environ (e.g. INPUT_DEBUG) must not leak it into later tests.
+def snapshot_environ() -> dict[str, str]:
+    return dict(os.environ)
 
-    Keys the test added are removed; changed or deleted ones are set back to their value before the test.
-    Session and module fixtures run before this snapshot, so what they set stays.
-    """
-    snapshot = dict(os.environ)
-    yield
+
+def restore_environ(snapshot: dict[str, str]) -> None:
+    """Keys added since the snapshot are removed; changed or deleted ones are set back to their snapshot value."""
     for key in set(os.environ) - set(snapshot):
         del os.environ[key]
     for key, value in snapshot.items():
         if os.environ.get(key) != value:
             os.environ[key] = value
+
+
+def snapshot_root_logger() -> tuple[list[logging.Handler], int]:
+    root = logging.getLogger()
+    return root.handlers[:], root.level
+
+
+def restore_root_logger(snapshot: tuple[list[logging.Handler], int]) -> None:
+    """Handlers added since the snapshot are closed, so a StreamHandler left behind does not keep its stream."""
+    handlers, level = snapshot
+    root = logging.getLogger()
+    added = [handler for handler in root.handlers if handler not in handlers]
+    root.handlers[:] = handlers
+    root.setLevel(level)
+    for handler in added:
+        handler.close()
+
+
+@pytest.fixture(autouse=True)
+def restore_environ_after_test():
+    """A test that writes os.environ (e.g. INPUT_DEBUG) must not leak it into later tests.
+
+    Session and module fixtures run before this snapshot, so what they set stays.
+    """
+    snapshot = snapshot_environ()
+    yield
+    restore_environ(snapshot)
 
 
 @pytest.fixture(autouse=True)
@@ -46,18 +70,10 @@ def restore_process_hooks_after_test():
 
 @pytest.fixture(autouse=True)
 def restore_root_logger_after_test():
-    """setup_logging's basicConfig(force=True) replaces the root handlers and level; put them back after every test.
-
-    Handlers the test added are closed, so a StreamHandler left behind does not keep writing to a stream.
-    """
-    root = logging.getLogger()
-    handlers, level = root.handlers[:], root.level
+    """setup_logging's basicConfig(force=True) replaces the root handlers and level; put them back after every test."""
+    snapshot = snapshot_root_logger()
     yield
-    added = [handler for handler in root.handlers if handler not in handlers]
-    root.handlers[:] = handlers
-    root.setLevel(level)
-    for handler in added:
-        handler.close()
+    restore_root_logger(snapshot)
 
 
 @pytest.fixture

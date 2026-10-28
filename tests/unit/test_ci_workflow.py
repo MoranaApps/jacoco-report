@@ -8,7 +8,7 @@ CI_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "static_analysis_and_tests.y
 REQUIREMENTS_PATHS = ["requirements.txt", "requirements-dev.txt"]
 FULL_SHA = re.compile(r"[0-9a-f]{40}")
 THIRD_PARTY_USES = re.compile(r"[\w.-]+/[\w.-]+(/[\w./-]+)?@(?P<ref>[^\s#]+)")
-PINNED_USES_WITH_COMMENT = re.compile(r"uses:\s*(?P<uses>\S+)\s+#\s*v\d\S*\s*$", re.MULTILINE)
+PINNED_USES_WITH_COMMENT = re.compile(r"uses:\s*(?P<uses>\S+)\s+#\s*v?\d\S*\s*$", re.MULTILINE)
 
 
 def _workflow() -> dict:
@@ -51,6 +51,21 @@ def test_every_third_party_uses_is_pinned_to_a_full_commit_sha():
         match = THIRD_PARTY_USES.fullmatch(uses)
         assert match, f"unparsable uses: {uses}"
         assert FULL_SHA.fullmatch(match.group("ref")), f"{uses} is not pinned to a 40-hex commit SHA"
+
+
+def test_workflow_default_token_permissions_are_read_only():
+    # Jobs without their own `permissions:` inherit this block; a missing one gives the repo default, often write.
+    permissions = _workflow().get("permissions")
+    assert isinstance(permissions, dict) and permissions, "workflow has no top-level permissions block"
+    assert all(
+        level == "read" for level in permissions.values()
+    ), f"workflow permissions are not read-only: {permissions}"
+
+
+def test_version_comment_accepts_a_bare_number_without_v():
+    # Renovate and people write `# 4.2.0` as well as `# v4.2.0`; both must count as a version comment.
+    assert PINNED_USES_WITH_COMMENT.search("uses: actions/foo@" + "a" * 40 + " # 4.2.0\n")
+    assert PINNED_USES_WITH_COMMENT.search("uses: actions/foo@" + "a" * 40 + " # v4.2.0\n")
 
 
 def test_every_pinned_third_party_uses_has_a_version_comment():

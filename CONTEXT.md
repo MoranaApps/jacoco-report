@@ -176,16 +176,23 @@ service is needed.
 - `set_action_output_text` (`gh_action.py`) writes multi-line outputs as `name<<ghadelimiter_<uuid4>` heredocs with a
   random delimiter per call. It raises `ValueError` before writing if the name or value contains that delimiter.
   Never use a fixed delimiter.
-- Workflow file (`.github/workflows/`), enforced by `tests/unit/test_ci_workflow.py`:
-  - No `run:` script contains `${{`; pass expressions via `env:` (e.g. context-check gets `github.base_ref` as `BASE_REF`).
-  - Every third-party `uses:` is pinned to a full commit SHA with a `# vX.Y.Z` comment. Renovate updates the pins.
-  - Every `actions/setup-python` step with `cache: pip` lists both `requirements.txt` and `requirements-dev.txt` in `cache-dependency-path`.
+- `.github/workflows/static_analysis_and_tests.yml` only, enforced by `tests/unit/test_ci_workflow.py` (other
+  workflows are not checked):
+  - No `run:` script contains `${{`; pass expressions via `env:` (e.g. context-check gets `github.base_ref` as
+    `BASE_REF`).
+  - Top-level `permissions: contents: read`; only `live-integration-test` and `self-test` declare their own.
+  - Every third-party `uses:` in that file is pinned to a full commit SHA with a `# vX.Y.Z` (or `# X.Y.Z`)
+    comment. Renovate updates the pins.
+  - Every `actions/setup-python` step with `cache: pip` lists both `requirements.txt` and `requirements-dev.txt`
+    in `cache-dependency-path`.
 - `setup_logging` also installs `sys.excepthook` (uncaught exceptions are logged through the formatter, exit
   code stays 1, `KeyboardInterrupt` goes to the default hook) and calls `logging.captureWarnings(True)`. Both
   are process-wide: the autouse `tests/conftest.py` fixture `restore_process_hooks_after_test` restores them
   after every test. `restore_root_logger_after_test` does the same for the root handlers and level, and closes
   the handlers a test added. `restore_environ_after_test` snapshots `os.environ` per test and removes added keys
   and resets changed or deleted ones (e.g. `INPUT_DEBUG` set by a test); `tests/unit/test_env_isolation.py` pins it.
+  The last two delegate to plain `snapshot_*`/`restore_*` helpers in `conftest.py`; tests call those helpers,
+  never a fixture's `__wrapped__`.
 - Runners: the `action.yml` scripts run on ubuntu and macos runners (`shell: bash`). Windows runners are not
   a support target (owner decision). This is about the runners callers use, not dev machines (see the
   `_to_posix_abspath` bullet). No `grep -P`.

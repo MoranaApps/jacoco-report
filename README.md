@@ -83,7 +83,7 @@ jobs:
 
 ### Action Inputs
 
-Input values are passed to the action exactly as written: `$VAR`, `$(…)` and backticks are not expanded by the shell. To use a runner value or environment variable, write an expression such as `${{ github.workspace }}` or `${{ env.MY_VAR }}`.
+Input values are passed to the action exactly as written: `$VAR`, `$(…)` and backticks are not expanded by the shell. To use a runner value or environment variable, write an expression such as `${{ github.workspace }}` or `${{ env.MY_VAR }}`. This changed in v3.4.0; see [section 8 of the migration guide](docs/v2-v3-migration-guide.md#8-input-values--no-longer-shell-expanded).
 
 | Name                | Description                                                                                                                                                                                                                    | Required | Default                                          |
 |---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------|--------------------------------------------------|

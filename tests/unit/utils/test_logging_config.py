@@ -1,6 +1,7 @@
 import io
 import logging
 import os
+import re
 import subprocess
 import sys
 import warnings
@@ -9,8 +10,14 @@ from pathlib import Path
 import pytest
 
 from jacoco_report.utils import logging_config
-from tests import conftest as tests_conftest
+from tests.conftest import restore_root_logger, snapshot_root_logger
 from jacoco_report.utils.logging_config import setup_logging
+
+
+def _rendered_line(formatter: logging.Formatter) -> str:
+    """Render one INFO record through the formatter, as the log handler would."""
+    record = logging.LogRecord("jacoco_report", logging.INFO, __file__, 1, "probe", (), None)
+    return formatter.format(record)
 
 
 def test_default_logging_level(mock_logging_setup, caplog):
@@ -27,7 +34,7 @@ def test_default_logging_level(mock_logging_setup, caplog):
     assert call_args["level"] == logging.INFO
     formatter = call_args["handlers"][0].formatter
     assert isinstance(formatter, logging_config.WorkflowCommandSafeFormatter)
-    assert formatter._fmt == logging_config.LOG_FORMAT
+    assert re.fullmatch(r"\d{4}-\d\d-\d\d \d\d:\d\d:\d\d - INFO - probe", _rendered_line(formatter))
     assert formatter.datefmt == logging_config.LOG_DATE_FORMAT
 
     # Check that the handler is a StreamHandler and outputs to sys.stdout
@@ -56,7 +63,7 @@ def test_verbose_logging_enabled(mock_logging_setup, caplog):
     assert call_args["level"] == logging.DEBUG
     formatter = call_args["handlers"][0].formatter
     assert isinstance(formatter, logging_config.WorkflowCommandSafeFormatter)
-    assert formatter._fmt == logging_config.LOG_FORMAT
+    assert re.fullmatch(r"\d{4}-\d\d-\d\d \d\d:\d\d:\d\d - INFO - probe", _rendered_line(formatter))
     assert formatter.datefmt == logging_config.LOG_DATE_FORMAT
 
     # Check that the handler is a StreamHandler and outputs to sys.stdout
@@ -84,7 +91,7 @@ def test_debug_mode_enabled(mock_logging_setup, caplog):
     assert call_args["level"] == logging.DEBUG
     formatter = call_args["handlers"][0].formatter
     assert isinstance(formatter, logging_config.WorkflowCommandSafeFormatter)
-    assert formatter._fmt == logging_config.LOG_FORMAT
+    assert re.fullmatch(r"\d{4}-\d\d-\d\d \d\d:\d\d:\d\d - INFO - probe", _rendered_line(formatter))
     assert formatter.datefmt == logging_config.LOG_DATE_FORMAT
 
     # Check that the handler is a StreamHandler and outputs to sys.stdout
@@ -305,23 +312,21 @@ def test_setup_logging_replaces_a_handler_configured_before():
     assert isinstance(root.handlers[0].formatter, logging_config.WorkflowCommandSafeFormatter)
 
 
-def test_restore_fixture_undoes_real_basicConfig(monkeypatch):
-    """The autouse root-logger fixture in conftest puts back what the real basicConfig replaced.
+def test_restore_helper_undoes_real_basicConfig(monkeypatch):
+    """The root-logger restore in conftest puts back what the real basicConfig replaced.
 
-    The fixture generator is driven by hand. The test sets its own root level first, so the result does not
-    depend on --log-level, and it does not depend on test order.
+    The test sets its own root level first, so the result does not depend on --log-level or test order.
     """
     root = logging.getLogger()
     monkeypatch.setattr(root, "level", logging.CRITICAL)
-    handlers_before, level_before = root.handlers[:], root.level
-    restore = tests_conftest.restore_root_logger_after_test.__wrapped__()
-    next(restore)
+    snapshot = snapshot_root_logger()
+    handlers_before = root.handlers[:]
 
     setup_logging()
-    assert root.level != level_before
+    assert root.level != logging.CRITICAL
     assert root.handlers != handlers_before
 
-    next(restore, None)
+    restore_root_logger(snapshot)
 
-    assert root.level == level_before
+    assert root.level == logging.CRITICAL
     assert root.handlers == handlers_before

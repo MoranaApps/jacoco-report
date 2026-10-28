@@ -18,9 +18,12 @@ RUN_STEP_SCRIPT = '"$JACOCO_REPORT_PYTHON" -B -E -s "$GITHUB_ACTION_PATH/main.py
 
 INPUT_REFERENCE = re.compile(r"^\$\{\{\s*inputs\.([a-z-]+)\s*\}\}$")
 TOKEN_REFERENCE = re.compile(r"inputs\.token", re.IGNORECASE)
-# A python command word: bare `python`, or a variable such as "$venv_python" or $JACOCO_REPORT_PYTHON.
-# `command -v python` only looks the name up, so it is not a command word.
-PYTHON_COMMAND = re.compile(r"""(?:^|[\s;&|(])(?<!-v )"?(?:python3?|\$\{?\w*(?i:python)\w*\}?)"?(?=\s)""")
+# A python command word at command position: line start, or after `;` `&` `|` `(` `!` `$(` or if/then/else/do.
+# Prose such as `echo "Using python 3.11"` or `command -v python` has no such prefix, so it is not a command word.
+# Matches bare `python`/`python3`, or a variable such as "$venv_python" or $JACOCO_REPORT_PYTHON.
+PYTHON_COMMAND = re.compile(
+    r"""(?:^|[;&|(!]|\$\(|\b(?:if|then|else|do)\b)\s*"?(?:python3?|\$\{?\w*(?i:python)\w*\}?)"?(?=\s|$)"""
+)
 UNQUOTED_PATH = re.compile(r"""(?<!")\$\{?(?:RUNNER_TEMP|GITHUB_ACTION_PATH|GITHUB_OUTPUT)\b""")
 PORTABILITY_BANS = {
     "grep -P": re.compile(r"grep\s+-[a-zA-Z]*P"),
@@ -49,11 +52,28 @@ def _run_scripts():
     return [(_label(step), step["run"]) for step in _steps() if "run" in step]
 
 
+def _strip_comments(script):
+    # Drops `# …` comments: a `#` at line start or after whitespace, outside quotes. `$#` and `"#"` stay.
+    lines = []
+    for line in script.splitlines():
+        quote = None
+        cut = len(line)
+        for index, char in enumerate(line):
+            if quote:
+                if char == quote:
+                    quote = None
+            elif char in "\"'":
+                quote = char
+            elif char == "#" and (index == 0 or line[index - 1].isspace()):
+                cut = index
+                break
+        lines.append(line[:cut])
+    return "\n".join(lines)
+
+
 def _python_invocations(script):
     # Yields (line, text after the command word) for every python command in a run script.
-    for line in script.splitlines():
-        if line.strip().startswith("#"):
-            continue
+    for line in _strip_comments(script).splitlines():
         for match in PYTHON_COMMAND.finditer(line):
             yield line.strip(), line[match.end() :]
 
@@ -121,11 +141,40 @@ def test_action_has_exactly_setup_and_run_steps():
     assert [step.get("id") for step in _steps()] == [SETUP_ID, RUN_ID]
 
 
-def test_setup_makes_a_fresh_venv_under_runner_temp_and_passes_its_interpreter_via_github_output():
-    setup_script = _step(SETUP_ID)["run"]
-    # A new private dir per call, under RUNNER_TEMP so the caller's checkout stays clean.
-    assert 'venv_dir="$(mktemp -d "$RUNNER_TEMP/jacoco-report-venv.XXXXXX")"' in setup_script
-    assert '>> "$GITHUB_OUTPUT"' in setup_script
+def test_setup_makes_a_fresh_venv_under_runner_temp_and_passes_its_interpreter_via_github_output(tmp_path):
+    # A fake `python` that accepts the version checks and, for `-m venv DIR`, creates DIR/bin/python.
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    fake_python = fake_bin / "python"
+    fake_python.write_text(
+        '#!/bin/bash\ncase "$*" in\n'
+        '  "-I --version") echo "Python 3.12.0" ;;\n'
+        '  "-I -m venv "*) mkdir -p "${@: -1}/bin" && cp "$0" "${@: -1}/bin/python" ;;\n'
+        "esac\nexit 0\n",
+        encoding="utf-8",
+    )
+    fake_python.chmod(0o755)
+    output = tmp_path / "output"
+    env = {
+        "PATH": f"{fake_bin}:/usr/bin:/bin",
+        "RUNNER_TEMP": str(tmp_path),
+        "GITHUB_OUTPUT": str(output),
+        "GITHUB_ACTION_PATH": str(ACTION_YML.parent),
+    }
+    result = subprocess.run(
+        ["/bin/bash", "--noprofile", "--norc", "-eo", "pipefail", "-c", _step(SETUP_ID)["run"]],
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    # The interpreter is handed on as a step output and lives in a new venv dir directly under RUNNER_TEMP.
+    venv_python = Path(output.read_text(encoding="utf-8").removeprefix("python=").strip())
+    venv_dir = venv_python.parent.parent
+    assert venv_python.is_file()
+    assert venv_dir.parent == tmp_path
+    assert venv_dir.name.startswith("jacoco-report-venv.")
 
 
 def test_setup_stops_with_a_setup_python_hint_when_python_is_not_on_path(tmp_path):
@@ -177,11 +226,31 @@ def test_setup_emits_an_error_annotation_when_python_is_too_old(tmp_path):
     assert list(tmp_path.glob("jacoco-report-venv*")) == []
 
 
+def test_python_detector_skips_prose_and_comments_but_finds_real_calls():
+    script = "\n".join(
+        [
+            'echo "Using python 3.11"',
+            'echo "Please install python first"',
+            "# python -I is only a comment",
+            "  python -I -m venv x  # python -m pip",
+            'echo "Version: $(python3 -I --version)"',
+            'if ! "$venv_python" -I -c "import sys"; then',
+        ]
+    )
+    assert [line for line, _ in _python_invocations(script)] == [
+        "python -I -m venv x",
+        'echo "Version: $(python3 -I --version)"',
+        'if ! "$venv_python" -I -c "import sys"; then',
+    ]
+
+
 def test_setup_python_calls_all_run_isolated():
     # Python puts the working directory on sys.path, and that is the caller's checkout. `-I` drops it, so a
     # planted argparse.py or pip/ there can't run in the setup step.
     invocations = list(_python_invocations(_step(SETUP_ID)["run"]))
-    assert len(invocations) >= 4, "detector found too few python invocations"
+    # Guard that the detector still sees the calls that matter, so the -I check below can't pass on an empty list.
+    for module in ("venv", "pip"):
+        assert any(re.search(rf"-m\s+{module}\b", rest) for _, rest in invocations), f"no `-m {module}` call detected"
     for line, rest in invocations:
         assert re.match(r"\s+-I(\s|$)", rest), f"python invocation without -I: {line}"
 
@@ -194,9 +263,18 @@ def test_run_step_runs_main_with_the_venv_interpreter():
 def test_run_scripts_are_portable_and_leave_no_venv_in_the_workspace():
     for label, script in _run_scripts():
         for name, pattern in PORTABILITY_BANS.items():
-            assert pattern.search(script) is None, f"{label}: `{name}` is not portable or touches the workspace"
+            assert (
+                pattern.search(_strip_comments(script)) is None
+            ), f"{label}: `{name}` is not portable or touches the workspace"
 
 
 def test_run_scripts_quote_every_path_variable():
     for label, script in _run_scripts():
-        assert UNQUOTED_PATH.search(script) is None, f"{label}: unquoted path variable"
+        assert UNQUOTED_PATH.search(_strip_comments(script)) is None, f"{label}: unquoted path variable"
+
+
+def test_strip_comments_keeps_code_and_drops_only_comments():
+    assert _strip_comments("# uses .venv\necho ok  # and .venv\n") == "\necho ok  "
+    assert _strip_comments('echo "a # .venv"') == 'echo "a # .venv"'
+    assert _strip_comments("echo $# .venv") == "echo $# .venv"
+    assert ".venv" in _strip_comments("python3 -m venv .venv")
