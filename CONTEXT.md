@@ -211,6 +211,11 @@ service is needed.
   `static_analysis_and_tests.yml`. Its assertions use `jq`. Its `title` is hostile (`$(…)`, backticks), and it
   asserts the marker file `$RUNNER_TEMP/jacoco-pwned` was not created. It runs with `comment-level: none`
   + `update-comment: false` — the only mode that makes no comment API call — so it works on fork PRs.
+- Every GitHub API call in `GitHub.send_request` passes `timeout=REQUEST_TIMEOUT` (`(10, 60)`, connect, read).
+  A timeout is a `requests.RequestException`, so it surfaces as `None` like other request errors. There is
+  deliberately no retry: a POST of a PR comment isn't idempotent (debt JR-04b). `get_comments` turns a failed
+  page into the pages read so far (`[]` on page 1), which callers read as "no existing comment": with
+  `update-comment: true` that adds a second comment instead of updating the first.
 
 ## Read more
 

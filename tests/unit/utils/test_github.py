@@ -44,7 +44,7 @@ def testsend_request_get(mocker):
 
     response = github.send_request("GET", "https://api.github.com/test")
 
-    mock_session.get.assert_called_once_with("https://api.github.com/test", params=None)
+    mock_session.get.assert_called_once_with("https://api.github.com/test", params=None, timeout=(10, 60))
     mock_response.raise_for_status.assert_called_once()
     assert response == mock_response
 
@@ -59,7 +59,9 @@ def testsend_request_post(mocker):
 
     response = github.send_request("POST", "https://api.github.com/test", data={"key": "value"})
 
-    mock_session.post.assert_called_once_with("https://api.github.com/test", json={"key": "value"}, params=None)
+    mock_session.post.assert_called_once_with(
+        "https://api.github.com/test", json={"key": "value"}, params=None, timeout=(10, 60)
+    )
     mock_response.raise_for_status.assert_called_once()
     assert response == mock_response
 
@@ -74,7 +76,9 @@ def testsend_request_patch(mocker):
 
     response = github.send_request("PATCH", "https://api.github.com/test", data={"key": "value"})
 
-    mock_session.patch.assert_called_once_with("https://api.github.com/test", json={"key": "value"}, params=None)
+    mock_session.patch.assert_called_once_with(
+        "https://api.github.com/test", json={"key": "value"}, params=None, timeout=(10, 60)
+    )
     mock_response.raise_for_status.assert_called_once()
     assert response == mock_response
 
@@ -89,7 +93,9 @@ def testsend_request_delete(mocker):
 
     response = github.send_request("DELETE", "https://api.github.com/test", data={"key": "value"})
 
-    mock_session.delete.assert_called_once_with("https://api.github.com/test", json={"key": "value"}, params=None)
+    mock_session.delete.assert_called_once_with(
+        "https://api.github.com/test", json={"key": "value"}, params=None, timeout=(10, 60)
+    )
     mock_response.raise_for_status.assert_called_once()
     assert response == mock_response
 
@@ -114,8 +120,22 @@ def testsend_request_get_http_error(mocker):
 
     response = github.send_request("GET", "https://api.github.com/test")
 
-    mock_session.get.assert_called_once_with("https://api.github.com/test", params=None)
+    mock_session.get.assert_called_once_with("https://api.github.com/test", params=None, timeout=(10, 60))
     mock_response.raise_for_status.assert_called_once()
+    assert response is None
+
+
+def testsend_request_get_timeout(mocker):
+    mock_session = mocker.Mock()
+    mock_session.get.side_effect = requests.Timeout("Read timed out")
+    mocker.patch("requests.Session", return_value=mock_session)
+    mock_logger = mocker.patch("jacoco_report.utils.github.logger")
+    github = GitHub("fake_token")
+
+    response = github.send_request("GET", "https://api.github.com/test")
+
+    mock_session.get.assert_called_once_with("https://api.github.com/test", params=None, timeout=(10, 60))
+    mock_logger.error.assert_called_once()
     assert response is None
 
 
@@ -127,7 +147,9 @@ def testsend_request_post_request_exception(mocker):
 
     response = github.send_request("POST", "https://api.github.com/test", data={"key": "value"})
 
-    mock_session.post.assert_called_once_with("https://api.github.com/test", json={"key": "value"}, params=None)
+    mock_session.post.assert_called_once_with(
+        "https://api.github.com/test", json={"key": "value"}, params=None, timeout=(10, 60)
+    )
     assert response is None
 
 

@@ -13,6 +13,9 @@ from requests import Session
 
 logger = logging.getLogger(__name__)
 
+# (connect, read) seconds for every GitHub API call
+REQUEST_TIMEOUT = (10, 60)
+
 
 class GitHub:
     """
@@ -127,16 +130,16 @@ class GitHub:
             response = None
             # Fetch the response from the API
             if method == "GET":
-                response = session.get(url, params=params)
+                response = session.get(url, params=params, timeout=REQUEST_TIMEOUT)
                 response.raise_for_status()
             elif method == "POST":
-                response = session.post(url, params=params, json=data)
+                response = session.post(url, params=params, json=data, timeout=REQUEST_TIMEOUT)
                 response.raise_for_status()
             elif method == "PATCH":
-                response = session.patch(url, params=params, json=data)
+                response = session.patch(url, params=params, json=data, timeout=REQUEST_TIMEOUT)
                 response.raise_for_status()
             elif method == "DELETE":
-                response = session.delete(url, params=params, json=data)
+                response = session.delete(url, params=params, json=data, timeout=REQUEST_TIMEOUT)
                 response.raise_for_status()
             else:
                 logger.error("Unsupported HTTP method: %s.", method)
