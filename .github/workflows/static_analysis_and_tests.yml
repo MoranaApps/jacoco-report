@@ -184,6 +184,66 @@ jobs:
           pytest tests/integration/live/ -v
           exit_code=$?; [ $exit_code -eq 5 ] && exit 0 || exit $exit_code
 
+  self-test:
+    if: github.event_name == 'pull_request'
+    needs: set-matrix
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    name: Action Self-Test - (Python ${{ needs.set-matrix.outputs.oldest-version }})
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v7.1.0
+        with:
+          python-version: ${{ needs.set-matrix.outputs.oldest-version }}
+          cache: 'pip'
+
+      # comment-level none + update-comment false makes no comment API call, so this read-only
+      # run also works on fork PRs, whose GITHUB_TOKEN cannot write.
+      - name: Run the action from this checkout
+        id: jacoco-report
+        uses: ./
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          paths: |
+            tests/data/test_project/module_large/jacoco.xml
+            tests/data/test_project/context/**/jacoco.xml
+          comment-level: none
+          update-comment: 'false'
+
+      # Expected values follow from the fixture XMLs in `paths`; update them when those fixtures change.
+      - name: Assert action outputs
+        env:
+          COVERAGE_OVERALL: ${{ steps.jacoco-report.outputs.coverage-overall }}
+          COVERAGE_CHANGED_FILES: ${{ steps.jacoco-report.outputs.coverage-changed-files }}
+          COVERAGE_OVERALL_PASSED: ${{ steps.jacoco-report.outputs.coverage-overall-passed }}
+          COVERAGE_CHANGED_FILES_PASSED: ${{ steps.jacoco-report.outputs.coverage-changed-files-passed }}
+          REPORTS_COVERAGE: ${{ steps.jacoco-report.outputs.reports-coverage }}
+          GROUPS_COVERAGE: ${{ steps.jacoco-report.outputs.groups-coverage }}
+        run: |
+          failed=0
+          check() {
+            if [ "$3" = "$2" ]; then
+              echo "OK: $1 = $3"
+            else
+              echo "::error::$1: expected '$2', got '$3'"
+              failed=1
+            fi
+          }
+          check coverage-overall 91.62 "$COVERAGE_OVERALL"
+          check coverage-changed-files 0.0 "$COVERAGE_CHANGED_FILES"
+          check coverage-overall-passed True "$COVERAGE_OVERALL_PASSED"
+          check coverage-changed-files-passed True "$COVERAGE_CHANGED_FILES_PASSED"
+          check "reports-coverage entries" 8 "$(jq length <<< "$REPORTS_COVERAGE")"
+          check groups-coverage '{}' "$(jq -c . <<< "$GROUPS_COVERAGE")"
+          exit $failed
+
   mypy-check:
     needs: set-matrix
     runs-on: ubuntu-latest

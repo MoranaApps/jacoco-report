@@ -10,8 +10,8 @@ who want coverage visible directly in PR review, without digging through CI logs
 ## Tech stack
 
 - Python 3.11+ (CI matrix: 3.11, 3.12, 3.13, 3.14, 3.15 — only `unit-tests` runs the full matrix;
-  `analysis`/`code-format-check`/`mypy-check`/`integration-tests`/`live-integration-test` run once on
-  3.11, the oldest supported version; `pyproject.toml`/`.pylintrc` target py311)
+  `analysis`/`code-format-check`/`mypy-check`/`integration-tests`/`live-integration-test`/`self-test`
+  run once on 3.11, the oldest supported version; `pyproject.toml`/`.pylintrc` target py311)
 - No packaging layer: this is a GitHub composite Action (`action.yml`), not a pip package. Deps are
   pinned flat in `requirements.txt` (`requests`, `pyyaml`, dev tools); no `src/` layout.
 - Libraries: `requests` (GitHub REST API), `pyyaml` (`report-groups` input parsing)
@@ -35,8 +35,9 @@ who want coverage visible directly in PR review, without digging through CI logs
   skip-unchanged × comment-level matrix; `tests/integration/live/` posts to a real PR (needs a GitHub
   token, skipped on forks)
 - `docs/inputs/*.md` — one doc per action-input group, linked from `README.md`
-- `.github/workflows/` — CI: static analysis & tests (incl. a `context-check` job on PRs), release
-  draft, link check, markdown lint, v2/v3 tag movers, Renovate
+- `.github/workflows/` — CI: static analysis & tests (incl. PR-only `context-check` and `self-test`;
+  `self-test` runs the composite action itself via `uses: ./`), release draft, link check, markdown
+  lint, v2/v3 tag movers, Renovate
 - `.claude/` (agents, skills), `.local_context/README.md` + `.gitignore`, and `AGENTS.md` above "This
   project" — the agentic-defaults kit, installed by `agd`; `.agd.lock` pins the kit version, packs and
   file hashes. Kit updates replace these files; don't hand-edit them (see `AGENTS.md` → "Kit files").
@@ -133,6 +134,10 @@ service is needed.
 - The `secrets` context is not allowed in a step- or job-level `if:`; GitHub rejects the whole workflow
   file as invalid and no job in it runs (issue #240: `renovate.yml` never auto-merged). Expose the
   secret via an `env:` var (e.g. `HAS_REVIEW_TOKEN: ${{ secrets.X != '' }}`) and test that instead.
+- The `self-test` CI job asserts exact action outputs (`coverage-overall` 91.62, 8 reports) computed
+  from `tests/data/test_project/module_large/` + `context/**` fixture XMLs; editing those XMLs means
+  updating the expected values in `static_analysis_and_tests.yml`. It runs with `comment-level: none`
+  + `update-comment: false` — the only mode that makes no comment API call — so it works on fork PRs.
 
 ## Read more
 
