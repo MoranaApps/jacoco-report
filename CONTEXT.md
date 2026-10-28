@@ -38,7 +38,11 @@ who want coverage visible directly in PR review, without digging through CI logs
 - `docs/inputs/*.md` — one doc per action-input group, linked from `README.md`
 - `.github/workflows/` — CI: static analysis & tests (incl. PR-only `context-check` and `self-test`;
   `self-test` runs the composite action itself via `uses: ./` on ubuntu and macos), release draft,
-  link check, markdown lint, v2/v3 tag movers, Renovate
+  link check, markdown lint, v2/v3 tag movers, Renovate, and `agd-update` (weekly `agd update`, opening a PR
+  from the `agd-update` branch, as in agd's "Update automatically" guide; its unsigned push needs `agd-update`
+  excluded from the "All Branches Rules" signed-commits ruleset, and opening the PR needs the repo setting
+  "Allow GitHub Actions to create and approve pull requests"; checks start on that PR only after
+  close/reopen, and it is merged by hand)
 - `.claude/` (agents, skills), `.local_context/README.md` + `.gitignore`, and `AGENTS.md` above "This
   project" — the agentic-defaults kit, installed by `agd`; `.agd.lock` pins the kit version, packs and
   file hashes. Kit updates replace these files; don't hand-edit them (see `AGENTS.md` → "Kit files").

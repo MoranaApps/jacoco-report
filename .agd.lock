@@ -1,6 +1,6 @@
 # Written by agd. Commit it, and don't edit it by hand.
 agd-lock 1
-source agentic-defaults https://github.com/Zejnilovic/agentic-defaults.git 0.5.1
+source agentic-defaults https://github.com/Zejnilovic/agentic-defaults.git 0.5.2
 pack agentic-defaults copilot-hook
 pack agentic-defaults core
 pack agentic-defaults research
@@ -15,7 +15,7 @@ file agentic-defaults .claude/agents/security-reviewer.md d597de3ee84e16d16e8ef8
 file agentic-defaults .claude/agents/tester.md c0ea884b984ef0cc577aba773183d74623d57eff
 file agentic-defaults .claude/skills/commits-and-prs/SKILL.md 4641a52c2a19b8cbaedd92471ec5058621162ad6
 file agentic-defaults .claude/skills/context-md/SKILL.md ff278cd71d988032dfce9af51de26b0a3af672a7
-file agentic-defaults .claude/skills/context-md/check.sh c0a063cda334423a18d395639bbe4c013690c8c1
+file agentic-defaults .claude/skills/context-md/check.sh 737ccc6ae2020b67a60fae2e2a2815de4ddbbdb6
 file agentic-defaults .claude/skills/context-md/template.md 71329d58f77de8140e231e2f8db38ca91bcecc3f
 file agentic-defaults .claude/skills/debugging/SKILL.md 1276b8673e5f3f769722e246420e1b08082e3856
 file agentic-defaults .claude/skills/diagrams/SKILL.md c8474c298c6ae2e4e6c503c28dda06ec4f35833c
@@ -33,5 +33,5 @@ file agentic-defaults .claude/skills/tdd/SKILL.md 4eee36c658346fd539877673769daf
 file agentic-defaults .github/hooks/context-check.json cec1cddfaaed0c46361b4d85ed74430be9016e66
 file agentic-defaults .local_context/.gitignore df90fb6a6b2efd527f157e12d77bc2a9b2df8267
 file agentic-defaults .local_context/README.md ec0170479c699722c702f300567bde2cc07e2058
-file agentic-defaults AGENTS.md e824236238302335101605e3b802a547d75e112c
+file agentic-defaults AGENTS.md b2a6d0d5d1511fae44f1871037714e57db955cd3
 file agentic-defaults CLAUDE.md 43c994c2d3617f947bcb5adf1933e21dabe46bb5
