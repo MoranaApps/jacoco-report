@@ -7,7 +7,7 @@ import logging
 import os
 import re
 
-from typing import Optional
+from typing import Any, Optional
 import requests
 from requests import Session
 
@@ -22,12 +22,13 @@ class GitHub:
     A class representing the GitHub API.
     """
 
-    def __init__(self, token: str):
+    def __init__(self, token: str, ca_bundle: str = ""):
         """
         Initializes the GitHub API object.
 
         Parameters:
             token (str): The GitHub token.
+            ca_bundle (str): Path to a PEM CA bundle for TLS verification. Empty means the requests default.
 
         Returns:
             None
@@ -35,6 +36,9 @@ class GitHub:
         self.__token = token
         self.__session: Optional[Session] = None
         self.__gh_url = "https://api.github.com"
+        # Passed per request, not as session.verify: requests lets REQUESTS_CA_BUNDLE/CURL_CA_BUNDLE override
+        # session.verify, and the action input must win.
+        self.__request_kwargs: dict[str, Any] = {"verify": ca_bundle} if ca_bundle else {}
 
     def __initialize_request_session(self) -> requests.Session:
         """
@@ -130,16 +134,20 @@ class GitHub:
             response = None
             # Fetch the response from the API
             if method == "GET":
-                response = session.get(url, params=params, timeout=REQUEST_TIMEOUT)
+                response = session.get(url, params=params, timeout=REQUEST_TIMEOUT, **self.__request_kwargs)
                 response.raise_for_status()
             elif method == "POST":
-                response = session.post(url, params=params, json=data, timeout=REQUEST_TIMEOUT)
+                response = session.post(url, params=params, json=data, timeout=REQUEST_TIMEOUT, **self.__request_kwargs)
                 response.raise_for_status()
             elif method == "PATCH":
-                response = session.patch(url, params=params, json=data, timeout=REQUEST_TIMEOUT)
+                response = session.patch(
+                    url, params=params, json=data, timeout=REQUEST_TIMEOUT, **self.__request_kwargs
+                )
                 response.raise_for_status()
             elif method == "DELETE":
-                response = session.delete(url, params=params, json=data, timeout=REQUEST_TIMEOUT)
+                response = session.delete(
+                    url, params=params, json=data, timeout=REQUEST_TIMEOUT, **self.__request_kwargs
+                )
                 response.raise_for_status()
             else:
                 logger.error("Unsupported HTTP method: %s.", method)

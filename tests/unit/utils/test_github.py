@@ -1,3 +1,7 @@
+import io
+import os
+
+import pytest
 import requests
 
 from jacoco_report.utils.github import GitHub
@@ -349,3 +353,55 @@ def test_delete_pr_comment_unexpected_response(mocker, github):
 
     github.send_request.assert_called_once_with("DELETE", "https://api.github.com/repos/fake_repo/issues/comments/123")
     assert result is False
+
+
+# ca_bundle
+
+CA_PATH = "/etc/ssl/corp-ca.pem"
+
+
+@pytest.mark.parametrize("method", ["GET", "POST", "PATCH", "DELETE"])
+def test_send_request_passes_ca_bundle_as_verify(method, mocker):
+    mock_session = mocker.Mock()
+    mocker.patch("requests.Session", return_value=mock_session)
+    github = GitHub("fake_token", CA_PATH)
+
+    github.send_request(method, "https://api.github.com/test")
+
+    call = getattr(mock_session, method.lower()).call_args
+    assert call.args == ("https://api.github.com/test",)
+    assert call.kwargs["verify"] == CA_PATH
+
+
+def _capture_verify_sent_to_adapter(mocker):
+    """Patch the transport so the real requests merge logic runs and the verify value that reaches it is recorded."""
+    seen = []
+
+    def fake_send(request, **kwargs):
+        seen.append(kwargs["verify"])
+        response = requests.Response()
+        response.status_code = 200
+        response.raw = io.BytesIO(b"[]")
+        return response
+
+    mocker.patch("requests.adapters.HTTPAdapter.send", side_effect=fake_send)
+    return seen
+
+
+@pytest.mark.parametrize("env_name", ["REQUESTS_CA_BUNDLE", "CURL_CA_BUNDLE"])
+def test_ca_bundle_input_wins_over_env_bundle(env_name, mocker):
+    seen = _capture_verify_sent_to_adapter(mocker)
+    mocker.patch.dict(os.environ, {env_name: "/env/other.pem"})
+
+    GitHub("fake_token", CA_PATH).send_request("GET", "https://api.github.com/test")
+
+    assert seen == [CA_PATH]
+
+
+def test_unset_ca_bundle_keeps_requests_ca_bundle_env(mocker):
+    seen = _capture_verify_sent_to_adapter(mocker)
+    mocker.patch.dict(os.environ, {"REQUESTS_CA_BUNDLE": "/env/corp.pem"})
+
+    GitHub("fake_token").send_request("GET", "https://api.github.com/test")
+
+    assert seen == ["/env/corp.pem"]

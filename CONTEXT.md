@@ -157,10 +157,14 @@ service is needed.
 - `action.yml` `run:` scripts contain no `${{ … }}` in any spelling: GitHub pastes expressions into the
   script before bash parses it, so an input there is shell injection. Use `$GITHUB_ACTION_PATH` and
   `$RUNNER_TEMP`, and quote every path. Enforced by `tests/unit/test_action_yml.py`.
-- `inputs.token` may appear only in the Run step's `env.INPUT_TOKEN`. No other step contains `${{`, and the
-  Run step's `${{` stay in its `env`. Never write `$GITHUB_ENV`: it leaks the token into the caller's later
-  steps. Enforced by `tests/unit/test_action_yml.py`.
+- `inputs.token` may appear only in the Run step's `env.INPUT_TOKEN`. Never write `$GITHUB_ENV`: it leaks the token
+  into the caller's later steps. Enforced by `tests/unit/test_action_yml.py`.
+- Expression allowlist: the only `${{` outside the Run step's `env` is `setup`'s
+  `env.INPUT_CA_BUNDLE: ${{ inputs.ca-bundle }}`. Each non-Run step's `env` equals its exact allowlist (`setup`:
+  `{INPUT_CA_BUNDLE}`; others `{}`). The Run step's `${{` stay in its `env`. Enforced by
+  `tests/unit/test_action_yml.py`.
 - `action.yml` has exactly two steps: `setup` (`id: setup`, "Install Python dependencies") and the Run step.
+  Composite steps get no `INPUT_*` vars, so `setup` gets `ca-bundle` only through its own `env`.
 - `setup` runs every Python call with `-I`: the cwd is the caller's checkout, and a planted module there
   must not run. It picks the first of `python`, then `python3`, that is on PATH and is 3.11+
   (`$python_cmd`; `python` first keeps existing callers on their interpreter). It emits `::error::` and
@@ -168,6 +172,12 @@ service is needed.
   `venv_dir="$(mktemp -d "${RUNNER_TEMP:-${TMPDIR:-/tmp}}/jacoco-report-venv.XXXXXX")"` per call with `"$python_cmd" -I -m venv` and
   writes that venv's `bin/python` to output `python`. The Run step gets it as `JACOCO_REPORT_PYTHON`
   (`steps.setup.outputs.python`). No `activate`, no `.venv`, nothing written into `GITHUB_WORKSPACE`.
+- `setup` `-f` check (first, before any venv or pip): `INPUT_CA_BUNDLE` is trimmed of leading/trailing whitespace
+  (incl. newlines) as in `ActionInputs.get_ca_bundle()`; whitespace-only counts as unset.
+  If set and not a file, it emits
+  `::error::` without the raw path and exits non-zero. When set, before pip: `export PIP_CERT=<path>` and
+  `unset REQUESTS_CA_BUNDLE CURL_CA_BUNDLE` (step-local shell, never `$GITHUB_ENV`). Unset: pip's env is unchanged.
+  Relative paths resolve from the workspace (same cwd as the Run step). `validate_inputs()` rejects a missing file too.
 - The Run step runs `unset PYTHONPATH` then `"$JACOCO_REPORT_PYTHON" -B "$GITHUB_ACTION_PATH/main.py"`. Not `-I`:
   it implies `-P`, which drops `main.py`'s directory from `sys.path` and breaks `import jacoco_report`. The unset
   keeps a job-level `PYTHONPATH` from shadowing the venv. `-B` keeps `__pycache__` out of the action path and the
@@ -186,6 +196,8 @@ service is needed.
   - `static_analysis_and_tests.yml` only: no `run:` contains `${{` (context-check passes `github.base_ref` as
     `BASE_REF`); top-level `permissions` is read-only; every `actions/setup-python` step with `cache: pip` lists
     `requirements.txt` and `requirements-dev.txt` in `cache-dependency-path`.
+  - `self-test` job: a local `uses: ./` run takes `steps.ca.outputs.path` (certifi); a `continue-on-error` run takes
+    `ca-bundle` and its outcome is read through a step `env`.
 - `setup_logging` also installs `sys.excepthook` and `threading.excepthook` (uncaught exceptions are logged through
   the formatter; exit code stays 1; `KeyboardInterrupt` goes to the default hook; thread `SystemExit` is ignored) and
   calls `logging.captureWarnings(True)`. These are process-wide: the autouse `tests/conftest.py` fixture
@@ -211,6 +223,12 @@ service is needed.
   `static_analysis_and_tests.yml`. Its assertions use `jq`. Its `title` is hostile (`$(…)`, backticks), and it
   asserts the marker file `$RUNNER_TEMP/jacoco-pwned` was not created. It runs with `comment-level: none`
   + `update-comment: false` — the only mode that makes no comment API call — so it works on fork PRs.
+  It also runs `ca-bundle` twice: certifi's bundle (must pass) and a missing path (`continue-on-error`).
+  Before the missing-path run, a step records the count of `$RUNNER_TEMP/jacoco-report-venv.*` dirs; the assert step
+  requires outcome `failure` AND an unchanged count (proves the failure came from the `setup` check, before any venv).
+- `GitHub` (`utils/github.py`) passes `verify=<path>` per request, only when `ca-bundle` is set. Reason: requests lets
+  `REQUESTS_CA_BUNDLE`/`CURL_CA_BUNDLE` override `session.verify` but not a per-request `verify`. Unset → no `verify`
+  kwarg (tests pin the exact call args).
 - Every GitHub API call in `GitHub.send_request` passes `timeout=REQUEST_TIMEOUT` (`(10, 60)`, connect, read).
   A timeout is a `requests.RequestException`, so it surfaces as `None` like other request errors. There is
   deliberately no retry: a POST of a PR comment isn't idempotent (debt JR-04b). `get_comments` turns a failed
@@ -220,7 +238,7 @@ service is needed.
 ## Read more
 
 - `docs/inputs/*.md` — one file per input group (paths, thresholds, report-groups, comment-level,
-  skip-unchanged, baseline-paths, symbols-and-metric, pr-settings, debug, global-overall-scope)
+  skip-unchanged, baseline-paths, symbols-and-metric, pr-settings, debug, global-overall-scope, ca-bundle)
 - `docs/v2-v3-migration-guide.md` — breaking changes v2 → v3, and the v3.4.0 caller-visible changes (section 8)
 - `DEVELOPER.md` — local dev setup, running scripts/tests/lint, releasing
 - `.github/copilot-instructions.md` — project-specific additions for Copilot, on top of `AGENTS.md`
