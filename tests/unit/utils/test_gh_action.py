@@ -83,3 +83,30 @@ def test_set_failed(mocker):
 
     mock_print.assert_called_with("::error::failure message")
     mock_exit.assert_called_with(1)
+
+
+def test_set_failed_escapes_newline_so_message_cannot_inject_command(mocker):
+    mock_print = mocker.patch("builtins.print", return_value=None)
+    mocker.patch("sys.exit", return_value=None)
+
+    set_action_failed(["ok\n::add-mask::x"])
+
+    mock_print.assert_called_once_with("::error::ok%0A::add-mask::x")
+
+
+def test_set_failed_breaks_legacy_command_prefix(mocker):
+    mock_print = mocker.patch("builtins.print", return_value=None)
+    mocker.patch("sys.exit", return_value=None)
+
+    set_action_failed(["bad ##[add-mask]x"])
+
+    mock_print.assert_called_once_with("::error::bad ## [add-mask]x")
+
+
+def test_set_failed_escapes_percent_before_other_characters(mocker):
+    mock_print = mocker.patch("builtins.print", return_value=None)
+    mocker.patch("sys.exit", return_value=None)
+
+    set_action_failed(["100% done\r\nnext"])
+
+    mock_print.assert_called_once_with("::error::100%25 done%0D%0Anext")

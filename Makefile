@@ -6,8 +6,8 @@
 help: ## List the targets
 	@grep -E '^[a-z]+:.*## ' $(MAKEFILE_LIST) | sed 's/:.*## /\t/'
 
-setup: ## Install dependencies
-	pip install -r requirements.txt
+setup: ## Install dev and runtime dependencies
+	pip install -r requirements-dev.txt
 
 run: ## Start the action locally (needs INPUT_* and GITHUB_* env vars, see DEVELOPER.md)
 	python3 main.py

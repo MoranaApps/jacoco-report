@@ -119,33 +119,39 @@ branding:
 runs:
   using: 'composite'
   steps:
+    # The venv lives in $RUNNER_TEMP, not the caller's workspace. Its interpreter is passed to the Run step
+    # as a step output. Run scripts contain no `${{ … }}` expressions: they use runner-provided env vars only.
     - name: Install Python dependencies
+      id: setup
       run: |
-        python_version=$(python --version 2>&1 | grep -oP '\d+\.\d+\.\d+')
+        # Every python call runs with -I: the working directory is the caller's checkout, and -I keeps it off sys.path.
+        if ! command -v python >/dev/null 2>&1; then
+          echo "::error::python is not on PATH. Add an actions/setup-python step before this action."
+          exit 1
+        fi
+        echo "Current Python version: $(python -I --version 2>&1)"
         minimal_required_version="3.11.0"
-        
-        function version { echo "$@" | awk -F. '{ printf("%d%03d%03d\n", $1,$2,$3); }'; }
-        
-        echo "Current Python version: $python_version"
-        echo "Minimal required Python version: $minimal_required_version"
-        
-        if [ $(version $python_version) -lt $(version $minimal_required_version) ]; then
+        if ! python -I -c 'import sys; sys.exit(sys.version_info < (3, 11))'; then
           echo "Python version is less than $minimal_required_version"
           exit 1
-        else
-          echo "Python version meets the minimum requirement of $minimal_required_version"
         fi
-        
-        python -m venv .venv
-        source .venv/bin/activate
-        pip install -r ${{ github.action_path }}/requirements.txt
+        echo "Python version meets the minimum requirement of $minimal_required_version"
+
+        # A new private dir per call: no stale bin/python after a Python switch, and no venv planted by an earlier step.
+        venv_dir="$(mktemp -d "$RUNNER_TEMP/jacoco-report-venv.XXXXXX")"
+        python -I -m venv "$venv_dir"
+        venv_python="$venv_dir/bin/python"
+        echo "python=$venv_python" >> "$GITHUB_OUTPUT"
+        "$venv_python" -I -m pip install -r "$GITHUB_ACTION_PATH/requirements.txt"
       shell: bash
 
     # Inputs reach main.py only through this step's env: never interpolate `${{ inputs.* }}` into a
     # `run:` script (shell injection) or write them to $GITHUB_ENV (leaks into the caller's later steps).
+    # -E -s, not -I: -I implies -P, which drops main.py's directory from sys.path and breaks `import jacoco_report`.
     - name: Run JaCoCo Report to PR Comment
       id: jacoco-report-to-pr-comment
       env:
+        JACOCO_REPORT_PYTHON: ${{ steps.setup.outputs.python }}
         INPUT_TOKEN: ${{ inputs.token }}
         INPUT_PATHS: ${{ inputs.paths }}
         INPUT_EXCLUDE_PATHS: ${{ inputs.exclude-paths }}
@@ -166,6 +172,5 @@ runs:
         INPUT_FAIL_ON_THRESHOLD: ${{ inputs.fail-on-threshold }}
         INPUT_DEBUG: ${{ inputs.debug }}
       run: |
-        source .venv/bin/activate
-        python ${{ github.action_path }}/main.py
+        "$JACOCO_REPORT_PYTHON" -E -s "$GITHUB_ACTION_PATH/main.py"
       shell: bash
