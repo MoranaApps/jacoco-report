@@ -1,3 +1,4 @@
+import io
 import os
 
 import pytest
@@ -358,7 +359,7 @@ def _capture_verify_sent_to_adapter(mocker):
         seen.append(kwargs["verify"])
         response = requests.Response()
         response.status_code = 200
-        response._content = b"[]"
+        response.raw = io.BytesIO(b"[]")
         return response
 
     mocker.patch("requests.adapters.HTTPAdapter.send", side_effect=fake_send)

@@ -95,4 +95,10 @@ def test_self_test_runs_the_ca_bundle_with_certifi_and_a_missing_one_whose_outco
     assert valid, "no self-test run takes certifi's CA bundle"
     assert missing, "no self-test run with a missing ca-bundle is allowed to fail"
     outcome_refs = {f"${{{{ steps.{step.get('id')}.outcome }}}}" for step in missing}
-    assert any(outcome_refs & set(step.get("env", {}).values()) for step in steps), "no step asserts the outcome"
+    # The outcome must reach a step through env and be compared with `failure` in that step's script.
+    assert any(
+        re.search(rf'"\${name}"\s*!?=\s*"failure"', step.get("run", ""))
+        for step in steps
+        for name, value in step.get("env", {}).items()
+        if value in outcome_refs
+    ), "no step compares the missing run's outcome with failure"
