@@ -1,0 +1,72 @@
+# Keeps this repository's agentic setup up to date: weekly, it runs agd update and opens a pull request
+# with the changes. Copied from https://zejnilovic.github.io/agd/guides/automatic-updates/, with checkout
+# pinned to a commit SHA.
+name: Update the agentic setup
+
+on:
+  schedule:
+    - cron: "0 7 * * 1" # Mondays
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+# bash -eo pipefail instead of the default bash -e, so a failing agd update isn't hidden by tee.
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    env:
+      # A pinned agd release, and the SHA-256 of its agd file from the release's SHA256SUMS.
+      AGD_VERSION: 0.3.0
+      AGD_SHA256: 0a83043c533faea476e9f454eadf7ed693cf31296748f41540ab6321fc24978f
+      BRANCH: agd-update
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install agd
+        run: |
+          mkdir -p "$HOME/.local/bin"
+          curl -fsSLo "$HOME/.local/bin/agd" "https://github.com/Zejnilovic/agd/releases/download/v$AGD_VERSION/agd"
+          echo "$AGD_SHA256  $HOME/.local/bin/agd" | sha256sum -c -
+          chmod +x "$HOME/.local/bin/agd"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Check for a newer setup
+        id: check
+        run: |
+          code=0
+          agd status --check || code=$?
+          [ "$code" -le 1 ] || exit "$code"
+          echo "due=$code" >> "$GITHUB_OUTPUT"
+      - name: Update and open a pull request
+        if: steps.check.outputs.due == '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          agd update | tee "$RUNNER_TEMP/update.txt"
+          # Only files this project edited are due, and the update leaves those alone.
+          [ -n "$(git status --porcelain)" ] || exit 0
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$BRANCH"
+          git add -A
+          git commit -q -m "Update the agentic setup" -m "$(cat "$RUNNER_TEMP/update.txt")"
+          git push -q --force origin "$BRANCH"
+          {
+            echo 'The weekly `agd update` changed these files. Read the changes before you merge: they are instructions for agents.'
+            echo
+            echo '```text'
+            cat "$RUNNER_TEMP/update.txt"
+            echo '```'
+            echo
+            echo 'An `edited` line is a file this project changed, which the update left alone. Settle it after you merge, with `agd diff`, then `agd merge` or `agd reset`: the next run replaces this branch.'
+          } > "$RUNNER_TEMP/body.md"
+          pr=$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number')
+          if [ -n "$pr" ]; then
+            gh pr edit "$pr" --body-file "$RUNNER_TEMP/body.md"
+          else
+            gh pr create --head "$BRANCH" --title "Update the agentic setup" --body-file "$RUNNER_TEMP/body.md"
+          fi

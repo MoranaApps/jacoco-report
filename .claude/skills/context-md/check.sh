@@ -68,12 +68,26 @@ trap 'rm -f "$changed" "$owners" "$kit"' EXIT
 # Changes that never require a CONTEXT.md update: docs, private notes, housekeeping files, tests, lock files.
 skip='(^|/)CONTEXT\.md$|^\.agd\.lock$|\.md$|^docs?/|^\.local_context/|(^|/)(LICENSE|COPYING|NOTICE|CHANGELOG|VERSION)[^/]*$|(^|/)\.(gitignore|gitattributes|editorconfig|mailmap)$|(^|/)(test|tests|__tests__|spec|specs|e2e)/|(^|/)test_[^/]+\.py$|_test\.[a-z]+$|\.(test|spec)\.[a-z]+$|Tests?\.(java|kt|cs|swift|scala)$|(^|/)(package-lock\.json|yarn\.lock|pnpm-lock\.yaml|poetry\.lock|uv\.lock|Cargo\.lock|go\.sum|Gemfile\.lock|composer\.lock)$'
 
+# Dependency bumps (Renovate, Dependabot) change only versions, which no CONTEXT.md records. A manifest is
+# skipped when its removed and added lines match once versions and digests are masked; a new or removed
+# dependency, any other edit, or a new manifest still counts.
+manifest='(^|/)(requirements[^/]*\.txt|constraints[^/]*\.txt|pyproject\.toml|Pipfile|package\.json|go\.mod|Cargo\.toml|Gemfile|pom\.xml|build\.gradle(\.kts)?|libs\.versions\.toml|Dockerfile[^/]*|\.tool-versions|\.python-version|\.nvmrc|versions\.tf)$|^\.github/workflows/[^/]+\.ya?ml$'
+since=HEAD
+[ -n "$base" ] && since=$(git merge-base "$base" HEAD 2>/dev/null)
+version_only() {
+  [ -n "$since" ] && [ -f "$1" ] && git cat-file -e "$since:$1" 2>/dev/null || return 1
+  lines=$(git diff -U0 "$since" -- "$1" | grep -Ev '^(---|\+\+\+) ' | grep -E '^[-+]' |
+    sed -E 's/[0-9a-f]{7,}/H/g; s/v?[0-9]+([.][0-9A-Za-z]+)*([-+][0-9A-Za-z.]+)?/V/g')
+  [ "$(printf '%s\n' "$lines" | sed -n 's/^-//p' | sort)" = "$(printf '%s\n' "$lines" | sed -n 's/^+//p' | sort)" ]
+}
+
 # Pair each changed code file with the nearest CONTEXT.md above it.
 grep -Ev "$skip" "$changed" | awk -v kit="$kit" '
   BEGIN { while ((getline line < kit) > 0) installed[line] = 1 }
   !($0 in installed)
 ' | while IFS= read -r file; do
   [ -n "$file" ] || continue
+  printf '%s\n' "$file" | grep -Eq "$manifest" && version_only "$file" && continue
   dir=$(dirname "$file")
   owner="-"
   while :; do

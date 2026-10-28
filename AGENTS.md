@@ -1,4 +1,4 @@
-<!-- agentic-defaults 0.5.1. From agentic-defaults down to "This project": kit updates replace it, so don't edit it. The rest belongs to the project. -->
+<!-- agentic-defaults 0.5.2. From agentic-defaults down to "This project": kit updates replace it, so don't edit it. The rest belongs to the project. -->
 
 # Working agreement
 
