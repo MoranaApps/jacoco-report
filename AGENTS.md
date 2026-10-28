@@ -71,5 +71,5 @@ Files and parts marked "From agentic-defaults" are replaced when the kit updates
 - `make check`: lint + test + build + `black --check` — everything that must pass before work is
   done. The same four gates run in CI (`.github/workflows/static_analysis_and_tests.yml`); only
   `unit-tests` runs across the full Python 3.11–3.15 matrix, the other gates run once on 3.11 (the
-  oldest supported version), plus a `context-check` job on pull requests (see the `context-md`
-  skill).
+  oldest supported version), plus a `context-check` job on pull requests except Renovate's (see the
+  `context-md` skill).

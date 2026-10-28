@@ -11,7 +11,8 @@ concurrency:
 
 jobs:
   context-check:
-    if: github.event_name == 'pull_request'
+    # Renovate only bumps pinned versions, which no CONTEXT.md records.
+    if: github.event_name == 'pull_request' && github.event.pull_request.user.login != 'renovate[bot]'
     runs-on: ubuntu-latest
     name: CONTEXT.md check
     steps:

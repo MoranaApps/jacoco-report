@@ -36,8 +36,9 @@ who want coverage visible directly in PR review, without digging through CI logs
   token, skipped on forks)
 - `docs/inputs/*.md` — one doc per action-input group, linked from `README.md`
 - `.github/workflows/` — CI: static analysis & tests (incl. PR-only `context-check` and `self-test`;
-  `self-test` runs the composite action itself via `uses: ./`), release draft, link check, markdown
-  lint, v2/v3 tag movers, Renovate
+  `context-check` is skipped on `renovate[bot]` PRs, since version bumps change no documented fact
+  and the kit check counts `requirements.txt` as code; `self-test` runs the composite action itself
+  via `uses: ./`), release draft, link check, markdown lint, v2/v3 tag movers, Renovate
 - `.claude/` (agents, skills), `.local_context/README.md` + `.gitignore`, and `AGENTS.md` above "This
   project" — the agentic-defaults kit, installed by `agd`; `.agd.lock` pins the kit version, packs and
   file hashes. Kit updates replace these files; don't hand-edit them (see `AGENTS.md` → "Kit files").
