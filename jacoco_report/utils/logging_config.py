@@ -8,7 +8,7 @@ import re
 import sys
 from types import TracebackType
 
-from jacoco_report.utils.gh_action import LEGACY_COMMAND_PREFIX
+from jacoco_report.utils.gh_action import break_legacy_command_prefix
 
 LOG_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
 LOG_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
@@ -29,7 +29,9 @@ class WorkflowCommandSafeFormatter(logging.Formatter):
 
     def format(self, record: logging.LogRecord) -> str:
         text = _LINE_BREAK.sub("\n| ", super().format(record))
-        return LEGACY_COMMAND_PREFIX.sub("## [", text)
+        if text.lstrip().startswith("::"):
+            text = "| " + text
+        return break_legacy_command_prefix(text)
 
 
 def _log_uncaught_exception(
@@ -62,8 +64,6 @@ def setup_logging() -> None:
     handler.setFormatter(WorkflowCommandSafeFormatter(LOG_FORMAT, LOG_DATE_FORMAT))
     logging.basicConfig(
         level=level,
-        format=LOG_FORMAT,
-        datefmt=LOG_DATE_FORMAT,
         handlers=[handler],
         force=True,
     )

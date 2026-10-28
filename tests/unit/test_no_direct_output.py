@@ -27,8 +27,16 @@ def _is_attribute_of(node: ast.AST, owner: str, match: Callable[[str], bool]) ->
     return isinstance(node, ast.Attribute) and _is_name(node.value, owner) and match(node.attr)
 
 
-def _is_int_literal(node: ast.AST) -> bool:
-    return isinstance(node, ast.Constant) and type(node.value) is int
+def _is_int_valued(node: ast.AST) -> bool:
+    """True when the expression always evaluates to an int: int or bool literals, unary +/- on those, and an
+    if-else whose both branches are int-valued. Anything else is unknown and not int-valued."""
+    if isinstance(node, ast.Constant):
+        return type(node.value) in (int, bool)
+    if isinstance(node, ast.UnaryOp) and isinstance(node.op, (ast.UAdd, ast.USub)):
+        return _is_int_valued(node.operand)
+    if isinstance(node, ast.IfExp):
+        return _is_int_valued(node.body) and _is_int_valued(node.orelse)
+    return False
 
 
 def _stream_argument(call: ast.Call) -> ast.AST | None:
@@ -44,8 +52,8 @@ def _is_direct_output(node: ast.AST) -> bool:
         if _is_name(func, *PPRINT_NAMES):  # print(...) and pprint(...)
             return True
         if _is_attribute_of(func, "sys", lambda attr: attr == "exit") or _is_name(func, *EXIT_NAMES):
-            # An exit argument that is not an int literal is printed to stderr: str, f-string, variable, None.
-            return bool(node.args) and not _is_int_literal(node.args[0])
+            # An exit argument that is not int-valued is printed to stderr: str, f-string, variable, None.
+            return bool(node.args) and not _is_int_valued(node.args[0])
         if _is_name(func, "StreamHandler") or (isinstance(func, ast.Attribute) and func.attr == "StreamHandler"):
             stream = _stream_argument(node)
             return stream is None or (isinstance(stream, ast.Constant) and stream.value is None)
@@ -108,6 +116,13 @@ DIRECT_OUTPUT_LINES = [
     "sys.exit('boom')",
     "sys.exit(f'boom {code}')",
     "sys.exit('a' + 'b')",
+    'sys.exit(f"x")',
+    'sys.exit("msg")',
+    "sys.exit(-code)",
+    "sys.exit(1 if fail else 'boom')",
+    "sys.exit(1 if fail else code)",
+    "sys.exit(1 if fail else 0.5)",
+    "sys.exit(not code)",
     "sys.exit(code)",
     "sys.exit(None)",
     "exit('boom')",
@@ -138,6 +153,14 @@ def test_direct_output_in_another_file_is_reported(tmp_path, line):
         "sys.exit(1)",
         "sys.exit(0)",
         "sys.exit()",
+        "sys.exit(-1)",
+        "sys.exit(+1)",
+        "sys.exit(True)",
+        "sys.exit(False)",
+        "sys.exit(1 if fail else 0)",
+        "sys.exit(-1 if fail else 0)",
+        "sys.exit(True if fail else -1)",
+        "sys.exit(1 if a else (2 if b else 0))",
         "exit(0)",
         "quit(1)",
         "raise SystemExit(1)",

@@ -132,7 +132,7 @@ runs:
         echo "Current Python version: $(python -I --version 2>&1)"
         minimal_required_version="3.11.0"
         if ! python -I -c 'import sys; sys.exit(sys.version_info < (3, 11))'; then
-          echo "Python version is less than $minimal_required_version"
+          echo "::error::Python version is less than $minimal_required_version"
           exit 1
         fi
         echo "Python version meets the minimum requirement of $minimal_required_version"
@@ -147,6 +147,7 @@ runs:
 
     # Inputs reach main.py only through this step's env: never interpolate `${{ inputs.* }}` into a
     # `run:` script (shell injection) or write them to $GITHUB_ENV (leaks into the caller's later steps).
+    # -B: no __pycache__ in the caller's checkout (-E ignores PYTHONDONTWRITEBYTECODE).
     # -E -s, not -I: -I implies -P, which drops main.py's directory from sys.path and breaks `import jacoco_report`.
     - name: Run JaCoCo Report to PR Comment
       id: jacoco-report-to-pr-comment
@@ -172,5 +173,5 @@ runs:
         INPUT_FAIL_ON_THRESHOLD: ${{ inputs.fail-on-threshold }}
         INPUT_DEBUG: ${{ inputs.debug }}
       run: |
-        "$JACOCO_REPORT_PYTHON" -E -s "$GITHUB_ACTION_PATH/main.py"
+        "$JACOCO_REPORT_PYTHON" -B -E -s "$GITHUB_ACTION_PATH/main.py"
       shell: bash

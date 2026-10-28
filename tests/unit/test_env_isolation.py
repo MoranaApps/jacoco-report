@@ -1,19 +1,35 @@
 import os
 
-# Captured at import, before any test runs; the probe tests below must not change these keys for the next test.
-_ORIGINAL_LANG = os.environ.get("LANG")
-_ORIGINAL_PATH = os.environ["PATH"]
+import pytest
+
+from tests import conftest
+
+CHANGED_KEY = "ENV_ISOLATION_PROBE_CHANGED"
+DELETED_KEY = "ENV_ISOLATION_PROBE_DELETED"
+ADDED_KEY = "ENV_ISOLATION_PROBE_ADDED"
 
 
-def test_a_writes_and_deletes_environment_variables():
-    """Leaks env changes on purpose: the autouse conftest fixture must undo them before the next test."""
-    os.environ["ENV_ISOLATION_PROBE_ADDED"] = "1"
-    os.environ["LANG"] = "probe"
-    os.environ.pop("PATH")
+def test_restore_fixture_undoes_environment_changes_made_by_a_test():
+    """Drives the autouse conftest fixture by hand, so the result does not depend on test order or worker.
 
+    A key the test added is removed; a changed or deleted key gets its snapshot value back.
+    """
+    os.environ[CHANGED_KEY] = "before"
+    os.environ[DELETED_KEY] = "before"
+    # pytest keeps the fixture's generator function on __wrapped__; calling it skips the pytest fixture machinery.
+    restore = getattr(conftest.restore_environ_after_test, "__wrapped__")()
+    next(restore)  # the fixture's setup: takes the snapshot, then yields
+    try:
+        os.environ[ADDED_KEY] = "1"
+        os.environ[CHANGED_KEY] = "after"
+        del os.environ[DELETED_KEY]
 
-def test_b_sees_environment_restored_by_previous_test():
-    """Runs right after test_a: the added key is gone, and the changed and deleted keys are back as they were."""
-    assert "ENV_ISOLATION_PROBE_ADDED" not in os.environ
-    assert os.environ.get("LANG") == _ORIGINAL_LANG
-    assert os.environ.get("PATH") == _ORIGINAL_PATH
+        with pytest.raises(StopIteration):  # the fixture's teardown: restores the snapshot
+            next(restore)
+
+        assert ADDED_KEY not in os.environ
+        assert os.environ[CHANGED_KEY] == "before"
+        assert os.environ[DELETED_KEY] == "before"
+    finally:
+        for key in (ADDED_KEY, CHANGED_KEY, DELETED_KEY):
+            os.environ.pop(key, None)

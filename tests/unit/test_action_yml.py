@@ -13,7 +13,8 @@ ACTION_YML = Path(__file__).resolve().parents[2] / "action.yml"
 SETUP_ID = "setup"
 RUN_ID = "jacoco-report-to-pr-comment"
 RUN_STEP_EXTRA_ENV = {"JACOCO_REPORT_PYTHON": "${{ steps.setup.outputs.python }}"}
-RUN_STEP_SCRIPT = '"$JACOCO_REPORT_PYTHON" -E -s "$GITHUB_ACTION_PATH/main.py"'
+# -B: no __pycache__ in the caller's checkout (-E drops PYTHONDONTWRITEBYTECODE). -E -s: see the Run step comment.
+RUN_STEP_SCRIPT = '"$JACOCO_REPORT_PYTHON" -B -E -s "$GITHUB_ACTION_PATH/main.py"'
 
 INPUT_REFERENCE = re.compile(r"^\$\{\{\s*inputs\.([a-z-]+)\s*\}\}$")
 TOKEN_REFERENCE = re.compile(r"inputs\.token", re.IGNORECASE)
@@ -145,6 +146,34 @@ def test_setup_stops_with_a_setup_python_hint_when_python_is_not_on_path(tmp_pat
     )
     assert result.returncode != 0
     assert "actions/setup-python" in result.stdout + result.stderr
+    assert list(tmp_path.glob("jacoco-report-venv*")) == []
+
+
+def test_setup_emits_an_error_annotation_when_python_is_too_old(tmp_path):
+    # A fake `python` on PATH that reports 3.10: the version check (`-c`) fails, as it does for a real 3.10.
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    fake_python = fake_bin / "python"
+    fake_python.write_text(
+        '#!/bin/bash\ncase "$*" in\n  "-I --version") echo "Python 3.10.12" ;;\n  *"-c"*) exit 1 ;;\n  *) exit 0 ;;\nesac\n',
+        encoding="utf-8",
+    )
+    fake_python.chmod(0o755)
+    env = {
+        "PATH": str(fake_bin),
+        "RUNNER_TEMP": str(tmp_path),
+        "GITHUB_OUTPUT": str(tmp_path / "output"),
+        "GITHUB_ACTION_PATH": str(ACTION_YML.parent),
+    }
+    result = subprocess.run(
+        ["/bin/bash", "--noprofile", "--norc", "-eo", "pipefail", "-c", _step(SETUP_ID)["run"]],
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode != 0
+    assert "::error::Python version is less than 3.11.0" in result.stdout
     assert list(tmp_path.glob("jacoco-report-venv*")) == []
 
 

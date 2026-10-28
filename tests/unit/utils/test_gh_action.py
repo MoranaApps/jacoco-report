@@ -1,4 +1,23 @@
-from jacoco_report.utils.gh_action import get_action_input, set_action_output, set_action_failed, set_action_output_text
+import uuid
+
+import pytest
+
+from jacoco_report.utils.gh_action import (
+    break_legacy_command_prefix,
+    get_action_input,
+    set_action_failed,
+    set_action_output,
+    set_action_output_text,
+)
+
+FIXED_UUID = uuid.UUID("12345678-1234-5678-1234-567812345678")
+FIXED_DELIMITER = f"ghadelimiter_{FIXED_UUID}"
+
+
+@pytest.fixture
+def fixed_delimiter(mocker):
+    mocker.patch("uuid.uuid4", return_value=FIXED_UUID)
+
 
 # get_input
 
@@ -49,7 +68,7 @@ def test_set_output_custom_path(mocker):
 # set_output_text
 
 
-def test_set_output_text_default(mocker):
+def test_set_output_text_default(mocker, fixed_delimiter):
     mocker.patch("os.getenv", return_value="default_output.txt")
     mock_open = mocker.patch("builtins.open", new_callable=mocker.mock_open)
 
@@ -57,12 +76,12 @@ def test_set_output_text_default(mocker):
 
     mock_open.assert_called_with("default_output.txt", "a", encoding="utf-8")
     handle = mock_open()
-    handle.write.assert_any_call("test-output<<EOF\n")
+    handle.write.assert_any_call(f"test-output<<{FIXED_DELIMITER}\n")
     handle.write.assert_any_call("test_value\n")
-    handle.write.assert_any_call("EOF\n")
+    handle.write.assert_any_call(f"{FIXED_DELIMITER}\n")
 
 
-def test_set_output_text_custom_path(mocker):
+def test_set_output_text_custom_path(mocker, fixed_delimiter):
     mocker.patch("os.getenv", return_value="custom_output.txt")
     mock_open = mocker.patch("builtins.open", new_callable=mocker.mock_open)
 
@@ -70,9 +89,65 @@ def test_set_output_text_custom_path(mocker):
 
     mock_open.assert_called_with("custom_output.txt", "a", encoding="utf-8")
     handle = mock_open()
-    handle.write.assert_any_call("custom-output<<EOF\n")
+    handle.write.assert_any_call(f"custom-output<<{FIXED_DELIMITER}\n")
     handle.write.assert_any_call("custom_value\n")
-    handle.write.assert_any_call("EOF\n")
+    handle.write.assert_any_call(f"{FIXED_DELIMITER}\n")
+
+
+def _read_output_file(path) -> dict[str, str]:
+    """Parse a GITHUB_OUTPUT file the way the runner does: `name<<delimiter` up to a line equal to the delimiter."""
+    outputs: dict[str, str] = {}
+    lines = path.read_text(encoding="utf-8").split("\n")
+    i = 0
+    while i < len(lines):
+        if not lines[i]:
+            i += 1
+            continue
+        name, delimiter = lines[i].split("<<", 1)
+        end = lines.index(delimiter, i + 1)
+        outputs[name] = "\n".join(lines[i + 1 : end])
+        i = end + 1
+    return outputs
+
+
+def test_set_output_text_value_with_eof_line_round_trips_as_one_output(tmp_path, monkeypatch):
+    output_file = tmp_path / "github_output"
+    monkeypatch.setenv("GITHUB_OUTPUT", str(output_file))
+    value = "first\nEOF\nsecond=injected\nEOF"
+
+    set_action_output_text("report", value)
+
+    assert _read_output_file(output_file) == {"report": value}
+
+
+def test_set_output_text_value_with_delimiter_is_refused_and_nothing_written(mocker, tmp_path, monkeypatch):
+    output_file = tmp_path / "github_output"
+    monkeypatch.setenv("GITHUB_OUTPUT", str(output_file))
+    mocker.patch("uuid.uuid4", return_value=FIXED_UUID)
+
+    with pytest.raises(ValueError):
+        set_action_output_text("report", f"a\n{FIXED_DELIMITER}\nb=c")
+
+    assert not output_file.exists()
+
+
+def test_set_output_text_name_with_delimiter_is_refused(mocker, tmp_path, monkeypatch):
+    output_file = tmp_path / "github_output"
+    monkeypatch.setenv("GITHUB_OUTPUT", str(output_file))
+    mocker.patch("uuid.uuid4", return_value=FIXED_UUID)
+
+    with pytest.raises(ValueError):
+        set_action_output_text(FIXED_DELIMITER, "value")
+
+    assert not output_file.exists()
+
+
+def test_break_legacy_command_prefix_rewrites_every_prefix():
+    assert break_legacy_command_prefix("bad ##[add-mask]x ##[end]") == "bad ## [add-mask]x ## [end]"
+
+
+def test_break_legacy_command_prefix_leaves_other_text_unchanged():
+    assert break_legacy_command_prefix("## Heading [1]") == "## Heading [1]"
 
 
 def test_set_failed(mocker):

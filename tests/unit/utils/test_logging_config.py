@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 
 from jacoco_report.utils import logging_config
+from tests import conftest as tests_conftest
 from jacoco_report.utils.logging_config import setup_logging
 
 
@@ -24,8 +25,10 @@ def test_default_logging_level(mock_logging_setup, caplog):
 
     # Validate the logging level and format
     assert call_args["level"] == logging.INFO
-    assert call_args["format"] == "%(asctime)s - %(levelname)s - %(message)s"
-    assert call_args["datefmt"] == "%Y-%m-%d %H:%M:%S"
+    formatter = call_args["handlers"][0].formatter
+    assert isinstance(formatter, logging_config.WorkflowCommandSafeFormatter)
+    assert formatter._fmt == logging_config.LOG_FORMAT
+    assert formatter.datefmt == logging_config.LOG_DATE_FORMAT
 
     # Check that the handler is a StreamHandler and outputs to sys.stdout
     handlers = call_args["handlers"]
@@ -51,8 +54,10 @@ def test_verbose_logging_enabled(mock_logging_setup, caplog):
 
     # Validate the logging level and format
     assert call_args["level"] == logging.DEBUG
-    assert call_args["format"] == "%(asctime)s - %(levelname)s - %(message)s"
-    assert call_args["datefmt"] == "%Y-%m-%d %H:%M:%S"
+    formatter = call_args["handlers"][0].formatter
+    assert isinstance(formatter, logging_config.WorkflowCommandSafeFormatter)
+    assert formatter._fmt == logging_config.LOG_FORMAT
+    assert formatter.datefmt == logging_config.LOG_DATE_FORMAT
 
     # Check that the handler is a StreamHandler and outputs to sys.stdout
     handlers = call_args["handlers"]
@@ -77,8 +82,10 @@ def test_debug_mode_enabled(mock_logging_setup, caplog):
 
     # Validate the logging level and format
     assert call_args["level"] == logging.DEBUG
-    assert call_args["format"] == "%(asctime)s - %(levelname)s - %(message)s"
-    assert call_args["datefmt"] == "%Y-%m-%d %H:%M:%S"
+    formatter = call_args["handlers"][0].formatter
+    assert isinstance(formatter, logging_config.WorkflowCommandSafeFormatter)
+    assert formatter._fmt == logging_config.LOG_FORMAT
+    assert formatter.datefmt == logging_config.LOG_DATE_FORMAT
 
     # Check that the handler is a StreamHandler and outputs to sys.stdout
     handlers = call_args["handlers"]
@@ -137,6 +144,23 @@ def test_traceback_line_break_never_starts_a_workflow_command():
     assert "| ::stop-commands::t" in text
 
 
+def test_first_line_that_starts_with_command_is_neutralized_without_timestamp_prefix():
+    """A format without a leading timestamp must not let the first line start a workflow command."""
+    record = logging.LogRecord("test", logging.INFO, __file__, 1, "::add-mask::x", (), None)
+    text = logging_config.WorkflowCommandSafeFormatter("%(message)s").format(record)
+
+    assert text == "| ::add-mask::x"
+
+
+@pytest.mark.parametrize("msg", ["  ::add-mask::x", "\t::add-mask::x"], ids=["spaces", "tab"])
+def test_first_line_with_leading_whitespace_before_command_is_neutralized(msg):
+    """The runner may trim leading whitespace, so a first line indented before `::` is neutralized too."""
+    text = _format_record(msg)
+
+    assert not text.lstrip().startswith("::")
+    assert text.lstrip().startswith("| ")
+
+
 def test_plain_text_is_unchanged():
     """Ordinary messages without line breaks are not altered."""
     assert _format_record("coverage 97.44%") == "coverage 97.44%"
@@ -151,7 +175,7 @@ def test_setup_logging_installs_safe_formatter(mock_logging_setup):
     assert isinstance(handlers[0].formatter, logging_config.WorkflowCommandSafeFormatter)
 
 
-def test_emitted_record_with_line_break_argument_is_safe(mock_logging_setup):
+def test_emitted_record_with_line_break_argument_is_safe(mock_logging_setup, monkeypatch):
     """A record logged through the configured handler has no line that starts with a command."""
     setup_logging()
     handler = mock_logging_setup.call_args[1]["handlers"][0]
@@ -159,9 +183,9 @@ def test_emitted_record_with_line_break_argument_is_safe(mock_logging_setup):
     handler.stream = stream
 
     logger = logging.getLogger("test_emitted_record_with_line_break_argument_is_safe")
-    logger.handlers = [handler]
-    logger.propagate = False
-    logger.setLevel(logging.INFO)
+    monkeypatch.setattr(logger, "handlers", [handler])
+    monkeypatch.setattr(logger, "propagate", False)
+    monkeypatch.setattr(logger, "level", logging.INFO)
     logger.info("Report name %s", "evil\n::add-mask::secret")
 
     output = stream.getvalue()
@@ -281,9 +305,23 @@ def test_setup_logging_replaces_a_handler_configured_before():
     assert isinstance(root.handlers[0].formatter, logging_config.WorkflowCommandSafeFormatter)
 
 
-def test_real_basicConfig_run_by_previous_test_is_undone():
-    """Runs right after the real basicConfig test above: the root handler and level it set are not left behind."""
-    root = logging.getLogger()
+def test_restore_fixture_undoes_real_basicConfig(monkeypatch):
+    """The autouse root-logger fixture in conftest puts back what the real basicConfig replaced.
 
-    assert root.level == logging.WARNING
-    assert not any(getattr(handler, "stream", None) is sys.stdout for handler in root.handlers)
+    The fixture generator is driven by hand. The test sets its own root level first, so the result does not
+    depend on --log-level, and it does not depend on test order.
+    """
+    root = logging.getLogger()
+    monkeypatch.setattr(root, "level", logging.CRITICAL)
+    handlers_before, level_before = root.handlers[:], root.level
+    restore = tests_conftest.restore_root_logger_after_test.__wrapped__()
+    next(restore)
+
+    setup_logging()
+    assert root.level != level_before
+    assert root.handlers != handlers_before
+
+    next(restore, None)
+
+    assert root.level == level_before
+    assert root.handlers == handlers_before

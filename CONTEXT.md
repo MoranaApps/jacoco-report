@@ -104,8 +104,8 @@ service is needed.
   (`.github/copilot-instructions.md`).
 - `tests/unit/test_no_direct_output.py` is an AST guard over `main.py` and `jacoco_report/`. It fails on: bare
   `print`/`pprint`; `sys.stdout`/`sys.stderr`/`__stdout__`/`__stderr__`; `from sys import stdout|stderr`;
-  `traceback.print_*`; `os.write`; `sys.exit`/`exit`/`quit`/`SystemExit` with any argument but an int literal (str, f-string, variable,
-  `None`); `StreamHandler()` with no
+  `traceback.print_*`; `os.write`; `sys.exit`/`exit`/`quit`/`SystemExit` with any argument that is not
+  int-valued (int/bool constants, unary `+`/`-` on them, or an `IfExp` of those); `StreamHandler()` with no
   stream. Exempt as whole files: `utils/gh_action.py`, `utils/logging_config.py` (line-number allowlists
   would break on every edit).
 - Every real input is read exclusively through `ActionInputs`
@@ -159,17 +159,27 @@ service is needed.
 - `action.yml` has exactly two steps, `setup` ("Install Python dependencies") and the Run step; a test
   fails if one is added or removed.
 - `setup` runs every Python call with `-I`: the cwd is the caller's checkout, and a planted module there
-  must not run. It fails with an `actions/setup-python` hint if `python` is not on PATH. It creates
+  must not run. It emits `::error::` and fails if `python` is not on PATH (with an `actions/setup-python`
+  hint) or is below 3.11. It creates
   `venv_dir="$(mktemp -d "$RUNNER_TEMP/jacoco-report-venv.XXXXXX")"` per call with `python -I -m venv` and
   writes that venv's `bin/python` to output `python`. The Run step gets it as `JACOCO_REPORT_PYTHON`
   (`steps.setup.outputs.python`). No `activate`, no `.venv`, nothing written into `GITHUB_WORKSPACE`.
-- The Run step runs `"$JACOCO_REPORT_PYTHON" -E -s "$GITHUB_ACTION_PATH/main.py"`. It is the one step
+- The Run step runs `"$JACOCO_REPORT_PYTHON" -B -E -s "$GITHUB_ACTION_PATH/main.py"`. It is the one step
   without `-I`: `-I` implies `-P`, which drops `main.py`'s directory from `sys.path` and breaks
-  `import jacoco_report`.
+  `import jacoco_report`. `-B` stops `__pycache__` being written into the action path or caller checkout
+  (`-E` ignores `PYTHONDONTWRITEBYTECODE`).
 - `setup_logging` (`utils/logging_config.py`) gives the root handler `WorkflowCommandSafeFormatter` and calls
-  `basicConfig(force=True)`, which removes any root handler set up earlier. The formatter prefixes each
-  continuation line of a record with `| `, and rewrites the legacy `##[` to `## [` (`LEGACY_COMMAND_PREFIX` in
-  `gh_action.py`), because the runner's v1 parser finds `##[command]` anywhere in a line.
+  `basicConfig(force=True)` with no `format`/`datefmt` (the handler's formatter carries them), which removes any
+  root handler set up earlier. The formatter prefixes each continuation line of a record with `| `, prefixes a
+  first line starting with `::` (after lstrip) with `| `, and rewrites legacy `##[` to `## [` via the shared
+  `break_legacy_command_prefix` (`gh_action.py`), because the runner's v1 parser finds `##[command]` anywhere in a line.
+- `set_action_output_text` (`gh_action.py`) writes multi-line outputs as `name<<ghadelimiter_<uuid4>` heredocs with a
+  random delimiter per call. It raises `ValueError` before writing if the name or value contains that delimiter.
+  Never use a fixed delimiter.
+- Workflow file (`.github/workflows/`), enforced by `tests/unit/test_ci_workflow.py`:
+  - No `run:` script contains `${{`; pass expressions via `env:` (e.g. context-check gets `github.base_ref` as `BASE_REF`).
+  - Every third-party `uses:` is pinned to a full commit SHA with a `# vX.Y.Z` comment. Renovate updates the pins.
+  - Every `actions/setup-python` step with `cache: pip` lists both `requirements.txt` and `requirements-dev.txt` in `cache-dependency-path`.
 - `setup_logging` also installs `sys.excepthook` (uncaught exceptions are logged through the formatter, exit
   code stays 1, `KeyboardInterrupt` goes to the default hook) and calls `logging.captureWarnings(True)`. Both
   are process-wide: the autouse `tests/conftest.py` fixture `restore_process_hooks_after_test` restores them
@@ -185,7 +195,7 @@ service is needed.
   imports) must go in `requirements.txt`: otherwise the action breaks in callers' jobs while the tests still
   pass, because the dev install includes it.
 - `set_action_failed` escapes each message with `escape_workflow_command_data` (`%`, `\r`, `\n`; `%`
-  first, then the legacy `##[`, as in the formatter bullet). Messages can contain text from PR report XMLs, so an unescaped newline could forge a workflow
+  first, then `break_legacy_command_prefix`, as in the formatter bullet). Messages can contain text from PR report XMLs, so an unescaped newline could forge a workflow
   command such as `::add-mask::`. Any new `::command::` print must go through it.
 - The `self-test` CI job runs on an ubuntu/macos matrix (`fail-fast: false`). It asserts exact
   action outputs (`coverage-overall` 91.62, 8 reports) computed from `tests/data/test_project/module_large/`
