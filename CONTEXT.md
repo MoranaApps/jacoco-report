@@ -229,6 +229,11 @@ service is needed.
 - `GitHub` (`utils/github.py`) passes `verify=<path>` per request, only when `ca-bundle` is set. Reason: requests lets
   `REQUESTS_CA_BUNDLE`/`CURL_CA_BUNDLE` override `session.verify` but not a per-request `verify`. Unset → no `verify`
   kwarg (tests pin the exact call args).
+- Every GitHub API call in `GitHub.send_request` passes `timeout=REQUEST_TIMEOUT` (`(10, 60)`, connect, read).
+  A timeout is a `requests.RequestException`, so it surfaces as `None` like other request errors. There is
+  deliberately no retry: a POST of a PR comment isn't idempotent (debt JR-04b). `get_comments` turns a failed
+  page into the pages read so far (`[]` on page 1), which callers read as "no existing comment": with
+  `update-comment: true` that adds a second comment instead of updating the first.
 
 ## Read more
 
