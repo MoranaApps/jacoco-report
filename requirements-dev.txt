@@ -6,5 +6,5 @@ pytest-cov==7.1.0
 pytest-mock==3.17.0
 mypy==2.4.1
 mypy-extensions==1.1.0
-types-requests==2.33.0.20261006
-types-PyYAML==6.0.12.20260906
+types-requests==2.33.0.20261030
+types-PyYAML==6.0.12.20261030
