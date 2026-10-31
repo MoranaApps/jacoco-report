@@ -1,4 +1,5 @@
 import io
+import logging
 import os
 
 import pytest
@@ -453,6 +454,30 @@ def test_update_comment_unexpected_response_format(mocker):
         "PATCH", "https://api.github.com/repos/fake_repo/issues/comments/1", data={"body": "Updated comment"}
     )
     assert result is False
+
+
+@pytest.mark.parametrize(
+    ("json_return", "json_error"),
+    [
+        pytest.param(None, ValueError("Expecting value: line 1 column 1 (char 0)"), id="non-json-body"),
+        pytest.param({"id": 1}, None, id="json-without-body"),
+        pytest.param(["body"], None, id="json-list"),
+        pytest.param(None, None, id="json-null"),
+    ],
+)
+def test_update_comment_unusable_2xx_response_returns_false(mocker, caplog, json_return, json_error):
+    mocker.patch("os.getenv", return_value="fake_repo")
+    mock_response = mocker.Mock()
+    mock_response.json.return_value = json_return
+    mock_response.json.side_effect = json_error
+    mocker.patch.object(GitHub, "send_request", return_value=mock_response)
+    github = GitHub("fake_token")
+
+    with caplog.at_level(logging.ERROR, logger="jacoco_report.utils.github"):
+        result = github.update_comment(1, "Updated comment")
+
+    assert result is False
+    assert "Unexpected response format when updating comment" in caplog.text
 
 
 # delete pr comment

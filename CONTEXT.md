@@ -225,9 +225,10 @@ service is needed.
   dev tools install it. A new runtime import (anything `main.py` or `jacoco_report/` imports) must go in
   `requirements.in` and the lock must be regenerated: otherwise the action breaks in callers' jobs while the tests
   still pass, because the dev install includes it.
-- `set_action_failed` escapes each message with `escape_workflow_command_data` (`%`, `\r`, `\n`; `%`
-  first, then `break_legacy_command_prefix`, as in the formatter bullet). Messages can contain text from PR report XMLs, so an unescaped newline could forge a workflow
-  command such as `::add-mask::`. Any new `::command::` print must go through it.
+- `set_action_failed` and `print_action_warning` (`::warning::`, no exit) escape each message with
+  `escape_workflow_command_data` (`%`, `\r`, `\n`; `%` first, then `break_legacy_command_prefix`, as in the formatter
+  bullet). Messages can contain text from PR report XMLs, so an unescaped newline could forge a workflow command such
+  as `::add-mask::`. Any new `::command::` print must go through it.
 - The `self-test` CI job runs on an ubuntu/macos matrix (`fail-fast: false`). It asserts exact
   action outputs (`coverage-overall` 91.62, 8 reports) computed from `tests/data/test_project/module_large/`
   + `context/**` fixture XMLs; editing those XMLs means updating the expected values in
@@ -254,6 +255,15 @@ service is needed.
   deliberately no retry: a POST of a PR comment isn't idempotent (debt JR-04b).
   `get_comments` returns `None` when a read is incomplete; both callers then make no comment change. With
   `update-comment: false` the generator doesn't read comments at all.
+  - `PRCommentGenerator.generate()` returns `bool`: True when no comment operation failed (incl. nothing to do:
+    `comment-level: none` + `update-comment: false`), False on an unreadable read or a failed add/update/delete. It
+    prints nothing.
+  - `update_comment` returns False, never raises, on an unusable 2xx response (non-JSON body, no `body` key, or JSON
+    that isn't an object), logged with `logger.error`. A body mismatch also returns False.
+  - `JaCoCoReport` owns the warning (`PR_COMMENT_MAY_BE_STALE_WARNING`, `print_action_warning`; text says the comment
+    *may* not have been changed, since a timed-out or mismatched write can still have changed it): one per run at the
+    end of `run` on False (the success line is logged only on True), and in `_delete_stale_comment_if_update_enabled`
+    on an unreadable read or a failed delete (no `Deleted stale` line). Job result and outputs are unchanged.
 - Runtime deps (`requirements.in`, `requirements.txt`) never automerge. Three controls, all required:
   - `renovate.json`: the `pip-compile` rule for those two files sets `automerge: false`; `pip_requirements` is
     disabled for `requirements.txt`; `pip-compile` `managerFilePatterns` matches `requirements.txt` only;

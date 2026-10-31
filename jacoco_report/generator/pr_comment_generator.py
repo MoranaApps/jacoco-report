@@ -48,29 +48,31 @@ class PRCommentGenerator:
         self.github_repository: str = ActionInputs.get_repository()
         self.github_server_url: str = get_server_url()
 
-    def generate(self) -> None:
+    def generate(self) -> bool:
         """
         The method that generates the comment for a single generator.
+
+        @return: True when no comment operation failed (including when there is nothing to do), False when
+            the comments could not be read or the add, update or delete request failed. Prints no warning.
         """
         comment_level = ActionInputs.get_comment_level()
         update_comment = ActionInputs.get_update_comment()
 
         # No comment operation is needed in this mode, so skip the API read call entirely.
         if comment_level == CommentLevelEnum.NONE and not update_comment:
-            return
+            return True
 
         title, pr_body = self._get_comment_content(comment_level)
 
         # Without update-comment each run appends a new comment, so the existing comments are not read.
         if not update_comment:
-            self.gh.add_comment(self.pr_number, pr_body)
-            return
+            return self.gh.add_comment(self.pr_number, pr_body)
 
         # Get all comments on the pull request
         comments = self.gh.get_comments(self.pr_number)
         if comments is None:
             logger.error("Could not read PR comments; skipping PR comment changes.")
-            return
+            return False
 
         # Check for existing comment with the same title
         existing_comment = None
@@ -81,13 +83,12 @@ class PRCommentGenerator:
 
         if comment_level == CommentLevelEnum.NONE:
             if existing_comment:
-                self.gh.delete_comment(existing_comment["id"])
-            return
+                return self.gh.delete_comment(existing_comment["id"])
+            return True
 
         if existing_comment:
-            self.gh.update_comment(existing_comment["id"], pr_body)
-        else:
-            self.gh.add_comment(self.pr_number, pr_body)
+            return self.gh.update_comment(existing_comment["id"], pr_body)
+        return self.gh.add_comment(self.pr_number, pr_body)
 
     def _get_comment_content(self, comment_level: str) -> tuple[str, str]:
         """Build the PR comment title and body for the selected comment level."""
