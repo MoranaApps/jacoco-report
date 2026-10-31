@@ -320,7 +320,16 @@ class GitHub:
             logger.error("Failed to update the comment with ID %d.", comment_id)
             return False
 
-        if response.json()["body"] == pr_body:
+        try:
+            updated_body = response.json()["body"]
+        except (ValueError, KeyError, TypeError):
+            logger.error(
+                "Unexpected response format when updating comment %d: body is not a JSON object with body.",
+                comment_id,
+            )
+            return False
+
+        if updated_body == pr_body:
             logger.info("Successfully updated the comment with ID %d.", comment_id)
             return True
 

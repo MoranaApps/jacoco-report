@@ -5,6 +5,7 @@ import pytest
 from jacoco_report.utils.gh_action import (
     break_legacy_command_prefix,
     get_action_input,
+    print_action_warning,
     set_action_failed,
     set_action_output,
     set_action_output_text,
@@ -198,3 +199,40 @@ def test_set_failed_escapes_percent_before_other_characters(mocker):
     set_action_failed(["100% done\r\nnext"])
 
     mock_print.assert_called_once_with("::error::100%25 done%0D%0Anext")
+
+
+# print_action_warning
+
+
+def test_print_action_warning_prints_warning_command(mocker, capsys):
+    mocker.patch("sys.exit", return_value=None)
+
+    print_action_warning("comment not changed")
+
+    assert capsys.readouterr().out == "::warning::comment not changed\n"
+
+
+def test_print_action_warning_does_not_exit(mocker):
+    mock_exit = mocker.patch("sys.exit", return_value=None)
+
+    print_action_warning("comment not changed")
+
+    mock_exit.assert_not_called()
+
+
+def test_print_action_warning_escapes_newline_so_message_cannot_inject_command(capsys):
+    print_action_warning("ok\n::add-mask::x")
+
+    assert capsys.readouterr().out == "::warning::ok%0A::add-mask::x\n"
+
+
+def test_print_action_warning_breaks_legacy_command_prefix(capsys):
+    print_action_warning("bad ##[add-mask]x")
+
+    assert capsys.readouterr().out == "::warning::bad ## [add-mask]x\n"
+
+
+def test_print_action_warning_escapes_percent_before_other_characters(capsys):
+    print_action_warning("100% done\r\nnext")
+
+    assert capsys.readouterr().out == "::warning::100%25 done%0D%0Anext\n"

@@ -112,3 +112,13 @@ def set_action_failed(messages: list[str], fail: bool = True) -> None:
         print(f"::{annotation}::{escape_workflow_command_data(message)}")
 
     sys.exit(1 if fail else 0)
+
+
+def print_action_warning(message: str) -> None:
+    """
+    Print a workflow warning annotation without changing the job result.
+
+    @param message: The warning message to display.
+    @return: None
+    """
+    print(f"::warning::{escape_workflow_command_data(message)}")

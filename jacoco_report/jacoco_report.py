@@ -14,9 +14,14 @@ from jacoco_report.parser.jacoco_report_parser import JaCoCoReportParser
 from jacoco_report.scanner.jacoco_report_input_scanner import JaCoCoReportInputScanner
 from jacoco_report.utils.constants import DEFAULT_PATHS, GLOBAL_OVERALL_SCOPE_ALL
 from jacoco_report.utils.enums import FailOnThresholdEnum
+from jacoco_report.utils.gh_action import print_action_warning
 from jacoco_report.utils.github import GitHub, get_api_url
 
 logger = logging.getLogger(__name__)
+
+PR_COMMENT_MAY_BE_STALE_WARNING = (
+    "The PR comment may not have been changed and may be out of date. See the job log for the error."
+)
 
 
 class JaCoCoReport:
@@ -398,8 +403,10 @@ class JaCoCoReport:
         generator = PRCommentGenerator(
             gh, evaluator_for_results, bs_evaluator, pr_number, skip_report_names, ungrouped_reports
         )
-        generator.generate()
-        logger.info("PR comment(s) generated successfully.")
+        if generator.generate():
+            logger.info("PR comment(s) generated successfully.")
+        else:
+            print_action_warning(PR_COMMENT_MAY_BE_STALE_WARNING)
 
     def scan_jacoco_xml_files(self, paths: list[str], exclude_paths: list[str]) -> list[str]:
         # get files jacoco xml files for analysis
@@ -416,11 +423,14 @@ class JaCoCoReport:
         comments = gh.get_comments(pr_number)
         if comments is None:
             logger.error("Could not read PR comments; skipping stale comment deletion.")
+            print_action_warning(PR_COMMENT_MAY_BE_STALE_WARNING)
             return
         for comment in comments:
             if comment["body"].startswith(title):
-                gh.delete_comment(comment["id"])
-                logger.info("Deleted stale comment from previous run.")
+                if gh.delete_comment(comment["id"]):
+                    logger.info("Deleted stale comment from previous run.")
+                else:
+                    print_action_warning(PR_COMMENT_MAY_BE_STALE_WARNING)
                 break
 
     def _mark_operational_failure(self) -> None:

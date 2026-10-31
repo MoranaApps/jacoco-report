@@ -222,6 +222,121 @@ def test_skip_unchanged_evaluate_unchanged_unreadable_comments_no_delete(
     assert jr.has_operational_failure is False
 
 
+# --- PR comment warning: a comment that may not have changed is announced, and the success line is not logged ---
+
+_WARNING = "::warning::The PR comment may not have been changed and may be out of date. See the job log for the error."
+
+
+def _warning_lines(stdout: str) -> list[str]:
+    return [line for line in stdout.splitlines() if line.startswith("::warning::")]
+
+
+def test_run_successful_comment_change_logs_success_and_no_warning(
+    mocker: MockerFixture, make_report_file_coverage, caplog, capsys
+):
+    changed = _report_with_changes("Report A", make_report_file_coverage)
+    _make_run_mocks(mocker, skip_unchanged=False, evaluate_unchanged=False, reports=[changed])
+    mocker.patch.object(PRCommentGenerator, "generate", return_value=True)
+
+    with caplog.at_level(logging.INFO, logger="jacoco_report.jacoco_report"):
+        JaCoCoReport().run()
+
+    assert "PR comment(s) generated successfully." in caplog.text
+    assert _warning_lines(capsys.readouterr().out) == []
+
+
+def test_run_failed_comment_change_warns_once_and_logs_no_success(
+    mocker: MockerFixture, make_report_file_coverage, caplog, capsys
+):
+    changed = _report_with_changes("Report A", make_report_file_coverage)
+    _make_run_mocks(mocker, skip_unchanged=False, evaluate_unchanged=False, reports=[changed])
+    mocker.patch.object(PRCommentGenerator, "generate", return_value=False)
+
+    with caplog.at_level(logging.INFO, logger="jacoco_report.jacoco_report"):
+        jr = JaCoCoReport()
+        jr.run()
+
+    warnings = _warning_lines(capsys.readouterr().out)
+    assert len(warnings) == 1
+    assert warnings[0] == _WARNING
+    assert "PR comment(s) generated successfully." not in caplog.text
+    assert jr.has_operational_failure is False
+
+
+def test_stale_delete_unreadable_comments_warns(mocker: MockerFixture, make_report_file_coverage, caplog, capsys):
+    unchanged = _report_without_changes("Report A", make_report_file_coverage)
+    mocks = _make_run_mocks(mocker, skip_unchanged=True, evaluate_unchanged=False, reports=[unchanged])
+    mocks["gh"].get_comments.return_value = None
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=True)
+
+    with caplog.at_level(logging.INFO, logger="jacoco_report.jacoco_report"):
+        JaCoCoReport().run()
+
+    warnings = _warning_lines(capsys.readouterr().out)
+    assert len(warnings) == 1
+    assert warnings[0] == _WARNING
+    assert "Could not read PR comments" in caplog.text
+    assert "Deleted stale comment" not in caplog.text
+
+
+def test_stale_delete_failed_delete_warns_and_logs_no_deleted_line(
+    mocker: MockerFixture, make_report_file_coverage, caplog, capsys
+):
+    unchanged = _report_without_changes("Report A", make_report_file_coverage)
+    mocks = _make_run_mocks(mocker, skip_unchanged=True, evaluate_unchanged=False, reports=[unchanged])
+    mocks["gh"].get_comments.return_value = [{"id": 99, "body": "**JaCoCo**\n\nsome old content"}]
+    mocks["gh"].delete_comment.return_value = False
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=True)
+
+    with caplog.at_level(logging.INFO, logger="jacoco_report.jacoco_report"):
+        JaCoCoReport().run()
+
+    mocks["gh"].delete_comment.assert_called_once_with(99)
+    warnings = _warning_lines(capsys.readouterr().out)
+    assert len(warnings) == 1
+    assert warnings[0] == _WARNING
+    assert "Deleted stale comment" not in caplog.text
+
+
+def test_stale_delete_successful_delete_logs_deleted_and_no_warning(
+    mocker: MockerFixture, make_report_file_coverage, caplog, capsys
+):
+    unchanged = _report_without_changes("Report A", make_report_file_coverage)
+    mocks = _make_run_mocks(mocker, skip_unchanged=True, evaluate_unchanged=False, reports=[unchanged])
+    mocks["gh"].get_comments.return_value = [{"id": 99, "body": "**JaCoCo**\n\nsome old content"}]
+    mocks["gh"].delete_comment.return_value = True
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=True)
+
+    with caplog.at_level(logging.INFO, logger="jacoco_report.jacoco_report"):
+        JaCoCoReport().run()
+
+    assert "Deleted stale comment from previous run." in caplog.text
+    assert _warning_lines(capsys.readouterr().out) == []
+
+
+def test_stale_delete_no_matching_comment_is_silent(mocker: MockerFixture, make_report_file_coverage, capsys):
+    unchanged = _report_without_changes("Report A", make_report_file_coverage)
+    mocks = _make_run_mocks(mocker, skip_unchanged=True, evaluate_unchanged=False, reports=[unchanged])
+    mocks["gh"].get_comments.return_value = [{"id": 5, "body": "unrelated comment"}]
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=True)
+
+    JaCoCoReport().run()
+
+    mocks["gh"].delete_comment.assert_not_called()
+    assert _warning_lines(capsys.readouterr().out) == []
+
+
+def test_stale_delete_update_comment_false_is_silent(mocker: MockerFixture, make_report_file_coverage, capsys):
+    unchanged = _report_without_changes("Report A", make_report_file_coverage)
+    mocks = _make_run_mocks(mocker, skip_unchanged=True, evaluate_unchanged=False, reports=[unchanged])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=False)
+
+    JaCoCoReport().run()
+
+    mocks["gh"].get_comments.assert_not_called()
+    assert _warning_lines(capsys.readouterr().out) == []
+
+
 def test_skip_unchanged_all_filtered_no_delete_when_update_comment_false(
     mocker: MockerFixture, make_report_file_coverage
 ):

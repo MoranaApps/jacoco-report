@@ -765,6 +765,81 @@ def test_unreadable_read_through_real_client_sends_no_write(
     assert "Could not read PR comments" in caplog.text
 
 
+# --- generate() return value: True when no comment operation failed ---
+
+
+def test_generate_returns_true_for_none_without_update_comment(pr_comment_generator, mocker):
+    _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="none")
+
+    assert pr_comment_generator.generate() is True
+    pr_comment_generator.gh.add_comment.assert_not_called()
+
+
+@pytest.mark.parametrize("ok", [True, False])
+def test_generate_update_comment_false_returns_add_result(mocker, mock_github, test_evaluator, ok):
+    gen = PRCommentGenerator(mock_github, test_evaluator, _make_empty_evaluator(), pr_number=1)
+    _configure_generator_for_comment_tests(gen, mocker, comment_level=CommentLevelEnum.MINIMAL)
+    mock_github.add_comment.return_value = ok
+
+    assert gen.generate() is ok
+    mock_github.get_comments.assert_not_called()
+
+
+def test_generate_returns_false_when_comments_unreadable(mocker, mock_github, test_evaluator, caplog):
+    gen = PRCommentGenerator(mock_github, test_evaluator, _make_empty_evaluator(), pr_number=1)
+    _configure_generator_for_comment_tests(gen, mocker, comment_level=CommentLevelEnum.MINIMAL)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=True)
+    mock_github.get_comments.return_value = None
+
+    assert gen.generate() is False
+    mock_github.add_comment.assert_not_called()
+
+
+@pytest.mark.parametrize("ok", [True, False])
+def test_generate_none_level_returns_delete_result_for_existing_comment(mocker, mock_github, test_evaluator, ok):
+    gen = PRCommentGenerator(mock_github, test_evaluator, _make_empty_evaluator(), pr_number=1)
+    _configure_generator_for_comment_tests(gen, mocker, comment_level=CommentLevelEnum.NONE)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=True)
+    mock_github.get_comments.return_value = [{"id": 123, "body": "**JaCoCo**\n\nold body"}]
+    mock_github.delete_comment.return_value = ok
+
+    assert gen.generate() is ok
+
+
+def test_generate_none_level_returns_true_when_no_existing_comment(mocker, mock_github, test_evaluator):
+    gen = PRCommentGenerator(mock_github, test_evaluator, _make_empty_evaluator(), pr_number=1)
+    _configure_generator_for_comment_tests(gen, mocker, comment_level=CommentLevelEnum.NONE)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=True)
+    mock_github.get_comments.return_value = []
+
+    assert gen.generate() is True
+    mock_github.delete_comment.assert_not_called()
+
+
+@pytest.mark.parametrize("ok", [True, False])
+def test_generate_returns_update_result_for_existing_comment(mocker, mock_github, test_evaluator, ok):
+    gen = PRCommentGenerator(mock_github, test_evaluator, _make_empty_evaluator(), pr_number=1)
+    _configure_generator_for_comment_tests(gen, mocker, comment_level=CommentLevelEnum.MINIMAL)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=True)
+    mock_github.get_comments.return_value = [{"id": 7, "body": "**JaCoCo**\n\nold body"}]
+    mock_github.update_comment.return_value = ok
+
+    assert gen.generate() is ok
+    mock_github.add_comment.assert_not_called()
+
+
+@pytest.mark.parametrize("ok", [True, False])
+def test_generate_returns_add_result_when_no_existing_comment(mocker, mock_github, test_evaluator, ok):
+    gen = PRCommentGenerator(mock_github, test_evaluator, _make_empty_evaluator(), pr_number=1)
+    _configure_generator_for_comment_tests(gen, mocker, comment_level=CommentLevelEnum.MINIMAL)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=True)
+    mock_github.get_comments.return_value = []
+    mock_github.add_comment.return_value = ok
+
+    assert gen.generate() is ok
+    mock_github.update_comment.assert_not_called()
+
+
 @pytest.mark.parametrize(
     ("comment_level", "expected_fragments", "absent_fragments"),
     [
