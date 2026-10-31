@@ -2145,6 +2145,7 @@ def test_run_successful_empty_no_baseline(jacoco_report, mocker):
         return_value=[f"{os.getcwd()}/tests/data/module_b/target/jacoco_no_data.xml"],
     )
     mocker.patch("jacoco_report.utils.github.GitHub.get_pr_changed_files", return_value=[])
+    mocker.patch("jacoco_report.utils.github.GitHub.get_comments", return_value=[])
     mock_add_comment = mocker.patch("jacoco_report.utils.github.GitHub.add_comment", return_value=None)
 
     jacoco_report.run()
@@ -2170,6 +2171,7 @@ def test_run_successful_empty_with_baseline(jacoco_report, mocker):
         return_value=[f"{os.getcwd()}/tests/data/module_b/target/jacoco_no_data.xml"],
     )
     mocker.patch("jacoco_report.utils.github.GitHub.get_pr_changed_files", return_value=[])
+    mocker.patch("jacoco_report.utils.github.GitHub.get_comments", return_value=[])
     mock_add_comment = mocker.patch("jacoco_report.utils.github.GitHub.add_comment", return_value=None)
 
     jacoco_report.run()
@@ -2212,6 +2214,7 @@ def test_successful_one_source_file(jacoco_report, metric, comment, ov_cov, ch_c
         "jacoco_report.utils.github.GitHub.get_pr_changed_files", return_value=["com/example/ExampleClass.java"]
     )
 
+    mocker.patch("jacoco_report.utils.github.GitHub.get_comments", return_value=[])
     mock_add_comment = mocker.patch("jacoco_report.utils.github.GitHub.add_comment", return_value=None)
 
     jacoco_report.run()
@@ -2295,6 +2298,7 @@ def test_successful_more_source_files(
     mocker.patch("jacoco_report.utils.github.GitHub.get_pr_number", return_value=35)
     mocker.patch("jacoco_report.utils.github.GitHub.get_pr_changed_files", return_value=changed_files)
 
+    mocker.patch("jacoco_report.utils.github.GitHub.get_comments", return_value=[])
     mock_add_comment = mocker.patch("jacoco_report.utils.github.GitHub.add_comment", return_value=None)
 
     jacoco_report.run()
