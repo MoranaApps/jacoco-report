@@ -268,6 +268,9 @@ Replace the shell syntax with a GitHub expression, which the runner evaluates be
 - **Runtime dependencies are hash-checked.** `setup` installs the locked runtime packages with `--require-hashes`.
   A pip mirror set through `PIP_INDEX_URL` must serve PyPI's files unchanged; a mirror that rebuilds a package fails
   the hash check. Byte-identical proxies (Artifactory, Nexus, devpi) work.
+- **A failed read of PR comments changes no comment.** With `update-comment: true`, if the action can't read the
+  PR's comments, it logs an error and leaves them as they are, so the PR can show an older report while the job
+  passes. With `update-comment: false`, it no longer reads comments and always appends a new one.
 
 ---
 

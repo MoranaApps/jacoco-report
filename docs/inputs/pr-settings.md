@@ -29,8 +29,10 @@ different `title` values will create two independent comments.
   Set this explicitly to avoid ambiguity.
 - `title` — changing the title mid-project creates a new comment; the old one is orphaned unless
   manually deleted.
-- `update-comment: false` — each run appends a new comment. Useful for audit trails or when
-  multiple parallel jobs each post their own report.
+- `update-comment: true` — if the action can't read the PR's comments, it logs an error and changes no
+  comment, so the PR can show an older report while the job passes.
+- `update-comment: false` — each run appends a new comment, without reading the existing ones. Useful for
+  audit trails or when multiple parallel jobs each post their own report.
 
 ## Examples
 
