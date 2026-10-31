@@ -182,6 +182,46 @@ def test_skip_unchanged_all_filtered_deletes_stale_comment(mocker: MockerFixture
     assert "Deleted stale comment" in caplog.text
 
 
+def test_skip_unchanged_all_filtered_unreadable_comments_no_delete(
+    mocker: MockerFixture, make_report_file_coverage, caplog
+):
+    unchanged = _report_without_changes("Report A", make_report_file_coverage)
+    mocks = _make_run_mocks(mocker, skip_unchanged=True, evaluate_unchanged=False, reports=[unchanged])
+
+    mocks["gh"].get_comments.return_value = None
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=True)
+
+    jr = JaCoCoReport()
+    with caplog.at_level(logging.ERROR, logger="jacoco_report.jacoco_report"):
+        jr.run()
+
+    mocks["gh"].delete_comment.assert_not_called()
+    assert "Could not read PR comments" in caplog.text
+    assert jr.has_operational_failure is False
+
+
+def test_skip_unchanged_evaluate_unchanged_unreadable_comments_no_delete(
+    mocker: MockerFixture, make_report_file_coverage, caplog
+):
+    """All reports filtered with evaluate-unchanged: an unreadable comment read deletes nothing (jacoco_report.py:234)."""
+    unchanged = _report_without_changes("Report A", make_report_file_coverage)
+    mocks = _make_run_mocks(mocker, skip_unchanged=True, evaluate_unchanged=True, reports=[unchanged])
+
+    mocks["gh"].get_comments.return_value = None
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=True)
+
+    jr = JaCoCoReport()
+    with caplog.at_level(logging.INFO, logger="jacoco_report.jacoco_report"):
+        jr.run()
+
+    # The evaluate-unchanged branch ran, not the no-evaluate branch that returns at line 189.
+    assert "Evaluating unchanged reports for threshold result only." in caplog.text
+    assert "No comment will be generated" not in caplog.text
+    mocks["gh"].delete_comment.assert_not_called()
+    assert "Could not read PR comments" in caplog.text
+    assert jr.has_operational_failure is False
+
+
 def test_skip_unchanged_all_filtered_no_delete_when_update_comment_false(
     mocker: MockerFixture, make_report_file_coverage
 ):

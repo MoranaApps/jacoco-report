@@ -248,7 +248,7 @@ class GitHub:
         logger.info("Comment added to the PR.")
         return True
 
-    def get_comments(self, pr_number: int, per_page: int = 100) -> list[dict]:
+    def get_comments(self, pr_number: int, per_page: int = 100) -> Optional[list[dict]]:
         """
         Retrieves all comments from the pull request.
 
@@ -257,7 +257,8 @@ class GitHub:
             per_page (int): The number of comments to retrieve per page.
 
         Returns:
-            list: A list of comments from the PR.
+            Optional[list]: All comments from the PR, or None if any page could not be read
+            (request failed or unexpected format). None means the read is incomplete, not empty.
         """
         repo = os.getenv("GITHUB_REPOSITORY")
         all_comments = []
@@ -272,12 +273,16 @@ class GitHub:
             response = self.send_request("GET", api_url)
             if response is None:
                 logger.error("Failed to get PR comments.")
-                break
+                return None
 
-            comments = response.json()
+            try:
+                comments = response.json()
+            except ValueError:
+                logger.error("Unexpected response format (page %d): body is not JSON.", page)
+                return None
             if not isinstance(comments, list):
                 logger.error("Unexpected response format (page %d): %s", page, response)
-                break
+                return None
 
             logger.info("Retrieved %d comments from page %d.", len(comments), page)
             all_comments.extend(comments)

@@ -10,6 +10,7 @@ from jacoco_report.model.coverage import Coverage
 from jacoco_report.model.evaluated_report_coverage import EvaluatedReportCoverage
 from jacoco_report.model.report_file_coverage import ReportFileCoverage
 from jacoco_report.utils.enums import CommentLevelEnum, MetricTypeEnum
+from jacoco_report.utils.github import GitHub
 
 
 @pytest.fixture
@@ -659,6 +660,109 @@ def test_none_leaves_existing_comment_when_update_comment_disabled(pr_comment_ge
     pr_comment_generator.gh.add_comment.assert_not_called()
     pr_comment_generator.gh.update_comment.assert_not_called()
     pr_comment_generator.gh.delete_comment.assert_not_called()
+
+
+def test_unreadable_comments_skip_add_update_and_delete(mocker, mock_github, test_evaluator, caplog):
+    """A failed comment read (None) must not add a second comment or touch the existing one."""
+    gen = PRCommentGenerator(mock_github, test_evaluator, _make_empty_evaluator(), pr_number=1)
+    _configure_generator_for_comment_tests(gen, mocker, comment_level=CommentLevelEnum.MINIMAL)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=True)
+    mock_github.get_comments.return_value = None
+
+    with caplog.at_level(logging.ERROR, logger="jacoco_report.generator.pr_comment_generator"):
+        gen.generate()
+
+    mock_github.add_comment.assert_not_called()
+    mock_github.update_comment.assert_not_called()
+    mock_github.delete_comment.assert_not_called()
+    assert "Could not read PR comments" in caplog.text
+
+
+def test_unreadable_comments_skip_delete_at_comment_level_none(mocker, mock_github, test_evaluator, caplog):
+    gen = PRCommentGenerator(mock_github, test_evaluator, _make_empty_evaluator(), pr_number=1)
+    _configure_generator_for_comment_tests(gen, mocker, comment_level=CommentLevelEnum.NONE)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=True)
+    mock_github.get_comments.return_value = None
+
+    with caplog.at_level(logging.ERROR, logger="jacoco_report.generator.pr_comment_generator"):
+        gen.generate()
+
+    mock_github.delete_comment.assert_not_called()
+    mock_github.add_comment.assert_not_called()
+    assert "Could not read PR comments" in caplog.text
+
+
+def test_empty_comment_read_adds_comment_when_update_comment_enabled(mocker, mock_github, test_evaluator):
+    gen = PRCommentGenerator(mock_github, test_evaluator, _make_empty_evaluator(), pr_number=1)
+    _configure_generator_for_comment_tests(gen, mocker, comment_level=CommentLevelEnum.MINIMAL)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=True)
+    mock_github.get_comments.return_value = []
+
+    gen.generate()
+
+    mock_github.add_comment.assert_called_once()
+    mock_github.update_comment.assert_not_called()
+
+
+def test_update_comment_disabled_appends_without_reading_comments(mocker, mock_github, test_evaluator):
+    """With update-comment false each run appends a comment; no comment read is needed, so none is made."""
+    gen = PRCommentGenerator(mock_github, test_evaluator, _make_empty_evaluator(), pr_number=1)
+    _configure_generator_for_comment_tests(gen, mocker, comment_level=CommentLevelEnum.MINIMAL)
+    mock_github.get_comments.reset_mock()
+
+    gen.generate()
+
+    mock_github.get_comments.assert_not_called()
+    mock_github.add_comment.assert_called_once()
+    mock_github.update_comment.assert_not_called()
+    mock_github.delete_comment.assert_not_called()
+
+
+def test_unreadable_second_page_posts_nothing_through_real_client(mocker, monkeypatch, test_evaluator, caplog):
+    """Page 1 full, page 2 fails: the real GitHub client returns None and generate sends no write request."""
+    monkeypatch.setenv("GITHUB_REPOSITORY", "owner/repo")
+    gen = PRCommentGenerator(mocker.Mock(), test_evaluator, _make_empty_evaluator(), pr_number=1)
+    _configure_generator_for_comment_tests(gen, mocker, comment_level=CommentLevelEnum.MINIMAL)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=True)
+    gen.gh = GitHub("token")
+
+    full_page = mocker.Mock()
+    full_page.json.return_value = [{"id": i, "body": f"comment {i}"} for i in range(100)]
+    send_request = mocker.patch.object(GitHub, "send_request", side_effect=[full_page, None])
+
+    with caplog.at_level(logging.ERROR, logger="jacoco_report.generator.pr_comment_generator"):
+        gen.generate()
+
+    assert [call.args[0] for call in send_request.call_args_list] == ["GET", "GET"]
+    assert "Could not read PR comments" in caplog.text
+
+
+@pytest.mark.parametrize("comment_level", [CommentLevelEnum.NONE, CommentLevelEnum.MINIMAL])
+@pytest.mark.parametrize("failing_page", [1, 2])
+def test_unreadable_read_through_real_client_sends_no_write(
+    mocker, monkeypatch, test_evaluator, caplog, failing_page, comment_level
+):
+    """A failed page read through the real client sends only GET requests, at any failing page and comment level."""
+    monkeypatch.setenv("GITHUB_REPOSITORY", "owner/repo")
+    gen = PRCommentGenerator(mocker.Mock(), test_evaluator, _make_empty_evaluator(), pr_number=1)
+    _configure_generator_for_comment_tests(gen, mocker, comment_level=comment_level)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=True)
+    gen.gh = GitHub("token")
+
+    # Page 1 is full and holds the existing titled comment, so a partial read would match it and write.
+    full_page = mocker.Mock()
+    full_page.json.return_value = [{"id": 0, "body": "**JaCoCo**\n\nold report"}] + [
+        {"id": i, "body": f"comment {i}"} for i in range(1, 100)
+    ]
+    responses = [None] if failing_page == 1 else [full_page, None]
+    # Spare successful responses let a wrongly sent write be recorded, so the method assertion below catches it.
+    send_request = mocker.patch.object(GitHub, "send_request", side_effect=responses + [mocker.Mock()] * 2)
+
+    with caplog.at_level(logging.ERROR, logger="jacoco_report.generator.pr_comment_generator"):
+        gen.generate()
+
+    assert [call.args[0] for call in send_request.call_args_list] == ["GET"] * failing_page
+    assert "Could not read PR comments" in caplog.text
 
 
 @pytest.mark.parametrize(

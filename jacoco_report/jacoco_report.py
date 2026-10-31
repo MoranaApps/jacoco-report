@@ -413,7 +413,11 @@ class JaCoCoReport:
             return
 
         title = f"**{ActionInputs.get_title()}**"
-        for comment in gh.get_comments(pr_number):
+        comments = gh.get_comments(pr_number)
+        if comments is None:
+            logger.error("Could not read PR comments; skipping stale comment deletion.")
+            return
+        for comment in comments:
             if comment["body"].startswith(title):
                 gh.delete_comment(comment["id"])
                 logger.info("Deleted stale comment from previous run.")

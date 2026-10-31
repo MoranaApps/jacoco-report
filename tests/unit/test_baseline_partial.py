@@ -150,6 +150,7 @@ def test_global_table_diff_wrong_with_partial_baseline(jacoco_report: JaCoCoRepo
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_unchanged", return_value=False)
     mocker.patch("jacoco_report.utils.github.GitHub.get_pr_number", return_value=35)
     mocker.patch("jacoco_report.utils.github.GitHub.get_pr_changed_files", return_value=_CHANGED_FILES)
+    mocker.patch("jacoco_report.utils.github.GitHub.get_comments", return_value=[])
     mock_add_comment = mocker.patch("jacoco_report.utils.github.GitHub.add_comment", return_value=None)
 
     jacoco_report.run()
@@ -893,6 +894,7 @@ def test_group_flow_partial_baseline_with_explicit_per_group_baseline_paths(jaco
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_unchanged", return_value=False)
     mocker.patch("jacoco_report.utils.github.GitHub.get_pr_number", return_value=35)
     mocker.patch("jacoco_report.utils.github.GitHub.get_pr_changed_files", return_value=_CHANGED_FILES)
+    mocker.patch("jacoco_report.utils.github.GitHub.get_comments", return_value=[])
     mock_add_comment = mocker.patch("jacoco_report.utils.github.GitHub.add_comment", return_value=None)
 
     jacoco_report.run()

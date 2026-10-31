@@ -345,7 +345,7 @@ def test_get_comments_unexpected_format(mocker):
 
     comments = github.get_comments(1)
 
-    assert comments == []
+    assert comments is None
     mock_send_req.assert_called_once_with(
         "GET", "https://api.github.com/repos/fake_repo/issues/1/comments?per_page=100&page=1"
     )
@@ -353,6 +353,60 @@ def test_get_comments_unexpected_format(mocker):
     mock_logger.error.assert_called_once()
     call_args = mock_logger.error.call_args
     assert call_args[0][0] == "Unexpected response format (page %d): %s"
+
+
+def test_get_comments_page_1_request_fails_returns_none(mocker):
+    mocker.patch("os.getenv", return_value="fake_repo")
+    mocker.patch.object(GitHub, "send_request", return_value=None)
+    github = GitHub("fake_token")
+
+    assert github.get_comments(1) is None
+
+
+def test_get_comments_page_2_request_fails_returns_none(mocker):
+    mocker.patch("os.getenv", return_value="fake_repo")
+    full_page = mocker.Mock()
+    full_page.json.return_value = [{"id": i, "body": f"comment {i}"} for i in range(100)]
+    mock_send_req = mocker.patch.object(GitHub, "send_request", side_effect=[full_page, None])
+    github = GitHub("fake_token")
+
+    assert github.get_comments(1) is None
+    assert mock_send_req.call_count == 2
+
+
+def test_get_comments_non_json_body_returns_none(mocker):
+    mock_logger = mocker.patch("jacoco_report.utils.github.logger")
+    mocker.patch("os.getenv", return_value="fake_repo")
+    mock_response = mocker.Mock()
+    mock_response.json.side_effect = ValueError("Expecting value: line 1 column 1 (char 0)")
+    mocker.patch.object(GitHub, "send_request", return_value=mock_response)
+    github = GitHub("fake_token")
+
+    assert github.get_comments(1) is None
+    mock_logger.error.assert_called_once()
+
+
+@pytest.mark.parametrize("body", [b"<html><body>Service unavailable</body></html>", b""], ids=["html", "empty"])
+def test_get_comments_real_non_json_response_returns_none(mocker, body):
+    """A real 200 response whose body is not JSON makes get_comments return None instead of raising."""
+    mocker.patch("os.getenv", return_value="fake_repo")
+    response = requests.Response()
+    response.status_code = 200
+    response._content = body
+    mocker.patch.object(GitHub, "send_request", return_value=response)
+    github = GitHub("fake_token")
+
+    assert github.get_comments(1) is None
+
+
+def test_get_comments_empty_list_returns_empty_list(mocker):
+    mocker.patch("os.getenv", return_value="fake_repo")
+    mock_response = mocker.Mock()
+    mock_response.json.return_value = []
+    mocker.patch.object(GitHub, "send_request", return_value=mock_response)
+    github = GitHub("fake_token")
+
+    assert github.get_comments(1) == []
 
 
 # update_comment

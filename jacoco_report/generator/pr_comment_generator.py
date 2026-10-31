@@ -60,8 +60,17 @@ class PRCommentGenerator:
             return
 
         title, pr_body = self._get_comment_content(comment_level)
+
+        # Without update-comment each run appends a new comment, so the existing comments are not read.
+        if not update_comment:
+            self.gh.add_comment(self.pr_number, pr_body)
+            return
+
         # Get all comments on the pull request
         comments = self.gh.get_comments(self.pr_number)
+        if comments is None:
+            logger.error("Could not read PR comments; skipping PR comment changes.")
+            return
 
         # Check for existing comment with the same title
         existing_comment = None
@@ -71,11 +80,11 @@ class PRCommentGenerator:
                 break
 
         if comment_level == CommentLevelEnum.NONE:
-            if existing_comment and update_comment:
+            if existing_comment:
                 self.gh.delete_comment(existing_comment["id"])
             return
 
-        if existing_comment and update_comment:
+        if existing_comment:
             self.gh.update_comment(existing_comment["id"], pr_body)
         else:
             self.gh.add_comment(self.pr_number, pr_body)
