@@ -386,6 +386,19 @@ def test_get_comments_non_json_body_returns_none(mocker):
     mock_logger.error.assert_called_once()
 
 
+@pytest.mark.parametrize("body", [b"<html><body>Service unavailable</body></html>", b""], ids=["html", "empty"])
+def test_get_comments_real_non_json_response_returns_none(mocker, body):
+    """A real 200 response whose body is not JSON makes get_comments return None instead of raising."""
+    mocker.patch("os.getenv", return_value="fake_repo")
+    response = requests.Response()
+    response.status_code = 200
+    response._content = body
+    mocker.patch.object(GitHub, "send_request", return_value=response)
+    github = GitHub("fake_token")
+
+    assert github.get_comments(1) is None
+
+
 def test_get_comments_empty_list_returns_empty_list(mocker):
     mocker.patch("os.getenv", return_value="fake_repo")
     mock_response = mocker.Mock()

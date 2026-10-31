@@ -737,6 +737,34 @@ def test_unreadable_second_page_posts_nothing_through_real_client(mocker, monkey
     assert "Could not read PR comments" in caplog.text
 
 
+@pytest.mark.parametrize("comment_level", [CommentLevelEnum.NONE, CommentLevelEnum.MINIMAL])
+@pytest.mark.parametrize("failing_page", [1, 2])
+def test_unreadable_read_through_real_client_sends_no_write(
+    mocker, monkeypatch, test_evaluator, caplog, failing_page, comment_level
+):
+    """A failed page read through the real client sends only GET requests, at any failing page and comment level."""
+    monkeypatch.setenv("GITHUB_REPOSITORY", "owner/repo")
+    gen = PRCommentGenerator(mocker.Mock(), test_evaluator, _make_empty_evaluator(), pr_number=1)
+    _configure_generator_for_comment_tests(gen, mocker, comment_level=comment_level)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=True)
+    gen.gh = GitHub("token")
+
+    # Page 1 is full and holds the existing titled comment, so a partial read would match it and write.
+    full_page = mocker.Mock()
+    full_page.json.return_value = [{"id": 0, "body": "**JaCoCo**\n\nold report"}] + [
+        {"id": i, "body": f"comment {i}"} for i in range(1, 100)
+    ]
+    responses = [None] if failing_page == 1 else [full_page, None]
+    # Spare successful responses let a wrongly sent write be recorded, so the method assertion below catches it.
+    send_request = mocker.patch.object(GitHub, "send_request", side_effect=responses + [mocker.Mock()] * 2)
+
+    with caplog.at_level(logging.ERROR, logger="jacoco_report.generator.pr_comment_generator"):
+        gen.generate()
+
+    assert [call.args[0] for call in send_request.call_args_list] == ["GET"] * failing_page
+    assert "Could not read PR comments" in caplog.text
+
+
 @pytest.mark.parametrize(
     ("comment_level", "expected_fragments", "absent_fragments"),
     [
