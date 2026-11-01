@@ -1,9 +1,12 @@
 import io
 import logging
 import os
+import ssl
 
 import pytest
 import requests
+from urllib3.exceptions import ConnectTimeoutError, ProtocolError, ReadTimeoutError
+from urllib3.response import HTTPResponse
 
 from jacoco_report.utils.github import GitHub, get_api_url, get_server_url
 
@@ -564,3 +567,125 @@ def test_unset_ca_bundle_keeps_requests_ca_bundle_env(mocker):
     GitHub("fake_token").send_request("GET", "https://api.github.com/test")
 
     assert seen == ["/env/corp.pem"]
+
+
+# retry of transient failures: GET only (#256)
+
+TRANSIENT_FAILURES = [
+    pytest.param(429, id="429"),
+    pytest.param(500, id="500"),
+    pytest.param(502, id="502"),
+    pytest.param(503, id="503"),
+    pytest.param(504, id="504"),
+    pytest.param(ProtocolError("Connection aborted.", ConnectionResetError(54, "reset")), id="connection-reset"),
+    pytest.param(ReadTimeoutError(None, "/test", "Read timed out."), id="read-timeout"),
+    pytest.param(ConnectTimeoutError("Connect timed out."), id="connect-timeout"),
+]
+
+
+def _fake_transport(mocker, outcomes):
+    """
+    Patch urllib3 below its retry loop: attempt n gets outcomes[n], a status code, a (status, headers) pair or an
+    exception. Returns the methods of the attempts made and the mocked sleep.
+    """
+    methods = []
+
+    def fake_make_request(conn, method, url, **kwargs):
+        outcome = outcomes[len(methods)]
+        methods.append(method)
+        if isinstance(outcome, Exception):
+            raise outcome
+        status, headers = outcome if isinstance(outcome, tuple) else (outcome, {})
+        return HTTPResponse(
+            body=io.BytesIO(b"[]"), status=status, headers=headers, preload_content=False, request_method=method
+        )
+
+    mocker.patch("urllib3.connectionpool.HTTPConnectionPool._make_request", side_effect=fake_make_request)
+    mocker.patch.dict(os.environ, {"NO_PROXY": "*"})
+    return methods, mocker.patch("time.sleep")
+
+
+@pytest.mark.parametrize("failure", TRANSIENT_FAILURES)
+def test_get_retries_transient_failure(failure, mocker):
+    methods, _ = _fake_transport(mocker, [failure, 200])
+
+    response = GitHub("fake_token").send_request("GET", "https://api.github.com/test")
+
+    assert response.status_code == 200
+    assert methods == ["GET", "GET"]
+
+
+def test_get_gives_up_after_three_retries_with_exponential_backoff(mocker):
+    methods, sleep = _fake_transport(mocker, [502, 502, 502, 502, 200])
+
+    response = GitHub("fake_token").send_request("GET", "https://api.github.com/test")
+
+    assert response is None
+    assert methods == ["GET"] * 4
+    assert [call.args[0] for call in sleep.call_args_list] == [2, 4]
+
+
+@pytest.mark.parametrize(
+    "retry_after, expected_wait", [pytest.param("7", 7, id="honoured"), pytest.param("3600", 60, id="capped")]
+)
+def test_get_waits_for_retry_after(retry_after, expected_wait, mocker):
+    methods, sleep = _fake_transport(mocker, [(429, {"Retry-After": retry_after}), 200])
+
+    response = GitHub("fake_token").send_request("GET", "https://api.github.com/test")
+
+    assert response.status_code == 200
+    assert methods == ["GET", "GET"]
+    sleep.assert_called_once_with(expected_wait)
+
+
+@pytest.mark.parametrize("method", ["POST", "PATCH", "DELETE"])
+@pytest.mark.parametrize(
+    "failure", TRANSIENT_FAILURES + [pytest.param(ssl.SSLError("bad record mac"), id="ssl-error-after-send")]
+)
+def test_write_is_sent_once_on_failure(method, failure, mocker):
+    methods, _ = _fake_transport(mocker, [failure, 200])
+
+    response = GitHub("fake_token").send_request(method, "https://api.github.com/test", data={"body": "x"})
+
+    assert response is None
+    assert methods == [method]
+
+
+def test_each_retry_logs_a_warning(mocker, caplog):
+    _fake_transport(mocker, [502, ProtocolError("Connection aborted."), 200])
+    caplog.set_level(logging.WARNING, logger="jacoco_report.utils.github")
+
+    GitHub("fake_token").send_request("GET", "https://api.github.com/test")
+
+    warnings = [
+        r.getMessage()
+        for r in caplog.records
+        if r.name == "jacoco_report.utils.github" and r.levelno == logging.WARNING
+    ]
+    assert len(warnings) == 2
+    assert "GET /test" in warnings[0] and "502" in warnings[0] and "2 retries left" in warnings[0]
+    assert "Connection aborted." in warnings[1] and "1 retries left" in warnings[1]
+
+
+@pytest.mark.parametrize("url", ["https://api.github.com/test", "http://ghes.example.com/api/v3/test"])
+def test_session_pins_retry_config(url, mocker):
+    adapters = []
+
+    def fake_send(adapter, request, **kwargs):
+        adapters.append(adapter)
+        response = requests.Response()
+        response.status_code = 200
+        return response
+
+    mocker.patch("requests.adapters.HTTPAdapter.send", autospec=True, side_effect=fake_send)
+
+    GitHub("fake_token").send_request("GET", url)
+
+    retry = adapters[0].max_retries
+    assert retry.total == 3
+    assert retry.backoff_factor == 1
+    assert set(retry.status_forcelist) == {429, 500, 502, 503, 504}
+    assert set(retry.allowed_methods) == {"GET"}
+    assert retry.respect_retry_after_header is True
+    assert retry.retry_after_max == 60
+    assert retry.raise_on_status is False
