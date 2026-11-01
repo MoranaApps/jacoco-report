@@ -15,11 +15,3 @@
 
 - Technical Debt
     - Refactoring - remove maximum of pylint ignores
-
-
-
-LATER
-- proc nejde GITHUB_TOKEN u me v repo
-    - prazdny vstup - ma padat - selhalo neco?
-    - udelat extra validation chedk a zkusit pouzit token v ramci call
-      404 spatny token

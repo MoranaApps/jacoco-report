@@ -28,6 +28,34 @@ logger = logging.getLogger(__name__)
 # (connect, read) seconds for every GitHub API call
 REQUEST_TIMEOUT = (10, 60)
 
+# Static hints logged after "HTTP error occurred" for the statuses that usually mean a token problem
+HINT_TOKEN_INVALID = "Hint: the GitHub token is invalid or expired. Check the `token` input."
+HINT_RATE_LIMITED = (
+    "Hint: the GitHub API rate limit is exhausted (X-RateLimit-Remaining: 0). Re-run the job after the limit resets."
+)
+HINT_FORBIDDEN = (
+    "Hint: the token lacks a permission. The job needs `contents: read`, `pull-requests: read` and `issues: write`. "
+    "On fork PRs and Dependabot PRs the token is read-only, so the comment can't be posted."
+)
+HINT_NOT_FOUND = (
+    "Hint: the token can't access this repository or pull request, e.g. a private repository it can't see, "
+    "or GITHUB_API_URL points to the wrong server on GitHub Enterprise Server."
+)
+
+
+def _hint_for_http_error(http_err: requests.HTTPError) -> Optional[str]:
+    """Returns the static hint for a 401, 403 or 404 response, or None (no response, or any other status)."""
+    response = http_err.response
+    if response is None:
+        return None
+    if response.status_code == 401:
+        return HINT_TOKEN_INVALID
+    if response.status_code == 403:
+        return HINT_RATE_LIMITED if response.headers.get("X-RateLimit-Remaining") == "0" else HINT_FORBIDDEN
+    if response.status_code == 404:
+        return HINT_NOT_FOUND
+    return None
+
 
 def get_api_url() -> str:
     """REST API base URL from the runner's GITHUB_API_URL (not an action input); github.com's when unset."""
@@ -225,6 +253,9 @@ class GitHub:
         # Specific error handling for HTTP errors
         except requests.HTTPError as http_err:
             logger.error("HTTP error occurred: %s.", http_err, exc_info=True)
+            hint = _hint_for_http_error(http_err)
+            if hint:
+                logger.error(hint)
 
         except requests.RequestException as req_err:
             logger.error("An error occurred: %s.", req_err, exc_info=True)

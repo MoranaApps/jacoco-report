@@ -266,6 +266,11 @@ service is needed.
   - POST/PATCH/DELETE are sent once: a repeated POST can post the comment twice. `allowed_methods` alone doesn't
     ensure it: urllib3 repeats connect and other errors (e.g. an SSL error after the request was sent) for any
     method, so `_GetOnlyRetry.increment` fails a non-GET as requests' default `Retry(0, read=False)` does.
+  - Failed HTTP status hints (#257): directly after the `HTTP error occurred` ERROR line (and its traceback),
+    `_hint_for_http_error` logs one more `Hint: ...` ERROR line for 401 (token invalid/expired), 403 (missing
+    permission; the read-only fork/Dependabot token) or 404 (no access, or wrong `GITHUB_API_URL` on GHES). Callers
+    may log more after it. 403 with `X-RateLimit-Remaining: 0` gets the rate-limit hint instead. Static text from module constants: no token, URL or body. No hint for 5xx, 422,
+    other statuses, or `HTTPError` without a response. No extra API call.
   `get_comments` returns `None` when a read is incomplete; both callers then make no comment change. With
   `update-comment: false` the generator doesn't read comments at all.
   - `PRCommentGenerator.generate()` returns `bool`: True when no comment operation failed (incl. nothing to do:
