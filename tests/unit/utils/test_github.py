@@ -5,6 +5,7 @@ import ssl
 
 import pytest
 import requests
+from pytest_mock import MockerFixture
 from urllib3.exceptions import ConnectTimeoutError, ProtocolError, ReadTimeoutError
 from urllib3.response import HTTPResponse
 
@@ -691,7 +692,7 @@ def test_session_pins_retry_config(url, mocker):
     assert retry.raise_on_status is False
 
 
-def _error_messages(caplog):
+def _error_messages(caplog: pytest.LogCaptureFixture) -> list[str]:
     return [
         r.getMessage() for r in caplog.records if r.name == "jacoco_report.utils.github" and r.levelno == logging.ERROR
     ]
@@ -711,7 +712,14 @@ NOT_RATE_LIMITED = {"X-RateLimit-Remaining": "4999"}
         pytest.param("GET", 404, {}, "can't access this repository", id="404-get"),
     ],
 )
-def test_http_error_logs_hint_after_error(method, status, headers, hint_marker, mocker, caplog):
+def test_http_error_logs_hint_after_error(
+    method: str,
+    status: int,
+    headers: dict[str, str],
+    hint_marker: str,
+    mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     _fake_transport(mocker, [(status, headers)])
     caplog.set_level(logging.ERROR, logger="jacoco_report.utils.github")
 
@@ -735,7 +743,9 @@ def test_http_error_logs_hint_after_error(method, status, headers, hint_marker, 
         pytest.param("GET", [422], id="422"),
     ],
 )
-def test_other_statuses_log_no_hint(method, outcomes, mocker, caplog):
+def test_other_statuses_log_no_hint(
+    method: str, outcomes: list[int], mocker: MockerFixture, caplog: pytest.LogCaptureFixture
+) -> None:
     _fake_transport(mocker, outcomes)
     caplog.set_level(logging.ERROR, logger="jacoco_report.utils.github")
 
