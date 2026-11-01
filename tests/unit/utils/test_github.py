@@ -5,6 +5,7 @@ import ssl
 
 import pytest
 import requests
+from pytest_mock import MockerFixture
 from urllib3.exceptions import ConnectTimeoutError, ProtocolError, ReadTimeoutError
 from urllib3.response import HTTPResponse
 
@@ -689,3 +690,68 @@ def test_session_pins_retry_config(url, mocker):
     assert retry.respect_retry_after_header is True
     assert retry.retry_after_max == 60
     assert retry.raise_on_status is False
+
+
+def _error_messages(caplog: pytest.LogCaptureFixture) -> list[str]:
+    return [
+        r.getMessage() for r in caplog.records if r.name == "jacoco_report.utils.github" and r.levelno == logging.ERROR
+    ]
+
+
+RATE_LIMITED = {"X-RateLimit-Remaining": "0"}
+NOT_RATE_LIMITED = {"X-RateLimit-Remaining": "4999"}
+
+
+@pytest.mark.parametrize(
+    "method, status, headers, hint_marker",
+    [
+        pytest.param("GET", 401, {}, "token is invalid or expired", id="401-get"),
+        pytest.param("GET", 403, {}, "token lacks a permission", id="403-get-no-rate-header"),
+        pytest.param("POST", 403, NOT_RATE_LIMITED, "token lacks a permission", id="403-post-fork-pr"),
+        pytest.param("GET", 403, RATE_LIMITED, "rate limit is exhausted", id="403-rate-limited"),
+        pytest.param("GET", 404, {}, "can't access this repository", id="404-get"),
+    ],
+)
+def test_http_error_logs_hint_after_error(
+    method: str,
+    status: int,
+    headers: dict[str, str],
+    hint_marker: str,
+    mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    _fake_transport(mocker, [(status, headers)])
+    caplog.set_level(logging.ERROR, logger="jacoco_report.utils.github")
+
+    response = GitHub("ghs_secret_token_value").send_request(method, "https://api.github.com/test", data={})
+
+    assert response is None
+    errors = _error_messages(caplog)
+    assert len(errors) == 2
+    assert errors[0].startswith("HTTP error occurred:")
+    assert errors[1].startswith("Hint: ")
+    assert hint_marker in errors[1]
+    assert "\n" not in errors[1]
+    assert "ghs_secret_token_value" not in caplog.text
+
+
+@pytest.mark.parametrize(
+    "method, outcomes",
+    [
+        pytest.param("GET", [500, 500, 500, 500], id="500-retries-exhausted"),
+        pytest.param("GET", [502, 502, 502, 502], id="502-retries-exhausted"),
+        pytest.param("GET", [422], id="422"),
+    ],
+)
+def test_other_statuses_log_no_hint(
+    method: str, outcomes: list[int], mocker: MockerFixture, caplog: pytest.LogCaptureFixture
+) -> None:
+    _fake_transport(mocker, outcomes)
+    caplog.set_level(logging.ERROR, logger="jacoco_report.utils.github")
+
+    response = GitHub("ghs_secret_token_value").send_request(method, "https://api.github.com/test")
+
+    assert response is None
+    errors = _error_messages(caplog)
+    assert len(errors) == 1
+    assert errors[0].startswith("HTTP error occurred:")
