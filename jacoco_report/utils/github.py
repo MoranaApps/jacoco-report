@@ -7,9 +7,14 @@ import logging
 import os
 import re
 
-from typing import Any, Optional
+from types import TracebackType
+from typing import Any, Optional, Self
 import requests
 from requests import Session
+from requests.adapters import HTTPAdapter
+from urllib3.connectionpool import ConnectionPool
+from urllib3.response import BaseHTTPResponse
+from urllib3.util.retry import Retry
 
 from jacoco_report.utils.constants import (
     DEFAULT_GITHUB_API_URL,
@@ -32,6 +37,39 @@ def get_api_url() -> str:
 def get_server_url() -> str:
     """Server base URL from the runner's GITHUB_SERVER_URL (not an action input); github.com's when unset."""
     return os.getenv(GITHUB_SERVER_URL) or DEFAULT_GITHUB_SERVER_URL
+
+
+class _GetOnlyRetry(Retry):
+    """
+    Retries GET requests only, and logs each retry.
+
+    allowed_methods alone isn't enough: urllib3 checks it for read errors and statuses only, and repeats connect and
+    other errors (e.g. an SSL error after the request was sent) for any method. A repeated POST can post the comment
+    twice, so any other method fails as with requests' default Retry(0, read=False).
+    """
+
+    def increment(
+        self,
+        method: Optional[str] = None,
+        url: Optional[str] = None,
+        response: Optional[BaseHTTPResponse] = None,
+        error: Optional[Exception] = None,
+        _pool: Optional[ConnectionPool] = None,
+        _stacktrace: Optional[TracebackType] = None,
+    ) -> Self:
+        if method is None or not self._is_method_retryable(method):
+            # Always raises: total=0 is exhausted on the first failure
+            return Retry.increment(self.new(total=0, read=False), method, url, response, error, _pool, _stacktrace)
+
+        new_retry = super().increment(method, url, response, error, _pool, _stacktrace)
+        logger.warning(
+            "GitHub API %s %s failed: %s. Retrying, %d retries left.",
+            method,
+            url,
+            response.status if response else error,
+            new_retry.total,
+        )
+        return new_retry
 
 
 class GitHub:
@@ -71,6 +109,19 @@ class GitHub:
             "Authorization": f"Bearer {self.__token}",
         }
         self.__session.headers.update(headers)
+
+        # Transient failures on reads; worst-case duration is in CONTEXT.md
+        retry = _GetOnlyRetry(
+            total=3,
+            backoff_factor=1,
+            status_forcelist=(429, 500, 502, 503, 504),
+            allowed_methods={"GET"},
+            raise_on_status=False,
+            retry_after_max=60,
+        )
+        adapter = HTTPAdapter(max_retries=retry)
+        self.__session.mount("https://", adapter)
+        self.__session.mount("http://", adapter)
 
         return self.__session
 
