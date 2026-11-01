@@ -257,8 +257,12 @@ service is needed.
   - Only GET is retried (#256, debt JR-04b): `_GetOnlyRetry` on an `HTTPAdapter` mounted for `https://` and `http://`.
     3 retries, `backoff_factor=1` (sleeps 0, 2, 4 s), statuses 429/500/502/503/504, `Retry-After` honoured up to
     `retry_after_max=60` s, `raise_on_status=False` (the last response reaches `raise_for_status`). Each retry logs a
-    warning. Worst case per GET call (each page): 4 attempts × 70 s (`REQUEST_TIMEOUT`) + 3 waits ≤ 60 s = 460 s;
-    all timeouts, no `Retry-After`: 4 × 70 + 6 = 286 s.
+    warning. Estimate per GET call (each page), if every attempt ends at its timeout: 4 attempts × 70 s
+    (`REQUEST_TIMEOUT`) + 3 waits ≤ 60 s = 460 s; all timeouts, no `Retry-After`: 4 × 70 + 6 = 286 s. Not a hard
+    limit: the 60 s read timeout bounds each gap between socket reads, not the whole download, so a server or proxy
+    that trickles bytes can keep one attempt going longer.
+  - The retries end when the response headers arrive: requests reads the body afterwards, outside urllib3's retry
+    loop, so a GET whose body download fails (reset, timeout) is not retried (#303).
   - POST/PATCH/DELETE are sent once: a repeated POST can post the comment twice. `allowed_methods` alone doesn't
     ensure it: urllib3 repeats connect and other errors (e.g. an SSL error after the request was sent) for any
     method, so `_GetOnlyRetry.increment` fails a non-GET as requests' default `Retry(0, read=False)` does.
