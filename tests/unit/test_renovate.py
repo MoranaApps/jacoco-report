@@ -13,8 +13,8 @@ RENOVATE_JSON = REPO_ROOT / "renovate.json"
 RENOVATE_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "renovate.yml"
 CODEOWNERS = REPO_ROOT / ".github" / "CODEOWNERS"
 RUNTIME_FILES = ["requirements.in", "requirements.txt"]
-GATE_ID = "runtime-gate"
-GATE_CLEAR = f"steps.{GATE_ID}.outputs.runtime-changed == 'false'"
+GATE_ID = "review-gate"
+GATE_CLEAR = f"steps.{GATE_ID}.outputs.review-required == 'false'"
 APPROVE_STEP = "Approve Renovate PR (optional PAT)"
 MERGE_STEP = "Enable auto-merge for Renovate PR"
 
@@ -77,6 +77,11 @@ def test_lock_file_maintenance_is_on_and_never_automerges():
     assert maintenance["labels"] == ["auto-update", "no-RN"]
 
 
+def test_github_actions_updates_wait_seven_days():
+    # A new action release gets a week for its maintainer to yank a bad tag before Renovate proposes the SHA bump.
+    assert _rule_for("github-actions", [])["minimumReleaseAge"] == "7 days"
+
+
 def test_dev_requirements_minor_and_patch_updates_still_automerge():
     rule = _rule_for("pip_requirements", ["requirements-dev.txt"])
     assert rule["automerge"] is True
@@ -131,7 +136,37 @@ def _run_gate(tmp_path, changed_files, gh_exit=0):
 def test_gate_reports_a_runtime_change(tmp_path, changed_files):
     result, output, _ = _run_gate(tmp_path, changed_files)
     assert result.returncode == 0, result.stdout + result.stderr
-    assert "runtime-changed=true" in output.splitlines()
+    assert "review-required=true" in output.splitlines()
+
+
+@pytest.mark.parametrize(
+    "changed_files",
+    [
+        [".github/workflows/check_links.yml"],
+        [".github/workflows/check_links.yml", "README.md"],
+        [".github/workflows/sub/x.yml"],
+    ],
+)
+def test_gate_reports_a_workflow_file_change(tmp_path, changed_files):
+    result, output, _ = _run_gate(tmp_path, changed_files)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "review-required=true" in output.splitlines()
+
+
+@pytest.mark.parametrize(
+    "changed_files",
+    [
+        [".github/CODEOWNERS"],
+        [".github/workflows-old/x.yml"],
+        ["docs/.github/workflows/x.yml"],
+        [".github/workflows"],
+    ],
+)
+def test_gate_reports_no_review_for_near_miss_paths(tmp_path, changed_files):
+    # Only files under .github/workflows/ need a person. Other .github files and look-alike paths still get approval.
+    result, output, _ = _run_gate(tmp_path, changed_files)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "review-required=false" in output.splitlines()
 
 
 def test_gate_reads_the_paginated_file_list_through_rest(tmp_path):
@@ -145,20 +180,20 @@ def test_gate_reports_no_runtime_change_for_dev_and_other_files(tmp_path):
     # The near misses are not the runtime inputs: Renovate matches file names exactly, and so does the gate.
     result, output, _ = _run_gate(tmp_path, ["requirements-dev.txt", "pyproject.toml", "docs/requirements.txt"])
     assert result.returncode == 0, result.stdout + result.stderr
-    assert "runtime-changed=false" in output.splitlines()
+    assert "review-required=false" in output.splitlines()
 
 
 def test_gate_fails_when_the_file_list_cannot_be_read(tmp_path):
     result, output, _ = _run_gate(tmp_path, ["requirements-dev.txt"], gh_exit=1)
     assert result.returncode != 0
-    assert "runtime-changed" not in output
+    assert "review-required" not in output
 
 
 def test_gate_fails_closed_when_the_file_list_is_empty(tmp_path):
-    # An empty list must not read as "no runtime change", or a PR whose file list failed to load would be approved.
+    # An empty list must not read as "no review needed", or a PR whose file list failed to load would be approved.
     result, output, _ = _run_gate(tmp_path, [])
     assert result.returncode != 0
-    assert "runtime-changed" not in output
+    assert "review-required" not in output
     assert "::error::" in result.stdout
 
 
@@ -167,6 +202,13 @@ def test_gate_logs_why_approval_and_merge_are_skipped_for_a_runtime_change(tmp_p
     assert result.returncode == 0, result.stdout + result.stderr
     assert "Skipping approval and auto-merge: runtime dependencies (requirements.in/requirements.txt)" in result.stdout
     assert "need a person to review and merge" in result.stdout
+
+
+def test_gate_logs_the_workflow_directory_when_a_workflow_file_changed(tmp_path):
+    result, _, _ = _run_gate(tmp_path, [".github/workflows/check_links.yml"])
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "Skipping approval and auto-merge:" in result.stdout
+    assert ".github/workflows/" in result.stdout
 
 
 def test_gate_stays_quiet_about_the_skip_when_no_runtime_file_changed(tmp_path):

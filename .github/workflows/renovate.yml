@@ -19,19 +19,20 @@ jobs:
       # The secrets context is not allowed in step-level `if:`, so expose it via env first.
       HAS_REVIEW_TOKEN: ${{ secrets.RENOVATE_REVIEW_TOKEN != '' }}
     steps:
-      # Runtime dependency PRs (requirements.in, requirements.txt) always need a person to review and merge them.
-      # The file list comes from the paginated REST endpoint: `gh pr view --json files` stops at 100 files. It is read
-      # into a variable first, so a failed `gh` call fails this step and nothing merges.
-      - name: Check for runtime dependency changes
-        id: runtime-gate
+      # Runtime dependency PRs (requirements.in, requirements.txt) and workflow-file PRs (.github/workflows/) always
+      # need a person to review and merge them: a workflow bump runs third-party code with this repo's write access and
+      # secrets. The file list comes from the paginated REST endpoint: `gh pr view --json files` stops at 100 files. It
+      # is read into a variable first, so a failed `gh` call fails this step and nothing merges.
+      - name: Check for changes that need a person's review
+        id: review-gate
         run: |
           files="$(gh api --paginate "repos/$REPO/pulls/$PR_NUMBER/files" --jq '.[].filename')"
           [ -n "$files" ] || { echo "::error::Could not read the PR's changed files."; exit 1; }
-          if grep -qxE 'requirements\.(in|txt)' <<< "$files"; then
-            echo "runtime-changed=true" >> "$GITHUB_OUTPUT"
-            echo "Skipping approval and auto-merge: runtime dependencies (requirements.in/requirements.txt) need a person to review and merge."
+          if grep -qxE 'requirements\.(in|txt)|\.github/workflows/.+' <<< "$files"; then
+            echo "review-required=true" >> "$GITHUB_OUTPUT"
+            echo "Skipping approval and auto-merge: runtime dependencies (requirements.in/requirements.txt) and workflow files (.github/workflows/) need a person to review and merge."
           else
-            echo "runtime-changed=false" >> "$GITHUB_OUTPUT"
+            echo "review-required=false" >> "$GITHUB_OUTPUT"
           fi
         env:
           REPO: ${{ github.repository }}
@@ -39,7 +40,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Approve Renovate PR (optional PAT)
-        if: ${{ env.HAS_REVIEW_TOKEN == 'true' && steps.runtime-gate.outputs.runtime-changed == 'false' }}
+        if: ${{ env.HAS_REVIEW_TOKEN == 'true' && steps.review-gate.outputs.review-required == 'false' }}
         run: gh pr review --approve "$PR_URL"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
@@ -50,7 +51,7 @@ jobs:
         run: echo "Skipping PR approval. Configure RENOVATE_REVIEW_TOKEN to enable automated approvals."
 
       - name: Enable auto-merge for Renovate PR
-        if: ${{ steps.runtime-gate.outputs.runtime-changed == 'false' }}
+        if: ${{ steps.review-gate.outputs.review-required == 'false' }}
         run: gh pr merge --auto --squash "$PR_URL"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}

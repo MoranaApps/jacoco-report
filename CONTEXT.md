@@ -297,13 +297,26 @@ service is needed.
     `lockFileMaintenance` is enabled (its PRs are reviewed too). The runtime rule has `minimumReleaseAge: "7 days"`:
     a runtime PR opens only once the release is 7 days old. Vulnerability-fix PRs skip the wait (`vulnerabilityAlerts`
     sets no `minimumReleaseAge`); lock file maintenance does not wait (`--upgrade` takes the latest version).
-  - `.github/workflows/renovate.yml`: step `runtime-gate` reads the PR's changed files from the GitHub API into a
-    variable first. If `requirements.in` or `requirements.txt` changed, it sets `runtime-changed=true`, and the
-    PAT approval and `gh pr merge --auto` steps are skipped. A failed file-list call fails the step, so nothing is
-    approved or merged. The job is a required status check, so it must still succeed on those PRs.
+  - `.github/workflows/renovate.yml`: step `review-gate` reads the PR's changed files from the GitHub API into a
+    variable first. If `requirements.in`, `requirements.txt` or any file under `.github/workflows/` changed, it sets
+    `review-required=true`, and the PAT approval and `gh pr merge --auto` steps are skipped; the job stays green. A
+    failed or empty file list fails the step, so nothing is approved or merged. The job is a required status check,
+    so it must still succeed on those PRs.
   - `.github/CODEOWNERS`: `/requirements.in` and `/requirements.txt` have an owner, but `RENOVATE_REVIEW_TOKEN` is the
     owner's PAT (MoranaApps org), so its approval counts as code-owner review. For Renovate PRs the gate is the only
     control that matters. `/requirements-dev.txt` is unowned, so dev minor/patch automerge still works.
+- Workflow-file PRs (any change under `.github/workflows/`) never automerge either, via the same `review-gate`.
+  - Gate covers all of `.github/workflows/`, not a list of workflows: a list goes stale, and the workflows holding
+    secrets are not only those with write access. Cost: about 2 manual merges a month.
+  - `github-actions` rule in `renovate.json` sets `minimumReleaseAge: "7 days"`. It is the only control for the
+    pre-merge exposure: Renovate branches live in this repo, so `pull_request` workflows run the new action version
+    with `secrets.TOKEN` when the PR opens (`lycheeverse/lychee-action`, `AbsaOSS/release-notes-presence-check`).
+    A merge gate cannot stop this.
+  - Known limits: vulnerability-fix PRs skip the wait; a compromise unnoticed for over 7 days still reaches
+    `secrets.TOKEN`; the delay detects nothing, and a GitHub tag's age comes from its commit or tagger date, which
+    an attacker can backdate.
+  - Rejected: binding approval or auto-merge to the head SHA (a race of seconds, needs a push to Renovate's branch);
+    a dedicated bot account for `RENOVATE_REVIEW_TOKEN` (the PAT no longer approves gated PRs).
 
 ## Read more
 

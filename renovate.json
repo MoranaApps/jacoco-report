@@ -47,6 +47,12 @@
         "requirements.txt"
       ],
       "enabled": false
+    },
+    {
+      "matchManagers": [
+        "github-actions"
+      ],
+      "minimumReleaseAge": "7 days"
     }
   ],
   "pip-compile": {
