@@ -352,3 +352,31 @@ jobs:
         id: check-types
         run: |
           mypy .
+
+  # The check the ruleset is meant to require. It aggregates every job above except context-check: check.sh is
+  # "a nudge, not a verdict", and its --strict mode fails PRs that need no CONTEXT.md change. Add new jobs to `needs`.
+  ci-result:
+    if: always()
+    needs:
+      - set-matrix
+      - analysis
+      - code-format-check
+      - unit-tests
+      - integration-tests
+      - live-integration-test
+      - self-test
+      - mypy-check
+    runs-on: ubuntu-latest
+    name: CI result
+    steps:
+      - name: Fail if any needed job failed or was cancelled
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          case " $RESULTS " in
+            *" failure "*|*" cancelled "*)
+              echo "::error::A CI job failed or was cancelled: $RESULTS"
+              exit 1
+              ;;
+          esac
+          echo "OK: every CI job passed or was skipped: $RESULTS"

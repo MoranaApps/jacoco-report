@@ -37,8 +37,9 @@ who want coverage visible directly in PR review, without digging through CI logs
   skip-unchanged × comment-level matrix; `tests/integration/live/` posts to a real PR (needs a GitHub
   token, skipped on forks)
 - `docs/inputs/*.md` — one doc per action-input group, linked from `README.md`
-- `.github/workflows/` — CI: static analysis & tests (incl. PR-only `context-check` and `self-test`;
-  `self-test` runs the composite action itself via `uses: ./` on ubuntu and macos), release draft,
+- `.github/workflows/` — CI: static analysis & tests (incl. PR-only `context-check` and `self-test`, and
+  `ci-result`, the aggregated `CI result` check: see Key decisions; `self-test` runs the composite action
+  itself via `uses: ./` on ubuntu and macos), release draft,
   link check, markdown lint, v2/v3 tag movers, Renovate, and `agd-update` (weekly `agd update`, opening a PR
   from the `agd-update` branch, as in agd's "Update automatically" guide; its unsigned push needs `agd-update`
   excluded from the "All Branches Rules" signed-commits ruleset, and opening the PR needs the repo setting
@@ -149,6 +150,14 @@ service is needed.
   callers. Revisit when pyyaml ships cp315 wheels (#278).
 - An incomplete `get_comments` read changes no comment, even if the existing comment was already found on an earlier
   page (#255). Acting on it would be safe only in that rare case (PRs with 100+ comments); one rule for both callers wins.
+- `CI result` (job `ci-result` in `static_analysis_and_tests.yml`) is the check the ruleset is meant to require for
+  the CI jobs, in place of `set-matrix`. Its `name` is a ruleset contract: renaming it leaves every PR waiting on a
+  check that no longer exists. No test pins its `needs`, so add each new job there by hand. It fails on any
+  needed `failure` or `cancelled`, and passes `skipped` (`self-test` and `live-integration-test` skip by design).
+  `context-check` is excluded on purpose: `check.sh` is "a nudge, not a verdict", and `--strict` fails PRs that
+  need no `CONTEXT.md` change. Owner merges bypass the ruleset (`bypass: always`), so the check gates Renovate
+  auto-merge and contributors without bypass, not the owner. `support/2.1.x` is under the same ruleset and has
+  no such job: after the swap, a PR to it without bypass waits forever, so add the job there before such a PR.
 
 ## Invariants and gotchas
 
