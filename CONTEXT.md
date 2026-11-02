@@ -39,7 +39,7 @@ who want coverage visible directly in PR review, without digging through CI logs
 - `docs/inputs/*.md` — one doc per action-input group, linked from `README.md`
 - `.github/workflows/` — CI: static analysis & tests (incl. PR-only `context-check` and `self-test`, and
   `ci-result`, the aggregated `CI result` check: see Key decisions; `self-test` runs the composite action
-  itself via `uses: ./` on ubuntu and macos), release draft,
+  itself via `uses: ./` on ubuntu), release draft,
   link check, markdown lint, v2/v3 tag movers, Renovate, and `agd-update` (weekly `agd update`, opening a PR
   from the `agd-update` branch, as in agd's "Update automatically" guide; its unsigned push needs `agd-update`
   excluded from the "All Branches Rules" signed-commits ruleset, and opening the PR needs the repo setting
@@ -225,8 +225,8 @@ service is needed.
   `restore_environ_after_test` restores `os.environ` (e.g. `INPUT_DEBUG` set by a test); `tests/unit/test_env_isolation.py` pins it.
   The last two delegate to plain `snapshot_*`/`restore_*` helpers in `conftest.py`; tests call those helpers,
   never a fixture's `__wrapped__`.
-- Runners: the `action.yml` scripts run on ubuntu and macos runners (`shell: bash`). Windows runners are not
-  a support target (owner decision). This is about the runners callers use, not dev machines (see the
+- Runners: the `action.yml` scripts run on ubuntu runners (`shell: bash`). macOS and Windows runners are not a support
+  target (owner decision); no code blocks them. This is about the runners callers use, not dev machines (see the
   `_to_posix_abspath` bullet). No `grep -P`.
 - Dependencies: `requirements.in` holds the runtime top-level pins (`requests`, `pyyaml`, and `urllib3`, also a
   `requests` dependency but imported directly). `requirements.txt` is
@@ -240,7 +240,7 @@ service is needed.
   `escape_workflow_command_data` (`%`, `\r`, `\n`; `%` first, then `break_legacy_command_prefix`, as in the formatter
   bullet). Messages can contain text from PR report XMLs, so an unescaped newline could forge a workflow command such
   as `::add-mask::`. Any new `::command::` print must go through it.
-- The `self-test` CI job runs on an ubuntu/macos matrix (`fail-fast: false`). It asserts exact
+- The `self-test` CI job runs on ubuntu. It asserts exact
   action outputs (`coverage-overall` 91.62, 8 reports) computed from `tests/data/test_project/module_large/`
   + `context/**` fixture XMLs; editing those XMLs means updating the expected values in
   `static_analysis_and_tests.yml`. Its assertions use `jq`. Its `title` is hostile (`$(…)`, backticks), and it

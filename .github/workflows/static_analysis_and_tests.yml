@@ -207,15 +207,11 @@ jobs:
   self-test:
     if: github.event_name == 'pull_request'
     needs: set-matrix
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest]
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       pull-requests: read
-    name: Action Self-Test - (${{ matrix.os }}, Python ${{ needs.set-matrix.outputs.oldest-version }})
+    name: Action Self-Test - (Python ${{ needs.set-matrix.outputs.oldest-version }})
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
