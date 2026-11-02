@@ -73,7 +73,8 @@ Files and parts marked "From agentic-defaults" are replaced when the kit updates
   done. The same four gates run in CI (`.github/workflows/static_analysis_and_tests.yml`); only
   `unit-tests` runs across the full Python 3.11–3.15 matrix, the other gates run once on 3.11 (the
   oldest supported version), plus a `context-check` job on pull requests (see the `context-md`
-  skill).
+  skill). The `CI result` job (`ci-result`) aggregates those jobs except `context-check` and is the
+  check the ruleset is meant to require, so keep it in step with new jobs.
 - Use the agentic-defaults kit's agents and skills proactively whenever one fits the task, rather
   than doing the work inline. This is the owner's standing request to spawn agents, and it overrides
   "Hand work to an agent only when…" above. For example: review → `reviewer` agent, `security-reviewer`

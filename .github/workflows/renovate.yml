@@ -1,5 +1,5 @@
-# NOTE: This workflow expects that branch protection rules require all checks to pass before merging.
-# Auto-merge will only occur if all required status checks and reviews are successful.
+# NOTE: Auto-merge waits only for the ruleset's required status checks and reviews. The ruleset is meant to require
+# `CI result`, which aggregates the static_analysis_and_tests.yml jobs except context-check (see CONTEXT.md).
 
 name: Renovate auto-merge
 on:
