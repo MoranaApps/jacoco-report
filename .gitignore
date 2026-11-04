@@ -177,3 +177,6 @@ cython_debug/
 .claude/settings.json
 run_script.sh
 /pr.md
+
+# Local run output: set_action_output writes here when GITHUB_OUTPUT is unset
+/default_output.txt
