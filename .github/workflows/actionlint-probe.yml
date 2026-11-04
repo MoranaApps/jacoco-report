@@ -1,0 +1,9 @@
+# Throwaway probe for #262's acceptance check: actionlint must fail CI on this file. Delete before merge.
+name: actionlint probe
+on: workflow_dispatch
+jobs:
+  probe:
+    if: secrets.TOKEN != ''
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo probe
