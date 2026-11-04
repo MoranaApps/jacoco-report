@@ -320,5 +320,5 @@ This project uses GitHub Actions for release draft creation via `.github/workflo
 2. **Review the draft release** — add a title, description, and changelog notes.
 3. **Publish the release** — once the draft is finalised, publish it.
 
-The `v2` tag is moved automatically by `.github/workflows/update-v2-tag.yml` on every
-published release.
+The `v3` tag is moved automatically by `.github/workflows/update-v3-tag.yml` when a `v3.*`
+release is published. v2 is no longer maintained, so the `v2` tag stays at `v2.1.3`.

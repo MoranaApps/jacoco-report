@@ -40,7 +40,8 @@ who want coverage visible directly in PR review, without digging through CI logs
 - `.github/workflows/` — CI: static analysis & tests (incl. PR-only `context-check` and `self-test`, and
   `ci-result`, the aggregated `CI result` check: see Key decisions; `self-test` runs the composite action
   itself via `uses: ./` on ubuntu), release draft,
-  link check, markdown lint, v2/v3 tag movers, Renovate, and `agd-update` (weekly `agd update`, opening a PR
+  link check, markdown lint, v3 tag mover (`v2` is unmaintained, its tag frozen at `v2.1.3`), Renovate,
+  and `agd-update` (weekly `agd update`, opening a PR
   from the `agd-update` branch, as in agd's "Update automatically" guide; its unsigned push needs `agd-update`
   excluded from the "All Branches Rules" signed-commits ruleset, and opening the PR needs the repo setting
   "Allow GitHub Actions to create and approve pull requests"; checks start on that PR only after
