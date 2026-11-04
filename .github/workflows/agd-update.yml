@@ -55,6 +55,7 @@ jobs:
           git add -A
           git commit -q -m "Update the agentic setup" -m "$(cat "$RUNNER_TEMP/update.txt")"
           git push -q --force origin "$BRANCH"
+          # shellcheck disable=SC2016 # the backticks are Markdown code spans, not command substitution
           {
             echo 'The weekly `agd update` changed these files. Read the changes before you merge: they are instructions for agents.'
             echo

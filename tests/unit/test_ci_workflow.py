@@ -10,7 +10,8 @@ WORKFLOW_FILES = sorted((REPO_ROOT / ".github" / "workflows").glob("*.yml"))
 REQUIREMENTS_PATHS = ["requirements.txt", "requirements-dev.txt"]
 FULL_SHA = re.compile(r"[0-9a-f]{40}")
 THIRD_PARTY_USES = re.compile(r"[\w.-]+/[\w.-]+(/[\w./-]+)?@(?P<ref>[^\s#]+)")
-DOCKER_DIGEST_USES = re.compile(r"docker://[\w./-]+@sha256:[0-9a-f]{64}")
+# The tag is required: Renovate looks up `latest` for a digest-only image, and some images have no `latest`.
+DOCKER_DIGEST_USES = re.compile(r"docker://[\w./-]+:[\w.-]+@sha256:[0-9a-f]{64}")
 PINNED_USES_WITH_COMMENT = re.compile(r"uses:\s*(?P<uses>\S+)\s+#\s*v?\d\S*\s*$", re.MULTILINE)
 
 
@@ -55,7 +56,7 @@ def test_the_detector_finds_third_party_actions_in_the_workflows():
 def test_every_third_party_uses_is_pinned_to_a_full_commit_sha(workflow):
     for uses in _third_party_uses(workflow):
         if uses.startswith("docker://"):
-            assert DOCKER_DIGEST_USES.fullmatch(uses), f"{uses} is not pinned to a sha256 image digest"
+            assert DOCKER_DIGEST_USES.fullmatch(uses), f"{uses} is not pinned as image:tag@sha256:<digest>"
             continue
         match = THIRD_PARTY_USES.fullmatch(uses)
         assert match, f"unparsable uses: {uses}"
@@ -77,12 +78,30 @@ def test_version_comment_accepts_a_bare_number_without_v():
     assert PINNED_USES_WITH_COMMENT.search("uses: actions/foo@" + "a" * 40 + " # v4.2.0\n")
 
 
+def test_docker_pin_needs_a_tag_and_a_digest():
+    digest = "@sha256:" + "a" * 64
+    assert DOCKER_DIGEST_USES.fullmatch("docker://rhysd/actionlint:1.7.12" + digest)
+    assert not DOCKER_DIGEST_USES.fullmatch("docker://rhysd/actionlint" + digest)
+    assert not DOCKER_DIGEST_USES.fullmatch("docker://rhysd/actionlint:1.7.12")
+
+
 @pytest.mark.parametrize("workflow", WORKFLOW_FILES, ids=lambda path: path.name)
 def test_every_pinned_third_party_uses_has_a_version_comment(workflow):
-    # The version comment is what Renovate and readers use to tell which release a SHA is.
+    # The version comment is what Renovate and readers use to tell which release a SHA is. A docker pin carries its
+    # version in the tag instead, and has no comment: Renovate rewrites only the image reference, so one would go stale.
     text = workflow.read_text(encoding="utf-8")
     commented = {match.group("uses") for match in PINNED_USES_WITH_COMMENT.finditer(text)}
-    assert commented == set(_third_party_uses(workflow))
+    assert commented == {uses for uses in _third_party_uses(workflow) if not uses.startswith("docker://")}
+
+
+def test_actionlint_runs_on_every_event_and_gates_ci_result():
+    # An invalid workflow file runs no job at all, so nothing else would notice it.
+    jobs = _workflow()["jobs"]
+    actionlint = jobs.get("actionlint")
+    assert actionlint, "no actionlint job"
+    assert "if" not in actionlint, "the actionlint job is conditional"
+    assert any(str(step.get("uses", "")).startswith("docker://rhysd/actionlint:") for step in actionlint["steps"])
+    assert "actionlint" in jobs["ci-result"]["needs"], "CI result does not need the actionlint job"
 
 
 def test_self_test_runs_the_ca_bundle_with_certifi_and_a_missing_one_whose_outcome_is_asserted():

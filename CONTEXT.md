@@ -37,9 +37,9 @@ who want coverage visible directly in PR review, without digging through CI logs
   skip-unchanged × comment-level matrix; `tests/integration/live/` posts to a real PR (needs a GitHub
   token, skipped on forks)
 - `docs/inputs/*.md` — one doc per action-input group, linked from `README.md`
-- `.github/workflows/` — CI: static analysis & tests (incl. PR-only `context-check` and `self-test`, and
-  `ci-result`, the aggregated `CI result` check: see Key decisions; `self-test` runs the composite action
-  itself via `uses: ./` on ubuntu), release draft,
+- `.github/workflows/` — CI: static analysis & tests (incl. PR-only `context-check` and `self-test`,
+  `actionlint` (lints every workflow file and its `run:` scripts), and `ci-result`, the aggregated `CI result`
+  check: see Key decisions; `self-test` runs the composite action itself via `uses: ./` on ubuntu), release draft,
   link check, markdown lint, v3 tag mover (`v2` is unmaintained, its tag frozen at `v2.1.3`), Renovate,
   and `agd-update` (weekly `agd update`, opening a PR
   from the `agd-update` branch, as in agd's "Update automatically" guide; its unsigned push needs `agd-update`
@@ -153,8 +153,9 @@ service is needed.
   page (#255). Acting on it would be safe only in that rare case (PRs with 100+ comments); one rule for both callers wins.
 - `CI result` (job `ci-result` in `static_analysis_and_tests.yml`) is the check the ruleset is meant to require for
   the CI jobs, in place of `set-matrix`. Its `name` is a ruleset contract: renaming it leaves every PR waiting on a
-  check that no longer exists. No test pins its `needs`, so add each new job there by hand. It fails on any
-  needed `failure` or `cancelled`, and passes `skipped` (`self-test` and `live-integration-test` skip by design).
+  check that no longer exists. A test pins only `actionlint`'s place in `needs`; add each other new job there by hand.
+  It fails on any needed `failure` or `cancelled`, and passes `skipped` (`self-test` and `live-integration-test` skip
+  by design).
   `context-check` is excluded on purpose: `check.sh` is "a nudge, not a verdict", and `--strict` fails PRs that
   need no `CONTEXT.md` change. Owner merges bypass the ruleset (`bypass: always`), so the check gates Renovate
   auto-merge and contributors without bypass, not the owner. `support/2.1.x` is under the same ruleset and has
@@ -212,12 +213,18 @@ service is needed.
   if the name contains `\n` or `\r`.
 - `tests/unit/test_ci_workflow.py` checks `.github/workflows/*.yml`:
   - Every third-party `uses:` is pinned to a full commit SHA with a `# vX.Y.Z` (or `# X.Y.Z`) comment. `docker://`
-    actions are pinned by `@sha256:` digest with the same comment. Renovate config: `renovate.json` (`config:recommended`).
+    actions are pinned as `image:tag@sha256:<digest>` with no comment: for a digest-only image Renovate looks up
+    `latest` (fails when the image has none), and it rewrites only the image reference, so a comment would go stale.
+    Renovate config: `renovate.json` (`config:recommended`).
   - `static_analysis_and_tests.yml` only: no `run:` contains `${{` (context-check passes `github.base_ref` as
     `BASE_REF`); top-level `permissions` is read-only; every `actions/setup-python` step with `cache: pip` lists
     `requirements.txt` and `requirements-dev.txt` in `cache-dependency-path`.
   - `self-test` job: a local `uses: ./` run takes `steps.ca.outputs.path` (certifi); a `continue-on-error` run takes
     `ca-bundle` and its outcome is read through a step `env`.
+  - `actionlint` job (`static_analysis_and_tests.yml`): no `if:`, `docker://rhysd/actionlint:<tag>@sha256:` pin, listed in
+    `ci-result.needs` (`test_actionlint_runs_on_every_event_and_gates_ci_result`). A workflow actionlint rejects fails
+    `CI result`, and so does any shellcheck finding (its bundled shellcheck, `info` level included): new `run:` scripts
+    must be shellcheck-clean or carry `# shellcheck disable=SCxxxx # reason`. actionlint does not check `action.yml`.
 - `setup_logging` also installs `sys.excepthook` and `threading.excepthook` (uncaught exceptions are logged through
   the formatter; exit code stays 1; `KeyboardInterrupt` goes to the default hook; thread `SystemExit` is ignored) and
   calls `logging.captureWarnings(True)`. These are process-wide: the autouse `tests/conftest.py` fixture

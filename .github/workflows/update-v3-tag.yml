@@ -24,5 +24,5 @@ jobs:
           git fetch --tags
           COMMIT_SHA=$(git rev-list -n 1 ${{ github.event.release.tag_name }})
           echo "Release tag '${{ github.event.release.tag_name }}' resolves to commit $COMMIT_SHA"
-          git tag -f v3 $COMMIT_SHA
+          git tag -f v3 "$COMMIT_SHA"
           git push origin -f v3

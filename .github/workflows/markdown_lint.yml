@@ -44,7 +44,7 @@ jobs:
           persist-credentials: false
 
       - name: Lint markdown files
-        uses: docker://avtodev/markdown-lint@sha256:3df797fd1b69031193f15ee144c18a1a025076dd32c4dc1ee3cad66a74618f5c # v1.5.0
+        uses: docker://avtodev/markdown-lint:v1.5.0@sha256:3df797fd1b69031193f15ee144c18a1a025076dd32c4dc1ee3cad66a74618f5c
         with:
           config: './lint.changelog.yml'
           args: '**/*.md'
