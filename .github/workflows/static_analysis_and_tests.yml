@@ -37,8 +37,8 @@ jobs:
     steps:
       - id: set-matrix
         run: |
-          echo "matrix={\"python-version\": [\"3.11\", \"3.12\", \"3.13\", \"3.14\", \"3.15\"]}" >> $GITHUB_OUTPUT
-          echo "oldest-version=3.11" >> $GITHUB_OUTPUT
+          echo "matrix={\"python-version\": [\"3.11\", \"3.12\", \"3.13\", \"3.14\", \"3.15\"]}" >> "$GITHUB_OUTPUT"
+          echo "oldest-version=3.11" >> "$GITHUB_OUTPUT"
 
   analysis:
     needs: set-matrix
@@ -66,7 +66,8 @@ jobs:
       - name: Analyze code with Pylint
         id: analyze-code
         run: |
-          pylint_score=$(pylint $(git ls-files '*.py') | grep 'rated at' | awk '{print $7}' | cut -d'/' -f1)
+          mapfile -t py_files < <(git ls-files '*.py')
+          pylint_score=$(pylint "${py_files[@]}" | grep 'rated at' | awk '{print $7}' | cut -d'/' -f1)
           echo "score=$pylint_score" >> "$GITHUB_OUTPUT"
 
       - name: Check Pylint score
@@ -106,7 +107,8 @@ jobs:
       - name: Check code format with Black
         id: check-format
         run: |
-          black --check $(git ls-files '*.py')
+          mapfile -t py_files < <(git ls-files '*.py')
+          black --check "${py_files[@]}"
 
   unit-tests:
     needs: set-matrix
@@ -349,6 +351,21 @@ jobs:
         run: |
           mypy .
 
+  # An invalid workflow file runs no job at all, so nothing else notices it. Also shellchecks every `run:` script.
+  actionlint:
+    runs-on: ubuntu-latest
+    name: Workflow Lint (actionlint)
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Lint workflow files
+        uses: docker://rhysd/actionlint:1.7.12@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667
+        with:
+          args: -color
+
   # The check the ruleset is meant to require. It aggregates every job above except context-check: check.sh is
   # "a nudge, not a verdict", and its --strict mode fails PRs that need no CONTEXT.md change. Add new jobs to `needs`.
   ci-result:
@@ -362,6 +379,7 @@ jobs:
       - live-integration-test
       - self-test
       - mypy-check
+      - actionlint
     runs-on: ubuntu-latest
     name: CI result
     steps:
