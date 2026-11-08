@@ -224,7 +224,9 @@ service is needed.
   - `actionlint` job (`static_analysis_and_tests.yml`): no `if:`, `docker://rhysd/actionlint:<tag>@sha256:` pin, listed in
     `ci-result.needs` (`test_actionlint_runs_on_every_event_and_gates_ci_result`). A workflow actionlint rejects fails
     `CI result`, and so does any shellcheck finding (its bundled shellcheck, `info` level included): new `run:` scripts
-    must be shellcheck-clean or carry `# shellcheck disable=SCxxxx # reason`. actionlint does not check `action.yml`.
+    must be shellcheck-clean or carry `# shellcheck disable=SCxxxx # reason`. actionlint does not check `action.yml`;
+    `tests/unit/test_action_yml.py` runs shellcheck (`--norc`, all severities) on every `action.yml` `run:` script. It
+    skips locally when shellcheck is absent and fails in CI (`GITHUB_ACTIONS=true`).
 - `setup_logging` also installs `sys.excepthook` and `threading.excepthook` (uncaught exceptions are logged through
   the formatter; exit code stays 1; `KeyboardInterrupt` goes to the default hook; thread `SystemExit` is ignored) and
   calls `logging.captureWarnings(True)`. These are process-wide: the autouse `tests/conftest.py` fixture

@@ -88,6 +88,38 @@ def test_no_run_script_writes_github_env():
         assert "GITHUB_ENV" not in script, label
 
 
+def _shellcheck(script):
+    # --norc ignores a developer's ~/.shellcheckrc, which could hide findings that CI (with no rc file) reports.
+    binary = shutil.which("shellcheck")
+    if binary is None:
+        message = "shellcheck is not on PATH; install it with `brew install shellcheck` or `apt-get install shellcheck`"
+        # A silent skip in CI would switch this guard off unnoticed, so CI fails instead.
+        if os.environ.get("GITHUB_ACTIONS") == "true":
+            pytest.fail(message)
+        pytest.skip(message)
+    return subprocess.run(
+        [binary, "--norc", "--shell=bash", "-"],
+        input=script,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+
+@pytest.mark.parametrize(("label", "script"), _run_scripts(), ids=[label for label, _ in _run_scripts()])
+def test_every_run_script_passes_shellcheck(label, script):
+    # Default severity: style and info findings fail too, so every finding has to be fixed or disabled with a reason.
+    result = _shellcheck(script)
+    assert result.returncode == 0, f"{label}: shellcheck findings:\n{result.stdout}{result.stderr}"
+
+
+def test_shellcheck_check_flags_an_unquoted_variable():
+    # Proves the guard above is not vacuous: an unquoted variable must be reported as SC2086.
+    result = _shellcheck("rm $GITHUB_ACTION_PATH/x\n")
+    assert result.returncode != 0
+    assert "SC2086" in result.stdout
+
+
 def test_run_step_env_maps_every_input_with_the_real_reader():
     # Feeds each input's `${{ inputs.<name> }}` env value a sentinel, then reads it back with get_action_input.
     run_env = _step(RUN_ID)["env"]
