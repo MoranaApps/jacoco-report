@@ -14,28 +14,38 @@ from jacoco_report.utils.github import GitHub, get_api_url, get_server_url
 # get_pr_changed_files
 
 
-def test_get_pr_changed_files(mocker):
-    mocker.patch(
-        "os.getenv", side_effect=lambda key: "fake_repo" if key == "GITHUB_REPOSITORY" else "refs/pull/1/merge"
-    )
+def test_get_pr_changed_files(mocker, monkeypatch):
+    monkeypatch.setenv("GITHUB_REPOSITORY", "fake_repo")
     mock_response = mocker.Mock()
     mock_response.json.return_value = [{"filename": "file1.py"}, {"filename": "file2.py"}]
     mocker.patch.object(GitHub, "send_request", return_value=mock_response)
     github = GitHub("fake_token")
 
-    files = github.get_pr_changed_files()
+    files = github.get_pr_changed_files(1)
 
     assert files == ["file1.py", "file2.py"]
 
 
-def test_get_pr_changed_files_none_response(mocker):
-    mocker.patch(
-        "os.getenv", side_effect=lambda key: "fake_repo" if key == "GITHUB_REPOSITORY" else "refs/pull/1/merge"
-    )
+def test_get_pr_changed_files_uses_passed_pr_number_not_github_ref(mocker, monkeypatch):
+    monkeypatch.setenv("GITHUB_REPOSITORY", "fake_repo")
+    monkeypatch.setenv("GITHUB_REF", "refs/heads/main")
+    mock_response = mocker.Mock()
+    mock_response.json.return_value = [{"filename": "file1.py"}]
+    mock_send = mocker.patch.object(GitHub, "send_request", return_value=mock_response)
+    github = GitHub("fake_token")
+
+    files = github.get_pr_changed_files(5)
+
+    assert files == ["file1.py"]
+    assert mock_send.call_args.args[1] == "https://api.github.com/repos/fake_repo/pulls/5/files"
+
+
+def test_get_pr_changed_files_none_response(mocker, monkeypatch):
+    monkeypatch.setenv("GITHUB_REPOSITORY", "fake_repo")
     mocker.patch.object(GitHub, "send_request", return_value=None)
     github = GitHub("fake_token")
 
-    files = github.get_pr_changed_files()
+    files = github.get_pr_changed_files(1)
 
     assert files is None
 
@@ -74,14 +84,12 @@ def test_get_server_url_falls_back_to_github_com(env_value, monkeypatch):
 # custom API base (GitHub Enterprise Server)
 
 
-def test_get_pr_changed_files_uses_custom_api_url(mocker):
-    mocker.patch(
-        "os.getenv", side_effect=lambda key: "fake_repo" if key == "GITHUB_REPOSITORY" else "refs/pull/1/merge"
-    )
+def test_get_pr_changed_files_uses_custom_api_url(mocker, monkeypatch):
+    monkeypatch.setenv("GITHUB_REPOSITORY", "fake_repo")
     mock_send = mocker.patch.object(GitHub, "send_request", return_value=None)
     github = GitHub("fake_token", api_url="https://ghes.example.com/api/v3")
 
-    github.get_pr_changed_files()
+    github.get_pr_changed_files(1)
 
     assert mock_send.call_args.args[1] == "https://ghes.example.com/api/v3/repos/fake_repo/pulls/1/files"
 
