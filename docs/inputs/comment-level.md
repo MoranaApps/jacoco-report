@@ -152,6 +152,29 @@ When `baseline-paths` is configured, a **Δ Coverage** column appears in all tab
 The column is omitted only when no baseline evaluator data exists at all. Rows without a matching
 baseline entry render a `0.0%` delta.
 
+## Comment length limit
+
+GitHub rejects a comment longer than 65,536 characters. When the report is longer than that, the
+action still posts the comment, with the detail tables shortened:
+
+- The title, the summary table, the "No rows match" line (when shown) and the footer are always shown in full.
+- Rows are cut from the end, in this order: unassigned reports first, then changed-file rows, then
+  report rows, then group rows. The rows that remain keep their order. A row is never split.
+- A table whose rows are all cut is removed. The unassigned-reports box stays, showing the items that fit.
+- Where rows were cut, the comment says how many were omitted, just before the footer, and points to the
+  job log, for example `… 120 rows omitted (GitHub's 65,536-character comment limit), see the job log.`
+- The job log has the omitted rows: a warning with the comment size and the number of omitted rows, then
+  each cut table with its header, and the omitted unassigned reports under `Reports not assigned to any group:`.
+  The log is shown at the default level; no `debug` input is needed.
+- A file, report or group name with a line break in it is shown with the break replaced by a space.
+
+In a very large report, the title and summary alone can still exceed the limit (for example, an extremely long
+`title`). The comment is then cut at 65,536 characters, which can end in the middle of a line, and the job log
+gets a second warning.
+
+To show fewer rows from the start, use `changed`, `failed` or `failed-or-changed`. These levels filter
+rows before the length limit applies.
+
 ## See also
 
 - [report-groups.md](report-groups.md) — configuring named report groups (affects Groups table)
