@@ -82,3 +82,7 @@ Files and parts marked "From agentic-defaults" are replaced when the kit updates
   agent and `implementation` skill; docs and `CONTEXT.md` → `documenter` agent and `context-md` skill;
   commits and PRs → `commits-and-prs` skill; plans → `task-plans` skill and `architect` agent. Run
   independent agents in parallel.
+
+### Company knowledge
+
+<!-- Optional. One line for each place outside this file that holds rules or facts agents must follow, such as who may use which cloud role. For example: "Read `docs/company/aws.md` before any AWS or Terraform work. If you can't open it, say so before going on." -->
