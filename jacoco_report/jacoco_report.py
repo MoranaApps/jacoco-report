@@ -103,7 +103,7 @@ class JaCoCoReport:
 
         # get changed files in PR
         logger.info("Getting changed files in PR.")
-        changed_files_result: list[str] | None = gh.get_pr_changed_files()
+        changed_files_result: list[str] | None = gh.get_pr_changed_files(pr_number)
         if changed_files_result is None:
             logger.error("Failed to retrieve changed files from GitHub API. Ending run.")
             self.violations.append("Failed to retrieve changed files from GitHub API.")

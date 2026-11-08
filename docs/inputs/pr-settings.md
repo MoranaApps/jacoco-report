@@ -26,7 +26,7 @@ different `title` values will create two independent comments.
 ## Impact
 
 - `pr-number` — if auto-detection fails (e.g. wrong event type), the action logs an error and fails.
-  Set this explicitly to avoid ambiguity.
+  Set this explicitly to avoid ambiguity. The changed-file list and the comment both come from the PR this sets.
 - `title` — changing the title mid-project creates a new comment; the old one is orphaned unless
   manually deleted.
 - `update-comment: true` — if the action can't read the PR's comments, it logs an error, emits a warning

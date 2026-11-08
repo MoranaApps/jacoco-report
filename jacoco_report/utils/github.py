@@ -5,7 +5,6 @@ This module provides a class to interact with the GitHub API.
 import json
 import logging
 import os
-import re
 
 from types import TracebackType
 from typing import Any, Optional, Self
@@ -153,29 +152,18 @@ class GitHub:
 
         return self.__session
 
-    def get_pr_changed_files(self) -> Optional[list[str]]:
+    def get_pr_changed_files(self, pr_number: int) -> Optional[list[str]]:
         """
         Gets the list of changed files in the pull request.
 
+        Parameters:
+            pr_number (int): The PR number.
+
         Returns:
-            list[str]: The list of changed files in the pull request.
+            Optional[list[str]]: The list of changed files in the pull request, or None if they could not be read.
         """
         repo = os.getenv("GITHUB_REPOSITORY")
-        github_ref = os.getenv("GITHUB_REF")
         logger.debug("GitHub - Repository: %s", repo)
-        logger.debug("GitHub - ref: %s", github_ref)
-
-        # Extract the PR number from the GITHUB_REF if it matches the PR ref pattern
-        pr_number = None
-        if github_ref and github_ref.startswith("refs/pull/"):
-            match = re.match(r"refs/pull/(\d+)/merge", github_ref)
-            if match:
-                pr_number = match.group(1)
-        logger.debug("GitHub - PR number: %s", pr_number)
-
-        if not pr_number:
-            logger.error("Failed to extract PR number from GitHub ref.")
-            return None
 
         per_page = 100  # Maximum GitHub allows
         page = 1

@@ -57,9 +57,9 @@ Files and parts marked "From agentic-defaults" are replaced when the kit updates
   what the action installs). Needs Python 3.11+; optionally inside a venv
   (`python3 -m venv .venv && source .venv/bin/activate` first).
 - `make run`: `python3 main.py`, with every `INPUT_*` input env var and the GitHub-context env vars
-  (`GITHUB_REPOSITORY`, `GITHUB_EVENT_NAME`, `GITHUB_REF`) set — see `DEVELOPER.md` → "Run Scripts
-  Locally" for a template. Needs network access to the GitHub API and a real or sandbox PR to act
-  against.
+  (`GITHUB_REPOSITORY`, `GITHUB_EVENT_NAME`) set; the PR number comes from `INPUT_PR_NUMBER` — see
+  `DEVELOPER.md` → "Run Scripts Locally" for a template. Needs network access to the GitHub API and a
+  real or sandbox PR to act against.
 - `make build`: `python3 -m py_compile $(git ls-files '*.py')` — a syntax sanity check. This project
   ships its Python source directly through `action.yml`; there is no compiled or packaged artifact.
 - `make test` (one file or test: `make test T=<path>`): runs unit + offline integration tests with

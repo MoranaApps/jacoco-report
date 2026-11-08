@@ -1948,6 +1948,22 @@ def test_run_no_pr_number(jacoco_report, mocker):
     assert "No pull request number found." in jacoco_report.violations
 
 
+def test_run_changed_files_use_pr_number_input_not_github_ref(jacoco_report, mocker, monkeypatch):
+    """The pr-number input is the PR for both the changed files and the comment, whatever GITHUB_REF says."""
+    monkeypatch.setenv("INPUT_PR_NUMBER", "5")
+    monkeypatch.setenv("GITHUB_REF", "refs/pull/7/merge")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value="pull_request")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_token", return_value="fake_token")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=["**/jacoco.xml"])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_exclude_paths", return_value=[])
+    mocker.patch("jacoco_report.jacoco_report.JaCoCoReport.scan_jacoco_xml_files", return_value=["jacoco.xml"])
+    mock_changed_files = mocker.patch("jacoco_report.utils.github.GitHub.get_pr_changed_files", return_value=None)
+
+    jacoco_report.run()
+
+    mock_changed_files.assert_called_once_with(5)
+
+
 def test_run_failed_to_retrieve_changed_files(jacoco_report, mocker):
     """Test that action fails gracefully when GitHub API fails to return changed files."""
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value="pull_request")

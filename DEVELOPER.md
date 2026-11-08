@@ -108,7 +108,6 @@ export INPUT_CA_BUNDLE=""
 # Required GitHub context variables
 export GITHUB_REPOSITORY="MoranaApps/jacoco-report-dev"
 export GITHUB_EVENT_NAME="pull_request"
-export GITHUB_REF="refs/pull/1/merge"
 
 python3 main.py
 ```
@@ -144,7 +143,6 @@ export INPUT_CA_BUNDLE=""
 
 export GITHUB_REPOSITORY="MoranaApps/jacoco-report-dev"
 export GITHUB_EVENT_NAME="pull_request"
-export GITHUB_REF="refs/pull/1/merge"
 
 python3 main.py
 ```
