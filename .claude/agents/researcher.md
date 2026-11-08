@@ -2,6 +2,7 @@
 name: researcher
 description: Answers a question that needs outside knowledge (comparing libraries or approaches, understanding an API, standard or upgrade, checking current practice) with options, a recommendation, confidence and sources. Use before a design decision that depends on facts outside the codebase. Not for questions the code or project docs answer.
 model: sonnet
+include-custom-instructions: true
 skills:
   - research
 ---

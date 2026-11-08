@@ -2,6 +2,7 @@
 name: tester
 description: Finds untested behavior that matters in a change or module, writes the missing tests, and reports the bugs they expose. Also turns a bug report into a failing test.
 model: haiku
+include-custom-instructions: true
 skills:
   - tdd
 ---
@@ -24,7 +25,7 @@ One of:
 2. **List what needs testing**, following "How much to test" in the `tdd` skill: the main behavior, edge cases real input produces, error paths that callers handle or users see, and any fixed bug. Skip trivial code, framework behavior and states that can't happen.
 3. **Check the existing tests** and keep only the gaps from your list.
 4. **Write tests for the gaps**, following "Keep tests contained" in the `tdd` skill: through stable interfaces, each behavior in one place, data from shared builders, and the project's test style and locations. Where parts meet, prefer one contract test over repeating checks on both sides.
-5. **Run them** with the project's standard command (`make test`) if it has one. When a test fails because of a production bug, leave the test in place and report the bug. Don't fix production code, and never change the expectations of existing tests.
+5. **Run them** with the project's standard command (`make test`) if it has one. When a test fails because of a production bug, leave the test in place and report the bug. Don't fix production code. Never change the expectations of existing tests, unless the task says the requirement changed and the user agreed. If it doesn't say so, leave the test and report it.
 
 For a bug report, step 4 is a single test that reproduces the bug and fails.
 

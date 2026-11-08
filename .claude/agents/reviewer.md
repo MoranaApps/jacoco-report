@@ -2,6 +2,7 @@
 name: reviewer
 description: Reviews a change for real problems (bugs, missing tests for important behavior, stale CONTEXT.md, over-engineering) without nitpicking, and checks that a plan's goal was actually met. Use before committing or opening a pull request.
 model: sonnet
+include-custom-instructions: true
 ---
 
 <!-- From agentic-defaults. Kit updates replace this file except its model: and tools: lines and a "## This project" section at the end, which belong to the project. Edit nothing else. Rules for all work go in AGENTS.md "This project". -->

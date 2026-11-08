@@ -6,7 +6,7 @@
 #
 # Usage: bash check.sh [--base <ref>] [--strict | --hook]
 #   default       uncommitted changes (staged, unstaged, untracked) against HEAD
-#   --base <ref>  also include commits since <ref>, e.g. --base origin/main for a branch or pull request
+#   --base <ref>  also include commits since <ref>, e.g. --base origin/<default branch> for committed work or a pull request; exits 2 if git can't compare with it
 #   --strict      exit 1 when there is something to check (for CI or pre-commit)
 #   --hook        for an agent's end-of-turn hook (Claude Code "Stop", GitHub Copilot "agentStop"): prints
 #                 {"decision": "block", "reason": ...} on stdout, once per distinct finding, which both tools
@@ -20,7 +20,9 @@ strict=0
 hook=0
 while [ $# -gt 0 ]; do
   case "$1" in
-    --base) base="${2:-}"; shift 2 ;;
+    --base)
+      case "${2:-}" in ""|-*) echo "--base needs a git ref, such as the repository's default branch." >&2; exit 2 ;; esac
+      base=$2; shift 2 ;;
     --strict) strict=1; shift ;;
     --hook) hook=1; shift ;;
     -h|--help) sed -n '3,16p' "$0"; exit 0 ;;
@@ -38,10 +40,17 @@ fi
 root=$(git rev-parse --show-toplevel 2>/dev/null) || { echo "Not a git repository." >&2; exit 2; }
 cd "$root" || exit 2
 
-changed=$(mktemp); owners=$(mktemp); kit=$(mktemp)
-trap 'rm -f "$changed" "$owners" "$kit"' EXIT
+changed=$(mktemp); owners=$(mktemp); kit=$(mktemp); branch=$(mktemp)
+trap 'rm -f "$changed" "$owners" "$kit" "$branch"' EXIT
 
 # -z gives raw paths; without it git puts quotes around paths that contain quotes or backslashes.
+# Compare with --base before the pipeline below: a failure inside it would only leave its subshell.
+if [ -n "$base" ] && ! error=$(git diff --name-only -z "$base"...HEAD 2>&1 >"$branch"); then
+  [ "$hook" = 1 ] && exit 0
+  echo "Can't compare with $base: $(printf '%s\n' "$error" | head -1)" >&2
+  echo "The ref must exist here and share history with HEAD. In CI, check out the full history (GitHub Actions: fetch-depth: 0)." >&2
+  exit 2
+fi
 {
   if git rev-parse --verify -q HEAD >/dev/null; then
     git diff --name-only -z HEAD
@@ -49,9 +58,7 @@ trap 'rm -f "$changed" "$owners" "$kit"' EXIT
     git ls-files -z
   fi
   git ls-files -z --others --exclude-standard
-  if [ -n "$base" ]; then
-    git diff --name-only -z "$base"...HEAD || exit 2
-  fi
+  cat "$branch"
 } | tr '\0' '\n' | sort -u > "$changed"
 
 # Files installed by agd belong to their source, not to the project: skip every path .agd.lock lists

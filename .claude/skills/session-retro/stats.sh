@@ -114,19 +114,22 @@ if root=$(git rev-parse --show-toplevel 2>/dev/null); then
     "($(git diff --numstat "$base" | lines)), $(git ls-files --others --exclude-standard | wc -l | tr -d ' ') new files"
 fi
 
-# The project's usual numbers: medians over the last 10 retros in the log, found by column name.
+# The project's usual numbers: medians over the last 10 retros in the log, found by column name. Only retros
+# with both numbers count: the log has "-" for numbers that weren't shown, and the cost rule compares both.
 echo
 echo "Earlier retros:"
-rows=0
-[ -f "$log" ] && rows=$(awk 'NR > 1 && NF' "$log" | wc -l | tr -d ' ')
-if [ "$rows" -lt 3 ]; then
-  echo "- Usual for this project: no baseline yet (fewer than 3 retros in $log)"
+samples=""
+[ -f "$log" ] && samples=$(awk -F '\t' '
+  NR == 1 { for (i = 1; i <= NF; i++) { if ($i == "output_tokens") t = i; if ($i == "tool_calls") c = i } next }
+  t && c && $t ~ /^[0-9]+$/ && $c ~ /^[0-9]+$/ { print $t, $c }
+' "$log" | tail -10)
+used=0
+[ -n "$samples" ] && used=$(printf '%s\n' "$samples" | wc -l | tr -d ' ')
+if [ "$used" -lt 3 ]; then
+  echo "- Usual for this project: no baseline yet (fewer than 3 retros with numbers in $log)"
 else
-  median() { # <column name>
-    awk -F '\t' -v col="$1" 'NR == 1 { for (i = 1; i <= NF; i++) if ($i == col) c = i; next } NF && c { print $c }' "$log" \
-      | tail -10 | sort -n | awk '{ v[NR] = $1 } END { print v[int((NR + 1) / 2)] }'
+  median() { # <field in samples>
+    printf '%s\n' "$samples" | awk -v f="$1" '{ print $f }' | sort -n | awk '{ v[NR] = $1 } END { print v[int((NR + 1) / 2)] }'
   }
-  used=$rows
-  [ "$used" -gt 10 ] && used=10
-  echo "- Usual for this project (median of the last $used retros): output tokens $(median output_tokens), tool calls $(median tool_calls)"
+  echo "- Usual for this project (median of the last $used retros): output tokens $(median 1), tool calls $(median 2)"
 fi

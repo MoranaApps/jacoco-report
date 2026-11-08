@@ -40,7 +40,7 @@ Write diagrams as `mermaid` code blocks inside the Markdown they explain: a `CON
 
 ## Check it
 
-If the Mermaid CLI is installed (`mmdc`), render to a temporary folder to catch syntax errors: `mmdc -i doc.md -o /tmp/mermaid-check/doc.md`. Otherwise stick to the syntax shown here.
+If the Mermaid CLI is installed (`mmdc`), render to a temporary folder to catch syntax errors: `mkdir -p /tmp/mermaid-check && mmdc -i doc.md -o /tmp/mermaid-check/doc.md`. Otherwise stick to the syntax shown here.
 
 ## Examples
 

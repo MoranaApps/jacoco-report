@@ -1,4 +1,4 @@
-<!-- agentic-defaults 0.5.2. From agentic-defaults down to "This project": kit updates replace it, so don't edit it. The rest belongs to the project. -->
+<!-- agentic-defaults 0.5.4. From agentic-defaults down to "This project": kit updates replace it, so don't edit it. The rest belongs to the project. -->
 
 # Working agreement
 
@@ -42,7 +42,7 @@ Files and parts marked "From agentic-defaults" are replaced when the kit updates
 ## Done means
 
 - The requested behavior works and is tested, and `make check` (or the equivalent below) passes. Report failures with their output.
-- The last step of every task is the context check: run `bash .claude/skills/context-md/check.sh`, then update each `CONTEXT.md` your change made wrong or incomplete, or say why none needs it. Update the plan, if there is one.
+- The last step of every task is the context check: run `bash .claude/skills/context-md/check.sh` (add `--base origin/<default branch>` if the work is already committed), then update each `CONTEXT.md` your change made wrong or incomplete, or say why none needs it. Update the plan, if there is one.
 - There are no unrelated changes.
 
 ---
