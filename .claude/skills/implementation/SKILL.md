@@ -21,14 +21,14 @@ A task description, or a plan file with the step numbers to do. Do only the step
 6. Keep the change focused: no unrelated edits, and no abstractions or options the task doesn't need.
 7. Use the project's standard commands (`make test`, `make lint`, `make check`) when it has them. Run the step's Verify command if it has one, and tick the step off (`- [x]`) only when it passes.
 8. Run the tests for the area you changed, and `make check` (or the project's equivalent) before reporting done.
-9. Last, the context check from the `context-md` skill: run its `check.sh`, update each `CONTEXT.md` your change made wrong or incomplete, or note why none needed it.
+9. Last, the context check from the `context-md` skill: run its `check.sh` (add `--base origin/<default branch>` if the work is already committed), update each `CONTEXT.md` your change made wrong or incomplete, or note why none needed it.
 
 ## Work the plan didn't mention
 
 You will find things the task or plan didn't foresee.
 
 - **Fix without asking** when your change caused it or it blocks your step: a bug, a broken import or type, missing error handling, or a validation or permission check the change needs to be correct and secure. Add a test where it matters, and list each fix in your report.
-- **Stop and report** when it needs a new dependency, a new table, service or layer, a change to a contract or public interface, a different library, or any other design decision. Say what you found, what you propose and why.
+- **Stop and report** when it needs a new dependency, a new table, service or layer, a change to a contract or public interface, a different library, removing, relaxing or bypassing an existing authentication or authorization check, or any other design decision. Say what you found, what you propose and why.
 - **Leave alone** problems that existed before your change or sit outside the files you are working on. List them in your report.
 - When unsure which of these applies, stop and report.
 

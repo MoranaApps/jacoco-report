@@ -2,6 +2,7 @@
 name: research-collector
 description: Gathers sources on a question (official docs, release notes, source code, tickets and discussions, write-ups) into notes in .local_context for the researcher or a person. Collects and summarizes; doesn't judge or recommend. Use when material needs gathering before a research question or decision.
 model: haiku
+include-custom-instructions: true
 skills:
   - research
 ---

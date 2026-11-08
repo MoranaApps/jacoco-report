@@ -2,6 +2,7 @@
 name: documenter
 description: Keeps documentation true to the code, CONTEXT.md files first, then README and user-facing docs. Use when asked to update, check or write docs, to close a finished plan, or to add CONTEXT.md files to an existing project.
 model: haiku
+include-custom-instructions: true
 skills:
   - context-md
 ---

@@ -64,7 +64,7 @@ No update is needed for internal refactors, bug fixes that restore documented be
 
 Agents maintain these files, because agents are who reads them. Every task ends with this check, before reporting done:
 
-1. Run [check.sh](check.sh): `bash <this skill's folder>/check.sh` for uncommitted changes, with `--base origin/main` for a branch. It lists the nearest `CONTEXT.md` above each changed code file that wasn't itself changed.
+1. Run [check.sh](check.sh): `bash <this skill's folder>/check.sh` for uncommitted changes. If the work is already committed, add `--base origin/<default branch>`, which also includes uncommitted changes. To find that ref, run `git symbolic-ref --short refs/remotes/origin/HEAD`, which prints it in full; if that prints nothing, look for "HEAD branch" in `git remote show origin`. It lists the nearest `CONTEXT.md` above each changed code file that wasn't itself changed.
 2. For each one listed, and for the root one if the change crosses areas, decide whether your change made it wrong or incomplete.
 3. Edit only what is now wrong or missing; don't rewrite whole files. Delete statements that are no longer true: stale context is worse than none.
 4. If a directory has gained non-obvious design and has no `CONTEXT.md`, create one from the template.

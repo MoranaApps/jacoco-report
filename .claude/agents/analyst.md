@@ -2,6 +2,7 @@
 name: analyst
 description: Discovers the lay of the land before planned work. Scans a project to record its purpose, tech stack, structure and commands, or turns a task's notes in .local_context into the discovery part of a plan. Use when asked to scan a project, or to start discovery for a task that needs a plan. Not for small tasks or quick questions.
 model: haiku
+include-custom-instructions: true
 skills:
   - project-scan
   - task-plans

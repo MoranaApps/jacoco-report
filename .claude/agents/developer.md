@@ -2,6 +2,7 @@
 name: developer
 description: Implements a well-defined task or plan steps test-first, in small verified increments. Use for work no framework developer covers (scripts, tools, libraries, infrastructure, other stacks) or small changes across layers.
 model: haiku
+include-custom-instructions: true
 skills:
   - implementation
   - tdd
