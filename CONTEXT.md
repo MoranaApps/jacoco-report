@@ -120,6 +120,7 @@ service is needed.
   `os.environ` elsewhere for inputs.
 - Threshold strings are `*`-delimited: `global-thresholds` = `overall*changed-files-average`;
   `report-thresholds-default` / a group's `thresholds` = `overall*changed-files-average*per-changed-file`.
+  Each value is a float in `[0, 100]` (inclusive); validation in `action_inputs.py` (`_is_valid_threshold_float`).
 - No inline `# pylint: disable`; suppressions are centralized in `.pylintrc`'s `[MESSAGES CONTROL]`,
   each with a comment explaining why.
 - `tests/` is excluded from pylint (`.pylintrc` `ignore-paths=tests`), mypy (`pyproject.toml`

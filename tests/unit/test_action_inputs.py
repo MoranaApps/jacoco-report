@@ -39,23 +39,35 @@ failure_cases = [
         "x",
         "'global-thresholds' must be in the format 'overall*changed-files-average'. Where overall is the minimum coverage overall and changed-files-average is the minimum average coverage of changed files.",
     ),
-    ("get_global_thresholds", "x*0", "'global-thresholds' overall value must be a float between 0 and 100."),
+    (
+        "get_global_thresholds",
+        "x*0",
+        "'global-thresholds' overall value must be a float between 0 and 100 (inclusive).",
+    ),
     (
         "get_global_thresholds",
         "0*x",
-        "'global-thresholds' changed-files-average value must be a float between 0 and 100.",
+        "'global-thresholds' changed-files-average value must be a float between 0 and 100 (inclusive).",
     ),
-    ("get_global_thresholds", "-1*0", "'global-thresholds' overall value must be a float between 0 and 100."),
+    (
+        "get_global_thresholds",
+        "-1*0",
+        "'global-thresholds' overall value must be a float between 0 and 100 (inclusive).",
+    ),
     (
         "get_global_thresholds",
         "0*-1",
-        "'global-thresholds' changed-files-average value must be a float between 0 and 100.",
+        "'global-thresholds' changed-files-average value must be a float between 0 and 100 (inclusive).",
     ),
-    ("get_global_thresholds", "101*0", "'global-thresholds' overall value must be a float between 0 and 100."),
+    (
+        "get_global_thresholds",
+        "101*0",
+        "'global-thresholds' overall value must be a float between 0 and 100 (inclusive).",
+    ),
     (
         "get_global_thresholds",
         "0*101",
-        "'global-thresholds' changed-files-average value must be a float between 0 and 100.",
+        "'global-thresholds' changed-files-average value must be a float between 0 and 100 (inclusive).",
     ),
     (
         "get_global_thresholds",
@@ -76,17 +88,17 @@ failure_cases = [
     (
         "get_report_thresholds_default",
         "x*0*0",
-        "'report-thresholds-default' overall value must be a float between 0 and 100.",
+        "'report-thresholds-default' overall value must be a float between 0 and 100 (inclusive).",
     ),
     (
         "get_report_thresholds_default",
         "0*x*0",
-        "'report-thresholds-default' changed-files-average value must be a float between 0 and 100.",
+        "'report-thresholds-default' changed-files-average value must be a float between 0 and 100 (inclusive).",
     ),
     (
         "get_report_thresholds_default",
         "0*0*x",
-        "'report-thresholds-default' per-changed-file value must be a float between 0 and 100.",
+        "'report-thresholds-default' per-changed-file value must be a float between 0 and 100 (inclusive).",
     ),
     ("get_report_thresholds_default", True, "'report-thresholds-default' must be a string or not defined."),
     (
@@ -126,7 +138,7 @@ failure_cases = [
     (
         "get_report_groups",
         "- name: group1\n  paths: ['**']\n  thresholds: 'x*70*60'",
-        "'report-groups' entry #1 'thresholds' overall value 'x' must be a float in [0, 100).",
+        "'report-groups' entry #1 'thresholds' overall value 'x' must be a float in [0, 100].",
     ),
     ("get_global_overall_scope", "invalid", "'global-overall-scope' must be 'all' or 'groups-only'."),
     ("get_pass_symbol", "", "'pass-symbol' must be a non-empty string and have a length from 1."),
@@ -170,6 +182,80 @@ def test_validate_inputs_accepts_all_comment_levels(comment_level, mocker):
         mock_exit = mocker.patch("sys.exit")
         ActionInputs.validate_inputs()
         mock_exit.assert_not_called()
+    finally:
+        stop_mocks(patchers)
+
+
+@pytest.mark.parametrize(
+    "method, value",
+    [
+        ("get_global_thresholds", "100*0"),
+        ("get_global_thresholds", "0*100"),
+        ("get_global_thresholds", "100*100"),
+        ("get_report_thresholds_default", "100*0*0"),
+        ("get_report_thresholds_default", "0*100*0"),
+        ("get_report_thresholds_default", "0*0*100"),
+    ],
+)
+def test_validate_inputs_accepts_threshold_100(method, value, mocker):
+    case = success_case.copy()
+    case[method] = value
+    patchers = apply_mocks(case, mocker)
+    try:
+        mock_exit = mocker.patch("sys.exit")
+        ActionInputs.validate_inputs()
+        mock_exit.assert_not_called()
+    finally:
+        stop_mocks(patchers)
+
+
+@pytest.mark.parametrize(
+    "method, value, expected_error",
+    [
+        (
+            "get_global_thresholds",
+            "100.01*0",
+            "'global-thresholds' overall value must be a float between 0 and 100 (inclusive).",
+        ),
+        (
+            "get_global_thresholds",
+            "0*100.01",
+            "'global-thresholds' changed-files-average value must be a float between 0 and 100 (inclusive).",
+        ),
+        (
+            "get_report_thresholds_default",
+            "100.01*0*0",
+            "'report-thresholds-default' overall value must be a float between 0 and 100 (inclusive).",
+        ),
+        (
+            "get_report_thresholds_default",
+            "0*100.01*0",
+            "'report-thresholds-default' changed-files-average value must be a float between 0 and 100 (inclusive).",
+        ),
+        (
+            "get_report_thresholds_default",
+            "0*0*100.01",
+            "'report-thresholds-default' per-changed-file value must be a float between 0 and 100 (inclusive).",
+        ),
+        (
+            "get_report_thresholds_default",
+            "0*0*-1",
+            "'report-thresholds-default' per-changed-file value must be a float between 0 and 100 (inclusive).",
+        ),
+    ],
+)
+def test_validate_inputs_rejects_threshold_above_100_or_below_0(method, value, expected_error, mocker):
+    case = success_case.copy()
+    case[method] = value
+    patchers = apply_mocks(case, mocker)
+    try:
+        mock_error = mocker.patch("jacoco_report.action_inputs.logger.error")
+        mock_exit = mocker.patch("sys.exit")
+
+        ActionInputs.validate_inputs()
+
+        mock_error.assert_any_call("%s", expected_error)
+        mock_exit.assert_called_once_with(1)
     finally:
         stop_mocks(patchers)
 
@@ -497,17 +583,27 @@ def test_validate_report_groups_invalid_threshold_format(mocker):
 
 def test_validate_report_groups_invalid_threshold_value_overall_label(mocker):
     errors = ActionInputs.validate_report_groups("- name: g\n  paths: ['**']\n  thresholds: 'x*70*60'")
-    assert any("overall value" in e and "[0, 100)" in e for e in errors)
+    assert any("overall value" in e and "[0, 100]" in e for e in errors)
 
 
 def test_validate_report_groups_invalid_threshold_value_changed_files_average_label(mocker):
     errors = ActionInputs.validate_report_groups("- name: g\n  paths: ['**']\n  thresholds: '80*x*60'")
-    assert any("changed-files-average value" in e and "[0, 100)" in e for e in errors)
+    assert any("changed-files-average value" in e and "[0, 100]" in e for e in errors)
 
 
 def test_validate_report_groups_invalid_threshold_value_changed_file_label(mocker):
     errors = ActionInputs.validate_report_groups("- name: g\n  paths: ['**']\n  thresholds: '80*70*x'")
-    assert any("changed-file value" in e and "[0, 100)" in e for e in errors)
+    assert any("changed-file value" in e and "[0, 100]" in e for e in errors)
+
+
+def test_validate_report_groups_thresholds_accepts_100(mocker):
+    errors = ActionInputs.validate_report_groups("- name: g\n  paths: ['**']\n  thresholds: '100*100*100'")
+    assert errors == []
+
+
+def test_validate_report_groups_thresholds_rejects_above_100(mocker):
+    errors = ActionInputs.validate_report_groups("- name: g\n  paths: ['**']\n  thresholds: '100.01*70*60'")
+    assert errors == ["'report-groups' entry #1 'thresholds' overall value '100.01' must be a float in [0, 100]."]
 
 
 def test_validate_report_groups_thresholds_non_string_number(mocker):
