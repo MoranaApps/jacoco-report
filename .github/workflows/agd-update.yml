@@ -28,6 +28,9 @@ jobs:
       BRANCH: agd-update
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Nothing pushes with git: the commit goes through the API with GH_TOKEN.
+          persist-credentials: false
       - name: Install agd
         run: |
           mkdir -p "$HOME/.local/bin"
@@ -50,6 +53,18 @@ jobs:
           agd update | tee "$RUNNER_TEMP/update.txt"
           # Only files this project edited are due, and the update leaves those alone.
           [ -n "$(git status --porcelain)" ] || exit 0
+          # Every file the update added, changed or deleted, as JSON files: Linux limits one command-line
+          # argument to 128 KiB, and a whole kit is larger, so the contents never go through arguments. They're
+          # built before the branch moves, so a failure here leaves the branch and its pull request as they were.
+          git add -A
+          # shellcheck disable=SC2016 # sh -c and jq expand these, not this shell
+          git diff --cached --no-renames --name-only --diff-filter=AM -z \
+            | xargs -0 -r -I{} sh -c 'base64 -w0 < "$1" | tr -d "\n" | jq -Rs --arg p "$1" "{path:\$p,contents:.}"' _ {} \
+            | jq -s . > "$RUNNER_TEMP/additions.json"
+          # shellcheck disable=SC2016 # jq expands $p, not this shell
+          git diff --cached --no-renames --name-only --diff-filter=D -z \
+            | xargs -0 -r -I{} jq -n --arg p {} '{path:$p}' \
+            | jq -s . > "$RUNNER_TEMP/deletions.json"
           # The branch restarts at the checked-out commit each run, as the force push did.
           base=$(git rev-parse HEAD)
           if gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/$BRANCH" >/dev/null 2>&1; then
@@ -57,23 +72,14 @@ jobs:
           else
             gh api -X POST "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/heads/$BRANCH" -f sha="$base" >/dev/null
           fi
-          # One signed commit through the API with every file the update added, changed or deleted.
-          git add -A
-          # shellcheck disable=SC2016 # sh -c and jq expand these, not this shell
-          additions=$(git diff --cached --no-renames --name-only --diff-filter=AM -z \
-            | xargs -0 -r -I{} sh -c 'jq -n --arg p "$1" --arg c "$(base64 -w0 < "$1")" "{path:\$p,contents:\$c}"' _ {} \
-            | jq -s .)
-          # shellcheck disable=SC2016 # jq expands $p, not this shell
-          deletions=$(git diff --cached --no-renames --name-only --diff-filter=D -z \
-            | xargs -0 -r -I{} jq -n --arg p {} '{path:$p}' \
-            | jq -s .)
+          # One commit through the API, which GitHub signs.
           jq -n --arg repo "$GITHUB_REPOSITORY" --arg branch "$BRANCH" --arg oid "$base" \
             --arg headline "Update the agentic setup" --rawfile body "$RUNNER_TEMP/update.txt" \
-            --argjson add "$additions" --argjson del "$deletions" \
+            --slurpfile add "$RUNNER_TEMP/additions.json" --slurpfile del "$RUNNER_TEMP/deletions.json" \
             '{query: "mutation($input: CreateCommitOnBranchInput!) { createCommitOnBranch(input: $input) { commit { oid } } }",
               variables: {input: {branch: {repositoryNameWithOwner: $repo, branchName: $branch},
                 expectedHeadOid: $oid, message: {headline: $headline, body: $body},
-                fileChanges: {additions: $add, deletions: $del}}}}' \
+                fileChanges: {additions: $add[0], deletions: $del[0]}}}}' \
             | gh api graphql --input - >/dev/null
           # shellcheck disable=SC2016 # the backticks are Markdown code spans, not command substitution
           {
