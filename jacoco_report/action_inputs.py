@@ -55,7 +55,7 @@ _ACTION_PATH_REF_PATTERN = re.compile(r"/_actions/[^/]+/[^/]+/(.+?)/*$")
 def _is_valid_threshold_float(value: str) -> bool:
     try:
         f = float(value)
-        return 0.0 <= f < 100.0
+        return 0.0 <= f <= 100.0
     except ValueError:
         return False
 
@@ -526,7 +526,7 @@ class ActionInputs:
                 else:
                     for label, v in zip(("overall", "changed-files-average", "changed-file"), parts):
                         if v and not _is_valid_threshold_float(v):
-                            errors.append(f"{prefix} 'thresholds' {label} value '{v}' must be a float in [0, 100).")
+                            errors.append(f"{prefix} 'thresholds' {label} value '{v}' must be a float in [0, 100].")
             has_baseline_paths = "baseline-paths" in entry
             baseline_paths = entry.get("baseline-paths", [])
             if has_baseline_paths and baseline_paths is None:
@@ -542,13 +542,6 @@ class ActionInputs:
         """
         Validates the inputs provided for the GH action.
         """
-
-        def is_float(value: str) -> bool:
-            try:
-                float(value)
-                return True
-            except ValueError:
-                return False
 
         errors = []
 
@@ -581,10 +574,12 @@ class ActionInputs:
                     "with exactly two components."
                 )
             else:
-                if not is_float(parts[0]) or float(parts[0]) < 0 or float(parts[0]) >= 100:
-                    errors.append("'global-thresholds' overall value must be a float between 0 and 100.")
-                if not is_float(parts[1]) or float(parts[1]) < 0 or float(parts[1]) >= 100:
-                    errors.append("'global-thresholds' changed-files-average value must be a float between 0 and 100.")
+                if not _is_valid_threshold_float(parts[0]):
+                    errors.append("'global-thresholds' overall value must be a float between 0 and 100 (inclusive).")
+                if not _is_valid_threshold_float(parts[1]):
+                    errors.append(
+                        "'global-thresholds' changed-files-average value must be a float between 0 and 100 (inclusive)."
+                    )
 
         report_thresholds_default = ActionInputs.get_report_thresholds_default(raw=True)
         if not isinstance(report_thresholds_default, str):
@@ -609,15 +604,17 @@ class ActionInputs:
                     "with exactly three components."
                 )
             else:
-                if not is_float(rtd_parts[0]) or float(rtd_parts[0]) < 0 or float(rtd_parts[0]) >= 100:
-                    errors.append("'report-thresholds-default' overall value must be a float between 0 and 100.")
-                if not is_float(rtd_parts[1]) or float(rtd_parts[1]) < 0 or float(rtd_parts[1]) >= 100:
+                if not _is_valid_threshold_float(rtd_parts[0]):
                     errors.append(
-                        "'report-thresholds-default' changed-files-average value must be a float between 0 and 100."
+                        "'report-thresholds-default' overall value must be a float between 0 and 100 (inclusive)."
                     )
-                if not is_float(rtd_parts[2]) or float(rtd_parts[2]) < 0 or float(rtd_parts[2]) >= 100:
+                if not _is_valid_threshold_float(rtd_parts[1]):
                     errors.append(
-                        "'report-thresholds-default' per-changed-file value must be a float between 0 and 100."
+                        "'report-thresholds-default' changed-files-average value must be a float between 0 and 100 (inclusive)."
+                    )
+                if not _is_valid_threshold_float(rtd_parts[2]):
+                    errors.append(
+                        "'report-thresholds-default' per-changed-file value must be a float between 0 and 100 (inclusive)."
                     )
 
         metric = ActionInputs.get_metric()

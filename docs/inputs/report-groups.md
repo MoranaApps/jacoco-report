@@ -30,7 +30,7 @@ report-groups: |
 |-------|----------|------|-------------|
 | `name` | **Yes** | string | Non-empty group label. Appears as a row header in the Groups table. |
 | `paths` | **Yes** | list of strings | Glob patterns for JaCoCo XML files belonging to this group. At least one non-empty entry required. |
-| `thresholds` | No | string | `overall*changed-files-average*per-changed-file` (e.g. `80*70*60`). Each field is a float in `[0, 100)` or empty. Missing fields fall back to `report-thresholds-default`, then to 0.0. |
+| `thresholds` | No | string | `overall*changed-files-average*per-changed-file` (e.g. `80*70*60`). Each field is a float in `[0, 100]` or empty. Missing fields fall back to `report-thresholds-default`, then to 0.0. |
 | `baseline-paths` | No | list of strings | Glob patterns for baseline XMLs for this group. Overrides top-level `baseline-paths` for this group. |
 
 If top-level `baseline-paths` is set and multiple groups omit `baseline-paths`, inheritance is
@@ -91,7 +91,7 @@ The action fails at startup if:
 - Any two groups share the same `name`.
 - Any group has an empty or missing `paths` list.
 - Any path in `paths` or `baseline-paths` is an empty string.
-- Any threshold field is not a number in `[0, 100)`.
+- Any threshold field is not a number in `[0, 100]`.
 - The YAML block is not valid YAML.
 
 ## PR comment structure

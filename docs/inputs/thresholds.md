@@ -28,6 +28,8 @@ overall * changed-files-average
 0*0    →  no global enforcement (default)
 ```
 
+Each value is a float from 0 to 100, inclusive. Values outside that range fail validation.
+
 ### `report-thresholds-default`
 
 ```text
@@ -59,6 +61,8 @@ low-coverage module cannot be masked by others at the global level.
 0*0*60     →  only per-changed-file enforced per report
 0*0*0      →  no per-report enforcement (default)
 ```
+
+Each value is a float from 0 to 100, inclusive. Values outside that range fail validation.
 
 ### `fail-on-threshold`
 

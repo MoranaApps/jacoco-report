@@ -1206,3 +1206,56 @@ def test_changed_file_with_zero_metric_weight_but_data_in_other_metric(
     # Aggregate should also be zero for selected metric
     assert report_ev.avg_changed_files_coverage.covered == 0
     assert report_ev.avg_changed_files_coverage.missed == 0
+
+
+@pytest.mark.parametrize(
+    "missed, covered, passed",
+    [
+        (0, 1000, True),
+        (1, 999, False),
+    ],
+)
+def test_global_overall_threshold_100_is_inclusive(
+    make_report_file_coverage, make_coverage, mocker, missed, covered, passed
+):
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
+    report = make_report_file_coverage(
+        name="mod",
+        overall_coverage=make_coverage(instruction=Counter(missed=missed, covered=covered)),
+    )
+    evaluator = CoverageEvaluator(
+        report_files_coverage=[report],
+        global_min_coverage_overall=100.0,
+        global_min_coverage_changed_files=0.0,
+    )
+    evaluator.evaluate()
+
+    assert evaluator.total_coverage_overall_passed is passed
+    assert (not passed) == any("Global overall coverage" in v for v in evaluator.violations)
+
+
+@pytest.mark.parametrize(
+    "missed, covered, passed",
+    [
+        (0, 1000, True),
+        (1, 999, False),
+    ],
+)
+def test_report_threshold_100_is_inclusive(make_report_file_coverage, make_coverage, mocker, missed, covered, passed):
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
+    report = make_report_file_coverage(
+        path="mod.xml",
+        name="mod",
+        overall_coverage=make_coverage(instruction=Counter(missed=missed, covered=covered)),
+    )
+    evaluator = CoverageEvaluator(
+        report_files_coverage=[report],
+        global_min_coverage_overall=0.0,
+        global_min_coverage_changed_files=0.0,
+        report_thresholds_default=(100.0, 0.0, 0.0),
+    )
+    evaluator.evaluate()
+
+    evaluated = evaluator.evaluated_reports_coverage["mod.xml"]
+    assert evaluated.overall_coverage_threshold == 100.0
+    assert evaluated.overall_passed is passed
