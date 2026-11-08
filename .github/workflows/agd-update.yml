@@ -65,22 +65,28 @@ jobs:
           git diff --cached --no-renames --name-only --diff-filter=D -z \
             | xargs -0 -r -I{} jq -n --arg p {} '{path:$p}' \
             | jq -s . > "$RUNNER_TEMP/deletions.json"
-          # The branch restarts at the checked-out commit each run, as the force push did.
+          # One commit through the API, which GitHub signs, made on a temporary branch from the checked-out
+          # commit. $BRANCH then moves to it in one step, as the force push did: resetting $BRANCH to the
+          # checked-out commit first would leave it with no commits for a moment, and GitHub closes an open
+          # pull request whose branch has none. The trap deletes the temporary branch, also after a failure.
           base=$(git rev-parse HEAD)
-          if gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/$BRANCH" >/dev/null 2>&1; then
-            gh api -X PATCH "repos/$GITHUB_REPOSITORY/git/refs/heads/$BRANCH" -f sha="$base" -F force=true >/dev/null
-          else
-            gh api -X POST "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/heads/$BRANCH" -f sha="$base" >/dev/null
-          fi
-          # One commit through the API, which GitHub signs.
-          jq -n --arg repo "$GITHUB_REPOSITORY" --arg branch "$BRANCH" --arg oid "$base" \
+          tmp="$BRANCH-tmp-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          gh api -X POST "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/heads/$tmp" -f sha="$base" >/dev/null
+          trap 'gh api -X DELETE "repos/$GITHUB_REPOSITORY/git/refs/heads/$tmp" >/dev/null 2>&1 || true' EXIT
+          commit=$(jq -n --arg repo "$GITHUB_REPOSITORY" --arg branch "$tmp" --arg oid "$base" \
             --arg headline "Update the agentic setup" --rawfile body "$RUNNER_TEMP/update.txt" \
             --slurpfile add "$RUNNER_TEMP/additions.json" --slurpfile del "$RUNNER_TEMP/deletions.json" \
             '{query: "mutation($input: CreateCommitOnBranchInput!) { createCommitOnBranch(input: $input) { commit { oid } } }",
               variables: {input: {branch: {repositoryNameWithOwner: $repo, branchName: $branch},
                 expectedHeadOid: $oid, message: {headline: $headline, body: $body},
                 fileChanges: {additions: $add[0], deletions: $del[0]}}}}' \
-            | gh api graphql --input - >/dev/null
+            | gh api graphql --input - --jq '.data.createCommitOnBranch.commit.oid')
+          [ -n "$commit" ] || { echo "::error::The API returned no commit."; exit 1; }
+          if gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/$BRANCH" >/dev/null 2>&1; then
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/git/refs/heads/$BRANCH" -f sha="$commit" -F force=true >/dev/null
+          else
+            gh api -X POST "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/heads/$BRANCH" -f sha="$commit" >/dev/null
+          fi
           # shellcheck disable=SC2016 # the backticks are Markdown code spans, not command substitution
           {
             echo 'The weekly `agd update` changed these files. Read the changes before you merge: they are instructions for agents.'
