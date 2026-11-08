@@ -1,6 +1,7 @@
 # Keeps this repository's agentic setup up to date: weekly, it runs agd update and opens a pull request
 # with the changes. Copied from https://zejnilovic.github.io/agd/guides/automatic-updates/, with checkout
-# pinned to a commit SHA.
+# pinned to a commit SHA, and the commit made through the GraphQL API instead of git push: GitHub signs
+# it, so the "All Branches Rules" signed-commits ruleset passes without an exception for the branch.
 name: Update the agentic setup
 
 on:
@@ -22,8 +23,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       # A pinned agd release, and the SHA-256 of its agd file from the release's SHA256SUMS.
-      AGD_VERSION: 0.3.0
-      AGD_SHA256: 0a83043c533faea476e9f454eadf7ed693cf31296748f41540ab6321fc24978f
+      AGD_VERSION: 0.5.1
+      AGD_SHA256: 6c361845bb96b89af8193c57c0742cfabd96c773ae8b950ca3ea3128b5771457
       BRANCH: agd-update
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -49,12 +50,31 @@ jobs:
           agd update | tee "$RUNNER_TEMP/update.txt"
           # Only files this project edited are due, and the update leaves those alone.
           [ -n "$(git status --porcelain)" ] || exit 0
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git switch -c "$BRANCH"
+          # The branch restarts at the checked-out commit each run, as the force push did.
+          base=$(git rev-parse HEAD)
+          if gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/$BRANCH" >/dev/null 2>&1; then
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/git/refs/heads/$BRANCH" -f sha="$base" -F force=true >/dev/null
+          else
+            gh api -X POST "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/heads/$BRANCH" -f sha="$base" >/dev/null
+          fi
+          # One signed commit through the API with every file the update added, changed or deleted.
           git add -A
-          git commit -q -m "Update the agentic setup" -m "$(cat "$RUNNER_TEMP/update.txt")"
-          git push -q --force origin "$BRANCH"
+          # shellcheck disable=SC2016 # sh -c and jq expand these, not this shell
+          additions=$(git diff --cached --no-renames --name-only --diff-filter=AM -z \
+            | xargs -0 -r -I{} sh -c 'jq -n --arg p "$1" --arg c "$(base64 -w0 < "$1")" "{path:\$p,contents:\$c}"' _ {} \
+            | jq -s .)
+          # shellcheck disable=SC2016 # jq expands $p, not this shell
+          deletions=$(git diff --cached --no-renames --name-only --diff-filter=D -z \
+            | xargs -0 -r -I{} jq -n --arg p {} '{path:$p}' \
+            | jq -s .)
+          jq -n --arg repo "$GITHUB_REPOSITORY" --arg branch "$BRANCH" --arg oid "$base" \
+            --arg headline "Update the agentic setup" --rawfile body "$RUNNER_TEMP/update.txt" \
+            --argjson add "$additions" --argjson del "$deletions" \
+            '{query: "mutation($input: CreateCommitOnBranchInput!) { createCommitOnBranch(input: $input) { commit { oid } } }",
+              variables: {input: {branch: {repositoryNameWithOwner: $repo, branchName: $branch},
+                expectedHeadOid: $oid, message: {headline: $headline, body: $body},
+                fileChanges: {additions: $add, deletions: $del}}}}' \
+            | gh api graphql --input - >/dev/null
           # shellcheck disable=SC2016 # the backticks are Markdown code spans, not command substitution
           {
             echo 'The weekly `agd update` changed these files. Read the changes before you merge: they are instructions for agents.'

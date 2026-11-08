@@ -42,8 +42,9 @@ who want coverage visible directly in PR review, without digging through CI logs
   check: see Key decisions; `self-test` runs the composite action itself via `uses: ./` on ubuntu), release draft,
   link check, markdown lint, v3 tag mover (`v2` is unmaintained, its tag frozen at `v2.1.3`), Renovate,
   and `agd-update` (weekly `agd update`, opening a PR
-  from the `agd-update` branch, as in agd's "Update automatically" guide; its unsigned push needs `agd-update`
-  excluded from the "All Branches Rules" signed-commits ruleset, and opening the PR needs the repo setting
+  from the `agd-update` branch, as in agd's "Update automatically" guide, but committing through the GraphQL
+  `createCommitOnBranch` API, which GitHub signs, so the "All Branches Rules" signed-commits ruleset needs no
+  exception; the API commit carries no file modes; opening the PR needs the repo setting
   "Allow GitHub Actions to create and approve pull requests"; checks start on that PR only after
   close/reopen, and it is merged by hand)
 - `.claude/` (agents, skills), `.local_context/README.md` + `.gitignore`, and `AGENTS.md` above "This
