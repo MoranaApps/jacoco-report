@@ -6,7 +6,7 @@ import hashlib
 import logging
 import os
 from textwrap import dedent
-from typing import Optional
+from typing import NamedTuple, Optional
 
 from jacoco_report.action_inputs import ActionInputs
 from jacoco_report.evaluator.coverage_evaluator import CoverageEvaluator
@@ -20,9 +20,128 @@ logger = logging.getLogger(__name__)
 _MD_LINK_TEXT_UNSAFE = str.maketrans({"[": "\\[", "]": "\\]", "`": "\\`", "|": "\\|"})
 
 
+# The limit GitHub enforces on a comment body. The note in a cut body always states it.
+GITHUB_COMMENT_LIMIT = 65_536
+# The cap this module enforces. It equals GitHub's limit; tests lower it to exercise the boundary.
+MAX_COMMENT_LENGTH = GITHUB_COMMENT_LIMIT
+
+UNGROUPED_LOG_HEADER = "Reports not assigned to any group:"
+
+
+class _Section(NamedTuple):
+    """A cuttable part of the comment: lines before its rows, its rows, and lines after them."""
+
+    log_header: str
+    header: list[str]
+    rows: list[str]
+    trailing: list[str]
+    # A section whose rows are all cut still renders its header and trailing lines (the ungrouped-reports frame).
+    frame_kept: bool
+
+
+def _single_line(text: str) -> str:
+    """Keep a name on one line, so that a line break in it cannot split its table row or list item."""
+    return text.replace("\r", " ").replace("\n", " ")
+
+
 def _escape_md_link_text(text: str) -> str:
     """Escape characters that break Markdown inline-link text."""
-    return text.translate(_MD_LINK_TEXT_UNSAFE)
+    return _single_line(text).translate(_MD_LINK_TEXT_UNSAFE)
+
+
+def _split_table(section: str) -> _Section:
+    """Split a rendered table into its two header lines and its rows. A table with any other line is not cut."""
+    lines = section.split("\n")
+    rest = lines[2:]
+    if rest and all(line.startswith("|") for line in rest):
+        return _Section("\n".join(lines[:2]), lines[:2], rest, [], False)
+    return _Section("", lines, [], [], False)
+
+
+def _split_ungrouped(warning: str) -> _Section:
+    """Split the ungrouped-reports warning into its frame before the items, its `- ` items and the frame after."""
+    lines = warning.split("\n")
+    first = next((i for i, line in enumerate(lines) if line.startswith("- ")), len(lines))
+    end = first
+    while end < len(lines) and lines[end].startswith("- "):
+        end += 1
+    return _Section(UNGROUPED_LOG_HEADER, lines[:first], lines[first:end], lines[end:], True)
+
+
+def _kept_rows_per_section(sections: list[_Section], keep: int) -> list[int]:
+    """Count the leading rows of each section that are kept when the first `keep` rows of all sections are kept."""
+    kept: list[int] = []
+    remaining = keep
+    for section in sections:
+        count = min(len(section.rows), remaining)
+        kept.append(count)
+        remaining -= count
+    return kept
+
+
+def _render_body(head: str, sections: list[_Section], footer: str, keep: int) -> str:
+    """Join the comment parts, keeping the first `keep` rows in document order."""
+    parts = [head]
+    for section, count in zip(sections, _kept_rows_per_section(sections, keep)):
+        if count or not section.rows or section.frame_kept:
+            parts.append("\n".join(section.header + section.rows[:count] + section.trailing))
+    total = sum(len(section.rows) for section in sections)
+    if keep < total:
+        noun = "row" if total - keep == 1 else "rows"
+        parts.append(
+            f"… {total - keep} {noun} omitted (GitHub's {GITHUB_COMMENT_LIMIT:,}-character comment limit), "
+            "see the job log."
+        )
+    parts.append(footer)
+    return "\n\n".join(parts)
+
+
+def _log_omitted_rows(sections: list[_Section], keep: int, body_length: int) -> None:
+    """Log the cut to the job log: one warning, then each cut section with its header and omitted rows."""
+    cut_sections = [
+        (section.log_header, section.rows[count:])
+        for section, count in zip(sections, _kept_rows_per_section(sections, keep))
+        if section.rows and count < len(section.rows)
+    ]
+    omitted = sum(len(rows) for _, rows in cut_sections)
+    logger.warning(
+        "PR comment body is %d characters, over the %d character limit; %d row(s) omitted from the comment.",
+        body_length,
+        MAX_COMMENT_LENGTH,
+        omitted,
+    )
+    for log_header, rows in cut_sections:
+        logger.info("Omitted from the PR comment:\n%s", "\n".join([log_header, *rows]))
+
+
+def _fit_to_comment_limit(head: str, sections: list[_Section], footer: str) -> str:
+    """Return the comment body, cutting rows from the end when it is over MAX_COMMENT_LENGTH.
+
+    A body at or under the limit is returned unchanged. Otherwise the largest number of leading rows that fits is kept.
+    If the head, frames, note and footer alone do not fit, the body is cut to the limit.
+    """
+    total = sum(len(section.rows) for section in sections)
+    body = _render_body(head, sections, footer, total)
+    if len(body) <= MAX_COMMENT_LENGTH:
+        return body
+
+    # A body grows with every kept row, so the largest kept count that fits is found by binary search.
+    low, high = 0, total
+    while low < high:
+        middle = (low + high + 1) // 2
+        if len(_render_body(head, sections, footer, middle)) <= MAX_COMMENT_LENGTH:
+            low = middle
+        else:
+            high = middle - 1
+
+    cut = _render_body(head, sections, footer, low)
+    _log_omitted_rows(sections, low, len(body))
+    if len(cut) > MAX_COMMENT_LENGTH:
+        logger.warning(
+            "PR comment is still over the limit without its table rows; cut to %d characters.", MAX_COMMENT_LENGTH
+        )
+        cut = cut[:MAX_COMMENT_LENGTH]
+    return cut
 
 
 class PRCommentGenerator:
@@ -92,15 +211,16 @@ class PRCommentGenerator:
 
     def _get_comment_content(self, comment_level: str) -> tuple[str, str]:
         """Build the PR comment title and body for the selected comment level."""
-        title = body = f"**{ActionInputs.get_title()}**"
+        title = f"**{ActionInputs.get_title()}**"
 
         if comment_level == CommentLevelEnum.NONE:
-            return title, body
+            return title, title
 
         p = ActionInputs.get_pass_symbol()
         f = ActionInputs.get_fail_symbol()
 
-        body += f"\n\n{self.get_basic_table_for_all(p, f)}"
+        head = f"{title}\n\n{self.get_basic_table_for_all(p, f)}"
+        detail_sections: list[str] = []
 
         if comment_level != CommentLevelEnum.MINIMAL:
             filtered_groups = self.evaluator.evaluated_groups_coverage
@@ -127,8 +247,6 @@ class PRCommentGenerator:
                 filtered_groups = self._filter_evaluated_coverage_rows(filtered_groups, comment_level)
                 filtered_reports = self._filter_evaluated_coverage_rows(filtered_reports, comment_level)
 
-            detail_sections: list[str] = []
-
             groups_table = self.get_groups_table(p, f, filtered_groups)
             if groups_table:
                 detail_sections.append(groups_table)
@@ -141,18 +259,15 @@ class PRCommentGenerator:
             if changed_files_table:
                 detail_sections.append(changed_files_table)
 
-            if detail_sections:
-                body += "\n\n" + "\n\n".join(detail_sections)
-            elif comment_level != CommentLevelEnum.FULL:
-                body += "\n\nNo rows match the selected comment level."
+            if not detail_sections and comment_level != CommentLevelEnum.FULL:
+                head += "\n\nNo rows match the selected comment level."
 
+        sections = [_split_table(section) for section in detail_sections]
         ungrouped_warning = self._get_ungrouped_reports_warning()
         if ungrouped_warning:
-            body += f"\n\n{ungrouped_warning}"
+            sections.append(_split_ungrouped(ungrouped_warning))
 
-        body += f"\n\n{self._get_metadata_footer()}"
-
-        return title, body
+        return title, _fit_to_comment_limit(head, sections, self._get_metadata_footer())
 
     def _get_ungrouped_reports_warning(self) -> str:
         """Build a warning section for reports not assigned to any group.
@@ -163,7 +278,7 @@ class PRCommentGenerator:
             return ""
 
         count = len(self.ungrouped_reports)
-        report_list = "\n".join(f"- `{report}`" for report in self.ungrouped_reports)
+        report_list = "\n".join(f"- `{_single_line(report)}`" for report in self.ungrouped_reports)
 
         warning_content = (
             f"<details><summary>⚠️ Warning: {count} report{'s' if count > 1 else ''} "
@@ -468,7 +583,7 @@ class PRCommentGenerator:
                 cov = f"{ev.overall_coverage_reached}% / {ev.avg_changed_files_coverage_reached}%"
                 thres = f"{ev.overall_coverage_threshold}% / {ev.changed_files_threshold}%"
                 status = f"{p if ev.overall_passed else f}/{p if ev.avg_changed_files_passed else f}"
-                s += f"\n| `{group_name}` | {cov} | {thres} | {status} |"
+                s += f"\n| `{_single_line(group_name)}` | {cov} | {thres} | {status} |"
         else:
             s = dedent("""
                 | Group | Coverage (O/Ch) | Threshold (O/Ch) | Δ Coverage (O/Ch) | Status (O/Ch) |
@@ -482,7 +597,7 @@ class PRCommentGenerator:
                 thres = f"{ev.overall_coverage_threshold}% / {ev.changed_files_threshold}%"
                 delta = f"{'+' if diff_o > 0.001 else ''}{diff_o}% / {'+' if diff_ch > 0.001 else ''}{diff_ch}%"
                 status = f"{p if ev.overall_passed else f}/{p if ev.avg_changed_files_passed else f}"
-                s += f"\n| `{group_name}` | {cov} | {thres} | {delta} | {status} |"
+                s += f"\n| `{_single_line(group_name)}` | {cov} | {thres} | {delta} | {status} |"
         return s
 
     def get_reports_table(
@@ -526,7 +641,7 @@ class PRCommentGenerator:
             thres = f"{o_thres}% / {ch_thres}%"
             status_o = p if evaluated_report.overall_passed else f
             status_ch = p if evaluated_report.avg_changed_files_passed else f
-            s += f"\n| `{name}` | {cov} | {thres} | {status_o}/{status_ch} |"
+            s += f"\n| `{_single_line(name)}` | {cov} | {thres} | {status_o}/{status_ch} |"
 
         return s
 
@@ -565,7 +680,7 @@ class PRCommentGenerator:
             )
             status_o = p if evaluated_report.overall_passed else f
             status_ch = p if evaluated_report.avg_changed_files_passed else f
-            s += f"\n| `{name}` | {cov} | {thres} | {delta} | {status_o}/{status_ch} |"
+            s += f"\n| `{_single_line(name)}` | {cov} | {thres} | {delta} | {status_o}/{status_ch} |"
 
         return s
 
