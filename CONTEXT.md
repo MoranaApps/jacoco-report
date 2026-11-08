@@ -44,9 +44,11 @@ who want coverage visible directly in PR review, without digging through CI logs
   and `agd-update` (weekly `agd update`, opening a PR
   from the `agd-update` branch, as in agd's "Update automatically" guide, but committing through the GraphQL
   `createCommitOnBranch` API, which GitHub signs, so the "All Branches Rules" signed-commits ruleset needs no
-  exception; the API commit carries no file modes; opening the PR needs the repo setting
-  "Allow GitHub Actions to create and approve pull requests"; checks start on that PR only after
-  close/reopen, and it is merged by hand)
+  exception; the commit is made on a temporary `agd-update-tmp-*` branch and `agd-update` then moves to it in
+  one step, because a branch reset to `master` even for a moment makes GitHub close the open update PR; the
+  API commit carries no file modes; opening the PR needs the repo and org setting "Allow GitHub Actions to
+  create and approve pull requests"; GitHub holds the checks of that PR until someone clicks **Approve
+  workflows to run**, and it is merged by hand)
 - `.claude/` (agents, skills), `.local_context/README.md` + `.gitignore`, and `AGENTS.md` above "This
   project" — the agentic-defaults kit, installed by `agd`; `.agd.lock` pins the kit version, packs and
   file hashes. Kit updates replace these files; don't hand-edit them (see `AGENTS.md` → "Kit files").
