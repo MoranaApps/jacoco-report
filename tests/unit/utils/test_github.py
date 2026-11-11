@@ -6,6 +6,7 @@ import ssl
 import pytest
 import requests
 from pytest_mock import MockerFixture
+from urllib3.connectionpool import HTTPConnectionPool
 from urllib3.exceptions import ConnectTimeoutError, ProtocolError, ReadTimeoutError
 from urllib3.response import HTTPResponse
 
@@ -343,6 +344,7 @@ def test_get_comments_pagination(mocker):
     all_comments = gh.get_comments(pr_number=1, per_page=100)
 
     # Assert
+    assert all_comments is not None
     assert len(all_comments) == 101
     assert all_comments[0]["id"] == 0
     assert all_comments[-1]["id"] == 100
@@ -587,7 +589,7 @@ TRANSIENT_FAILURES = [
     pytest.param(503, id="503"),
     pytest.param(504, id="504"),
     pytest.param(ProtocolError("Connection aborted.", ConnectionResetError(54, "reset")), id="connection-reset"),
-    pytest.param(ReadTimeoutError(None, "/test", "Read timed out."), id="read-timeout"),
+    pytest.param(ReadTimeoutError(HTTPConnectionPool("api.github.com"), "/test", "Read timed out."), id="read-timeout"),
     pytest.param(ConnectTimeoutError("Connect timed out."), id="connect-timeout"),
 ]
 
@@ -597,7 +599,7 @@ def _fake_transport(mocker, outcomes):
     Patch urllib3 below its retry loop: attempt n gets outcomes[n], a status code, a (status, headers) pair or an
     exception. Returns the methods of the attempts made and the mocked sleep.
     """
-    methods = []
+    methods: list[str] = []
 
     def fake_make_request(conn, method, url, **kwargs):
         outcome = outcomes[len(methods)]
@@ -620,6 +622,7 @@ def test_get_retries_transient_failure(failure, mocker):
 
     response = GitHub("fake_token").send_request("GET", "https://api.github.com/test")
 
+    assert response is not None
     assert response.status_code == 200
     assert methods == ["GET", "GET"]
 
@@ -642,6 +645,7 @@ def test_get_waits_for_retry_after(retry_after, expected_wait, mocker):
 
     response = GitHub("fake_token").send_request("GET", "https://api.github.com/test")
 
+    assert response is not None
     assert response.status_code == 200
     assert methods == ["GET", "GET"]
     sleep.assert_called_once_with(expected_wait)

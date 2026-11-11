@@ -207,7 +207,7 @@ Configuration is in `pyproject.toml`.
 mypy .
 ```
 
-All source files must pass with zero errors before merging.
+All source files, including `tests/`, must pass with zero errors before merging.
 
 ---
 

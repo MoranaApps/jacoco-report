@@ -220,6 +220,7 @@ def test_pagination_handling(cleanup_comments: list[int]) -> None:
         else:
             os.environ.pop("GITHUB_REPOSITORY", None)
 
+    assert retrieved is not None, "get_comments returned None (incomplete read)"
     posted_bodies = {f"{marker} #{i}" for i in range(3)}
     retrieved_bodies = {c["body"] for c in retrieved}
     assert posted_bodies.issubset(retrieved_bodies), (

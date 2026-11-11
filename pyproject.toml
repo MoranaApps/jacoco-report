@@ -7,4 +7,3 @@ omit = ["tests/*"]
 
 [tool.mypy]
 check_untyped_defs = true
-exclude = "tests"

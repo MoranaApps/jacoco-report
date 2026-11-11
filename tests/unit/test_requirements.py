@@ -29,7 +29,7 @@ def _runtime_pins(path=REQUIREMENTS_IN):
 
 def _lock_entries():
     # Each locked package starts with `name==version \`, followed by `--hash=` continuation lines and `# via` comments.
-    entries = []
+    entries: list[tuple[str, list[str]]] = []
     for text in _lines(REQUIREMENTS_TXT):
         text = text.removesuffix("\\").strip()
         if not text or text.startswith("#"):
@@ -57,7 +57,11 @@ def test_every_locked_package_is_pinned_and_has_a_sha256_hash():
 
 
 def test_every_runtime_pin_is_locked_at_the_same_version():
-    locked = {PIN.fullmatch(requirement).groups() for requirement, _ in _lock_entries()}
+    locked = set()
+    for requirement, _ in _lock_entries():
+        match = PIN.fullmatch(requirement)
+        assert match, f"not a name==version pin: {requirement}"
+        locked.add(match.groups())
     for name, version in _runtime_pins().items():
         assert (name, version) in locked, f"{name}=={version} from requirements.in is not in requirements.txt"
 

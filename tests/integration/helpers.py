@@ -170,8 +170,13 @@ def mock_github_offline(mocker: MockerFixture, changed_files: list[str]) -> list
         return_value=[],
     )
     captured: list[str] = []
+
+    def _capture_comment(pr_number: int, body: str) -> bool:
+        captured.append(body)
+        return True
+
     mocker.patch(
         "jacoco_report.utils.github.GitHub.add_comment",
-        side_effect=lambda pr_number, body: captured.append(body) or True,
+        side_effect=_capture_comment,
     )
     return captured
