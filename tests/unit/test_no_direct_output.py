@@ -5,7 +5,7 @@ so no other code writes to stdout or stderr directly.
 
 import ast
 from pathlib import Path
-from typing import Callable
+from typing import Callable, TypeGuard
 
 import pytest
 
@@ -46,7 +46,7 @@ def _stream_argument(call: ast.Call) -> ast.AST | None:
     return next((keyword.value for keyword in call.keywords if keyword.arg == "stream"), None)
 
 
-def _is_direct_output(node: ast.AST) -> bool:
+def _is_direct_output(node: ast.AST) -> TypeGuard[ast.expr | ast.stmt]:
     if isinstance(node, ast.Call):
         func = node.func
         if _is_name(func, *PPRINT_NAMES):  # print(...) and pprint(...)

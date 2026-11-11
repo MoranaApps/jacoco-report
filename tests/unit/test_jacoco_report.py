@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+from typing import Any
 
 import pytest
 
@@ -2246,7 +2247,7 @@ def test_successful_one_source_file(jacoco_report, metric, comment, ov_cov, ch_c
 
 # MORE FILES
 
-more_source_files_scenarios = [
+more_source_files_scenarios: list[tuple[Any, ...]] = [
     (
         "1",
         CommentLevelEnum.FULL,

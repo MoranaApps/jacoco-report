@@ -130,8 +130,9 @@ service is needed.
   separately in `get_report_groups`, where an empty part becomes `None` so it falls back to `report-thresholds-default`.
 - No inline `# pylint: disable`; suppressions are centralized in `.pylintrc`'s `[MESSAGES CONTROL]`,
   each with a comment explaining why.
-- `tests/` is excluded from pylint (`.pylintrc` `ignore-paths=tests`), mypy (`pyproject.toml`
-  `exclude = "tests"`) and coverage (`omit = ["tests/*"]`).
+- `tests/` is excluded from pylint (`.pylintrc` `ignore-paths=tests`) and coverage
+  (`omit = ["tests/*"]`), but not from mypy: `mypy .` (with `check_untyped_defs`) type-checks the tests
+  too, so a patched method used as a mock needs a `cast(MagicMock, ...)` before `.call_args` and friends.
 
 ## Key decisions
 
