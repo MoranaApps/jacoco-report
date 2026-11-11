@@ -83,6 +83,8 @@ process exit code.
   `changed_files_coverage` (`dict[path, FileCoverage]`) + optional `group_name`.
 - `Coverage` / `FileCoverage` — six JaCoCo counters each (`instruction`, `branch`, `line`,
   `complexity`, `method`, `clazz`), each a `Counter(missed, covered)` exposing `.coverage()` as a %.
+  Both are `@dataclass`es (value equality, unhashable). `FileCoverage` positional order: `file_name`,
+  `file_path`, then the six counters (kept by the `_FileLocation` base listed second in `FileCoverage`).
 - `ReportGroup` — a named set of path globs with optional per-group thresholds
   (`overall*changed*per-file`) and optional `baseline_paths`; a field falls back to
   `report-thresholds-default`, never to `global-thresholds`.
