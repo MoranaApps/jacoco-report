@@ -60,10 +60,7 @@ def run() -> None:
 
         # Fail if any configured threshold was not reached
         threshold_failure = any(not passed for threshold, passed in threshold_checks.items() if threshold in thresholds)
-        operational_failure = getattr(jr, "has_operational_failure", False)
-        if not isinstance(operational_failure, bool):
-            operational_failure = False
-        fail = operational_failure or threshold_failure
+        fail = jr.has_operational_failure or threshold_failure
 
         if fail:
             logger.error("JaCoCo Report GitHub Action - failed.")

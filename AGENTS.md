@@ -75,6 +75,14 @@ Files and parts marked "From agentic-defaults" are replaced when the kit updates
   oldest supported version), plus a `context-check` job on pull requests (see the `context-md`
   skill). The `CI result` job (`ci-result`) aggregates those jobs except `context-check` and is the
   check the ruleset is meant to require, so keep it in step with new jobs.
+- The context check here must pass CI's form of it: the `context-check` job runs
+  `check.sh --base origin/master --strict`, which fails whenever code under a `CONTEXT.md` changed and
+  that `CONTEXT.md` didn't, even for a change that needs no update. So "none needs it" leaves a red check.
+  Run that exact command before handing over a change for a PR. For each `CONTEXT.md` it lists, record
+  the lasting fact the change adds: a convention, decision, invariant or gotcha it introduces, or one
+  that bit during the work (a test that had to change usually points to one). Write only true, stable
+  facts, never a line just to turn the check green. If the change really adds none, say plainly in the
+  handover that `context-check` will fail and why. It is not part of `CI result`.
 - Use the agentic-defaults kit's agents and skills proactively whenever one fits the task, rather
   than doing the work inline. This is the owner's standing request to spawn agents, and it overrides
   "Hand work to an agent only when…" above. For example: review → `reviewer` agent, `security-reviewer`

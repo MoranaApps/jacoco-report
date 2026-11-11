@@ -497,6 +497,7 @@ def test_get_groups_table_baseline_decision_group_only(pr_comment_generator, moc
     bs_ev.avg_changed_files_coverage_reached = 75.0
     bs_evaluator = mocker.Mock()
     bs_evaluator.evaluated_groups_coverage = {"backend": bs_ev}
+    bs_evaluator.evaluated_reports_coverage = {}
     pr_comment_generator.bs_evaluator = bs_evaluator
 
     table = pr_comment_generator.get_groups_table("✅", "❌")
@@ -576,6 +577,7 @@ def test_get_groups_table_baseline_decision_no_baseline(pr_comment_generator, mo
     # No baseline data
     bs_evaluator = mocker.Mock()
     bs_evaluator.evaluated_groups_coverage = {}
+    bs_evaluator.evaluated_reports_coverage = {}
     pr_comment_generator.bs_evaluator = bs_evaluator
 
     table = pr_comment_generator.get_groups_table("✅", "❌")
@@ -619,6 +621,7 @@ def test_calculate_baseline_group_diffs_no_data_returns_zero(pr_comment_generato
 
     bs_evaluator = mocker.Mock()
     bs_evaluator.evaluated_groups_coverage = {"backend": bs_ev}
+    bs_evaluator.evaluated_reports_coverage = {}
     pr_comment_generator.bs_evaluator = bs_evaluator
 
     diff_o, diff_ch = pr_comment_generator.calculate_baseline_group_diffs(ev)
