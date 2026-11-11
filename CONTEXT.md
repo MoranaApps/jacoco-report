@@ -133,6 +133,11 @@ service is needed.
 - `tests/` is excluded from pylint (`.pylintrc` `ignore-paths=tests`) and coverage
   (`omit = ["tests/*"]`), but not from mypy: `mypy .` (with `check_untyped_defs`) type-checks the tests
   too, so a patched method used as a mock needs a `cast(MagicMock, ...)` before `.call_args` and friends.
+- Code reads attributes of the project's own types directly: no defensive `getattr(obj, "x", default)` or
+  `isinstance` fallbacks (#269); an optional object gets an explicit `is None` branch. A test passing a `Mock` in place
+  of one of them (`CoverageEvaluator`, `JaCoCoReport`, `ReportGroup`) must set every attribute the code path reads: an
+  unset `Mock` attribute is truthy and not a dict, so the code silently takes another branch (e.g.
+  `PRCommentGenerator._has_baseline_data` then reports baseline data).
 
 ## Key decisions
 
