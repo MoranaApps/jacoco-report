@@ -68,3 +68,28 @@ def test_str(coverage):
         "Method: Missed: 4, Covered: 6, Class: Missed: 0, Covered: 5"
     )
     assert str(coverage) == expected_str
+
+
+# __eq__
+
+
+def test_equal_when_all_counters_equal():
+    assert Coverage(*_counters()) == Coverage(*_counters())
+
+
+def test_not_equal_when_a_counter_differs():
+    counters = _counters()
+    other = _counters()
+    other[0] = Counter(missed=99, covered=1)
+    assert Coverage(*counters) != Coverage(*other)
+
+
+def _counters():
+    return [
+        Counter(missed=5, covered=10),
+        Counter(missed=3, covered=7),
+        Counter(missed=2, covered=8),
+        Counter(missed=1, covered=9),
+        Counter(missed=4, covered=6),
+        Counter(missed=0, covered=5),
+    ]

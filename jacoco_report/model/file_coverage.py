@@ -2,42 +2,29 @@
 A module that contains the FileCoverage class
 """
 
-from jacoco_report.model.counter import Counter
+from dataclasses import dataclass
+
 from jacoco_report.model.coverage import Coverage
 
 
-class FileCoverage(Coverage):
+@dataclass
+class _FileLocation:
+    """
+    The location fields of a FileCoverage: file_name, file_path
+    """
+
+    file_name: str
+    file_path: str
+
+
+# dataclasses collect fields in reverse MRO order, so listing _FileLocation after Coverage
+# puts file_name and file_path before the six counters, keeping the positional order of the
+# original __init__.
+@dataclass
+class FileCoverage(Coverage, _FileLocation):
     """
     A class that represents the coverage of a file
     """
-
-    def __init__(
-        self,
-        file_name: str,
-        file_path: str,
-        instruction: Counter,
-        branch: Counter,
-        line: Counter,
-        complexity: Counter,
-        method: Counter,
-        clazz: Counter,
-    ):
-        """
-        A constructor for the FileCoverage class
-
-        Parameters:
-            file_name (str): The name of the file
-            file_path (str): The path of the file
-            instruction (Counter): The instruction counter
-            branch (Counter): The branch counter
-            line (Counter): The line counter
-            complexity (Counter): The complexity counter
-            method (Counter): The method counter
-            clazz (Counter): The class counter
-        """
-        super().__init__(instruction, branch, line, complexity, method, clazz)
-        self.file_name = file_name
-        self.file_path = file_path
 
     def __str__(self):
         """

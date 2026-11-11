@@ -3,6 +3,7 @@ A module that contains the Coverage class
 """
 
 import logging
+from dataclasses import dataclass
 
 from jacoco_report.model.counter import Counter
 from jacoco_report.utils.enums import MetricTypeEnum
@@ -10,31 +11,20 @@ from jacoco_report.utils.enums import MetricTypeEnum
 logger = logging.getLogger(__name__)
 
 
+@dataclass
 class Coverage:
     """
     A class that represents the coverage of a file
+
+    Fields, in order: instruction, branch, line, complexity, method, clazz (each a Counter).
     """
 
-    def __init__(
-        self, instruction: Counter, branch: Counter, line: Counter, complexity: Counter, method: Counter, clazz: Counter
-    ):
-        """
-        A constructor for the Coverage class
-
-        Parameters:
-            instruction (Counter): The instruction counter
-            branch (Counter): The branch counter
-            line (Counter): The line counter
-            complexity (Counter): The complexity counter
-            method (Counter): The method counter
-            clazz (Counter): The class counter
-        """
-        self.instruction: Counter = instruction
-        self.branch: Counter = branch
-        self.line: Counter = line
-        self.complexity: Counter = complexity
-        self.method: Counter = method
-        self.clazz: Counter = clazz
+    instruction: Counter
+    branch: Counter
+    line: Counter
+    complexity: Counter
+    method: Counter
+    clazz: Counter
 
     def get_coverage_by_metric(self, metric_type: str) -> float:
         """
