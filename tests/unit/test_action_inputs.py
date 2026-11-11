@@ -463,6 +463,27 @@ def test_get_global_thresholds_invalid_component_logs_warning_without_warning_pr
     assert not any("Warning: Cannot convert" in message for message in warning_messages)
 
 
+@pytest.mark.parametrize(
+    "method, input_label, expected",
+    [
+        ("get_global_thresholds", "global-thresholds", (0.0, 0.0)),
+        ("get_report_thresholds_default", "report-thresholds-default", (0.0, 0.0, 0.0)),
+    ],
+)
+def test_thresholds_without_separator_fall_back_to_default_and_warn(method, input_label, expected, mocker):
+    mock_warning = mocker.patch("jacoco_report.action_inputs.logger.warning")
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="80")
+
+    result = getattr(ActionInputs, method)()
+
+    assert result == expected
+    warning_messages = [
+        (str(call.args[0]) % tuple(call.args[1:])) if len(call.args) > 1 else str(call.args[0])
+        for call in mock_warning.call_args_list
+    ]
+    assert f"'{input_label}' input is not formatted correctly." in warning_messages
+
+
 def test_get_report_thresholds_default_invalid_third_component_logs_per_changed_file_label(mocker):
     mock_warning = mocker.patch("jacoco_report.action_inputs.logger.warning")
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="1*2*x")

@@ -60,6 +60,39 @@ def _is_valid_threshold_float(value: str) -> bool:
         return False
 
 
+def _parse_threshold_part(value: str, label: str) -> float:
+    """Parse one `*`-delimited threshold part; an empty or non-numeric part becomes 0.0."""
+    try:
+        return float(value) if value else 0.0
+    except ValueError:
+        logger.warning("Cannot convert '%s' part ('%s') to float. Defaulting to 0.0.", label, value)
+        return 0.0
+
+
+def _parse_thresholds(
+    value: str, default_value: str, input_label: str, part_labels: tuple[str, ...]
+) -> tuple[float, ...]:
+    """Parse a `*`-delimited threshold input into one float per entry of `part_labels`.
+
+    An input without `*` is replaced by `default_value`; missing trailing parts default to 0.0.
+    """
+    if "*" not in value:
+        logger.warning("'%s' input is not formatted correctly.", input_label)
+        value = default_value
+
+    parts = value.split("*")
+    if len(parts) < len(part_labels):
+        missing = part_labels[len(parts) :]
+        logger.warning(
+            "'%s' input is not formatted correctly. Adding default value for %s threshold.",
+            input_label,
+            ", ".join(missing),
+        )
+        parts += [""] * len(missing)
+
+    return tuple(_parse_threshold_part(part, label) for part, label in zip(parts, part_labels))
+
+
 class ActionInputs:
     """
     A class representing the inputs provided to the GH action.
@@ -122,28 +155,13 @@ class ActionInputs:
     @staticmethod
     def get_global_thresholds(raw: bool = False) -> tuple[float, float] | str:
         """Return the global coverage thresholds as a tuple (overall, changed-files-average)."""
-
-        def safe_float(value: str, label: str) -> float:
-            try:
-                return float(value) if value else 0.0
-            except ValueError:
-                logger.warning("Cannot convert '%s' part ('%s') to float. Defaulting to 0.0.", label, value)
-                return 0.0
-
-        raw_value = get_action_input(GLOBAL_THRESHOLDS, DEFAULT_GLOBAL_THRESHOLDS).strip()
-        cleaned = ActionInputs.__clean_from_comment(raw_value)
-
+        cleaned = ActionInputs.__get_thresholds_input(GLOBAL_THRESHOLDS, DEFAULT_GLOBAL_THRESHOLDS)
         if raw:
             return cleaned
 
-        if "*" not in cleaned:
-            logger.warning("'global-thresholds' input is not formatted correctly.")
-            cleaned = DEFAULT_GLOBAL_THRESHOLDS
-
-        parts = cleaned.split("*")
-        overall = safe_float(parts[0], "overall")
-        changed = safe_float(parts[1], "changed-files-average")
-
+        overall, changed = _parse_thresholds(
+            cleaned, DEFAULT_GLOBAL_THRESHOLDS, "global-thresholds", ("overall", "changed-files-average")
+        )
         return overall, changed
 
     @staticmethod
@@ -185,56 +203,22 @@ class ActionInputs:
         These are used as field-level fallbacks for per-group thresholds when a group omits a field.
         global-thresholds is a separate evaluation pass and is never in this chain.
         """
-
-        return ActionInputs.__get_thresholds_input(
-            input_name=REPORT_THRESHOLDS_DEFAULT,
-            default_value=DEFAULT_REPORT_THRESHOLDS_DEFAULT,
-            warning_input_label="report-thresholds-default",
-            third_component_label="per-changed-file",
-            raw=raw,
-        )
-
-    @staticmethod
-    def __get_thresholds_input(
-        input_name: str,
-        default_value: str,
-        warning_input_label: str,
-        third_component_label: str,
-        raw: bool = False,
-    ) -> tuple[float, float, float] | str:
-        """Normalize O*A*P threshold input and parse it into three float components."""
-
-        def safe_float(value: str, label: str) -> float:
-            try:
-                return float(value) if value else 0.0
-            except ValueError:
-                logger.warning("Cannot convert '%s' part ('%s') to float. Defaulting to 0.0.", label, value)
-                return 0.0
-
-        raw_value = get_action_input(input_name, default_value).strip()
-        cleaned = ActionInputs.__clean_from_comment(raw_value)
-
+        cleaned = ActionInputs.__get_thresholds_input(REPORT_THRESHOLDS_DEFAULT, DEFAULT_REPORT_THRESHOLDS_DEFAULT)
         if raw:
             return cleaned
 
-        if "*" not in cleaned:
-            logger.warning("'%s' input is not formatted correctly.", warning_input_label)
-            cleaned = default_value
-
-        if cleaned.count("*") == 1:
-            logger.warning(
-                "'%s' input is not formatted correctly. Adding default value for %s threshold.",
-                warning_input_label,
-                third_component_label,
-            )
-            cleaned += "*0.0"
-
-        parts = cleaned.split("*")
-        overall = safe_float(parts[0], "overall")
-        changed = safe_float(parts[1], "changed-files-average")
-        per_file = safe_float(parts[2], third_component_label)
-
+        overall, changed, per_file = _parse_thresholds(
+            cleaned,
+            DEFAULT_REPORT_THRESHOLDS_DEFAULT,
+            "report-thresholds-default",
+            ("overall", "changed-files-average", "per-changed-file"),
+        )
         return overall, changed, per_file
+
+    @staticmethod
+    def __get_thresholds_input(input_name: str, default_value: str) -> str:
+        """Read a threshold input with surrounding whitespace and any trailing `#` comment removed."""
+        return ActionInputs.__clean_from_comment(get_action_input(input_name, default_value).strip())
 
     @staticmethod
     def get_title() -> str:

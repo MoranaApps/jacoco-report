@@ -125,6 +125,9 @@ service is needed.
 - Threshold strings are `*`-delimited: `global-thresholds` = `overall*changed-files-average`;
   `report-thresholds-default` / a group's `thresholds` = `overall*changed-files-average*per-changed-file`.
   Each value is a float in `[0, 100]` (inclusive); validation in `action_inputs.py` (`_is_valid_threshold_float`).
+  Parsing of the two top-level inputs goes through one function, `_parse_thresholds`: an input with no `*`
+  falls back to its default, and a missing or empty part becomes `0.0`. A group's `thresholds` is parsed
+  separately in `get_report_groups`, where an empty part becomes `None` so it falls back to `report-thresholds-default`.
 - No inline `# pylint: disable`; suppressions are centralized in `.pylintrc`'s `[MESSAGES CONTROL]`,
   each with a comment explaining why.
 - `tests/` is excluded from pylint (`.pylintrc` `ignore-paths=tests`), mypy (`pyproject.toml`
