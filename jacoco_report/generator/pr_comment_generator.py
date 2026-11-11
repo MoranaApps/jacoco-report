@@ -368,16 +368,10 @@ class PRCommentGenerator:
 
     def _has_baseline_data(self) -> bool:
         """Return whether baseline evaluator data is available for diff columns."""
-        if not self.bs_evaluator:
+        if self.bs_evaluator is None:
             return False
 
-        reports_coverage = getattr(self.bs_evaluator, "evaluated_reports_coverage", {})
-        groups_coverage = getattr(self.bs_evaluator, "evaluated_groups_coverage", {})
-
-        has_report_baseline = isinstance(reports_coverage, dict) and len(reports_coverage) > 0
-        has_group_baseline = isinstance(groups_coverage, dict) and len(groups_coverage) > 0
-
-        return has_report_baseline or has_group_baseline
+        return bool(self.bs_evaluator.evaluated_reports_coverage) or bool(self.bs_evaluator.evaluated_groups_coverage)
 
     def get_basic_table_for_all(self, p: str, f: str) -> str:
         """Render the global summary table, with baseline deltas when available."""
@@ -686,7 +680,7 @@ class PRCommentGenerator:
 
     def _sorted_report_keys(self, evaluated_reports_coverage: dict[str, EvaluatedReportCoverage]) -> list[str]:
         """Return report keys sorted by configured group order, then by display name."""
-        group_order = getattr(self.evaluator, "report_group_order", [])
+        group_order = self.evaluator.report_group_order
         if not group_order:
             return sorted(
                 list(evaluated_reports_coverage.keys()),
@@ -706,7 +700,7 @@ class PRCommentGenerator:
 
     def calculate_baseline_group_diffs(self, evaluated_coverage: EvaluatedReportCoverage) -> tuple[float, float]:
         """Calculate baseline deltas for one rendered group row using path-first, name-fallback matching."""
-        if not self.bs_evaluator or evaluated_coverage.name not in self.bs_evaluator.evaluated_groups_coverage:
+        if self.bs_evaluator is None or evaluated_coverage.name not in self.bs_evaluator.evaluated_groups_coverage:
             return 0.0, 0.0
 
         group_name = evaluated_coverage.name
@@ -714,8 +708,7 @@ class PRCommentGenerator:
             path: erc for path, erc in self.evaluator.evaluated_reports_coverage.items() if erc.group_name == group_name
         }
 
-        bs_reports = getattr(self.bs_evaluator, "evaluated_reports_coverage", {})
-        bs_reports = bs_reports if isinstance(bs_reports, dict) else {}
+        bs_reports = self.bs_evaluator.evaluated_reports_coverage
 
         matched_paths = set(curr_in_group.keys()) & set(bs_reports.keys())
         if matched_paths:
@@ -754,11 +747,9 @@ class PRCommentGenerator:
         Tries path-based lookup first (same directory structure), then falls back to name-based
         matching for setups where current and baseline reports live in different directory trees.
         """
-        if not self.bs_evaluator:
+        if self.bs_evaluator is None:
             return None
-        bs = getattr(self.bs_evaluator, "evaluated_reports_coverage", {})
-        if not isinstance(bs, dict):
-            return None
+        bs = self.bs_evaluator.evaluated_reports_coverage
         if evaluated_coverage.path and evaluated_coverage.path in bs:
             return bs[evaluated_coverage.path]
         return next((v for v in bs.values() if v.name == evaluated_coverage.name), None)
