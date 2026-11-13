@@ -130,6 +130,12 @@ service is needed.
   Parsing of the two top-level inputs goes through one function, `_parse_thresholds`: an input with no `*`
   falls back to its default, and a missing or empty part becomes `0.0`. A group's `thresholds` is parsed
   separately in `get_report_groups`, where an empty part becomes `None` so it falls back to `report-thresholds-default`.
+- Input validation in `ActionInputs`: each input's checks live in their own `_validate_<input>() -> list[str]`
+  (a report-group entry's: module-level `_validate_report_group_*` helpers). Error order = call order in
+  `validate_inputs()`, pinned for every input by `test_validate_inputs_logs_errors_in_validation_order`; a new check
+  goes in at the position where its error should appear. Inputs whose parsed value is logged go through
+  `_read_or_record`, which records the getter's `ValueError` message and returns `None`. Threshold range errors come
+  from `_threshold_range_errors`.
 - No inline `# pylint: disable`; suppressions are centralized in `.pylintrc`'s `[MESSAGES CONTROL]`,
   each with a comment explaining why.
 - `too-many-arguments` is not suppressed (`max-args=8`; pylint doesn't count `self`). Values that travel together go

@@ -299,6 +299,67 @@ def test_validate_inputs_failure(method, value, expected_error, mocker):
         stop_mocks(patchers)
 
 
+def test_validate_inputs_logs_errors_in_validation_order(tmp_path, mocker):
+    """Every validated input is invalid at once, so the logged errors pin the full validation order."""
+    raising_getters = {
+        "get_skip_unchanged": "'skip-unchanged' must be a boolean ('true' or 'false').",
+        "get_evaluate_unchanged": "'evaluate-unchanged' must be a boolean ('true' or 'false').",
+        "get_update_comment": "'update-comment' must be a boolean ('true' or 'false').",
+        "get_fail_on_threshold": "Unsupported threshold levels: bogus",
+        "get_debug": "'debug' must be a boolean ('true' or 'false').",
+    }
+    missing_ca_bundle = str(tmp_path / "missing.pem")
+    case = {key: value for key, value in success_case.items() if key not in raising_getters}
+    case.update(
+        {
+            "get_token": "",
+            "get_paths": None,
+            "get_global_thresholds": "101*0",
+            "get_report_thresholds_default": "0*0*101",
+            "get_metric": "bogus",
+            "get_comment_level": "bogus",
+            "get_report_groups": "- name: ''\n  paths: ['**']",
+            "get_global_overall_scope": "invalid",
+            "get_pass_symbol": "",
+            "get_fail_symbol": "",
+            "get_ca_bundle": missing_ca_bundle,
+        }
+    )
+    patchers = apply_mocks(case, mocker)
+    try:
+        for getter, message in raising_getters.items():
+            mocker.patch(f"jacoco_report.action_inputs.ActionInputs.{getter}", side_effect=ValueError(message))
+        mock_error = mocker.patch("jacoco_report.action_inputs.logger.error")
+        mock_exit = mocker.patch("sys.exit")
+
+        ActionInputs.validate_inputs()
+
+        expected_errors = [
+            "'token' must be a non-empty string.",
+            "'paths' must be defined.",
+            "'global-thresholds' overall value must be a float between 0 and 100 (inclusive).",
+            "'report-thresholds-default' per-changed-file value must be a float between 0 and 100 (inclusive).",
+            "'metric' must be a string from these options: "
+            "'instruction', 'line', 'branch', 'complexity', 'method', 'class'.",
+            "'comment-level' must be a string from these options: "
+            "'none', 'minimal', 'full', 'changed', 'failed', 'failed-or-changed'.",
+            "'report-groups' entry #1 must have a non-empty 'name'.",
+            raising_getters["get_skip_unchanged"],
+            raising_getters["get_evaluate_unchanged"],
+            "'global-overall-scope' must be 'all' or 'groups-only'.",
+            raising_getters["get_update_comment"],
+            "'pass-symbol' must be a non-empty string and have a length from 1.",
+            "'fail-symbol' must be a non-empty string and have a length from 1.",
+            raising_getters["get_fail_on_threshold"],
+            raising_getters["get_debug"],
+            f"'ca-bundle' must be a path to an existing PEM file: '{missing_ca_bundle}'.",
+        ]
+        assert [call.args for call in mock_error.call_args_list] == [("%s", error) for error in expected_errors]
+        mock_exit.assert_called_once_with(1)
+    finally:
+        stop_mocks(patchers)
+
+
 def test_get_token(mocker):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="some_token")
     assert "some_token" == ActionInputs.get_token()

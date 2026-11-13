@@ -6,7 +6,8 @@ import logging
 import os
 import re
 import sys
-from typing import Literal, Optional, overload
+from collections.abc import Callable
+from typing import Any, Literal, Optional, TypeVar, overload
 
 import yaml
 
@@ -47,6 +48,8 @@ from jacoco_report.utils.github import GitHub
 
 logger = logging.getLogger(__name__)
 
+_T = TypeVar("_T")
+
 
 # `<runner work dir>/_actions/<owner>/<repo>/<ref>`; the ref may contain `/`
 _ACTION_PATH_REF_PATTERN = re.compile(r"/_actions/[^/]+/[^/]+/(.+?)/*$")
@@ -58,6 +61,80 @@ def _is_valid_threshold_float(value: str) -> bool:
         return 0.0 <= f <= 100.0
     except ValueError:
         return False
+
+
+def _read_or_record(getter: Callable[[], _T], errors: list[str]) -> Optional[_T]:
+    """Call an input getter; on ValueError record its message in `errors` and return None."""
+    try:
+        return getter()
+    except ValueError as e:
+        errors.append(str(e))
+        return None
+
+
+def _threshold_range_errors(input_label: str, parts: list[str], part_labels: tuple[str, ...]) -> list[str]:
+    """Return one error per threshold part that is not a float in [0, 100], in part order."""
+    return [
+        f"'{input_label}' {label} value must be a float between 0 and 100 (inclusive)."
+        for part, label in zip(parts, part_labels)
+        if not _is_valid_threshold_float(part)
+    ]
+
+
+def _validate_report_group_name(prefix: str, entry: dict[str, Any], seen_names: set[str]) -> list[str]:
+    name_value = entry.get("name")
+    if not isinstance(name_value, str) or not name_value.strip():
+        return [f"{prefix} must have a non-empty 'name'."]
+    group_name = name_value.strip()
+    errors: list[str] = []
+    if group_name in seen_names:
+        errors.append(f"{prefix} has duplicate 'name' value '{group_name}'.")
+    seen_names.add(group_name)
+    return errors
+
+
+def _validate_report_group_paths(prefix: str, entry: dict[str, Any]) -> list[str]:
+    paths = entry.get("paths")
+    if not paths or not isinstance(paths, list) or not all(isinstance(p, str) and p.strip() for p in paths):
+        return [f"{prefix} must have a non-empty 'paths' list of non-empty strings."]
+    return []
+
+
+def _validate_report_group_thresholds(prefix: str, entry: dict[str, Any]) -> list[str]:
+    has_thresholds = "thresholds" in entry
+    thresholds_str = entry.get("thresholds")
+    if has_thresholds and (not isinstance(thresholds_str, str) or not thresholds_str.strip()):
+        return [f"{prefix} 'thresholds' must be a non-empty string in format 'O*A*P' (e.g. '80*70*60')."]
+    if not isinstance(thresholds_str, str):
+        return []
+    parts = thresholds_str.split("*")
+    if len(parts) != 3:
+        return [f"{prefix} 'thresholds' must be in format 'O*A*P' (e.g. '80*70*60')."]
+    return [
+        f"{prefix} 'thresholds' {label} value '{v}' must be a float in [0, 100]."
+        for label, v in zip(("overall", "changed-files-average", "changed-file"), parts)
+        if v and not _is_valid_threshold_float(v)
+    ]
+
+
+def _validate_report_group_baseline_paths(prefix: str, entry: dict[str, Any]) -> list[str]:
+    baseline_paths = entry.get("baseline-paths", [])
+    if baseline_paths is None or not isinstance(baseline_paths, list):
+        return [f"{prefix} 'baseline-paths' must be a list."]
+    if not all(isinstance(p, str) and p.strip() for p in baseline_paths):
+        return [f"{prefix} 'baseline-paths' must be a list of non-empty strings."]
+    return []
+
+
+def _validate_report_group_entry(prefix: str, entry: object, seen_names: set[str]) -> list[str]:
+    if not isinstance(entry, dict):
+        return [f"{prefix} must be a YAML mapping."]
+    return [
+        *_validate_report_group_name(prefix, entry, seen_names),
+        *_validate_report_group_paths(prefix, entry),
+        *_validate_report_group_thresholds(prefix, entry),
+        *_validate_report_group_baseline_paths(prefix, entry),
+    ]
 
 
 def _parse_threshold_part(value: str, label: str) -> float:
@@ -469,9 +546,8 @@ class ActionInputs:
         """
         Validate the report-groups YAML input string.
         """
-        errors: list[str] = []
         if not raw_input:
-            return errors
+            return []
         try:
             data = yaml.safe_load(raw_input)
         except yaml.YAMLError as e:
@@ -480,45 +556,110 @@ class ActionInputs:
         if not isinstance(data, list):
             return ["'report-groups' must be a YAML list."]
 
+        errors: list[str] = []
         seen_names: set[str] = set()
         for i, entry in enumerate(data):
-            prefix = f"'report-groups' entry #{i + 1}"
-            if not isinstance(entry, dict):
-                errors.append(f"{prefix} must be a YAML mapping.")
-                continue
-            name_value = entry.get("name")
-            if not isinstance(name_value, str) or not name_value.strip():
-                errors.append(f"{prefix} must have a non-empty 'name'.")
-            else:
-                group_name = name_value.strip()
-                if group_name in seen_names:
-                    errors.append(f"{prefix} has duplicate 'name' value '{group_name}'.")
-                seen_names.add(group_name)
-            paths = entry.get("paths")
-            if not paths or not isinstance(paths, list) or not all(isinstance(p, str) and p.strip() for p in paths):
-                errors.append(f"{prefix} must have a non-empty 'paths' list of non-empty strings.")
-            has_thresholds = "thresholds" in entry
-            thresholds_str = entry.get("thresholds")
-            if has_thresholds and (not isinstance(thresholds_str, str) or not thresholds_str.strip()):
-                errors.append(
-                    f"{prefix} 'thresholds' must be a non-empty string in format 'O*A*P' " "(e.g. '80*70*60')."
-                )
-            elif isinstance(thresholds_str, str):
-                parts = thresholds_str.split("*")
-                if len(parts) != 3:
-                    errors.append(f"{prefix} 'thresholds' must be in format 'O*A*P' (e.g. '80*70*60').")
-                else:
-                    for label, v in zip(("overall", "changed-files-average", "changed-file"), parts):
-                        if v and not _is_valid_threshold_float(v):
-                            errors.append(f"{prefix} 'thresholds' {label} value '{v}' must be a float in [0, 100].")
-            has_baseline_paths = "baseline-paths" in entry
-            baseline_paths = entry.get("baseline-paths", [])
-            if has_baseline_paths and baseline_paths is None:
-                errors.append(f"{prefix} 'baseline-paths' must be a list.")
-            elif baseline_paths is not None and not isinstance(baseline_paths, list):
-                errors.append(f"{prefix} 'baseline-paths' must be a list.")
-            elif baseline_paths is not None and not all(isinstance(p, str) and p.strip() for p in baseline_paths):
-                errors.append(f"{prefix} 'baseline-paths' must be a list of non-empty strings.")
+            errors.extend(_validate_report_group_entry(f"'report-groups' entry #{i + 1}", entry, seen_names))
+        return errors
+
+    @staticmethod
+    def _validate_token() -> list[str]:
+        token = ActionInputs.get_token()
+        if not isinstance(token, str) or not token.strip():
+            return ["'token' must be a non-empty string."]
+        return []
+
+    @staticmethod
+    def _validate_paths() -> list[str]:
+        paths = ActionInputs.get_paths(raw=True)
+        if paths is None:
+            return ["'paths' must be defined."]
+        if not isinstance(paths, str):
+            return ["'paths' must be a list of strings."]
+        return []
+
+    @staticmethod
+    def _validate_global_thresholds() -> list[str]:
+        global_thresholds = ActionInputs.get_global_thresholds(raw=True)
+        if not isinstance(global_thresholds, str):
+            return ["'global-thresholds' must be a string or not defined."]
+        if "*" not in global_thresholds:
+            return [
+                "'global-thresholds' must be in the format 'overall*changed-files-average'. "
+                "Where overall is the minimum coverage overall and changed-files-average is the minimum average "
+                "coverage of changed files."
+            ]
+        parts = global_thresholds.split("*")
+        if len(parts) != 2:
+            return [
+                "'global-thresholds' must be in the format 'overall*changed-files-average' "
+                "with exactly two components."
+            ]
+        return _threshold_range_errors("global-thresholds", parts, ("overall", "changed-files-average"))
+
+    @staticmethod
+    def _validate_report_thresholds_default() -> list[str]:
+        report_thresholds_default = ActionInputs.get_report_thresholds_default(raw=True)
+        if not isinstance(report_thresholds_default, str):
+            return ["'report-thresholds-default' must be a string or not defined."]
+        if "*" not in report_thresholds_default:
+            return [
+                "'report-thresholds-default' must be in the format 'overall*changed-files-average*per-changed-file'."
+            ]
+        if report_thresholds_default.count("*") == 1:
+            logger.warning(
+                "'report-thresholds-default' should be in the format "
+                "'overall*changed-files-average*per-changed-file'. "
+                "Adding default value for per-changed-file threshold."
+            )
+            report_thresholds_default += "*0.0"
+        rtd_parts = report_thresholds_default.split("*")
+        if len(rtd_parts) != 3:
+            return [
+                "'report-thresholds-default' must be in the format "
+                "'overall*changed-files-average*per-changed-file' "
+                "with exactly three components."
+            ]
+        return _threshold_range_errors(
+            "report-thresholds-default", rtd_parts, ("overall", "changed-files-average", "per-changed-file")
+        )
+
+    @staticmethod
+    def _validate_metric() -> list[str]:
+        metric = ActionInputs.get_metric()
+        if not isinstance(metric, str) or metric not in {m.value for m in MetricTypeEnum}:
+            return [
+                "'metric' must be a string from these options: "
+                "'instruction', 'line', 'branch', 'complexity', 'method', 'class'."
+            ]
+        return []
+
+    @staticmethod
+    def _validate_comment_level() -> list[str]:
+        comment_level = ActionInputs.get_comment_level()
+        if not isinstance(comment_level, str) or comment_level not in {c.value for c in CommentLevelEnum}:
+            return [
+                "'comment-level' must be a string from these options: "
+                "'none', 'minimal', 'full', 'changed', 'failed', 'failed-or-changed'."
+            ]
+        return []
+
+    @staticmethod
+    def _validate_global_overall_scope() -> list[str]:
+        global_overall_scope = ActionInputs.get_global_overall_scope()
+        if global_overall_scope not in (GLOBAL_OVERALL_SCOPE_ALL, GLOBAL_OVERALL_SCOPE_GROUPS_ONLY):
+            return ["'global-overall-scope' must be 'all' or 'groups-only'."]
+        return []
+
+    @staticmethod
+    def _validate_symbols() -> list[str]:
+        errors: list[str] = []
+        pass_symbol = ActionInputs.get_pass_symbol()
+        if not isinstance(pass_symbol, str) or not pass_symbol.strip() or len(pass_symbol) < 1:
+            errors.append("'pass-symbol' must be a non-empty string and have a length from 1.")
+        fail_symbol = ActionInputs.get_fail_symbol()
+        if not isinstance(fail_symbol, str) or not fail_symbol.strip() or len(fail_symbol) < 1:
+            errors.append("'fail-symbol' must be a non-empty string and have a length from 1.")
         return errors
 
     @staticmethod
@@ -526,139 +667,24 @@ class ActionInputs:
         """
         Validates the inputs provided for the GH action.
         """
-
-        errors = []
-
-        token = ActionInputs.get_token()
-        if not isinstance(token, str) or not token.strip():
-            errors.append("'token' must be a non-empty string.")
+        errors: list[str] = []
+        errors.extend(ActionInputs._validate_token())
+        errors.extend(ActionInputs._validate_paths())
+        errors.extend(ActionInputs._validate_global_thresholds())
+        errors.extend(ActionInputs._validate_report_thresholds_default())
+        errors.extend(ActionInputs._validate_metric())
+        errors.extend(ActionInputs._validate_comment_level())
 
         report_groups_raw: str = ActionInputs.get_report_groups(raw=True)
-
-        paths = ActionInputs.get_paths(raw=True)
-        if paths is None:
-            errors.append("'paths' must be defined.")
-        elif not isinstance(paths, str):
-            errors.append("'paths' must be a list of strings.")
-
-        global_thresholds = ActionInputs.get_global_thresholds(raw=True)
-        if not isinstance(global_thresholds, str):
-            errors.append("'global-thresholds' must be a string or not defined.")
-        elif "*" not in global_thresholds:
-            errors.append(
-                "'global-thresholds' must be in the format 'overall*changed-files-average'. "
-                "Where overall is the minimum coverage overall and changed-files-average is the minimum average coverage "
-                "of changed files."
-            )
-        else:
-            parts = global_thresholds.split("*")
-            if len(parts) != 2:
-                errors.append(
-                    "'global-thresholds' must be in the format 'overall*changed-files-average' "
-                    "with exactly two components."
-                )
-            else:
-                if not _is_valid_threshold_float(parts[0]):
-                    errors.append("'global-thresholds' overall value must be a float between 0 and 100 (inclusive).")
-                if not _is_valid_threshold_float(parts[1]):
-                    errors.append(
-                        "'global-thresholds' changed-files-average value must be a float between 0 and 100 (inclusive)."
-                    )
-
-        report_thresholds_default = ActionInputs.get_report_thresholds_default(raw=True)
-        if not isinstance(report_thresholds_default, str):
-            errors.append("'report-thresholds-default' must be a string or not defined.")
-        elif "*" not in report_thresholds_default:
-            errors.append(
-                "'report-thresholds-default' must be in the format 'overall*changed-files-average*per-changed-file'."
-            )
-        else:
-            if report_thresholds_default.count("*") == 1:
-                logger.warning(
-                    "'report-thresholds-default' should be in the format "
-                    "'overall*changed-files-average*per-changed-file'. "
-                    "Adding default value for per-changed-file threshold."
-                )
-                report_thresholds_default += "*0.0"
-            rtd_parts = report_thresholds_default.split("*")
-            if len(rtd_parts) != 3:
-                errors.append(
-                    "'report-thresholds-default' must be in the format "
-                    "'overall*changed-files-average*per-changed-file' "
-                    "with exactly three components."
-                )
-            else:
-                if not _is_valid_threshold_float(rtd_parts[0]):
-                    errors.append(
-                        "'report-thresholds-default' overall value must be a float between 0 and 100 (inclusive)."
-                    )
-                if not _is_valid_threshold_float(rtd_parts[1]):
-                    errors.append(
-                        "'report-thresholds-default' changed-files-average value must be a float between 0 and 100 (inclusive)."
-                    )
-                if not _is_valid_threshold_float(rtd_parts[2]):
-                    errors.append(
-                        "'report-thresholds-default' per-changed-file value must be a float between 0 and 100 (inclusive)."
-                    )
-
-        metric = ActionInputs.get_metric()
-        if not isinstance(metric, str) or metric not in {m.value for m in MetricTypeEnum}:
-            errors.append(
-                "'metric' must be a string from these options: 'instruction', "
-                "'line', 'branch', 'complexity', 'method', 'class'."
-            )
-
-        comment_level = ActionInputs.get_comment_level()
-        if not isinstance(comment_level, str) or comment_level not in {c.value for c in CommentLevelEnum}:
-            errors.append(
-                "'comment-level' must be a string from these options: "
-                "'none', 'minimal', 'full', 'changed', 'failed', 'failed-or-changed'."
-            )
-
         errors.extend(ActionInputs.validate_report_groups(report_groups_raw))
 
-        skip_unchanged: Optional[bool] = None
-        try:
-            skip_unchanged = ActionInputs.get_skip_unchanged()
-        except ValueError as e:
-            errors.append(str(e))
-
-        evaluate_unchanged: Optional[bool] = None
-        try:
-            evaluate_unchanged = ActionInputs.get_evaluate_unchanged()
-        except ValueError as e:
-            errors.append(str(e))
-
-        global_overall_scope = ActionInputs.get_global_overall_scope()
-        if global_overall_scope not in (GLOBAL_OVERALL_SCOPE_ALL, GLOBAL_OVERALL_SCOPE_GROUPS_ONLY):
-            errors.append("'global-overall-scope' must be 'all' or 'groups-only'.")
-
-        update_comment: Optional[bool] = None
-        try:
-            update_comment = ActionInputs.get_update_comment()
-        except ValueError as e:
-            errors.append(str(e))
-
-        pass_symbol = ActionInputs.get_pass_symbol()
-        if not isinstance(pass_symbol, str) or not pass_symbol.strip() or len(pass_symbol) < 1:
-            errors.append("'pass-symbol' must be a non-empty string and have a length from 1.")
-
-        fail_symbol = ActionInputs.get_fail_symbol()
-        if not isinstance(fail_symbol, str) or not fail_symbol.strip() or len(fail_symbol) < 1:
-            errors.append("'fail-symbol' must be a non-empty string and have a length from 1.")
-
-        fail_on_threshold: list[str] = []
-        try:
-            fail_on_threshold = ActionInputs.get_fail_on_threshold()
-        except ValueError as e:
-            errors.append(str(e))
-
-        debug: Optional[bool] = None
-        try:
-            debug = ActionInputs.get_debug()
-        except ValueError as e:
-            errors.append(str(e))
-
+        skip_unchanged = _read_or_record(ActionInputs.get_skip_unchanged, errors)
+        evaluate_unchanged = _read_or_record(ActionInputs.get_evaluate_unchanged, errors)
+        errors.extend(ActionInputs._validate_global_overall_scope())
+        update_comment = _read_or_record(ActionInputs.get_update_comment, errors)
+        errors.extend(ActionInputs._validate_symbols())
+        fail_on_threshold = _read_or_record(ActionInputs.get_fail_on_threshold, errors) or []
+        debug = _read_or_record(ActionInputs.get_debug, errors)
         errors.extend(ActionInputs.validate_ca_bundle())
 
         ActionInputs._log_configuration(
