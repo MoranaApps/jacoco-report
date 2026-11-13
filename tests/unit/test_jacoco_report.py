@@ -2986,3 +2986,304 @@ def test_run_builds_github_client_with_ca_bundle(jacoco_report, mocker):
     jacoco_report.run()
 
     mock_gh_class.assert_called_once_with("fake_token", "/etc/ssl/corp-ca.pem", "https://ghes.example.com/api/v3")
+
+
+# ---------------------------------------------------------------------------
+# #274  run() split: direct tests of _scan_reports, _parse_reports and _collect_baseline_reports
+# ---------------------------------------------------------------------------
+
+
+def _patch_scan(mocker, jacoco_report, **kwargs):
+    from typing import cast
+    from unittest.mock import MagicMock
+
+    return cast(MagicMock, mocker.patch.object(jacoco_report, "scan_jacoco_xml_files", **kwargs))
+
+
+def test_scan_reports_ungrouped_falls_back_to_default_paths(jacoco_report, mocker):
+    from jacoco_report.utils.constants import DEFAULT_PATHS
+
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=[])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_exclude_paths", return_value=["vendor/**"])
+    scan_mock = _patch_scan(mocker, jacoco_report, return_value=["a/jacoco.xml"])
+
+    result = jacoco_report._scan_reports([], "all")
+
+    assert result == ["a/jacoco.xml"]
+    scan_mock.assert_called_once_with(paths=[DEFAULT_PATHS], exclude_paths=["vendor/**"])
+
+
+def test_scan_reports_grouped_scope_all_scans_top_level_paths(jacoco_report, mocker):
+    from jacoco_report.model.report_group import ReportGroup
+
+    group = ReportGroup(name="backend", paths=["backend/**/jacoco.xml"])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=["**/jacoco.xml"])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_exclude_paths", return_value=["vendor/**"])
+    scan_mock = _patch_scan(mocker, jacoco_report, return_value=["backend/jacoco.xml", "frontend/jacoco.xml"])
+
+    result = jacoco_report._scan_reports([group], "all")
+
+    assert result == ["backend/jacoco.xml", "frontend/jacoco.xml"]
+    scan_mock.assert_called_once_with(paths=["**/jacoco.xml"], exclude_paths=["vendor/**"])
+
+
+def test_scan_reports_grouped_scope_all_without_paths_does_not_scan(jacoco_report, mocker, caplog):
+    from jacoco_report.model.report_group import ReportGroup
+
+    group = ReportGroup(name="backend", paths=["backend/**/jacoco.xml"])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=[])
+    scan_mock = _patch_scan(mocker, jacoco_report, return_value=[])
+
+    with caplog.at_level(logging.INFO):
+        result = jacoco_report._scan_reports([group], "all")
+
+    assert result == []
+    scan_mock.assert_not_called()
+    assert "global-overall-scope=all but top-level 'paths' is empty" in caplog.text
+
+
+def test_scan_reports_groups_only_does_not_scan_top_level(jacoco_report, mocker):
+    from jacoco_report.model.report_group import ReportGroup
+
+    group = ReportGroup(name="backend", paths=["backend/**/jacoco.xml"])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=["**/jacoco.xml"])
+    scan_mock = _patch_scan(mocker, jacoco_report, return_value=["x.xml"])
+
+    result = jacoco_report._scan_reports([group], "groups-only")
+
+    assert result == []
+    scan_mock.assert_not_called()
+
+
+def test_parse_reports_ungrouped_parses_each_path_without_group(jacoco_report, mocker):
+    from unittest.mock import call
+
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_exclude_paths", return_value=[])
+    parser = mocker.Mock()
+    _patch_scan(mocker, jacoco_report)
+
+    report_files_coverage, ungrouped_reports = jacoco_report._parse_reports(
+        parser, [], "all", ["a/jacoco.xml", "b/jacoco.xml"]
+    )
+
+    assert parser.parse.call_args_list == [call("a/jacoco.xml"), call("b/jacoco.xml")]
+    assert len(report_files_coverage) == 2
+    assert ungrouped_reports == []
+
+
+def test_parse_reports_overlapping_groups_deduplicate_first_group_wins(jacoco_report, mocker):
+    from unittest.mock import call
+
+    from jacoco_report.model.report_group import ReportGroup
+
+    group1 = ReportGroup(name="g1", paths=["g1/**"])
+    group2 = ReportGroup(name="g2", paths=["g2/**"])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_exclude_paths", return_value=[])
+    _patch_scan(mocker, jacoco_report, side_effect=[["shared.xml", "g1.xml"], ["shared.xml", "g2.xml"]])
+    parser = mocker.Mock()
+
+    report_files_coverage, ungrouped_reports = jacoco_report._parse_reports(parser, [group1, group2], "groups-only", [])
+
+    assert parser.parse.call_args_list == [
+        call("shared.xml", group_name="g1"),
+        call("g1.xml", group_name="g1"),
+        call("g2.xml", group_name="g2"),
+    ]
+    assert len(report_files_coverage) == 3
+    assert ungrouped_reports == []
+
+
+def test_parse_reports_scope_all_includes_unmatched_top_level_report_with_warning(jacoco_report, mocker, caplog):
+    from unittest.mock import call
+
+    from jacoco_report.model.report_group import ReportGroup
+
+    group = ReportGroup(name="g1", paths=["g1/**"])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_exclude_paths", return_value=[])
+    _patch_scan(mocker, jacoco_report, return_value=["g1.xml"])
+    parser = mocker.Mock()
+
+    with caplog.at_level(logging.WARNING):
+        report_files_coverage, ungrouped_reports = jacoco_report._parse_reports(
+            parser, [group], "all", ["g1.xml", "orphan.xml"]
+        )
+
+    assert parser.parse.call_args_list == [call("g1.xml", group_name="g1"), call("orphan.xml")]
+    assert len(report_files_coverage) == 2
+    assert ungrouped_reports == ["orphan.xml"]
+    assert "Report 'orphan.xml' is not assigned to any report group" in caplog.text
+
+
+def test_parse_reports_groups_only_ignores_top_level_paths(jacoco_report, mocker):
+    from unittest.mock import call
+
+    from jacoco_report.model.report_group import ReportGroup
+
+    group = ReportGroup(name="g1", paths=["g1/**"])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_exclude_paths", return_value=[])
+    _patch_scan(mocker, jacoco_report, return_value=["g1.xml"])
+    parser = mocker.Mock()
+
+    report_files_coverage, ungrouped_reports = jacoco_report._parse_reports(
+        parser, [group], "groups-only", ["orphan.xml"]
+    )
+
+    assert parser.parse.call_args_list == [call("g1.xml", group_name="g1")]
+    assert len(report_files_coverage) == 1
+    assert ungrouped_reports == []
+
+
+def test_collect_baseline_reports_ungrouped_without_baseline_paths_does_not_scan(jacoco_report, mocker):
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=[])
+    scan_mock = _patch_scan(mocker, jacoco_report, return_value=[])
+    parser = mocker.Mock()
+
+    result = jacoco_report._collect_baseline_reports(parser, [])
+
+    assert result == []
+    scan_mock.assert_not_called()
+    parser.parse.assert_not_called()
+
+
+def test_collect_baseline_reports_ungrouped_parses_baseline_without_group(jacoco_report, mocker):
+    from unittest.mock import call
+
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["base/**"])
+    scan_mock = _patch_scan(mocker, jacoco_report, return_value=["base/jacoco.xml"])
+    parser = mocker.Mock()
+
+    result = jacoco_report._collect_baseline_reports(parser, [])
+
+    scan_mock.assert_called_once_with(paths=["base/**"], exclude_paths=[])
+    assert parser.parse.call_args_list == [call("base/jacoco.xml")]
+    assert len(result) == 1
+
+
+def test_collect_baseline_reports_single_group_inherits_global_baseline(jacoco_report, mocker):
+    from unittest.mock import call
+
+    from jacoco_report.model.report_group import ReportGroup
+
+    group = ReportGroup(name="g1", paths=["g1/**"])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["base/**"])
+    scan_mock = _patch_scan(mocker, jacoco_report, return_value=["base/g1.xml"])
+    parser = mocker.Mock()
+
+    result = jacoco_report._collect_baseline_reports(parser, [group])
+
+    scan_mock.assert_called_once_with(paths=["base/**"], exclude_paths=[])
+    assert parser.parse.call_args_list == [call("base/g1.xml", group_name="g1")]
+    assert len(result) == 1
+
+
+def test_collect_baseline_reports_ambiguous_inheritance_skips_groups_with_warning(jacoco_report, mocker, caplog):
+    from jacoco_report.model.report_group import ReportGroup
+
+    group1 = ReportGroup(name="group-a", paths=["group-a/**"])
+    group2 = ReportGroup(name="group-b", paths=["group-b/**"])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["base/**"])
+    scan_mock = _patch_scan(mocker, jacoco_report, return_value=["base/x.xml"])
+    parser = mocker.Mock()
+
+    with caplog.at_level(logging.WARNING):
+        result = jacoco_report._collect_baseline_reports(parser, [group1, group2])
+
+    scan_mock.assert_not_called()
+    parser.parse.assert_not_called()
+    assert result == []
+    assert "Ambiguous baseline configuration" in caplog.text
+
+
+def test_collect_baseline_reports_shared_baseline_paths_scan_once_and_deduplicate(jacoco_report, mocker):
+    from unittest.mock import call
+
+    from jacoco_report.model.report_group import ReportGroup
+
+    group1 = ReportGroup(name="g1", paths=["g1/**"], baseline_paths=["b/**"])
+    group2 = ReportGroup(name="g2", paths=["g2/**"], baseline_paths=["b/**"])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=[])
+    scan_mock = _patch_scan(mocker, jacoco_report, return_value=["b1.xml", "b2.xml"])
+    parser = mocker.Mock()
+
+    result = jacoco_report._collect_baseline_reports(parser, [group1, group2])
+
+    scan_mock.assert_called_once_with(paths=["b/**"], exclude_paths=[])
+    assert parser.parse.call_args_list == [call("b1.xml", group_name="g1"), call("b2.xml", group_name="g1")]
+    assert len(result) == 2
+
+
+def test_run_without_ungrouped_reports_exits_before_changed_files_api_call(jacoco_report, mocker):
+    """No top-level JaCoCo report exits before the PR changed-files API call (#274 keeps this order)."""
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value="pull_request")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_token", return_value="fake_token")
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=["**/jacoco.xml"])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_exclude_paths", return_value=[])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups", return_value=[])
+    mocker.patch("jacoco_report.utils.github.GitHub.get_pr_number", return_value=1)
+    changed_files_mock = mocker.patch("jacoco_report.utils.github.GitHub.get_pr_changed_files", return_value=[])
+    mocker.patch.object(jacoco_report, "scan_jacoco_xml_files", return_value=[])
+
+    jacoco_report.run()
+
+    changed_files_mock.assert_not_called()
+    assert jacoco_report.violations == ["No input JaCoCo xml file found."]
+    assert jacoco_report.has_operational_failure is True
+
+
+def test_collect_baseline_reports_explicit_empty_group_baseline_disables_inheritance(jacoco_report, mocker):
+    from jacoco_report.model.report_group import ReportGroup
+
+    group = ReportGroup(name="g1", paths=["g1/**"], baseline_paths=[])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["base/**"])
+    scan_mock = _patch_scan(mocker, jacoco_report, return_value=["base/g1.xml"])
+    parser = mocker.Mock()
+
+    result = jacoco_report._collect_baseline_reports(parser, [group])
+
+    scan_mock.assert_not_called()
+    parser.parse.assert_not_called()
+    assert result == []
+
+
+def test_collect_baseline_reports_group_own_baseline_overrides_global(jacoco_report, mocker):
+    from unittest.mock import call
+
+    from jacoco_report.model.report_group import ReportGroup
+
+    group = ReportGroup(name="g1", paths=["g1/**"], baseline_paths=["own/**"])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["base/**"])
+    scan_mock = _patch_scan(mocker, jacoco_report, return_value=["own/g1.xml"])
+    parser = mocker.Mock()
+
+    jacoco_report._collect_baseline_reports(parser, [group])
+
+    assert scan_mock.call_args_list == [call(paths=["own/**"], exclude_paths=[])]
+
+
+def test_collect_baseline_reports_group_scan_finds_nothing_warns_and_parses_nothing(jacoco_report, mocker, caplog):
+    from jacoco_report.model.report_group import ReportGroup
+
+    group = ReportGroup(name="g1", paths=["g1/**"])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["base/**"])
+    _patch_scan(mocker, jacoco_report, return_value=[])
+    parser = mocker.Mock()
+
+    with caplog.at_level(logging.WARNING):
+        result = jacoco_report._collect_baseline_reports(parser, [group])
+
+    parser.parse.assert_not_called()
+    assert result == []
+    assert "No baseline JaCoCo xml file found for group 'g1'" in caplog.text
+
+
+def test_collect_baseline_reports_ungrouped_scan_finds_nothing_warns_and_parses_nothing(jacoco_report, mocker, caplog):
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["base/**"])
+    _patch_scan(mocker, jacoco_report, return_value=[])
+    parser = mocker.Mock()
+
+    with caplog.at_level(logging.WARNING):
+        result = jacoco_report._collect_baseline_reports(parser, [])
+
+    parser.parse.assert_not_called()
+    assert result == []
+    assert "No baseline JaCoCo xml file found. No difference will be calculated." in caplog.text
