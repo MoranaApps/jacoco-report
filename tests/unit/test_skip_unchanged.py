@@ -694,6 +694,26 @@ def test_skip_unchanged_fail_unchanged_mixed_flow_uses_two_evaluator_passes(
     assert jr.reached_threshold_fail_unchanged is True
 
 
+def test_run_reads_report_thresholds_default_once_across_evaluators(
+    mocker: MockerFixture, make_report_file_coverage, monkeypatch, caplog
+):
+    """The mixed flow builds three evaluators (overall, changed-only, baseline). A two-part
+    report-thresholds-default logs its "Adding default value" warning on each read, so run()
+    must read it once, not once per evaluator (#273).
+    """
+    unchanged = _report_without_changes("Unchanged Report", make_report_file_coverage)
+    changed = _report_with_changes("Changed Report", make_report_file_coverage)
+    _make_run_mocks(mocker, skip_unchanged=True, evaluate_unchanged=False, reports=[unchanged, changed])
+    monkeypatch.setenv("INPUT_REPORT_THRESHOLDS_DEFAULT", "80*70")
+    init_spy = mocker.spy(CoverageEvaluator, "__init__")
+
+    with caplog.at_level(logging.WARNING, logger="jacoco_report.action_inputs"):
+        JaCoCoReport().run()
+
+    assert init_spy.call_count == 3
+    assert caplog.text.count("Adding default value for per-changed-file threshold") == 1
+
+
 # --- comment-level × skip-unchanged combinations ---
 #
 # 2 (skip-unchanged: true / false) × 6 comment levels = 12 cases.

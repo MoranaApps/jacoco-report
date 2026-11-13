@@ -149,6 +149,13 @@ service is needed.
   of one of them (`CoverageEvaluator`, `JaCoCoReport`, `ReportGroup`) must set every attribute the code path reads: an
   unset `Mock` attribute is truthy and not a dict, so the code silently takes another branch (e.g.
   `PRCommentGenerator._has_baseline_data` then reports baseline data).
+- `JaCoCoReport.run()` builds every `CoverageEvaluator` through `_new_evaluator(reports, report_groups,
+  report_thresholds_default)` and copies results into `self.*` only through `_apply_results(evaluator,
+  fail_unchanged_passed)` (#273). `run()` reads `report-thresholds-default` once per path and passes it in: a two-part
+  value is accepted but logs a warning on every read; the global thresholds are read inside the factory. A
+  new action output set from an evaluator goes in `_apply_results`, so both the all-reports-unchanged early return and
+  the main path set it. The caller passes the fail-unchanged result because the paths differ: the early return checks
+  every evaluated report, the main path only the filtered unchanged ones, read from `overall_evaluator`.
 
 ## Key decisions
 

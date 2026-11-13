@@ -199,43 +199,16 @@ class JaCoCoReport:
                     "Evaluating unchanged reports for threshold result only."
                 )
                 report_thresholds_default = ActionInputs.get_report_thresholds_default()
-                filtered_evaluator = CoverageEvaluator(
-                    report_files_coverage=filtered_unchanged_reports,
-                    global_min_coverage_overall=ActionInputs.get_global_overall_threshold(),
-                    global_min_coverage_changed_files=ActionInputs.get_global_changed_files_average_threshold(),
-                    report_groups=report_groups,
-                    report_thresholds_default=report_thresholds_default,
+                filtered_evaluator = self._new_evaluator(
+                    filtered_unchanged_reports, report_groups, report_thresholds_default
                 )
                 filtered_evaluator.evaluate()
-
-                self.total_overall_coverage = filtered_evaluator.total_coverage_overall
-                self.total_overall_coverage_passed = filtered_evaluator.total_coverage_overall_passed
-                self.total_changed_files_coverage = filtered_evaluator.total_coverage_changed_files
-                self.total_changed_files_coverage_passed = filtered_evaluator.total_coverage_changed_files_passed
-
-                evaluated_coverage_reports = {
-                    k: v.to_dict() for k, v in filtered_evaluator.evaluated_reports_coverage.items()
-                }
-                evaluated_coverage_groups = {
-                    k: v.to_dict() for k, v in filtered_evaluator.evaluated_groups_coverage.items()
-                }
-                self.evaluated_coverage_reports = json.dumps(evaluated_coverage_reports, indent=4)
-                self.evaluated_coverage_groups = json.dumps(evaluated_coverage_groups, indent=4)
-                self.violations = filtered_evaluator.violations
-                self.reached_threshold_overall = filtered_evaluator.reached_threshold_overall
-                self.reached_threshold_changed_files_average = (
-                    filtered_evaluator.reached_threshold_changed_files_average
+                # Every evaluated report is an unchanged one here, so all of them count for fail-unchanged.
+                fail_unchanged_passed = not fail_unchanged_enabled or all(
+                    evaluated_report.overall_passed
+                    for evaluated_report in filtered_evaluator.evaluated_reports_coverage.values()
                 )
-                self.reached_threshold_per_change_file = filtered_evaluator.reached_threshold_per_change_file
-
-                if fail_unchanged_enabled:
-                    self.reached_threshold_fail_unchanged = all(
-                        evaluated_report.overall_passed
-                        for evaluated_report in filtered_evaluator.evaluated_reports_coverage.values()
-                    )
-                else:
-                    self.reached_threshold_fail_unchanged = True
-
+                self._apply_results(filtered_evaluator, fail_unchanged_passed)
                 self._delete_stale_comment_if_update_enabled(gh=gh, pr_number=pr_number)
                 return
 
@@ -314,13 +287,8 @@ class JaCoCoReport:
         # Always include all reports for the informational overall coverage percentage.
         # This must aggregate all reports regardless of changes so the displayed total
         # reflects the whole codebase (see #202).
-        reports_for_evaluation = report_files_coverage + filtered_unchanged_reports
-        overall_evaluator: CoverageEvaluator = CoverageEvaluator(
-            report_files_coverage=reports_for_evaluation,
-            global_min_coverage_overall=ActionInputs.get_global_overall_threshold(),
-            global_min_coverage_changed_files=ActionInputs.get_global_changed_files_average_threshold(),
-            report_groups=report_groups,
-            report_thresholds_default=report_thresholds_default,
+        overall_evaluator = self._new_evaluator(
+            report_files_coverage + filtered_unchanged_reports, report_groups, report_thresholds_default
         )
         overall_evaluator.evaluate()
 
@@ -330,13 +298,7 @@ class JaCoCoReport:
         if evaluate_unchanged or not filtered_unchanged_reports:
             evaluator_for_results: CoverageEvaluator = overall_evaluator
         else:
-            evaluator_for_results = CoverageEvaluator(
-                report_files_coverage=report_files_coverage,
-                global_min_coverage_overall=ActionInputs.get_global_overall_threshold(),
-                global_min_coverage_changed_files=ActionInputs.get_global_changed_files_average_threshold(),
-                report_groups=report_groups,
-                report_thresholds_default=report_thresholds_default,
-            )
+            evaluator_for_results = self._new_evaluator(report_files_coverage, report_groups, report_thresholds_default)
             evaluator_for_results.evaluate()
             # The comment's summary table still shows the informational total across all
             # reports; only violations/status below are scoped to changed reports.
@@ -347,44 +309,20 @@ class JaCoCoReport:
                 overall_evaluator.total_coverage_changed_files_passed
             )
 
-        bs_evaluator: CoverageEvaluator = CoverageEvaluator(
-            report_files_coverage=bs_report_files_coverage,
-            global_min_coverage_overall=ActionInputs.get_global_overall_threshold(),
-            global_min_coverage_changed_files=ActionInputs.get_global_changed_files_average_threshold(),
-            report_groups=report_groups,
-            report_thresholds_default=report_thresholds_default,
-        )
-
+        bs_evaluator = self._new_evaluator(bs_report_files_coverage, report_groups, report_thresholds_default)
         if bs_report_files_coverage:
             bs_evaluator.evaluate()
 
-        self.total_overall_coverage = evaluator_for_results.total_coverage_overall
-        self.total_overall_coverage_passed = evaluator_for_results.total_coverage_overall_passed
-        self.total_changed_files_coverage = evaluator_for_results.total_coverage_changed_files
-        self.total_changed_files_coverage_passed = evaluator_for_results.total_coverage_changed_files_passed
-
-        evaluated_coverage_reports = {
-            k: v.to_dict() for k, v in evaluator_for_results.evaluated_reports_coverage.items()
-        }
-        evaluated_coverage_groups = {k: v.to_dict() for k, v in evaluator_for_results.evaluated_groups_coverage.items()}
-
-        self.evaluated_coverage_reports = json.dumps(evaluated_coverage_reports, indent=4)
-        self.evaluated_coverage_groups = json.dumps(evaluated_coverage_groups, indent=4)
-
-        self.violations = evaluator_for_results.violations
-        self.reached_threshold_overall = evaluator_for_results.reached_threshold_overall
-        self.reached_threshold_changed_files_average = evaluator_for_results.reached_threshold_changed_files_average
-        self.reached_threshold_per_change_file = evaluator_for_results.reached_threshold_per_change_file
-
+        # Only the filtered unchanged reports count for fail-unchanged, read from the evaluator that saw them.
+        fail_unchanged_passed = True
         if fail_unchanged_enabled and filtered_unchanged_reports:
             filtered_unchanged_report_names = {report.path for report in filtered_unchanged_reports}
-            self.reached_threshold_fail_unchanged = all(
+            fail_unchanged_passed = all(
                 evaluated_report.overall_passed
                 for report_name, evaluated_report in overall_evaluator.evaluated_reports_coverage.items()
                 if report_name in filtered_unchanged_report_names
             )
-        else:
-            self.reached_threshold_fail_unchanged = True
+        self._apply_results(evaluator_for_results, fail_unchanged_passed)
 
         # generate the comment(s)
         logger.info("Generating PR comment(s).")
@@ -409,6 +347,47 @@ class JaCoCoReport:
         paths_to_analyse: list[str] = JaCoCoReportInputScanner(paths=paths, exclude_paths=exclude_paths).scan()
         logger.info("Found %s JaCoCo reports.", len(paths_to_analyse))
         return paths_to_analyse
+
+    @staticmethod
+    def _new_evaluator(
+        reports: list[ReportFileCoverage],
+        report_groups: list[ReportGroup],
+        report_thresholds_default: tuple[float, float, float],
+    ) -> CoverageEvaluator:
+        """Build a CoverageEvaluator over `reports` with the global thresholds and the given groups and defaults.
+
+        The caller reads `report_thresholds_default` once per run: a two-part value logs a warning on every read.
+        """
+        return CoverageEvaluator(
+            report_files_coverage=reports,
+            global_min_coverage_overall=ActionInputs.get_global_overall_threshold(),
+            global_min_coverage_changed_files=ActionInputs.get_global_changed_files_average_threshold(),
+            report_groups=report_groups,
+            report_thresholds_default=report_thresholds_default,
+        )
+
+    def _apply_results(self, evaluator: CoverageEvaluator, fail_unchanged_passed: bool) -> None:
+        """Copy an evaluated evaluator's totals, report/group JSON, violations and threshold flags into `self`.
+
+        The caller computes `fail_unchanged_passed`: the all-unchanged path and the main path derive it differently.
+        """
+        self.total_overall_coverage = evaluator.total_coverage_overall
+        self.total_overall_coverage_passed = evaluator.total_coverage_overall_passed
+        self.total_changed_files_coverage = evaluator.total_coverage_changed_files
+        self.total_changed_files_coverage_passed = evaluator.total_coverage_changed_files_passed
+
+        self.evaluated_coverage_reports = json.dumps(
+            {k: v.to_dict() for k, v in evaluator.evaluated_reports_coverage.items()}, indent=4
+        )
+        self.evaluated_coverage_groups = json.dumps(
+            {k: v.to_dict() for k, v in evaluator.evaluated_groups_coverage.items()}, indent=4
+        )
+
+        self.violations = evaluator.violations
+        self.reached_threshold_overall = evaluator.reached_threshold_overall
+        self.reached_threshold_changed_files_average = evaluator.reached_threshold_changed_files_average
+        self.reached_threshold_per_change_file = evaluator.reached_threshold_per_change_file
+        self.reached_threshold_fail_unchanged = fail_unchanged_passed
 
     def _delete_stale_comment_if_update_enabled(self, gh: GitHub, pr_number: int) -> None:
         """Delete the previous JaCoCo PR comment when update-comment is enabled."""
