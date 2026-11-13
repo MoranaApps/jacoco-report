@@ -70,36 +70,14 @@ class JaCoCoReport:
         report_groups: list[ReportGroup] = ActionInputs.get_report_groups()
         global_overall_scope = ActionInputs.get_global_overall_scope()
 
-        input_report_paths_to_analyse: list[str] = []
-        if report_groups:
-            logger.info("Report groups configured.")
-            if global_overall_scope == GLOBAL_OVERALL_SCOPE_ALL:
-                top_level_paths = ActionInputs.get_paths()
-                if top_level_paths:
-                    logger.info(
-                        "global-overall-scope=all: scanning top-level paths to include all reports in global overall."
-                    )
-                    input_report_paths_to_analyse = self.scan_jacoco_xml_files(
-                        paths=top_level_paths, exclude_paths=ActionInputs.get_exclude_paths()
-                    )
-                else:
-                    logger.info(
-                        "global-overall-scope=all but top-level 'paths' is empty; "
-                        "global overall will only include grouped reports."
-                    )
-        else:
-            logger.info("Scanning for JaCoCo (xml) reports.")
-            paths = ActionInputs.get_paths() or [DEFAULT_PATHS]
-            input_report_paths_to_analyse = self.scan_jacoco_xml_files(
-                paths=paths, exclude_paths=ActionInputs.get_exclude_paths()
-            )
+        top_level_report_paths = self._scan_reports(report_groups, global_overall_scope)
 
-            # skip when no top-level jacoco xml files found
-            if len(input_report_paths_to_analyse) == 0:
-                logger.error("No input JaCoCo xml file found. No comment will be generated.")
-                self.violations.append("No input JaCoCo xml file found.")
-                self._mark_operational_failure()
-                return
+        # skip when no top-level jacoco xml files found (ungrouped flow only)
+        if not report_groups and not top_level_report_paths:
+            logger.error("No input JaCoCo xml file found. No comment will be generated.")
+            self.violations.append("No input JaCoCo xml file found.")
+            self._mark_operational_failure()
+            return
 
         # get changed files in PR
         logger.info("Getting changed files in PR.")
@@ -112,46 +90,10 @@ class JaCoCoReport:
         all_changed_files_in_pr: list[str] = changed_files_result
 
         # analyse received xml report files
-        logger.info("Analyzing JaCoCo (xml) reports.")
-        report_files_coverage: list[ReportFileCoverage] = []
         parser = JaCoCoReportParser(all_changed_files_in_pr)
-        seen_report_paths: set[str] = set()
-        ungrouped_reports: list[str] = []
-        if report_groups:
-            # scan each group's paths independently and tag reports with group name
-            # deduplicate by report path to avoid double-counting when groups have overlapping globs
-            for group in report_groups:
-                group_paths = self.scan_jacoco_xml_files(
-                    paths=group.paths, exclude_paths=ActionInputs.get_exclude_paths()
-                )
-                for report_path in group_paths:
-                    if report_path not in seen_report_paths:
-                        report_files_coverage.append(parser.parse(report_path, group_name=group.name))
-                        seen_report_paths.add(report_path)
-                    else:
-                        logger.info(
-                            "Skipping duplicate report '%s' (already assigned to a group).",
-                            report_path,
-                        )
-
-            # When global-overall-scope=all, include reports found by the top-level scan
-            # that were not matched by any group. They contribute to global overall but
-            # carry no group_name so they are excluded from per-group threshold evaluation.
-            if global_overall_scope == GLOBAL_OVERALL_SCOPE_ALL:
-                for report_path in input_report_paths_to_analyse:
-                    if report_path not in seen_report_paths:
-                        logger.warning(
-                            "Report '%s' is not assigned to any report group. "
-                            "Including in global overall coverage (global-overall-scope=all). "
-                            "Set global-overall-scope: groups-only to exclude ungrouped reports.",
-                            report_path,
-                        )
-                        report_files_coverage.append(parser.parse(report_path))
-                        seen_report_paths.add(report_path)
-                        ungrouped_reports.append(report_path)
-        else:
-            for report_path in input_report_paths_to_analyse:
-                report_files_coverage.append(parser.parse(report_path))
+        report_files_coverage, ungrouped_reports = self._parse_reports(
+            parser, report_groups, global_overall_scope, top_level_report_paths
+        )
 
         # grouped flow may skip top-level scan; fail here if no grouped reports matched
         if len(report_files_coverage) == 0:
@@ -213,6 +155,159 @@ class JaCoCoReport:
                 return
 
         # get baseline files for comparison
+        bs_report_files_coverage = self._collect_baseline_reports(parser, report_groups)
+
+        # evaluate the coverage
+        logger.info("Evaluating the coverage of the reports.")
+        report_thresholds_default = ActionInputs.get_report_thresholds_default()
+        # Always include all reports for the informational overall coverage percentage.
+        # This must aggregate all reports regardless of changes so the displayed total
+        # reflects the whole codebase (see #202).
+        overall_evaluator = self._new_evaluator(
+            report_files_coverage + filtered_unchanged_reports, report_groups, report_thresholds_default
+        )
+        overall_evaluator.evaluate()
+
+        # Pass/fail evaluation (violations, reached_threshold_*, per-group/report status)
+        # must exclude filtered unchanged reports entirely when evaluate_unchanged is False,
+        # per docs/inputs/skip-unchanged.md: they must be "completely excluded from evaluation".
+        if evaluate_unchanged or not filtered_unchanged_reports:
+            evaluator_for_results: CoverageEvaluator = overall_evaluator
+        else:
+            evaluator_for_results = self._new_evaluator(report_files_coverage, report_groups, report_thresholds_default)
+            evaluator_for_results.evaluate()
+            # The comment's summary table still shows the informational total across all
+            # reports; only violations/status below are scoped to changed reports.
+            evaluator_for_results.total_coverage_overall = overall_evaluator.total_coverage_overall
+            evaluator_for_results.total_coverage_overall_passed = overall_evaluator.total_coverage_overall_passed
+            evaluator_for_results.total_coverage_changed_files = overall_evaluator.total_coverage_changed_files
+            evaluator_for_results.total_coverage_changed_files_passed = (
+                overall_evaluator.total_coverage_changed_files_passed
+            )
+
+        bs_evaluator = self._new_evaluator(bs_report_files_coverage, report_groups, report_thresholds_default)
+        if bs_report_files_coverage:
+            bs_evaluator.evaluate()
+
+        # Only the filtered unchanged reports count for fail-unchanged, read from the evaluator that saw them.
+        fail_unchanged_passed = True
+        if fail_unchanged_enabled and filtered_unchanged_reports:
+            filtered_unchanged_report_names = {report.path for report in filtered_unchanged_reports}
+            fail_unchanged_passed = all(
+                evaluated_report.overall_passed
+                for report_name, evaluated_report in overall_evaluator.evaluated_reports_coverage.items()
+                if report_name in filtered_unchanged_report_names
+            )
+        self._apply_results(evaluator_for_results, fail_unchanged_passed)
+
+        # generate the comment(s)
+        logger.info("Generating PR comment(s).")
+        # Always skip display of filtered unchanged reports when skip_unchanged is enabled,
+        # regardless of evaluate_filtered_unchanged setting. These reports are included in
+        # overall coverage but should not appear as rows in the comment.
+        skip_report_names: frozenset[str] = (
+            frozenset(r.path for r in filtered_unchanged_reports)
+            if skip_unchanged and filtered_unchanged_reports
+            else frozenset()
+        )
+        generator = PRCommentGenerator(
+            gh, evaluator_for_results, bs_evaluator, pr_number, skip_report_names, ungrouped_reports
+        )
+        if generator.generate():
+            logger.info("PR comment(s) generated successfully.")
+        else:
+            print_action_warning(PR_COMMENT_MAY_BE_STALE_WARNING)
+
+    def _scan_reports(self, report_groups: list[ReportGroup], global_overall_scope: str) -> list[str]:
+        """Scan the top-level paths for JaCoCo (xml) reports.
+
+        Grouped runs scan the top-level paths only for global-overall-scope=all, otherwise they return [].
+        Ungrouped runs scan `paths` (or DEFAULT_PATHS). The caller exits when the ungrouped scan finds nothing.
+        """
+        if report_groups:
+            logger.info("Report groups configured.")
+            if global_overall_scope == GLOBAL_OVERALL_SCOPE_ALL:
+                top_level_paths = ActionInputs.get_paths()
+                if top_level_paths:
+                    logger.info(
+                        "global-overall-scope=all: scanning top-level paths to include all reports in global overall."
+                    )
+                    return self.scan_jacoco_xml_files(
+                        paths=top_level_paths, exclude_paths=ActionInputs.get_exclude_paths()
+                    )
+                logger.info(
+                    "global-overall-scope=all but top-level 'paths' is empty; "
+                    "global overall will only include grouped reports."
+                )
+            return []
+
+        logger.info("Scanning for JaCoCo (xml) reports.")
+        paths = ActionInputs.get_paths() or [DEFAULT_PATHS]
+        return self.scan_jacoco_xml_files(paths=paths, exclude_paths=ActionInputs.get_exclude_paths())
+
+    def _parse_reports(
+        self,
+        parser: JaCoCoReportParser,
+        report_groups: list[ReportGroup],
+        global_overall_scope: str,
+        top_level_report_paths: list[str],
+    ) -> tuple[list[ReportFileCoverage], list[str]]:
+        """Scan each report group and parse the reports into coverage objects.
+
+        Returns (report_files_coverage, ungrouped_reports). Grouped reports are tagged with their group name and
+        deduplicated by path, the first group wins. With global-overall-scope=all, top-level reports that no group
+        matched are parsed without a group name and listed in ungrouped_reports.
+        """
+        logger.info("Analyzing JaCoCo (xml) reports.")
+        report_files_coverage: list[ReportFileCoverage] = []
+        seen_report_paths: set[str] = set()
+        ungrouped_reports: list[str] = []
+        if report_groups:
+            # scan each group's paths independently and tag reports with group name
+            # deduplicate by report path to avoid double-counting when groups have overlapping globs
+            for group in report_groups:
+                group_paths = self.scan_jacoco_xml_files(
+                    paths=group.paths, exclude_paths=ActionInputs.get_exclude_paths()
+                )
+                for report_path in group_paths:
+                    if report_path not in seen_report_paths:
+                        report_files_coverage.append(parser.parse(report_path, group_name=group.name))
+                        seen_report_paths.add(report_path)
+                    else:
+                        logger.info(
+                            "Skipping duplicate report '%s' (already assigned to a group).",
+                            report_path,
+                        )
+
+            # When global-overall-scope=all, include reports found by the top-level scan
+            # that were not matched by any group. They contribute to global overall but
+            # carry no group_name so they are excluded from per-group threshold evaluation.
+            if global_overall_scope == GLOBAL_OVERALL_SCOPE_ALL:
+                for report_path in top_level_report_paths:
+                    if report_path not in seen_report_paths:
+                        logger.warning(
+                            "Report '%s' is not assigned to any report group. "
+                            "Including in global overall coverage (global-overall-scope=all). "
+                            "Set global-overall-scope: groups-only to exclude ungrouped reports.",
+                            report_path,
+                        )
+                        report_files_coverage.append(parser.parse(report_path))
+                        seen_report_paths.add(report_path)
+                        ungrouped_reports.append(report_path)
+        else:
+            for report_path in top_level_report_paths:
+                report_files_coverage.append(parser.parse(report_path))
+
+        return report_files_coverage, ungrouped_reports
+
+    def _collect_baseline_reports(
+        self, parser: JaCoCoReportParser, report_groups: list[ReportGroup]
+    ) -> list[ReportFileCoverage]:
+        """Scan and parse the baseline reports, per group when report groups are configured.
+
+        A group omitting baseline-paths inherits the global ones. Ambiguous inheritance (several such groups) skips
+        them. An explicit empty baseline-paths disables the baseline for that group.
+        """
         logger.info("Scanning for JaCoCo (xml) baseline reports.")
         bs_report_files_coverage: list[ReportFileCoverage] = []
         if report_groups:
@@ -281,66 +376,7 @@ class JaCoCoReport:
                     for report_path in baseline_report_paths_to_analyse:
                         bs_report_files_coverage.append(parser.parse(report_path))
 
-        # evaluate the coverage
-        logger.info("Evaluating the coverage of the reports.")
-        report_thresholds_default = ActionInputs.get_report_thresholds_default()
-        # Always include all reports for the informational overall coverage percentage.
-        # This must aggregate all reports regardless of changes so the displayed total
-        # reflects the whole codebase (see #202).
-        overall_evaluator = self._new_evaluator(
-            report_files_coverage + filtered_unchanged_reports, report_groups, report_thresholds_default
-        )
-        overall_evaluator.evaluate()
-
-        # Pass/fail evaluation (violations, reached_threshold_*, per-group/report status)
-        # must exclude filtered unchanged reports entirely when evaluate_unchanged is False,
-        # per docs/inputs/skip-unchanged.md: they must be "completely excluded from evaluation".
-        if evaluate_unchanged or not filtered_unchanged_reports:
-            evaluator_for_results: CoverageEvaluator = overall_evaluator
-        else:
-            evaluator_for_results = self._new_evaluator(report_files_coverage, report_groups, report_thresholds_default)
-            evaluator_for_results.evaluate()
-            # The comment's summary table still shows the informational total across all
-            # reports; only violations/status below are scoped to changed reports.
-            evaluator_for_results.total_coverage_overall = overall_evaluator.total_coverage_overall
-            evaluator_for_results.total_coverage_overall_passed = overall_evaluator.total_coverage_overall_passed
-            evaluator_for_results.total_coverage_changed_files = overall_evaluator.total_coverage_changed_files
-            evaluator_for_results.total_coverage_changed_files_passed = (
-                overall_evaluator.total_coverage_changed_files_passed
-            )
-
-        bs_evaluator = self._new_evaluator(bs_report_files_coverage, report_groups, report_thresholds_default)
-        if bs_report_files_coverage:
-            bs_evaluator.evaluate()
-
-        # Only the filtered unchanged reports count for fail-unchanged, read from the evaluator that saw them.
-        fail_unchanged_passed = True
-        if fail_unchanged_enabled and filtered_unchanged_reports:
-            filtered_unchanged_report_names = {report.path for report in filtered_unchanged_reports}
-            fail_unchanged_passed = all(
-                evaluated_report.overall_passed
-                for report_name, evaluated_report in overall_evaluator.evaluated_reports_coverage.items()
-                if report_name in filtered_unchanged_report_names
-            )
-        self._apply_results(evaluator_for_results, fail_unchanged_passed)
-
-        # generate the comment(s)
-        logger.info("Generating PR comment(s).")
-        # Always skip display of filtered unchanged reports when skip_unchanged is enabled,
-        # regardless of evaluate_filtered_unchanged setting. These reports are included in
-        # overall coverage but should not appear as rows in the comment.
-        skip_report_names: frozenset[str] = (
-            frozenset(r.path for r in filtered_unchanged_reports)
-            if skip_unchanged and filtered_unchanged_reports
-            else frozenset()
-        )
-        generator = PRCommentGenerator(
-            gh, evaluator_for_results, bs_evaluator, pr_number, skip_report_names, ungrouped_reports
-        )
-        if generator.generate():
-            logger.info("PR comment(s) generated successfully.")
-        else:
-            print_action_warning(PR_COMMENT_MAY_BE_STALE_WARNING)
+        return bs_report_files_coverage
 
     def scan_jacoco_xml_files(self, paths: list[str], exclude_paths: list[str]) -> list[str]:
         # get files jacoco xml files for analysis

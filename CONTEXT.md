@@ -156,6 +156,15 @@ service is needed.
   new action output set from an evaluator goes in `_apply_results`, so both the all-reports-unchanged early return and
   the main path set it. The caller passes the fail-unchanged result because the paths differ: the early return checks
   every evaluated report, the main path only the filtered unchanged ones, read from `overall_evaluator`.
+- `JaCoCoReport.run()` delegates the top-level scan, the report parse and the baseline collection to three methods.
+  `_scan_reports(report_groups, global-overall-scope)` owns the top-level scan: ungrouped runs scan `paths` (or
+  `DEFAULT_PATHS`), grouped runs scan `paths` only for scope `all`, else `[]`. `run()` then exits with "No input JaCoCo
+  xml file found" when the ungrouped scan is empty, **before** `get_pr_changed_files` (that order is pinned by tests).
+  `_parse_reports(parser, ...)` owns the per-group scan, the dedup by report path (first group wins) and the scope-`all`
+  ungrouped append; it returns `(report_files_coverage, ungrouped_reports)`. `_collect_baseline_reports(parser,
+  report_groups)` owns the baseline flow (group inheritance of global `baseline-paths`, ambiguity skip, `[]` =
+  disabled). The parser is built once in `run()` from the changed files and shared by the report and baseline parses.
+  `run()` reads `report-groups` and `global-overall-scope` once and passes them in.
 
 ## Key decisions
 
