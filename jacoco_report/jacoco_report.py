@@ -198,7 +198,10 @@ class JaCoCoReport:
                     "All reports filtered out by skip-unchanged. "
                     "Evaluating unchanged reports for threshold result only."
                 )
-                filtered_evaluator = self._new_evaluator(filtered_unchanged_reports, report_groups)
+                report_thresholds_default = ActionInputs.get_report_thresholds_default()
+                filtered_evaluator = self._new_evaluator(
+                    filtered_unchanged_reports, report_groups, report_thresholds_default
+                )
                 filtered_evaluator.evaluate()
                 # Every evaluated report is an unchanged one here, so all of them count for fail-unchanged.
                 fail_unchanged_passed = not fail_unchanged_enabled or all(
@@ -280,10 +283,13 @@ class JaCoCoReport:
 
         # evaluate the coverage
         logger.info("Evaluating the coverage of the reports.")
+        report_thresholds_default = ActionInputs.get_report_thresholds_default()
         # Always include all reports for the informational overall coverage percentage.
         # This must aggregate all reports regardless of changes so the displayed total
         # reflects the whole codebase (see #202).
-        overall_evaluator = self._new_evaluator(report_files_coverage + filtered_unchanged_reports, report_groups)
+        overall_evaluator = self._new_evaluator(
+            report_files_coverage + filtered_unchanged_reports, report_groups, report_thresholds_default
+        )
         overall_evaluator.evaluate()
 
         # Pass/fail evaluation (violations, reached_threshold_*, per-group/report status)
@@ -292,7 +298,7 @@ class JaCoCoReport:
         if evaluate_unchanged or not filtered_unchanged_reports:
             evaluator_for_results: CoverageEvaluator = overall_evaluator
         else:
-            evaluator_for_results = self._new_evaluator(report_files_coverage, report_groups)
+            evaluator_for_results = self._new_evaluator(report_files_coverage, report_groups, report_thresholds_default)
             evaluator_for_results.evaluate()
             # The comment's summary table still shows the informational total across all
             # reports; only violations/status below are scoped to changed reports.
@@ -303,7 +309,7 @@ class JaCoCoReport:
                 overall_evaluator.total_coverage_changed_files_passed
             )
 
-        bs_evaluator = self._new_evaluator(bs_report_files_coverage, report_groups)
+        bs_evaluator = self._new_evaluator(bs_report_files_coverage, report_groups, report_thresholds_default)
         if bs_report_files_coverage:
             bs_evaluator.evaluate()
 
@@ -343,14 +349,21 @@ class JaCoCoReport:
         return paths_to_analyse
 
     @staticmethod
-    def _new_evaluator(reports: list[ReportFileCoverage], report_groups: list[ReportGroup]) -> CoverageEvaluator:
-        """Build a CoverageEvaluator over `reports` with the configured thresholds and report groups."""
+    def _new_evaluator(
+        reports: list[ReportFileCoverage],
+        report_groups: list[ReportGroup],
+        report_thresholds_default: tuple[float, float, float],
+    ) -> CoverageEvaluator:
+        """Build a CoverageEvaluator over `reports` with the global thresholds and the given groups and defaults.
+
+        The caller reads `report_thresholds_default` once per run: a two-part value logs a warning on every read.
+        """
         return CoverageEvaluator(
             report_files_coverage=reports,
             global_min_coverage_overall=ActionInputs.get_global_overall_threshold(),
             global_min_coverage_changed_files=ActionInputs.get_global_changed_files_average_threshold(),
             report_groups=report_groups,
-            report_thresholds_default=ActionInputs.get_report_thresholds_default(),
+            report_thresholds_default=report_thresholds_default,
         )
 
     def _apply_results(self, evaluator: CoverageEvaluator, fail_unchanged_passed: bool) -> None:
