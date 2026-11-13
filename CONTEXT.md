@@ -149,22 +149,32 @@ service is needed.
   of one of them (`CoverageEvaluator`, `JaCoCoReport`, `ReportGroup`) must set every attribute the code path reads: an
   unset `Mock` attribute is truthy and not a dict, so the code silently takes another branch (e.g.
   `PRCommentGenerator._has_baseline_data` then reports baseline data).
-- `JaCoCoReport.run()` builds every `CoverageEvaluator` through `_new_evaluator(reports, report_groups,
-  report_thresholds_default)` and copies results into `self.*` only through `_apply_results(evaluator,
-  fail_unchanged_passed)` (#273). `run()` reads `report-thresholds-default` once per path and passes it in: a two-part
-  value is accepted but logs a warning on every read; the global thresholds are read inside the factory. A
-  new action output set from an evaluator goes in `_apply_results`, so both the all-reports-unchanged early return and
-  the main path set it. The caller passes the fail-unchanged result because the paths differ: the early return checks
-  every evaluated report, the main path only the filtered unchanged ones, read from `overall_evaluator`.
-- `JaCoCoReport.run()` delegates the top-level scan, the report parse and the baseline collection to three methods.
-  `_scan_reports(report_groups, global-overall-scope)` owns the top-level scan: ungrouped runs scan `paths` (or
-  `DEFAULT_PATHS`), grouped runs scan `paths` only for scope `all`, else `[]`. `run()` then exits with "No input JaCoCo
-  xml file found" when the ungrouped scan is empty, **before** `get_pr_changed_files` (that order is pinned by tests).
-  `_parse_reports(parser, ...)` owns the per-group scan, the dedup by report path (first group wins) and the scope-`all`
-  ungrouped append; it returns `(report_files_coverage, ungrouped_reports)`. `_collect_baseline_reports(parser,
-  report_groups)` owns the baseline flow (group inheritance of global `baseline-paths`, ambiguity skip, `[]` =
-  disabled). The parser is built once in `run()` from the changed files and shared by the report and baseline parses.
-  `run()` reads `report-groups` and `global-overall-scope` once and passes them in.
+- `JaCoCoReport` builds every `CoverageEvaluator` through `_new_evaluator(reports, report_groups,
+  report_thresholds_default)` (static) and copies results into `self.*` only through `_apply_results(evaluator,
+  fail_unchanged_passed)` (#273). The caller reads `report-thresholds-default` once per path and passes it in: a
+  two-part value is accepted but logs a warning on every read; the global thresholds are read inside the factory. A
+  new action output set from an evaluator goes in `_apply_results`, so both the all-reports-unchanged path
+  (`_handle_all_reports_filtered`) and the main path (`_evaluate_coverage`) set it. Each passes its own fail-unchanged
+  result: `_handle_all_reports_filtered` checks every evaluated report, `_evaluate_coverage` only the filtered
+  unchanged ones, read from `overall_evaluator`.
+- `JaCoCoReport.run()` delegates in order. `_scan_reports(report_groups, global-overall-scope)` owns the top-level
+  scan: ungrouped runs scan `paths` (or `DEFAULT_PATHS`), grouped runs scan `paths` only for scope `all`, else `[]`.
+  `run()` then exits with "No input JaCoCo xml file found" when the ungrouped scan is empty, **before**
+  `get_pr_changed_files` (that order is pinned by tests). `_parse_reports(parser, ...)` owns the per-group scan, the
+  dedup by report path (first group wins) and the scope-`all` ungrouped append; it returns
+  `(report_files_coverage, ungrouped_reports)`. `_split_unchanged_reports(reports, skip_unchanged,
+  evaluate_filtered_unchanged)` (static) returns `(kept, filtered_unchanged)` and logs one line per filtered report;
+  with skip-unchanged off it returns `(reports, [])`. If nothing is kept, `run()` calls
+  `_handle_all_reports_filtered(gh, pr_number, report_groups, filtered, evaluate_filtered_unchanged,
+  fail_unchanged_enabled)` and returns. Otherwise `_evaluate_coverage(parser, report_groups, kept, filtered,
+  evaluate_unchanged, fail_unchanged_enabled)` owns the baseline collection (`_collect_baseline_reports(parser,
+  report_groups)`: group inheritance of global `baseline-paths`, ambiguity skip, `[]` = disabled; called before the
+  "Evaluating the coverage" log), the overall, results and baseline evaluators, fail-unchanged and `_apply_results`; it
+  returns `(results evaluator, baseline evaluator)`. Comment generation stays in `run()`. The parser is built once in
+  `run()` from the changed files and shared by the report and baseline parses. `run()` reads `report-groups` and
+  `global-overall-scope` once and passes them in.
+- `run()` sits at the `too-many-locals` limit (`max-locals=20`, enabled; `self` counts): a new local there trips it,
+  so new logic goes in a helper.
 
 ## Key decisions
 
