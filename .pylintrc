@@ -436,7 +436,7 @@ confidence=HIGH,
 #
 # --- Tech-debt suppressions: keep until the underlying code is refactored ---
 #
-# too-many-branches / too-many-statements: JaCoCoReport.run() has 51 branches / 187 statements
+# too-many-branches / too-many-statements: JaCoCoReport.run() has 48 branches / 158 statements
 #   TODO: decompose JaCoCoReport.run() into focused steps (#273-#275); #276 then removes these disables
 #
 # too-many-public-methods: ActionInputs has 26 public methods (1 getter+validator per input field)
