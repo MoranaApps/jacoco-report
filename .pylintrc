@@ -436,11 +436,6 @@ confidence=HIGH,
 #
 # --- Tech-debt suppressions: keep until the underlying code is refactored ---
 #
-# too-many-arguments: raised max-args to 8 but 3 methods still exceed it
-#   PRCommentGenerator.get_basic_table                  10 args  → TODO: introduce a TableConfig dataclass
-#   PRCommentGenerator.get_basic_table_with_baseline    12 args  → TODO: same TableConfig refactor
-#   PRCommentGenerator._render_basic_table_with_delta   12 args  → TODO: same TableConfig refactor
-#
 # too-many-branches / too-many-statements: ActionInputs.validate_inputs() has 29 branches / 77 statements
 #   TODO: decompose validate_inputs() into focused per-input validator methods, one per logical input group
 #
@@ -459,7 +454,6 @@ disable=raw-checker-failed,
         too-few-public-methods,
         unsubscriptable-object,
         duplicate-code,
-        too-many-arguments,
         too-many-branches,
         too-many-statements,
         too-many-public-methods

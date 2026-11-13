@@ -8,7 +8,7 @@ import pytest
 
 from jacoco_report.action_inputs import ActionInputs
 from jacoco_report.evaluator.coverage_evaluator import CoverageEvaluator
-from jacoco_report.generator.pr_comment_generator import PRCommentGenerator
+from jacoco_report.generator.pr_comment_generator import PRCommentGenerator, SummaryRow
 from jacoco_report.model.counter import Counter
 from jacoco_report.model.coverage import Coverage
 from jacoco_report.model.evaluated_report_coverage import EvaluatedReportCoverage
@@ -105,11 +105,20 @@ def _set_mixed_comment_level_fixture(pr_comment_generator):
 
 def test_get_basic_table(pr_comment_generator, mocker):
     table = pr_comment_generator.get_basic_table(
-        "✅", "❌", MetricTypeEnum.INSTRUCTION, 85.2, True, 80.0, 78.4, False, 80.0
+        "✅", "❌", MetricTypeEnum.INSTRUCTION, SummaryRow(85.2, True, 80.0), SummaryRow(78.4, False, 80.0)
     )
 
     assert "| **Overall**       | 85.2% | 80.0% | ✅ |" in table
     assert "| **Changed Files** | 78.4% | 80.0% | ❌ |" in table
+
+
+def test_get_basic_table_with_baseline_renders_deltas(pr_comment_generator):
+    table = pr_comment_generator.get_basic_table_with_baseline(
+        "✅", "❌", "line", SummaryRow(85.0, True, 80.0), SummaryRow(70.0, False, 75.0), 80.0, 72.5
+    )
+
+    assert "| **Overall**       | 85.0% | 80.0% | +5.0% | ✅ |" in table
+    assert "| **Changed Files** | 70.0% | 75.0% | -2.5% | ❌ |" in table
 
 
 def test_get_changed_files_table_without_baseline(pr_comment_generator):
@@ -1292,14 +1301,16 @@ def _make_empty_evaluator():
 @pytest.mark.parametrize("metric", ["instruction", "line", "branch", "complexity", "method", "class"])
 def test_basic_table_header_reflects_selected_metric(pr_comment_generator, metric):
     """get_basic_table header label changes with the metric parameter."""
-    table = pr_comment_generator.get_basic_table("✅", "❌", metric, 85.0, True, 80.0, 80.0, True, 80.0)
+    table = pr_comment_generator.get_basic_table(
+        "✅", "❌", metric, SummaryRow(85.0, True, 80.0), SummaryRow(80.0, True, 80.0)
+    )
     assert f"Metric ({metric})" in table
 
 
 def test_basic_table_with_baseline_header_reflects_metric(pr_comment_generator):
     """get_basic_table_with_baseline also reflects the metric in its header."""
     table = pr_comment_generator.get_basic_table_with_baseline(
-        "✅", "❌", "line", 85.0, True, 80.0, 80.0, True, 80.0, 80.0, 75.0
+        "✅", "❌", "line", SummaryRow(85.0, True, 80.0), SummaryRow(80.0, True, 80.0), 80.0, 75.0
     )
     assert "Metric (line)" in table
 
@@ -1311,14 +1322,18 @@ def test_basic_table_with_baseline_header_reflects_metric(pr_comment_generator):
 
 def test_custom_pass_symbol_appears_in_basic_table(pr_comment_generator):
     """Custom pass symbol is rendered in Status column of the global summary table."""
-    table = pr_comment_generator.get_basic_table("PASS", "FAIL", "instruction", 85.0, True, 80.0, 85.0, True, 80.0)
+    table = pr_comment_generator.get_basic_table(
+        "PASS", "FAIL", "instruction", SummaryRow(85.0, True, 80.0), SummaryRow(85.0, True, 80.0)
+    )
     assert "PASS" in table
     assert "FAIL" not in table
 
 
 def test_custom_fail_symbol_appears_in_basic_table(pr_comment_generator):
     """Custom fail symbol is rendered when a threshold is not met in the global summary table."""
-    table = pr_comment_generator.get_basic_table("PASS", "FAIL", "instruction", 50.0, False, 80.0, 50.0, False, 80.0)
+    table = pr_comment_generator.get_basic_table(
+        "PASS", "FAIL", "instruction", SummaryRow(50.0, False, 80.0), SummaryRow(50.0, False, 80.0)
+    )
     assert "FAIL" in table
 
 

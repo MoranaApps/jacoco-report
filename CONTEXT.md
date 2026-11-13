@@ -132,6 +132,9 @@ service is needed.
   separately in `get_report_groups`, where an empty part becomes `None` so it falls back to `report-thresholds-default`.
 - No inline `# pylint: disable`; suppressions are centralized in `.pylintrc`'s `[MESSAGES CONTROL]`,
   each with a comment explaining why.
+- `too-many-arguments` is not suppressed (`max-args=8`; pylint doesn't count `self`). Values that travel together go
+  in a frozen dataclass instead of separate parameters, e.g. `SummaryRow` (`reached`, `passed`, `threshold`), one row
+  of the global summary table in `pr_comment_generator.py` (#271).
 - `tests/` is excluded from pylint (`.pylintrc` `ignore-paths=tests`) and coverage
   (`omit = ["tests/*"]`), but not from mypy: `mypy .` (with `check_untyped_defs`) type-checks the tests
   too, so a patched method used as a mock needs a `cast(MagicMock, ...)` before `.call_args` and friends.

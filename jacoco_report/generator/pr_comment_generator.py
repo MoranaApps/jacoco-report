@@ -5,6 +5,7 @@ A module that contains the PRCommentGenerator class.
 import hashlib
 import logging
 import os
+from dataclasses import dataclass
 from textwrap import dedent
 from typing import NamedTuple, Optional
 
@@ -37,6 +38,15 @@ class _Section(NamedTuple):
     trailing: list[str]
     # A section whose rows are all cut still renders its header and trailing lines (the ungrouped-reports frame).
     frame_kept: bool
+
+
+@dataclass(frozen=True)
+class SummaryRow:
+    """One row of the global summary table: the coverage reached, whether it passed, and its threshold."""
+
+    reached: float
+    passed: bool
+    threshold: float
 
 
 def _single_line(text: str) -> str:
@@ -375,18 +385,18 @@ class PRCommentGenerator:
 
     def get_basic_table_for_all(self, p: str, f: str) -> str:
         """Render the global summary table, with baseline deltas when available."""
+        overall = SummaryRow(
+            self.evaluator.total_coverage_overall,
+            self.evaluator.total_coverage_overall_passed,
+            ActionInputs.get_global_overall_threshold(),
+        )
+        changed_files = SummaryRow(
+            self.evaluator.total_coverage_changed_files,
+            self.evaluator.total_coverage_changed_files_passed,
+            ActionInputs.get_global_changed_files_average_threshold(),
+        )
         if not self._has_baseline_data():
-            return self.get_basic_table(
-                p,
-                f,
-                ActionInputs.get_metric(),
-                self.evaluator.total_coverage_overall,
-                self.evaluator.total_coverage_overall_passed,
-                ActionInputs.get_global_overall_threshold(),
-                self.evaluator.total_coverage_changed_files,
-                self.evaluator.total_coverage_changed_files_passed,
-                ActionInputs.get_global_changed_files_average_threshold(),
-            )
+            return self.get_basic_table(p, f, ActionInputs.get_metric(), overall, changed_files)
 
         # bs_evaluator is guaranteed non-None here due to _has_baseline_data() check
         bs_evaluator = self.bs_evaluator
@@ -395,17 +405,7 @@ class PRCommentGenerator:
         # reports against a partial baseline that covers fewer reports.
         diff_o, diff_ch = self._compute_matched_global_diffs(bs_evaluator)
         return self._render_basic_table_with_delta(
-            p,
-            f,
-            ActionInputs.get_metric(),
-            self.evaluator.total_coverage_overall,
-            self.evaluator.total_coverage_overall_passed,
-            ActionInputs.get_global_overall_threshold(),
-            self.evaluator.total_coverage_changed_files,
-            self.evaluator.total_coverage_changed_files_passed,
-            ActionInputs.get_global_changed_files_average_threshold(),
-            diff_o,
-            diff_ch,
+            p, f, ActionInputs.get_metric(), overall, changed_files, diff_o, diff_ch
         )
 
     def _compute_matched_global_diffs(self, bs_evaluator: "CoverageEvaluator") -> tuple[float, float]:
@@ -454,18 +454,7 @@ class PRCommentGenerator:
     # | **Overall**          | 85.2%    | 80%       | +1,3%      | ✅      |
     # | **Changed Files**    | 78.4%    | 80%       | 0.3%       | ❌      |
 
-    def get_basic_table(
-        self,
-        p: str,
-        f: str,
-        metric: str,
-        total_overall_reached: float,
-        total_overall_passed: bool,
-        min_overall: float,
-        total_changed_files_reached: float,
-        total_changed_files_passed: bool,
-        min_changed_files: float,
-    ) -> str:
+    def get_basic_table(self, p: str, f: str, metric: str, overall: SummaryRow, changed_files: SummaryRow) -> str:
         """Render the global summary table without baseline deltas."""
         return (
             dedent("""
@@ -477,12 +466,12 @@ class PRCommentGenerator:
             .strip()
             .format(
                 metric,
-                total_overall_reached,
-                min_overall,
-                p if total_overall_passed else f,
-                total_changed_files_reached,
-                min_changed_files,
-                p if total_changed_files_passed else f,
+                overall.reached,
+                overall.threshold,
+                p if overall.passed else f,
+                changed_files.reached,
+                changed_files.threshold,
+                p if changed_files.passed else f,
             )
         )
 
@@ -491,28 +480,20 @@ class PRCommentGenerator:
         p: str,
         f: str,
         metric: str,
-        total_overall_reached: float,
-        total_overall_passed: bool,
-        min_overall: float,
-        total_changed_files_reached: float,
-        total_changed_files_passed: bool,
-        min_changed_files: float,
-        bs_total_overall_reached: float,
-        bs_total_changed_files_reached: float,
+        overall: SummaryRow,
+        changed_files: SummaryRow,
+        bs_overall_reached: float,
+        bs_changed_files_reached: float,
     ) -> str:
         """Render the global summary table with baseline delta columns."""
         return self._render_basic_table_with_delta(
             p,
             f,
             metric,
-            total_overall_reached,
-            total_overall_passed,
-            min_overall,
-            total_changed_files_reached,
-            total_changed_files_passed,
-            min_changed_files,
-            total_overall_reached - bs_total_overall_reached,
-            total_changed_files_reached - bs_total_changed_files_reached,
+            overall,
+            changed_files,
+            overall.reached - bs_overall_reached,
+            changed_files.reached - bs_changed_files_reached,
         )
 
     def _render_basic_table_with_delta(
@@ -520,12 +501,8 @@ class PRCommentGenerator:
         p: str,
         f: str,
         metric: str,
-        total_overall_reached: float,
-        total_overall_passed: bool,
-        min_overall: float,
-        total_changed_files_reached: float,
-        total_changed_files_passed: bool,
-        min_changed_files: float,
+        overall: SummaryRow,
+        changed_files: SummaryRow,
         diff_o: float,
         diff_ch: float,
     ) -> str:
@@ -540,16 +517,16 @@ class PRCommentGenerator:
             .strip()
             .format(
                 metric,
-                total_overall_reached,
-                min_overall,
+                overall.reached,
+                overall.threshold,
                 "+" if diff_o > 0.001 else "",
                 round(diff_o, 2),
-                p if total_overall_passed else f,
-                total_changed_files_reached,
-                min_changed_files,
+                p if overall.passed else f,
+                changed_files.reached,
+                changed_files.threshold,
                 "+" if diff_ch > 0.001 else "",
                 round(diff_ch, 2),
-                p if total_changed_files_passed else f,
+                p if changed_files.passed else f,
             )
         )
 
