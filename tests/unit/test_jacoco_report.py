@@ -3287,3 +3287,57 @@ def test_collect_baseline_reports_ungrouped_scan_finds_nothing_warns_and_parses_
     parser.parse.assert_not_called()
     assert result == []
     assert "No baseline JaCoCo xml file found. No difference will be calculated." in caplog.text
+
+
+# ---------------------------------------------------------------------------
+# #275  run() split: direct tests of _split_unchanged_reports
+# ---------------------------------------------------------------------------
+
+
+def test_split_unchanged_reports_skip_unchanged_off_keeps_every_report(
+    jacoco_report, make_report_file_coverage, caplog
+):
+    changed = make_report_file_coverage(path="changed.xml", changed_files_coverage={"A": object()})
+    unchanged = make_report_file_coverage(path="unchanged.xml")
+
+    with caplog.at_level(logging.INFO):
+        kept, filtered = jacoco_report._split_unchanged_reports([changed, unchanged], False, False)
+
+    assert kept == [changed, unchanged]
+    assert filtered == []
+    assert "Filtering report" not in caplog.text
+
+
+def test_split_unchanged_reports_keeps_changed_and_filters_unchanged_in_order(
+    jacoco_report, make_report_file_coverage, caplog
+):
+    changed_first = make_report_file_coverage(path="first.xml", changed_files_coverage={"A": object()})
+    unchanged_a = make_report_file_coverage(path="a.xml", name="Report A")
+    changed_second = make_report_file_coverage(path="second.xml", changed_files_coverage={"B": object()})
+    unchanged_b = make_report_file_coverage(path="b.xml", name="Report B")
+
+    with caplog.at_level(logging.INFO):
+        kept, filtered = jacoco_report._split_unchanged_reports(
+            [changed_first, unchanged_a, changed_second, unchanged_b], True, False
+        )
+
+    assert kept == [changed_first, changed_second]
+    assert filtered == [unchanged_a, unchanged_b]
+    assert "Filtering report 'Report A' from evaluation and comment rows: no changed files." in caplog.text
+    assert "Filtering report 'Report B' from evaluation and comment rows: no changed files." in caplog.text
+
+
+def test_split_unchanged_reports_evaluate_filtered_logs_threshold_only_message(
+    jacoco_report, make_report_file_coverage, caplog
+):
+    unchanged = make_report_file_coverage(path="a.xml", name="Report A")
+
+    with caplog.at_level(logging.INFO):
+        kept, filtered = jacoco_report._split_unchanged_reports([unchanged], True, True)
+
+    assert kept == []
+    assert filtered == [unchanged]
+    assert (
+        "Filtering report 'Report A' from comment rows and changed-files evaluation: no changed files "
+        "(overall threshold checks may still apply)." in caplog.text
+    )

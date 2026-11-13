@@ -104,56 +104,133 @@ class JaCoCoReport:
 
         skip_unchanged = ActionInputs.get_skip_unchanged()
         evaluate_unchanged = ActionInputs.get_evaluate_unchanged()
-        fail_on_threshold = set(ActionInputs.get_fail_on_threshold())
-        fail_unchanged_enabled = FailOnThresholdEnum.FAIL_UNCHANGED in fail_on_threshold
+        fail_unchanged_enabled = FailOnThresholdEnum.FAIL_UNCHANGED in set(ActionInputs.get_fail_on_threshold())
         evaluate_filtered_unchanged = evaluate_unchanged or fail_unchanged_enabled
-        filtered_unchanged_reports: list[ReportFileCoverage] = []
 
-        # scan-stage filter: remove reports with no changed files before evaluation
-        if skip_unchanged:
-            for report in report_files_coverage:
-                if not report.changed_files_coverage:
-                    if evaluate_filtered_unchanged:
-                        logger.info(
-                            "Filtering report '%s' from comment rows and changed-files evaluation: "
-                            "no changed files (overall threshold checks may still apply).",
-                            report.name,
-                        )
-                    else:
-                        logger.info(
-                            "Filtering report '%s' from evaluation and comment rows: no changed files.",
-                            report.name,
-                        )
-                    filtered_unchanged_reports.append(report)
+        report_files_coverage, filtered_unchanged_reports = self._split_unchanged_reports(
+            report_files_coverage, skip_unchanged, evaluate_filtered_unchanged
+        )
+        if skip_unchanged and not report_files_coverage:
+            self._handle_all_reports_filtered(
+                gh,
+                pr_number,
+                report_groups,
+                filtered_unchanged_reports,
+                evaluate_filtered_unchanged,
+                fail_unchanged_enabled,
+            )
+            return
 
-            report_files_coverage = [r for r in report_files_coverage if r.changed_files_coverage]
-            if not report_files_coverage and not evaluate_filtered_unchanged:
-                logger.info("All reports filtered out by skip-unchanged. No comment will be generated.")
-                self.total_overall_coverage_passed = True
-                self.total_changed_files_coverage_passed = True
-                self.evaluated_coverage_reports = "{}"
-                self.evaluated_coverage_groups = "{}"
-                self._delete_stale_comment_if_update_enabled(gh=gh, pr_number=pr_number)
-                return
-            if not report_files_coverage and evaluate_filtered_unchanged:
+        evaluator_for_results, bs_evaluator = self._evaluate_coverage(
+            parser,
+            report_groups,
+            report_files_coverage,
+            filtered_unchanged_reports,
+            evaluate_unchanged,
+            fail_unchanged_enabled,
+        )
+
+        # generate the comment(s)
+        logger.info("Generating PR comment(s).")
+        # Always skip display of filtered unchanged reports when skip_unchanged is enabled,
+        # regardless of evaluate_filtered_unchanged setting. These reports are included in
+        # overall coverage but should not appear as rows in the comment.
+        skip_report_names: frozenset[str] = (
+            frozenset(r.path for r in filtered_unchanged_reports)
+            if skip_unchanged and filtered_unchanged_reports
+            else frozenset()
+        )
+        generator = PRCommentGenerator(
+            gh, evaluator_for_results, bs_evaluator, pr_number, skip_report_names, ungrouped_reports
+        )
+        if generator.generate():
+            logger.info("PR comment(s) generated successfully.")
+        else:
+            print_action_warning(PR_COMMENT_MAY_BE_STALE_WARNING)
+
+    @staticmethod
+    def _split_unchanged_reports(
+        report_files_coverage: list[ReportFileCoverage], skip_unchanged: bool, evaluate_filtered_unchanged: bool
+    ) -> tuple[list[ReportFileCoverage], list[ReportFileCoverage]]:
+        """Split the reports into (kept, filtered unchanged) for skip-unchanged; with it off every report is kept.
+
+        A report with no changed files is filtered and logged once. It never gets a comment row; it still counts for the
+        informational overall total, and for fail-unchanged when that is enabled.
+        """
+        if not skip_unchanged:
+            return report_files_coverage, []
+
+        kept: list[ReportFileCoverage] = []
+        filtered: list[ReportFileCoverage] = []
+        for report in report_files_coverage:
+            if report.changed_files_coverage:
+                kept.append(report)
+                continue
+            if evaluate_filtered_unchanged:
                 logger.info(
-                    "All reports filtered out by skip-unchanged. "
-                    "Evaluating unchanged reports for threshold result only."
+                    "Filtering report '%s' from comment rows and changed-files evaluation: "
+                    "no changed files (overall threshold checks may still apply).",
+                    report.name,
                 )
-                report_thresholds_default = ActionInputs.get_report_thresholds_default()
-                filtered_evaluator = self._new_evaluator(
-                    filtered_unchanged_reports, report_groups, report_thresholds_default
+            else:
+                logger.info(
+                    "Filtering report '%s' from evaluation and comment rows: no changed files.",
+                    report.name,
                 )
-                filtered_evaluator.evaluate()
-                # Every evaluated report is an unchanged one here, so all of them count for fail-unchanged.
-                fail_unchanged_passed = not fail_unchanged_enabled or all(
-                    evaluated_report.overall_passed
-                    for evaluated_report in filtered_evaluator.evaluated_reports_coverage.values()
-                )
-                self._apply_results(filtered_evaluator, fail_unchanged_passed)
-                self._delete_stale_comment_if_update_enabled(gh=gh, pr_number=pr_number)
-                return
+            filtered.append(report)
+        return kept, filtered
 
+    def _handle_all_reports_filtered(
+        self,
+        gh: GitHub,
+        pr_number: int,
+        report_groups: list[ReportGroup],
+        filtered_unchanged_reports: list[ReportFileCoverage],
+        evaluate_filtered_unchanged: bool,
+        fail_unchanged_enabled: bool,
+    ) -> None:
+        """Finish a run in which skip-unchanged filtered out every report, so no comment is generated.
+
+        Without `evaluate_filtered_unchanged` the totals pass by default. With it, the filtered reports are evaluated
+        for the threshold result only, and fail-unchanged checks all of them. Either way the stale comment is deleted.
+        """
+        if not evaluate_filtered_unchanged:
+            logger.info("All reports filtered out by skip-unchanged. No comment will be generated.")
+            self.total_overall_coverage_passed = True
+            self.total_changed_files_coverage_passed = True
+            self.evaluated_coverage_reports = "{}"
+            self.evaluated_coverage_groups = "{}"
+            self._delete_stale_comment_if_update_enabled(gh=gh, pr_number=pr_number)
+            return
+
+        logger.info(
+            "All reports filtered out by skip-unchanged. Evaluating unchanged reports for threshold result only."
+        )
+        report_thresholds_default = ActionInputs.get_report_thresholds_default()
+        filtered_evaluator = self._new_evaluator(filtered_unchanged_reports, report_groups, report_thresholds_default)
+        filtered_evaluator.evaluate()
+        # Every evaluated report is an unchanged one here, so all of them count for fail-unchanged.
+        fail_unchanged_passed = not fail_unchanged_enabled or all(
+            evaluated_report.overall_passed
+            for evaluated_report in filtered_evaluator.evaluated_reports_coverage.values()
+        )
+        self._apply_results(filtered_evaluator, fail_unchanged_passed)
+        self._delete_stale_comment_if_update_enabled(gh=gh, pr_number=pr_number)
+
+    def _evaluate_coverage(
+        self,
+        parser: JaCoCoReportParser,
+        report_groups: list[ReportGroup],
+        report_files_coverage: list[ReportFileCoverage],
+        filtered_unchanged_reports: list[ReportFileCoverage],
+        evaluate_unchanged: bool,
+        fail_unchanged_enabled: bool,
+    ) -> tuple[CoverageEvaluator, CoverageEvaluator]:
+        """Run the main evaluation, apply its results to `self` and return (results evaluator, baseline evaluator).
+
+        The overall evaluator sees kept and filtered reports. The results evaluator (violations, status, comment rows)
+        drops the filtered reports unless `evaluate_unchanged` is set. Fail-unchanged reads only the filtered reports.
+        """
         # get baseline files for comparison
         bs_report_files_coverage = self._collect_baseline_reports(parser, report_groups)
 
@@ -199,24 +276,7 @@ class JaCoCoReport:
                 if report_name in filtered_unchanged_report_names
             )
         self._apply_results(evaluator_for_results, fail_unchanged_passed)
-
-        # generate the comment(s)
-        logger.info("Generating PR comment(s).")
-        # Always skip display of filtered unchanged reports when skip_unchanged is enabled,
-        # regardless of evaluate_filtered_unchanged setting. These reports are included in
-        # overall coverage but should not appear as rows in the comment.
-        skip_report_names: frozenset[str] = (
-            frozenset(r.path for r in filtered_unchanged_reports)
-            if skip_unchanged and filtered_unchanged_reports
-            else frozenset()
-        )
-        generator = PRCommentGenerator(
-            gh, evaluator_for_results, bs_evaluator, pr_number, skip_report_names, ungrouped_reports
-        )
-        if generator.generate():
-            logger.info("PR comment(s) generated successfully.")
-        else:
-            print_action_warning(PR_COMMENT_MAY_BE_STALE_WARNING)
+        return evaluator_for_results, bs_evaluator
 
     def _scan_reports(self, report_groups: list[ReportGroup], global_overall_scope: str) -> list[str]:
         """Scan the top-level paths for JaCoCo (xml) reports.
