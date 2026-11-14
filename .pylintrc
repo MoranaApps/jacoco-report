@@ -39,7 +39,7 @@ extension-pkg-whitelist=
 fail-on=
 
 # Specify a score threshold under which the program will exit with error.
-fail-under=9.5
+fail-under=10
 
 # Interpret the stdin as a python script, whose filename needs to be passed as
 # the module_or_package argument.
@@ -433,15 +433,6 @@ confidence=HIGH,
 # too-few-public-methods: data-container and model classes intentionally have few public methods
 # unsubscriptable-object (E1136): false positive on ET.ElementTree[ET.Element] generic annotation
 # duplicate-code: table-rendering patterns across comment generators are intentionally similar
-#
-# --- Tech-debt suppressions: keep until the underlying code is refactored ---
-#
-# too-many-branches: JaCoCoReport._collect_baseline_reports() has 15 branches: split it or add a justified
-#   local disable when #276 removes these disables
-# too-many-statements: no remaining offender; #276 removes this disable
-#
-# too-many-public-methods: ActionInputs has 26 public methods (1 getter+validator per input field)
-#   TODO: consider splitting ActionInputs into focused groups (PathInputs, ThresholdInputs, DisplayInputs, etc.)
 disable=raw-checker-failed,
         bad-inline-option,
         locally-disabled,
@@ -454,10 +445,7 @@ disable=raw-checker-failed,
         use-implicit-booleaness-not-comparison-to-zero,
         too-few-public-methods,
         unsubscriptable-object,
-        duplicate-code,
-        too-many-branches,
-        too-many-statements,
-        too-many-public-methods
+        duplicate-code
 
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option

@@ -136,8 +136,9 @@ service is needed.
   goes in at the position where its error should appear. Inputs whose parsed value is logged go through
   `_read_or_record`, which records the getter's `ValueError` message and returns `None`. Threshold range errors come
   from `_threshold_range_errors`.
-- No inline `# pylint: disable`; suppressions are centralized in `.pylintrc`'s `[MESSAGES CONTROL]`,
-  each with a comment explaining why.
+- Pylint suppressions come in two forms only, each with a comment giving the reason: a global entry in `.pylintrc`'s
+  `[MESSAGES CONTROL]` for a rule disabled by design project-wide, or a class-level `# pylint: disable=<message>` for a
+  single by-design exception (only `ActionInputs` → `too-many-public-methods`: one getter/validator per input).
 - `too-many-arguments` is not suppressed (`max-args=8`; pylint doesn't count `self`). Values that travel together go
   in a frozen dataclass instead of separate parameters, e.g. `SummaryRow` (`reached`, `passed`, `threshold`), one row
   of the global summary table in `pr_comment_generator.py` (#271).
@@ -168,13 +169,18 @@ service is needed.
   `_handle_all_reports_filtered(gh, pr_number, report_groups, filtered, evaluate_filtered_unchanged,
   fail_unchanged_enabled)` and returns. Otherwise `_evaluate_coverage(parser, report_groups, kept, filtered,
   evaluate_unchanged, fail_unchanged_enabled)` owns the baseline collection (`_collect_baseline_reports(parser,
-  report_groups)`: group inheritance of global `baseline-paths`, ambiguity skip, `[]` = disabled; called before the
-  "Evaluating the coverage" log), the overall, results and baseline evaluators, fail-unchanged and `_apply_results`; it
-  returns `(results evaluator, baseline evaluator)`. Comment generation stays in `run()`. The parser is built once in
+  report_groups)`, which hands grouped runs to `_collect_group_baseline_reports`: group inheritance of global
+  `baseline-paths`, ambiguity skip, `[]` = disabled; called before the "Evaluating the coverage" log), the overall,
+  results and baseline evaluators, fail-unchanged and `_apply_results`; it returns `(results evaluator, baseline
+  evaluator)`. Comment generation stays in `run()`. The parser is built once in
   `run()` from the changed files and shared by the report and baseline parses. `run()` reads `report-groups` and
   `global-overall-scope` once and passes them in.
 - `run()` sits at the `too-many-locals` limit (`max-locals=20`, enabled; `self` counts): a new local there trips it,
   so new logic goes in a helper.
+- `CoverageEvaluator` sits at the `too-many-instance-attributes` limit (`max-attributes=15`): a new attribute trips it.
+  Its public result attributes are read by `PRCommentGenerator` and set directly by tests (`report_group_order`
+  included), so keep them plain attributes. A group's threshold fallback (group field → `report-thresholds-default`)
+  lives only in `_group_thresholds(group)`, used by `evaluate_group` and `_set_thresholds`.
 
 ## Key decisions
 
@@ -220,7 +226,7 @@ service is needed.
 - `JaCoCoReportParser` matches a changed file from the JaCoCo XML (`package`/`sourcefile`) against the
   PR's changed-file list by substring containment, after first trying to resolve it on disk via
   `os.walk` from the current working directory — ambiguous if a relative path repeats across modules.
-- Pylint's real gate is `>=9.5` (`.pylintrc` `fail-under=9.5`, same number CI checks) — not 10/10.
+- Pylint's gate is zero messages: `.pylintrc` `fail-under=10`; CI runs pylint and uses its exit code, not a score.
 - The `secrets` context is not allowed in a step- or job-level `if:`; GitHub rejects the whole workflow
   file as invalid and no job in it runs (issue #240: `renovate.yml` never auto-merged). Expose the
   secret via an `env:` var (e.g. `HAS_REVIEW_TOKEN: ${{ secrets.X != '' }}`) and test that instead.

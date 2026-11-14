@@ -369,72 +369,79 @@ class JaCoCoReport:
         them. An explicit empty baseline-paths disables the baseline for that group.
         """
         logger.info("Scanning for JaCoCo (xml) baseline reports.")
-        bs_report_files_coverage: list[ReportFileCoverage] = []
         if report_groups:
-            global_baseline_paths = ActionInputs.get_baseline_paths()
-            baseline_scan_cache: dict[tuple[str, ...], list[str]] = {}
-            seen_baseline_report_paths: set[str] = set()
-            groups_inheriting_global = [group for group in report_groups if not group.baseline_paths_configured]
-            ambiguous_global_inheritance = bool(global_baseline_paths) and len(groups_inheriting_global) > 1
-            ambiguous_group_names = {group.name for group in groups_inheriting_global}
+            return self._collect_group_baseline_reports(parser, report_groups)
 
-            if ambiguous_global_inheritance:
+        bs_report_files_coverage: list[ReportFileCoverage] = []
+        baseline_paths = ActionInputs.get_baseline_paths()
+        if baseline_paths:
+            baseline_report_paths_to_analyse = self.scan_jacoco_xml_files(paths=baseline_paths, exclude_paths=[])
+            if len(baseline_report_paths_to_analyse) == 0:
+                logger.warning("No baseline JaCoCo xml file found. No difference will be calculated.")
+            else:
+                logger.info("Analyzing baseline JaCoCo (xml) reports.")
+                for report_path in baseline_report_paths_to_analyse:
+                    bs_report_files_coverage.append(parser.parse(report_path))
+
+        return bs_report_files_coverage
+
+    def _collect_group_baseline_reports(
+        self, parser: JaCoCoReportParser, report_groups: list[ReportGroup]
+    ) -> list[ReportFileCoverage]:
+        """Scan and parse the baseline reports of each report group, tagging each with its group name."""
+        bs_report_files_coverage: list[ReportFileCoverage] = []
+        global_baseline_paths = ActionInputs.get_baseline_paths()
+        baseline_scan_cache: dict[tuple[str, ...], list[str]] = {}
+        seen_baseline_report_paths: set[str] = set()
+        groups_inheriting_global = [group for group in report_groups if not group.baseline_paths_configured]
+        ambiguous_global_inheritance = bool(global_baseline_paths) and len(groups_inheriting_global) > 1
+        ambiguous_group_names = {group.name for group in groups_inheriting_global}
+
+        if ambiguous_global_inheritance:
+            logger.warning(
+                "Ambiguous baseline configuration: multiple report groups omit 'baseline-paths' while global "
+                "'baseline-paths' is set. Define explicit 'baseline-paths' per group to enable grouped baseline "
+                "diffs for those groups."
+            )
+
+        for group in report_groups:
+            if ambiguous_global_inheritance and group.name in ambiguous_group_names:
+                logger.info(
+                    "Skipping baseline scan for group '%s' due to ambiguous global baseline inheritance.",
+                    group.name,
+                )
+                continue
+
+            # Inherit global baseline paths only when group-level baseline-paths is omitted (None).
+            # Explicit [] means baseline is intentionally disabled for this group.
+            group_baseline_paths = group.baseline_paths if group.baseline_paths_configured else global_baseline_paths
+            if not group_baseline_paths:
+                continue
+
+            baseline_paths_key = tuple(group_baseline_paths)
+            if baseline_paths_key not in baseline_scan_cache:
+                baseline_scan_cache[baseline_paths_key] = self.scan_jacoco_xml_files(
+                    paths=group_baseline_paths,
+                    exclude_paths=[],
+                )
+
+            group_baseline_report_paths = baseline_scan_cache[baseline_paths_key]
+            if len(group_baseline_report_paths) == 0:
                 logger.warning(
-                    "Ambiguous baseline configuration: multiple report groups omit 'baseline-paths' while global "
-                    "'baseline-paths' is set. Define explicit 'baseline-paths' per group to enable grouped baseline "
-                    "diffs for those groups."
+                    "No baseline JaCoCo xml file found for group '%s'. No difference will be calculated.",
+                    group.name,
                 )
-
-            for group in report_groups:
-                if ambiguous_global_inheritance and group.name in ambiguous_group_names:
-                    logger.info(
-                        "Skipping baseline scan for group '%s' due to ambiguous global baseline inheritance.",
-                        group.name,
-                    )
-                    continue
-
-                # Inherit global baseline paths only when group-level baseline-paths is omitted (None).
-                # Explicit [] means baseline is intentionally disabled for this group.
-                group_baseline_paths = (
-                    group.baseline_paths if group.baseline_paths_configured else global_baseline_paths
-                )
-                if not group_baseline_paths:
-                    continue
-
-                baseline_paths_key = tuple(group_baseline_paths)
-                if baseline_paths_key not in baseline_scan_cache:
-                    baseline_scan_cache[baseline_paths_key] = self.scan_jacoco_xml_files(
-                        paths=group_baseline_paths,
-                        exclude_paths=[],
-                    )
-
-                group_baseline_report_paths = baseline_scan_cache[baseline_paths_key]
-                if len(group_baseline_report_paths) == 0:
-                    logger.warning(
-                        "No baseline JaCoCo xml file found for group '%s'. No difference will be calculated.",
-                        group.name,
-                    )
-                else:
-                    logger.info("Analyzing baseline JaCoCo (xml) reports for group '%s'.", group.name)
-                    for report_path in group_baseline_report_paths:
-                        if report_path in seen_baseline_report_paths:
-                            logger.info(
-                                "Skipping duplicate baseline report '%s' (already assigned to a group).",
-                                report_path,
-                            )
-                            continue
-                        bs_report_files_coverage.append(parser.parse(report_path, group_name=group.name))
-                        seen_baseline_report_paths.add(report_path)
-        else:
-            baseline_paths = ActionInputs.get_baseline_paths()
-            if baseline_paths:
-                baseline_report_paths_to_analyse = self.scan_jacoco_xml_files(paths=baseline_paths, exclude_paths=[])
-                if len(baseline_report_paths_to_analyse) == 0:
-                    logger.warning("No baseline JaCoCo xml file found. No difference will be calculated.")
-                else:
-                    logger.info("Analyzing baseline JaCoCo (xml) reports.")
-                    for report_path in baseline_report_paths_to_analyse:
-                        bs_report_files_coverage.append(parser.parse(report_path))
+            else:
+                logger.info("Analyzing baseline JaCoCo (xml) reports for group '%s'.", group.name)
+                for report_path in group_baseline_report_paths:
+                    if report_path in seen_baseline_report_paths:
+                        logger.info(
+                            "Skipping duplicate baseline report '%s' (already assigned to a group).",
+                            report_path,
+                        )
+                        continue
+                    bs_report_files_coverage.append(parser.parse(report_path, group_name=group.name))
+                    seen_baseline_report_paths.add(report_path)
 
         return bs_report_files_coverage
 
