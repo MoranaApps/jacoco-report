@@ -222,10 +222,12 @@ service is needed.
 
 - `JaCoCoReportInputScanner.scan()` always returns forward-slash absolute paths
   (`_to_posix_abspath`), never OS-native separators — dev machines are both Windows and macOS, and
-  this keeps results (and substring matching against them) identical on both.
+  this keeps results (and path matching against them) identical on both.
 - `JaCoCoReportParser` matches a changed file from the JaCoCo XML (`package`/`sourcefile`) against the
-  PR's changed-file list by substring containment, after first trying to resolve it on disk via
-  `os.walk` from the current working directory — ambiguous if a relative path repeats across modules.
+  PR's changed-file list on a directory boundary (`changed_file == key` or `changed_file.endswith("/" + key)`,
+  `_matches_changed_file`), never by substring: `com/foo/Bar.java` must not match `src/xcom/foo/Bar.java`. The key
+  is first resolved on disk via `os.walk` from the current working directory — ambiguous if a relative path repeats
+  across modules. A default-package source (`<package name="">`) gets the key `<file name>`, not `/<file name>`.
   It reads `<package>` at any depth (`root.iter`), not only under `<report>`: Maven `jacoco:report-aggregate`
   wraps each module in a `<group>`, and groups can nest. `<group>` names are not used. A direct-children-only
   lookup finds no changed files in such reports, so the changed-file checks pass without checking anything.
