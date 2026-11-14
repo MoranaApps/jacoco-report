@@ -329,3 +329,139 @@ def test_parse_with_2000_directories_and_200_source_files_is_fast(tmp_path, monk
 
     assert len(report_coverage.changed_files_coverage) == 200
     assert elapsed < 1.0, f"parse took {elapsed:.2f}s"
+
+
+def _write_util_sources(root):
+    """Writes com/x/Util.java into module-a and module-b, both under the workspace root."""
+    for module in ("module-a", "module-b"):
+        source = root / module / "src" / "main" / "java" / "com" / "x" / "Util.java"
+        source.parent.mkdir(parents=True)
+        source.write_text("class Util {}")
+
+
+_MODULE_A_UTIL = "module-a/src/main/java/com/x/Util.java"
+_MODULE_B_UTIL = "module-b/src/main/java/com/x/Util.java"
+
+
+def test_module_report_without_its_changed_source_drops_the_other_modules_match(tmp_path, monkeypatch):
+    _write_util_sources(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    parser_for_b = JaCoCoReportParser(changed_files=[_MODULE_B_UTIL])
+    report = tmp_path / "module-a" / "target" / "site" / "jacoco" / "jacoco.xml"
+    report.parent.mkdir(parents=True)
+    report_path = _write_report(report, [("com/x", "Util.java")])
+
+    report_coverage = parser_for_b.parse(report_path)
+
+    assert report_coverage.changed_files_coverage == {}
+
+
+def test_module_report_keeps_only_its_own_changed_source(tmp_path, monkeypatch):
+    _write_util_sources(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    parser_for_b = JaCoCoReportParser(changed_files=[_MODULE_B_UTIL])
+    report = tmp_path / "module-b" / "target" / "site" / "jacoco" / "jacoco.xml"
+    report.parent.mkdir(parents=True)
+    report_path = _write_report(report, [("com/x", "Util.java")])
+
+    report_coverage = parser_for_b.parse(report_path)
+
+    assert list(report_coverage.changed_files_coverage) == [_MODULE_B_UTIL]
+
+
+def test_each_module_report_keeps_only_its_own_key_when_both_sources_changed(tmp_path, monkeypatch):
+    _write_util_sources(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    both_changed = JaCoCoReportParser(changed_files=[_MODULE_A_UTIL, _MODULE_B_UTIL])
+    for module in ("module-a", "module-b"):
+        (tmp_path / module / "target" / "site" / "jacoco").mkdir(parents=True)
+    report_a = _write_report(
+        tmp_path / "module-a" / "target" / "site" / "jacoco" / "jacoco.xml", [("com/x", "Util.java")]
+    )
+    report_b = _write_report(
+        tmp_path / "module-b" / "target" / "site" / "jacoco" / "jacoco.xml", [("com/x", "Util.java")]
+    )
+
+    assert list(both_changed.parse(report_a).changed_files_coverage) == [_MODULE_A_UTIL]
+    assert list(both_changed.parse(report_b).changed_files_coverage) == [_MODULE_B_UTIL]
+
+
+def test_gradle_build_report_keeps_only_its_own_module_source(tmp_path, monkeypatch):
+    _write_util_sources(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    both_changed = JaCoCoReportParser(changed_files=[_MODULE_A_UTIL, _MODULE_B_UTIL])
+    report = tmp_path / "module-b" / "build" / "reports" / "jacoco" / "test" / "x.xml"
+    report.parent.mkdir(parents=True)
+    report_path = _write_report(report, [("com/x", "Util.java")])
+
+    report_coverage = both_changed.parse(report_path)
+
+    assert list(report_coverage.changed_files_coverage) == [_MODULE_B_UTIL]
+
+
+def test_nested_module_report_keeps_only_sources_under_its_module_directory(tmp_path, monkeypatch):
+    for module in ("parent/module-a", "parent/module-b"):
+        source = tmp_path / module / "src" / "main" / "java" / "com" / "x" / "Util.java"
+        source.parent.mkdir(parents=True)
+        source.write_text("class Util {}")
+    monkeypatch.chdir(tmp_path)
+    changed = ["parent/module-a/src/main/java/com/x/Util.java", "parent/module-b/src/main/java/com/x/Util.java"]
+    parser_for_a = JaCoCoReportParser(changed_files=changed)
+    report = tmp_path / "parent" / "module-a" / "target" / "site" / "jacoco" / "jacoco.xml"
+    report.parent.mkdir(parents=True)
+    report_path = _write_report(report, [("com/x", "Util.java")])
+
+    report_coverage = parser_for_a.parse(report_path)
+
+    assert list(report_coverage.changed_files_coverage) == ["parent/module-a/src/main/java/com/x/Util.java"]
+
+
+def test_aggregate_report_without_a_match_under_its_directory_keeps_all_matches(tmp_path, monkeypatch):
+    _write_util_sources(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    both_changed = JaCoCoReportParser(changed_files=[_MODULE_A_UTIL, _MODULE_B_UTIL])
+    report = tmp_path / "aggregate" / "target" / "site" / "jacoco-aggregate" / "jacoco.xml"
+    report.parent.mkdir(parents=True)
+    report_path = _write_report(report, [("com/x", "Util.java")])
+
+    report_coverage = both_changed.parse(report_path)
+
+    assert sorted(report_coverage.changed_files_coverage) == [_MODULE_A_UTIL, _MODULE_B_UTIL]
+
+
+def test_report_without_target_or_build_segment_keeps_all_matches(tmp_path, monkeypatch):
+    _write_util_sources(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    both_changed = JaCoCoReportParser(changed_files=[_MODULE_A_UTIL, _MODULE_B_UTIL])
+    report_path = _write_report(tmp_path / "jacoco.xml", [("com/x", "Util.java")])
+
+    report_coverage = both_changed.parse(report_path)
+
+    assert sorted(report_coverage.changed_files_coverage) == [_MODULE_A_UTIL, _MODULE_B_UTIL]
+
+
+def test_report_outside_the_workspace_keeps_all_matches(tmp_path, monkeypatch):
+    workspace = tmp_path / "workspace"
+    _write_util_sources(workspace)
+    monkeypatch.chdir(workspace)
+    both_changed = JaCoCoReportParser(changed_files=[_MODULE_A_UTIL, _MODULE_B_UTIL])
+    report = tmp_path / "elsewhere" / "module-a" / "target" / "jacoco.xml"
+    report.parent.mkdir(parents=True)
+    report_path = _write_report(report, [("com/x", "Util.java")])
+
+    report_coverage = both_changed.parse(report_path)
+
+    assert sorted(report_coverage.changed_files_coverage) == [_MODULE_A_UTIL, _MODULE_B_UTIL]
+
+
+def test_report_under_target_at_the_workspace_root_keeps_all_matches(tmp_path, monkeypatch):
+    _write_util_sources(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    both_changed = JaCoCoReportParser(changed_files=[_MODULE_A_UTIL, _MODULE_B_UTIL])
+    report = tmp_path / "target" / "site" / "jacoco" / "jacoco.xml"
+    report.parent.mkdir(parents=True)
+    report_path = _write_report(report, [("com/x", "Util.java")])
+
+    report_coverage = both_changed.parse(report_path)
+
+    assert sorted(report_coverage.changed_files_coverage) == [_MODULE_A_UTIL, _MODULE_B_UTIL]
