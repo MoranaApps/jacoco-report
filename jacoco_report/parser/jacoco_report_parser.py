@@ -143,7 +143,9 @@ class JaCoCoReportParser:
             logger.error("Root element is None. Cannot extract changed files stats.")
             return changed_files_stats
 
-        for pck in root.findall("package"):
+        # Packages sit directly under <report> or inside <group> elements nested to any depth
+        # (e.g. Maven jacoco:report-aggregate wraps each module in a <group>).
+        for pck in root.iter("package"):
             logger.debug("Package: %s", pck.attrib["name"])
             for src_file in pck.findall("sourcefile"):
                 file_path = pck.attrib["name"]
