@@ -15,6 +15,11 @@ from jacoco_report.model.file_coverage import FileCoverage
 logger = logging.getLogger(__name__)
 
 
+def _matches_changed_file(key: str, changed_file: str) -> bool:
+    """A report path matches a changed file when it is the whole path or ends it on a directory boundary."""
+    return changed_file == key or changed_file.endswith("/" + key)
+
+
 class JaCoCoReportParser:
     """
     A class for parsing JaCoCo XML reports and creating CoverageReport instances.
@@ -150,19 +155,20 @@ class JaCoCoReportParser:
             for src_file in pck.findall("sourcefile"):
                 file_path = pck.attrib["name"]
                 file_name = src_file.attrib["name"]
+                # The default package has an empty name; a leading "/" would never match a changed file.
+                relative_path = f"{file_path}/{file_name}" if file_path else file_name
 
-                keys: list[str] = find_file(os.getcwd(), f"{file_path}/{file_name}")
+                keys: list[str] = find_file(os.getcwd(), relative_path)
                 if len(keys) == 0:
                     logger.debug(
-                        "File '%s/%s' not found in the repository. Working directory: %s",
-                        file_path,
-                        file_name,
+                        "File '%s' not found in the repository. Working directory: %s",
+                        relative_path,
                         os.getcwd(),
                     )
-                    keys.append(f"{file_path}/{file_name}")
+                    keys.append(relative_path)
 
                 for key in keys:
-                    if any(key in changed_file for changed_file in self._changed_files):
+                    if any(_matches_changed_file(key, changed_file) for changed_file in self._changed_files):
                         logger.debug("File '%s' is in the list of changed files.", key)
                         file_coverage = FileCoverage(
                             file_path=file_path,

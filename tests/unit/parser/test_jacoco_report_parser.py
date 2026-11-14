@@ -117,6 +117,42 @@ def test_parse_changed_files_stats_finds_packages_inside_groups(parser, tmp_path
     assert file_coverage.clazz == Counter(missed=0, covered=1)
 
 
+@pytest.mark.parametrize(
+    "changed_file, is_match",
+    [
+        pytest.param("com/example/Example.java", True, id="same-path"),
+        pytest.param("src/main/java/com/example/Example.java", True, id="suffix-on-directory-boundary"),
+        pytest.param("src/xcom/example/Example.java", False, id="suffix-inside-directory-name"),
+        pytest.param("src/main/java/com/example/Example.javax", False, id="prefix-of-file-name"),
+    ],
+)
+def test_changed_file_matches_on_directory_boundary(
+    sample_jacoco_report, tmp_path, monkeypatch, changed_file, is_match
+):
+    monkeypatch.chdir(tmp_path)  # no source on disk, so the key is the report path "com/example/Example.java"
+    boundary_parser = JaCoCoReportParser(changed_files=[changed_file])
+
+    report_coverage = boundary_parser.parse(sample_jacoco_report)
+
+    assert ("com/example/Example.java" in report_coverage.changed_files_coverage) is is_match
+
+
+def test_changed_file_in_default_package_matches(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)  # no source on disk, so the key comes from the report alone
+    report_path = tmp_path / "jacoco.xml"
+    report_path.write_text(
+        '<report name="Default Package Report"><package name="">'
+        '<sourcefile name="Example.java"><counter type="LINE" missed="1" covered="3"/></sourcefile>'
+        "</package></report>"
+    )
+    default_package_parser = JaCoCoReportParser(changed_files=["src/main/java/Example.java"])
+
+    report_coverage = default_package_parser.parse(str(report_path))
+
+    assert list(report_coverage.changed_files_coverage) == ["Example.java"]
+    assert report_coverage.changed_files_coverage["Example.java"].line == Counter(missed=1, covered=3)
+
+
 def test_file_not_in_changed_files(sample_jacoco_report, caplog):
     non_matching_parser = JaCoCoReportParser(changed_files=["com/example/NonExistent.java"])
 
