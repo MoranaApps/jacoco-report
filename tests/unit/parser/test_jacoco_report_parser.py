@@ -4,7 +4,7 @@ import time
 
 import pytest
 
-from jacoco_report.parser.jacoco_report_parser import JaCoCoReportParser
+from jacoco_report.parser.jacoco_report_parser import JaCoCoReportParser, _index_workspace_files
 from jacoco_report.model.counter import Counter
 from jacoco_report.model.report_file_coverage import ReportFileCoverage
 
@@ -290,6 +290,39 @@ def test_source_file_under_git_directory_is_not_found(tmp_path, monkeypatch):
     report_coverage = git_parser.parse(report)
 
     assert list(report_coverage.changed_files_coverage) == ["com/example/Example.java"]
+
+
+def test_workspace_index_lists_root_and_nested_files_in_walk_order_without_git(tmp_path):
+    for relative in (
+        "Root.java",
+        "Util.java",
+        "module-a/Util.java",
+        "module-a/src/com/example/Util.java",
+        "module-a/src/com/example/Example.java",
+        ".git/objects/Util.java",
+        ".git/HEAD",
+    ):
+        (tmp_path / relative).parent.mkdir(parents=True, exist_ok=True)
+        (tmp_path / relative).write_text("")
+
+    index = _index_workspace_files(str(tmp_path))
+
+    assert index == {
+        "Root.java": ["Root.java"],
+        "Util.java": ["Util.java", "module-a/Util.java", "module-a/src/com/example/Util.java"],
+        "Example.java": ["module-a/src/com/example/Example.java"],
+    }
+
+
+def test_workspace_index_computes_relative_paths_per_directory_not_per_file(tmp_path, mocker):
+    (tmp_path / "src").mkdir()
+    for index in range(50):
+        (tmp_path / "src" / f"File{index:02d}.java").write_text("")
+    relpath_spy = mocker.spy(os.path, "relpath")
+
+    _index_workspace_files(str(tmp_path))
+
+    assert relpath_spy.call_count <= 2, "expected at most one call per directory (workspace root and src)"
 
 
 def test_workspace_is_walked_once_for_all_reports_of_a_parser(tmp_path, monkeypatch, mocker):
