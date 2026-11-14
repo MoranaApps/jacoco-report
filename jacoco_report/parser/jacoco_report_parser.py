@@ -58,14 +58,16 @@ def _index_workspace_files(root_dir: str) -> dict[str, list[str]]:
     """
     Maps each file name under root_dir to its forward-slash paths relative to root_dir.
 
-    The .git directory is skipped, and directory symlinks are not followed (os.walk default).
+    The .git directory is skipped, and directory symlinks are not followed (os.walk default). The relative path is
+    computed once per directory, not per file: os.path.relpath makes both paths absolute and normalizes them.
     """
     index: dict[str, list[str]] = {}
     for dirpath, dirnames, filenames in os.walk(root_dir):
         dirnames[:] = [name for name in dirnames if name != ".git"]
+        relative_dir = os.path.relpath(dirpath, root_dir).replace(os.sep, "/")
+        prefix = "" if relative_dir == "." else f"{relative_dir}/"
         for file_name in filenames:
-            relative_path = os.path.relpath(os.path.join(dirpath, file_name), root_dir)
-            index.setdefault(file_name, []).append(relative_path.replace(os.sep, "/"))
+            index.setdefault(file_name, []).append(prefix + file_name)
     return index
 
 
