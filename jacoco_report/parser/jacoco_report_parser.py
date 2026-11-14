@@ -20,6 +20,40 @@ def _matches_changed_file(key: str, changed_file: str) -> bool:
     return changed_file == key or changed_file.endswith("/" + key)
 
 
+_BUILD_OUTPUT_DIRS = ("target", "build")
+
+
+def _report_module_directory(report_path: str) -> Optional[str]:
+    """
+    Returns the module directory of a report: its path relative to the working directory, cut at the first
+    directory segment named "target" or "build" (e.g. "module-a/target/site/jacoco/jacoco.xml" gives "module-a").
+
+    Returns "" for a report directly under a "target" or "build" directory at the workspace root, and None when the
+    report has no such directory or lies outside the working directory.
+    """
+    relative = os.path.relpath(os.path.abspath(report_path), os.getcwd()).replace(os.sep, "/")
+    if relative == ".." or relative.startswith("../"):
+        return None
+    directories = relative.split("/")[:-1]
+    for index, segment in enumerate(directories):
+        if segment in _BUILD_OUTPUT_DIRS:
+            return "/".join(directories[:index])
+    return None
+
+
+def _narrow_to_module(matches: list[str], module_directory: Optional[str]) -> list[str]:
+    """
+    Keeps the matches under the module directory, so a report only claims the sources of its own module.
+
+    Returns all matches when the module directory is None, or when no match lies under it (e.g. an aggregate report).
+    """
+    if module_directory is None:
+        return matches
+    prefix = f"{module_directory}/" if module_directory else ""
+    under_module = [match for match in matches if match.startswith(prefix)]
+    return under_module or matches
+
+
 def _index_workspace_files(root_dir: str) -> dict[str, list[str]]:
     """
     Maps each file name under root_dir to its forward-slash paths relative to root_dir.
@@ -67,9 +101,12 @@ class JaCoCoReportParser:
         else:
             name = root.attrib["name"] if root is not None else report_path
 
+        module_directory = _report_module_directory(report_path)
+        logger.debug("Module directory of JaCoCo report %s: %s", report_path, module_directory)
+
         # Extract overall stats and changed files stats from the XML
         overall_stats: Coverage = self._extract_overall_stats(root)
-        changed_files_stats: dict[str, FileCoverage] = self._extract_changed_files_stats(root)
+        changed_files_stats: dict[str, FileCoverage] = self._extract_changed_files_stats(root, module_directory)
 
         return ReportFileCoverage(report_path, name, overall_stats, changed_files_stats, group_name)
 
@@ -160,12 +197,15 @@ class JaCoCoReportParser:
             )
         return [path for path in self._workspace_index.get(file_name, []) if _matches_changed_file(relative_path, path)]
 
-    def _extract_changed_files_stats(self, root: Optional[ET.Element]) -> dict[str, FileCoverage]:
+    def _extract_changed_files_stats(
+        self, root: Optional[ET.Element], module_directory: Optional[str]
+    ) -> dict[str, FileCoverage]:
         """
         Extracts changed files coverage statistics from the XML root.
 
         Paramaters:
             root: The root of the XML tree
+            module_directory: The report's module directory, used to narrow matches to its module (None: no narrowing)
 
         Returns:
             A dictionary containing the changed files coverage statistics
@@ -188,7 +228,9 @@ class JaCoCoReportParser:
                 # The default package has an empty name; a leading "/" would never match a changed file.
                 relative_path = f"{file_path}/{file_name}" if file_path else file_name
 
-                keys: list[str] = self._find_workspace_paths(file_name, relative_path)
+                keys: list[str] = _narrow_to_module(
+                    self._find_workspace_paths(file_name, relative_path), module_directory
+                )
                 if len(keys) == 0:
                     logger.debug(
                         "File '%s' not found in the repository. Working directory: %s",

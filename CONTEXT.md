@@ -228,9 +228,13 @@ service is needed.
   `_matches_changed_file`), never by substring: `com/foo/Bar.java` must not match `src/xcom/foo/Bar.java`. The key
   is first resolved on disk: the first source file lookup walks `os.getcwd()` once, into a file-name → forward-slash
   relative-path index (`_index_workspace_files`) that the parser keeps for every report it parses (`.git` pruned,
-  directory symlinks not followed). Candidates with the same file name pass the same boundary rule, so a path
-  repeated across modules yields one key per match. No candidate → the key is the report's `<package>/<sourcefile>`
-  path. A default-package source (`<package name="">`) gets the key `<file name>`, not `/<file name>`.
+  directory symlinks not followed). Candidates with the same file name pass the same boundary rule. Then they
+  are narrowed to the report's module directory (`_report_module_directory`: the report path relative to
+  `os.getcwd()`, cut at its first `target` or `build` directory segment, `""` at the root), so a report keeps only
+  the sources under its own module. Matches are all kept when none lies under that directory (aggregate report),
+  the report path has no `target`/`build` segment, or the report lies outside the working directory. No candidate →
+  the key is the report's `<package>/<sourcefile>` path. A default-package source (`<package name="">`) gets the key
+  `<file name>`, not `/<file name>`.
   It reads `<package>` at any depth (`root.iter`), not only under `<report>`: Maven `jacoco:report-aggregate`
   wraps each module in a `<group>`, and groups can nest. `<group>` names are not used. A direct-children-only
   lookup finds no changed files in such reports, so the changed-file checks pass without checking anything.
