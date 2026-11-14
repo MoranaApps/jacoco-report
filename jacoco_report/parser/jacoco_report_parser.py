@@ -20,6 +20,21 @@ def _matches_changed_file(key: str, changed_file: str) -> bool:
     return changed_file == key or changed_file.endswith("/" + key)
 
 
+def _index_workspace_files(root_dir: str) -> dict[str, list[str]]:
+    """
+    Maps each file name under root_dir to its forward-slash paths relative to root_dir.
+
+    The .git directory is skipped, and directory symlinks are not followed (os.walk default).
+    """
+    index: dict[str, list[str]] = {}
+    for dirpath, dirnames, filenames in os.walk(root_dir):
+        dirnames[:] = [name for name in dirnames if name != ".git"]
+        for file_name in filenames:
+            relative_path = os.path.relpath(os.path.join(dirpath, file_name), root_dir)
+            index.setdefault(file_name, []).append(relative_path.replace(os.sep, "/"))
+    return index
+
+
 class JaCoCoReportParser:
     """
     A class for parsing JaCoCo XML reports and creating CoverageReport instances.
@@ -27,6 +42,8 @@ class JaCoCoReportParser:
 
     def __init__(self, changed_files: list[str]):
         self._changed_files: list[str] = changed_files
+        # Built on the first source file lookup, then shared by every report this parser reads.
+        self._workspace_index: Optional[dict[str, list[str]]] = None
 
     def parse(self, report_path: str, group_name: Optional[str] = None) -> ReportFileCoverage:
         """
@@ -122,6 +139,27 @@ class JaCoCoReportParser:
             logger.error("Failed to parse %s counter from JaCoCo report.", counter_type)
             return 0
 
+    def _find_workspace_paths(self, file_name: str, relative_path: str) -> list[str]:
+        """
+        Finds the workspace paths of a source file, matched by file name and the directory-boundary rule.
+
+        Parameters:
+            file_name: The source file name from the report.
+            relative_path: The report's package path plus file name (e.g. "com/example/Example.java").
+
+        Returns:
+            The matching forward-slash workspace paths, empty if none exist.
+        """
+        if self._workspace_index is None:
+            workspace = os.getcwd()
+            self._workspace_index = _index_workspace_files(workspace)
+            logger.debug(
+                "Indexed %d files under working directory %s",
+                sum(len(paths) for paths in self._workspace_index.values()),
+                workspace,
+            )
+        return [path for path in self._workspace_index.get(file_name, []) if _matches_changed_file(relative_path, path)]
+
     def _extract_changed_files_stats(self, root: Optional[ET.Element]) -> dict[str, FileCoverage]:
         """
         Extracts changed files coverage statistics from the XML root.
@@ -132,14 +170,6 @@ class JaCoCoReportParser:
         Returns:
             A dictionary containing the changed files coverage statistics
         """
-
-        def find_file(root_dir: str, relative_path: str) -> list[str]:
-            paths: list[str] = []
-            for dirpath, *_ in os.walk(root_dir):
-                full_path = os.path.join(dirpath, relative_path)
-                if os.path.isfile(full_path):
-                    paths.append(os.path.relpath(full_path, root_dir))
-            return paths
 
         logger.debug("Extracting changed files coverage statistics from JaCoCo report.")
         changed_files_stats = dict[str, FileCoverage]()
@@ -158,7 +188,7 @@ class JaCoCoReportParser:
                 # The default package has an empty name; a leading "/" would never match a changed file.
                 relative_path = f"{file_path}/{file_name}" if file_path else file_name
 
-                keys: list[str] = find_file(os.getcwd(), relative_path)
+                keys: list[str] = self._find_workspace_paths(file_name, relative_path)
                 if len(keys) == 0:
                     logger.debug(
                         "File '%s' not found in the repository. Working directory: %s",

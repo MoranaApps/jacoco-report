@@ -226,8 +226,11 @@ service is needed.
 - `JaCoCoReportParser` matches a changed file from the JaCoCo XML (`package`/`sourcefile`) against the
   PR's changed-file list on a directory boundary (`changed_file == key` or `changed_file.endswith("/" + key)`,
   `_matches_changed_file`), never by substring: `com/foo/Bar.java` must not match `src/xcom/foo/Bar.java`. The key
-  is first resolved on disk via `os.walk` from the current working directory — ambiguous if a relative path repeats
-  across modules. A default-package source (`<package name="">`) gets the key `<file name>`, not `/<file name>`.
+  is first resolved on disk: the first source file lookup walks `os.getcwd()` once, into a file-name → forward-slash
+  relative-path index (`_index_workspace_files`) that the parser keeps for every report it parses (`.git` pruned,
+  directory symlinks not followed). Candidates with the same file name pass the same boundary rule, so a path
+  repeated across modules yields one key per match. No candidate → the key is the report's `<package>/<sourcefile>`
+  path. A default-package source (`<package name="">`) gets the key `<file name>`, not `/<file name>`.
   It reads `<package>` at any depth (`root.iter`), not only under `<report>`: Maven `jacoco:report-aggregate`
   wraps each module in a `<group>`, and groups can nest. `<group>` names are not used. A direct-children-only
   lookup finds no changed files in such reports, so the changed-file checks pass without checking anything.
