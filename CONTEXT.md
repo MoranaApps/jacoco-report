@@ -226,6 +226,10 @@ service is needed.
 - `JaCoCoReportParser` matches a changed file from the JaCoCo XML (`package`/`sourcefile`) against the
   PR's changed-file list by substring containment, after first trying to resolve it on disk via
   `os.walk` from the current working directory — ambiguous if a relative path repeats across modules.
+  It reads `<package>` at any depth (`root.iter`), not only under `<report>`: Maven `jacoco:report-aggregate`
+  wraps each module in a `<group>`, and groups can nest. `<group>` names are not used. A direct-children-only
+  lookup finds no changed files in such reports, so the changed-file checks pass without checking anything.
+  Fixture: `tests/data/report_aggregate/` (kept outside `test_project/`, which the self-test and snapshots scan).
 - Pylint's gate is zero messages: `.pylintrc` `fail-under=10`; CI runs pylint and uses its exit code, not a score.
 - The `secrets` context is not allowed in a step- or job-level `if:`; GitHub rejects the whole workflow
   file as invalid and no job in it runs (issue #240: `renovate.yml` never auto-merged). Expose the

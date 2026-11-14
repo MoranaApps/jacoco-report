@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!DOCTYPE report PUBLIC "-//JACOCO//DTD Report 1.1//EN" "report.dtd">
+<report name="Aggregate Report">
+    <sessioninfo id="aggregate-session" start="1609459200000" dump="1609459200000"/>
+    <group name="module-a">
+        <package name="com/example/aggregate/alpha">
+            <class name="com/example/aggregate/alpha/AlphaService" sourcefilename="AlphaService.java">
+                <method name="run" desc="()V" line="5">
+                    <counter type="INSTRUCTION" missed="10" covered="30"/>
+                    <counter type="BRANCH" missed="1" covered="3"/>
+                    <counter type="LINE" missed="2" covered="8"/>
+                    <counter type="COMPLEXITY" missed="1" covered="2"/>
+                    <counter type="METHOD" missed="0" covered="1"/>
+                </method>
+                <counter type="INSTRUCTION" missed="10" covered="30"/>
+                <counter type="BRANCH" missed="1" covered="3"/>
+                <counter type="LINE" missed="2" covered="8"/>
+                <counter type="COMPLEXITY" missed="1" covered="2"/>
+                <counter type="METHOD" missed="0" covered="1"/>
+                <counter type="CLASS" missed="0" covered="1"/>
+            </class>
+            <sourcefile name="AlphaService.java">
+                <line nr="5" mi="0" ci="3" mb="0" cb="0"/>
+                <counter type="INSTRUCTION" missed="10" covered="30"/>
+                <counter type="BRANCH" missed="1" covered="3"/>
+                <counter type="LINE" missed="2" covered="8"/>
+                <counter type="COMPLEXITY" missed="1" covered="2"/>
+                <counter type="METHOD" missed="0" covered="1"/>
+                <counter type="CLASS" missed="0" covered="1"/>
+            </sourcefile>
+            <counter type="INSTRUCTION" missed="10" covered="30"/>
+            <counter type="BRANCH" missed="1" covered="3"/>
+            <counter type="LINE" missed="2" covered="8"/>
+            <counter type="COMPLEXITY" missed="1" covered="2"/>
+            <counter type="METHOD" missed="0" covered="1"/>
+            <counter type="CLASS" missed="0" covered="1"/>
+        </package>
+        <counter type="INSTRUCTION" missed="10" covered="30"/>
+        <counter type="BRANCH" missed="1" covered="3"/>
+        <counter type="LINE" missed="2" covered="8"/>
+        <counter type="COMPLEXITY" missed="1" covered="2"/>
+        <counter type="METHOD" missed="0" covered="1"/>
+        <counter type="CLASS" missed="0" covered="1"/>
+    </group>
+    <group name="module-b">
+        <package name="com/example/aggregate/beta">
+            <class name="com/example/aggregate/beta/BetaRepository" sourcefilename="BetaRepository.java">
+                <method name="load" desc="()V" line="7">
+                    <counter type="INSTRUCTION" missed="5" covered="45"/>
+                    <counter type="BRANCH" missed="0" covered="4"/>
+                    <counter type="LINE" missed="1" covered="11"/>
+                    <counter type="COMPLEXITY" missed="0" covered="3"/>
+                    <counter type="METHOD" missed="0" covered="1"/>
+                </method>
+                <counter type="INSTRUCTION" missed="5" covered="45"/>
+                <counter type="BRANCH" missed="0" covered="4"/>
+                <counter type="LINE" missed="1" covered="11"/>
+                <counter type="COMPLEXITY" missed="0" covered="3"/>
+                <counter type="METHOD" missed="0" covered="1"/>
+                <counter type="CLASS" missed="0" covered="1"/>
+            </class>
+            <sourcefile name="BetaRepository.java">
+                <line nr="7" mi="0" ci="4" mb="0" cb="0"/>
+                <counter type="INSTRUCTION" missed="5" covered="45"/>
+                <counter type="BRANCH" missed="0" covered="4"/>
+                <counter type="LINE" missed="1" covered="11"/>
+                <counter type="COMPLEXITY" missed="0" covered="3"/>
+                <counter type="METHOD" missed="0" covered="1"/>
+                <counter type="CLASS" missed="0" covered="1"/>
+            </sourcefile>
+            <counter type="INSTRUCTION" missed="5" covered="45"/>
+            <counter type="BRANCH" missed="0" covered="4"/>
+            <counter type="LINE" missed="1" covered="11"/>
+            <counter type="COMPLEXITY" missed="0" covered="3"/>
+            <counter type="METHOD" missed="0" covered="1"/>
+            <counter type="CLASS" missed="0" covered="1"/>
+        </package>
+        <counter type="INSTRUCTION" missed="5" covered="45"/>
+        <counter type="BRANCH" missed="0" covered="4"/>
+        <counter type="LINE" missed="1" covered="11"/>
+        <counter type="COMPLEXITY" missed="0" covered="3"/>
+        <counter type="METHOD" missed="0" covered="1"/>
+        <counter type="CLASS" missed="0" covered="1"/>
+    </group>
+    <counter type="INSTRUCTION" missed="15" covered="75"/>
+    <counter type="BRANCH" missed="1" covered="7"/>
+    <counter type="LINE" missed="3" covered="19"/>
+    <counter type="COMPLEXITY" missed="1" covered="5"/>
+    <counter type="METHOD" missed="0" covered="2"/>
+    <counter type="CLASS" missed="0" covered="2"/>
+</report>

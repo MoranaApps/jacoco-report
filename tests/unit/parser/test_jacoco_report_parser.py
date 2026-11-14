@@ -78,6 +78,45 @@ def test_parse_changed_files_stats(parser, sample_jacoco_report):
     assert file_coverage.clazz == Counter(missed=0, covered=5)
 
 
+_GROUPED_PACKAGE = """
+<package name="com/example">
+    <sourcefile name="Example.java">
+        <counter type="INSTRUCTION" missed="3" covered="17"/>
+        <counter type="BRANCH" missed="1" covered="5"/>
+        <counter type="LINE" missed="4" covered="12"/>
+        <counter type="COMPLEXITY" missed="2" covered="6"/>
+        <counter type="METHOD" missed="1" covered="3"/>
+        <counter type="CLASS" missed="0" covered="1"/>
+    </sourcefile>
+</package>
+"""
+
+
+@pytest.mark.parametrize(
+    "report_body",
+    [
+        pytest.param(f'<group name="module-a">{_GROUPED_PACKAGE}</group>', id="one-group-level"),
+        pytest.param(
+            f'<group name="app"><group name="module-a">{_GROUPED_PACKAGE}</group></group>', id="two-nested-group-levels"
+        ),
+    ],
+)
+def test_parse_changed_files_stats_finds_packages_inside_groups(parser, tmp_path, report_body):
+    report_path = tmp_path / "jacoco.xml"
+    report_path.write_text(f'<report name="Aggregate Report">{report_body}</report>')
+
+    report_coverage = parser.parse(str(report_path))
+
+    assert list(report_coverage.changed_files_coverage) == ["com/example/Example.java"]
+    file_coverage = report_coverage.changed_files_coverage["com/example/Example.java"]
+    assert file_coverage.instruction == Counter(missed=3, covered=17)
+    assert file_coverage.branch == Counter(missed=1, covered=5)
+    assert file_coverage.line == Counter(missed=4, covered=12)
+    assert file_coverage.complexity == Counter(missed=2, covered=6)
+    assert file_coverage.method == Counter(missed=1, covered=3)
+    assert file_coverage.clazz == Counter(missed=0, covered=1)
+
+
 def test_file_not_in_changed_files(sample_jacoco_report, caplog):
     non_matching_parser = JaCoCoReportParser(changed_files=["com/example/NonExistent.java"])
 
