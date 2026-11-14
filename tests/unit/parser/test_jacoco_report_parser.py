@@ -1,4 +1,6 @@
 import logging
+import os
+import time
 
 import pytest
 
@@ -225,3 +227,105 @@ def test_parse_counter_value_error_missing(parser, sample_jacoco_report, caplog)
         report_coverage = parser.parse(report_path)
 
     assert "Failed to find INSTRUCTION counter in JaCoCo report." in caplog.text
+
+
+def _write_report(path, packages):
+    """Writes a JaCoCo report with one <package> per (package name, source file name) pair."""
+    body = "".join(
+        f'<package name="{package}"><sourcefile name="{file_name}">'
+        '<counter type="LINE" missed="1" covered="3"/></sourcefile></package>'
+        for package, file_name in packages
+    )
+    path.write_text(f'<report name="Index Report">{body}</report>')
+    return str(path)
+
+
+def test_source_file_in_module_subdirectory_is_keyed_by_workspace_path(tmp_path, monkeypatch):
+    source = tmp_path / "module-a" / "src" / "main" / "java" / "com" / "example" / "Example.java"
+    source.parent.mkdir(parents=True)
+    source.write_text("class Example {}")
+    monkeypatch.chdir(tmp_path)
+    module_parser = JaCoCoReportParser(changed_files=["module-a/src/main/java/com/example/Example.java"])
+    report = _write_report(tmp_path / "jacoco.xml", [("com/example", "Example.java")])
+
+    report_coverage = module_parser.parse(report)
+
+    assert list(report_coverage.changed_files_coverage) == ["module-a/src/main/java/com/example/Example.java"]
+
+
+def test_default_package_source_file_on_disk_is_keyed_by_workspace_path(tmp_path, monkeypatch):
+    source = tmp_path / "src" / "main" / "java" / "Example.java"
+    source.parent.mkdir(parents=True)
+    source.write_text("class Example {}")
+    monkeypatch.chdir(tmp_path)
+    default_package_parser = JaCoCoReportParser(changed_files=["src/main/java/Example.java"])
+    report = _write_report(tmp_path / "jacoco.xml", [("", "Example.java")])
+
+    report_coverage = default_package_parser.parse(report)
+
+    assert list(report_coverage.changed_files_coverage) == ["src/main/java/Example.java"]
+
+
+def test_source_file_matching_only_inside_a_directory_name_is_not_found(tmp_path, monkeypatch):
+    source = tmp_path / "src" / "xcom" / "example" / "Example.java"
+    source.parent.mkdir(parents=True)
+    source.write_text("class Example {}")
+    monkeypatch.chdir(tmp_path)
+    boundary_parser = JaCoCoReportParser(changed_files=["src/xcom/example/Example.java"])
+    report = _write_report(tmp_path / "jacoco.xml", [("com/example", "Example.java")])
+
+    report_coverage = boundary_parser.parse(report)
+
+    assert report_coverage.changed_files_coverage == {}
+
+
+def test_source_file_under_git_directory_is_not_found(tmp_path, monkeypatch):
+    source = tmp_path / ".git" / "com" / "example" / "Example.java"
+    source.parent.mkdir(parents=True)
+    source.write_text("class Example {}")
+    monkeypatch.chdir(tmp_path)
+    git_parser = JaCoCoReportParser(changed_files=[".git/com/example/Example.java"])
+    report = _write_report(tmp_path / "jacoco.xml", [("com/example", "Example.java")])
+
+    report_coverage = git_parser.parse(report)
+
+    assert list(report_coverage.changed_files_coverage) == ["com/example/Example.java"]
+
+
+def test_workspace_is_walked_once_for_all_reports_of_a_parser(tmp_path, monkeypatch, mocker):
+    (tmp_path / "com" / "example").mkdir(parents=True)
+    (tmp_path / "com" / "example" / "Example.java").write_text("class Example {}")
+    monkeypatch.chdir(tmp_path)
+    shared_parser = JaCoCoReportParser(changed_files=["com/example/Example.java"])
+    report = _write_report(tmp_path / "jacoco.xml", [("com/example", "Example.java")])
+    walk_spy = mocker.spy(os, "walk")
+
+    shared_parser.parse(report)
+    shared_parser.parse(report, group_name="baseline")
+    shared_parser.parse(report)
+
+    assert walk_spy.call_count == 1
+
+
+def test_parse_with_2000_directories_and_200_source_files_is_fast(tmp_path, monkeypatch):
+    module_names = [f"m{i:03d}" for i in range(200)]
+    for module in module_names:
+        (tmp_path / module / "com" / "example").mkdir(parents=True)
+    for index, module in enumerate(module_names):
+        (tmp_path / module / "com" / "example" / f"File{index:03d}.java").write_text("class File {}")
+    for extra in range(1400):
+        (tmp_path / f"extra{extra:04d}").mkdir()
+    monkeypatch.chdir(tmp_path)
+    changed = [f"{module}/com/example/File{index:03d}.java" for index, module in enumerate(module_names)]
+    perf_parser = JaCoCoReportParser(changed_files=changed)
+    report = _write_report(
+        tmp_path / "jacoco.xml",
+        [(f"{module}/com/example", f"File{index:03d}.java") for index, module in enumerate(module_names)],
+    )
+
+    started = time.perf_counter()
+    report_coverage = perf_parser.parse(report)
+    elapsed = time.perf_counter() - started
+
+    assert len(report_coverage.changed_files_coverage) == 200
+    assert elapsed < 1.0, f"parse took {elapsed:.2f}s"
