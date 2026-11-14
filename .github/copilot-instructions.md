@@ -44,8 +44,9 @@ This file adds only what's specific to this project and not already covered ther
 ## Code quality
 
 - Must not introduce a bare `# type: ignore` without an inline justification comment.
-- Must not add `# pylint: disable` inline — use `.pylintrc`'s `[MESSAGES CONTROL]` instead, each
-  entry with a comment explaining why.
+- Must not suppress a pylint message except in two forms, each with a comment giving the reason: a global entry in
+  `.pylintrc`'s `[MESSAGES CONTROL]` for a rule disabled by design project-wide, or a class-level
+  `# pylint: disable=<message>` for a single by-design exception. Flag any other suppression in review.
 
 ---
 

@@ -66,7 +66,7 @@ Files and parts marked "From agentic-defaults" are replaced when the kit updates
   coverage (`pytest --cov=. tests/ --ignore=tests/integration/live --cov-fail-under=80`).
   `tests/integration/live/` needs a real `GITHUB_TOKEN`, `GITHUB_REPOSITORY` and a PR-shaped
   `GITHUB_REF`; it's run separately and skipped on forks in CI.
-- `make lint`: `pylint $(git ls-files '*.py')` (min score 9.5/10) and `mypy .`.
+- `make lint`: `pylint $(git ls-files '*.py')` (must report no messages) and `mypy .`.
 - `make format`: `black $(git ls-files '*.py')` (writes); `make check` only verifies with
   `black --check`.
 - `make check`: lint + test + build + `black --check` — everything that must pass before work is

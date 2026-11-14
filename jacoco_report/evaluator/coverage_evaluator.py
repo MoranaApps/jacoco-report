@@ -34,33 +34,13 @@ class CoverageEvaluator:
         self._report_files_coverage: list[ReportFileCoverage] = report_files_coverage
 
         # thresholds
-        self._global_min_coverage_overall: float = global_min_coverage_overall
-        self._global_min_coverage_changed_files: float = global_min_coverage_changed_files
+        # global-thresholds: (overall, changed-files average)
+        self._global_thresholds: tuple[float, float] = (global_min_coverage_overall, global_min_coverage_changed_files)
         # Per-report/group fallback: group field → report-thresholds-default field → 0.0
         # global-thresholds is a separate evaluation pass and is never in this chain.
         self._report_thresholds_default: tuple[float, float, float] = report_thresholds_default
         self._report_groups: list[ReportGroup] = report_groups if report_groups is not None else []
         self.report_group_order: list[str] = [group.name for group in self._report_groups]
-        self._group_thresholds_lookup: dict[str, tuple[float, float, float]] = {
-            group.name: (
-                (
-                    group.min_coverage_overall
-                    if group.min_coverage_overall is not None
-                    else self._report_thresholds_default[0]
-                ),
-                (
-                    group.min_coverage_changed_files
-                    if group.min_coverage_changed_files is not None
-                    else self._report_thresholds_default[1]
-                ),
-                (
-                    group.min_coverage_per_changed_file
-                    if group.min_coverage_per_changed_file is not None
-                    else self._report_thresholds_default[2]
-                ),
-            )
-            for group in self._report_groups
-        }
 
         # *** output data for the comment(s) ***
         # global data
@@ -181,14 +161,12 @@ class CoverageEvaluator:
         # evaluate the global coverage values
         self.total_coverage_overall = global_overall.coverage()
         self.total_coverage_changed_files = global_changed_files.coverage()
-        self.total_coverage_overall_passed = self.total_coverage_overall >= self._global_min_coverage_overall
+        self.total_coverage_overall_passed = self.total_coverage_overall >= self._global_thresholds[0]
 
         if changed_file_counter == 0:
             self.total_coverage_changed_files_passed = True
         else:
-            self.total_coverage_changed_files_passed = (
-                self.total_coverage_changed_files >= self._global_min_coverage_changed_files
-            )
+            self.total_coverage_changed_files_passed = self.total_coverage_changed_files >= self._global_thresholds[1]
 
         # review for violations
         self.review_violations()
@@ -200,13 +178,13 @@ class CoverageEvaluator:
         if not self.total_coverage_overall_passed:
             self.violations.append(
                 f"Global overall coverage {self.total_coverage_overall} is below the threshold "
-                f"{self._global_min_coverage_overall}."
+                f"{self._global_thresholds[0]}."
             )
             self.reached_threshold_overall = False
         if not self.total_coverage_changed_files_passed:
             self.violations.append(
                 f"Global changed files coverage {self.total_coverage_changed_files} is below the threshold "
-                f"{self._global_min_coverage_changed_files}."
+                f"{self._global_thresholds[1]}."
             )
             self.reached_threshold_changed_files_average = False
 
@@ -267,19 +245,7 @@ class CoverageEvaluator:
         Uses group-level thresholds when set, otherwise falls back to report-thresholds-default (then 0.0).
         global-thresholds is a separate evaluation pass and is never in this fallback chain.
         """
-        overall_threshold = (
-            group.min_coverage_overall if group.min_coverage_overall is not None else self._report_thresholds_default[0]
-        )
-        changed_files_threshold = (
-            group.min_coverage_changed_files
-            if group.min_coverage_changed_files is not None
-            else self._report_thresholds_default[1]
-        )
-        changed_per_file_threshold = (
-            group.min_coverage_per_changed_file
-            if group.min_coverage_per_changed_file is not None
-            else self._report_thresholds_default[2]
-        )
+        overall_threshold, changed_files_threshold, changed_per_file_threshold = self._group_thresholds(group)
         evaluated_coverage.overall_coverage_threshold = overall_threshold
         evaluated_coverage.changed_files_threshold = changed_files_threshold
         evaluated_coverage.per_changed_file_threshold = changed_per_file_threshold
@@ -318,7 +284,8 @@ class CoverageEvaluator:
                 "Group '%s' has no overall coverage data for selected metric; treated as passed.",
                 evaluated_coverage.name,
             )
-        # Log changed files info if there are files with metric weight OR if all files were filtered out (zero metric weight)
+        # Log changed files info when there are files with metric weight, or when all files
+        # were filtered out (zero metric weight).
         if has_changed_files_for_log or not has_changed_files_metric_weight:
             if has_changed_files_metric_weight:
                 logger.info(
@@ -430,7 +397,33 @@ class CoverageEvaluator:
         group field → report-thresholds-default → 0.0.
         global-thresholds is a separate evaluation pass and is never in this chain.
         """
-        return self._group_thresholds_lookup.get(group_name, self._report_thresholds_default)
+        group = next((g for g in self._report_groups if g.name == group_name), None)
+        if group is None:
+            return self._report_thresholds_default
+        return self._group_thresholds(group)
+
+    def _group_thresholds(self, group: ReportGroup) -> tuple[float, float, float]:
+        """
+        Returns the group's (overall, changed files, per changed file) thresholds, filling each unset field
+        from report-thresholds-default.
+        """
+        return (
+            (
+                group.min_coverage_overall
+                if group.min_coverage_overall is not None
+                else self._report_thresholds_default[0]
+            ),
+            (
+                group.min_coverage_changed_files
+                if group.min_coverage_changed_files is not None
+                else self._report_thresholds_default[1]
+            ),
+            (
+                group.min_coverage_per_changed_file
+                if group.min_coverage_per_changed_file is not None
+                else self._report_thresholds_default[2]
+            ),
+        )
 
     def changed_files_count(self) -> int:
         """

@@ -64,22 +64,9 @@ jobs:
           pip install -r requirements-dev.txt
 
       - name: Analyze code with Pylint
-        id: analyze-code
         run: |
           mapfile -t py_files < <(git ls-files '*.py')
-          pylint_score=$(pylint "${py_files[@]}" | grep 'rated at' | awk '{print $7}' | cut -d'/' -f1)
-          echo "score=$pylint_score" >> "$GITHUB_OUTPUT"
-
-      - name: Check Pylint score
-        env:
-          PYLINT_SCORE: ${{ steps.analyze-code.outputs.score }}
-        run: |
-          if (( $(echo "$PYLINT_SCORE < 9.5" | bc -l) )); then
-            echo "Failure: Pylint score is below 9.5 (project score: $PYLINT_SCORE)."
-            exit 1
-          else
-            echo "Success: Pylint score is above 9.5 (project score: $PYLINT_SCORE)."
-          fi
+          pylint "${py_files[@]}"
 
   code-format-check:
     needs: set-matrix

@@ -170,7 +170,8 @@ def _parse_thresholds(
     return tuple(_parse_threshold_part(part, label) for part, label in zip(parts, part_labels))
 
 
-class ActionInputs:
+# One getter and one validator per action input, by design: the class is kept whole rather than split.
+class ActionInputs:  # pylint: disable=too-many-public-methods
     """
     A class representing the inputs provided to the GH action.
     """

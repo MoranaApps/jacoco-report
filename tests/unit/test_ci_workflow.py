@@ -1,3 +1,4 @@
+import configparser
 import re
 from pathlib import Path
 
@@ -6,6 +7,7 @@ import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 CI_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "static_analysis_and_tests.yml"
+PYLINTRC = REPO_ROOT / ".pylintrc"
 WORKFLOW_FILES = sorted((REPO_ROOT / ".github" / "workflows").glob("*.yml"))
 REQUIREMENTS_PATHS = ["requirements.txt", "requirements-dev.txt"]
 FULL_SHA = re.compile(r"[0-9a-f]{40}")
@@ -121,3 +123,16 @@ def test_self_test_runs_the_ca_bundle_with_certifi_and_a_missing_one_whose_outco
         for name, value in step.get("env", {}).items()
         if value in outcome_refs
     ), "no step compares the missing run's outcome with failure"
+
+
+def test_pylint_job_fails_on_any_pylint_message():
+    # pylint exits 0 while the score is at or above fail-under, so anything below 10 lets messages through.
+    # The step must also run pylint without a pipe or capture, or its exit code is lost.
+    parser = configparser.ConfigParser()
+    parser.read(PYLINTRC, encoding="utf-8")
+    assert parser.get("MAIN", "fail-under") == "10"
+
+    pylint_lines = [
+        line.strip() for step in _all_steps() for line in step.get("run", "").splitlines() if "pylint" in line
+    ]
+    assert pylint_lines == ['pylint "${py_files[@]}"'], f"pylint is not run directly: {pylint_lines}"
