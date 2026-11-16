@@ -268,6 +268,12 @@ pass-through, output mapping) fails CI instead of reaching users. It runs read-o
 output values computed from fixture XMLs in `tests/data/test_project/`. If you change those fixtures,
 update the expected values in the job's "Assert action outputs" step.
 
+The job also runs the action once more with `report-target: summary`, `comment-level: full`, the default
+`update-comment` and the title `Self-test job summary`. This run makes no comment API call, so it needs no write
+permission. The assert step checks that this step's outcome is `success` and that its outputs equal those of the
+first run. The summary content can only be checked by hand in the run's UI (Actions → run → Summary), because each
+step gets its own summary file.
+
 ### Regenerate Golden Snapshots
 
 When the PR comment output intentionally changes (e.g. after a feature update), regenerate the

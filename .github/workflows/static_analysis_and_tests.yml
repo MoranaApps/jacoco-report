@@ -259,6 +259,52 @@ jobs:
           check hostile-title-not-expanded absent "$(if [ -e "$RUNNER_TEMP/jacoco-pwned" ]; then echo present; else echo absent; fi)"
           exit $failed
 
+      # report-target summary makes no comment API call, so this run works with this job's read-only token.
+      - name: Run the action with the job summary
+        id: jacoco-report-summary
+        continue-on-error: true
+        uses: ./
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          paths: |
+            tests/data/test_project/module_large/jacoco.xml
+            tests/data/test_project/context/**/jacoco.xml
+          report-target: summary
+          comment-level: full
+          title: Self-test job summary
+
+      # Same expected values as the first run: the outputs do not depend on where the report goes.
+      - name: Assert the job summary run
+        env:
+          OUTCOME: ${{ steps.jacoco-report-summary.outcome }}
+          COVERAGE_OVERALL: ${{ steps.jacoco-report-summary.outputs.coverage-overall }}
+          COVERAGE_CHANGED_FILES: ${{ steps.jacoco-report-summary.outputs.coverage-changed-files }}
+          COVERAGE_OVERALL_PASSED: ${{ steps.jacoco-report-summary.outputs.coverage-overall-passed }}
+          COVERAGE_CHANGED_FILES_PASSED: ${{ steps.jacoco-report-summary.outputs.coverage-changed-files-passed }}
+          REPORTS_COVERAGE: ${{ steps.jacoco-report-summary.outputs.reports-coverage }}
+          GROUPS_COVERAGE: ${{ steps.jacoco-report-summary.outputs.groups-coverage }}
+        run: |
+          if [ "$OUTCOME" != "success" ]; then
+            echo "::error::job summary run: expected outcome 'success', got '$OUTCOME'"
+            exit 1
+          fi
+          failed=0
+          check() {
+            if [ "$3" = "$2" ]; then
+              echo "OK: $1 = $3"
+            else
+              echo "::error::$1: expected '$2', got '$3'"
+              failed=1
+            fi
+          }
+          check coverage-overall 91.62 "$COVERAGE_OVERALL"
+          check coverage-changed-files 0.0 "$COVERAGE_CHANGED_FILES"
+          check coverage-overall-passed True "$COVERAGE_OVERALL_PASSED"
+          check coverage-changed-files-passed True "$COVERAGE_CHANGED_FILES_PASSED"
+          check "reports-coverage entries" 8 "$(jq length <<< "$REPORTS_COVERAGE")"
+          check groups-coverage '{}' "$(jq -c . <<< "$GROUPS_COVERAGE")"
+          exit $failed
+
       - name: Locate certifi's CA bundle
         id: ca
         run: |

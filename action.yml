@@ -37,6 +37,10 @@ inputs:
     description: 'Comment output level: none, minimal, full, changed, failed, or failed-or-changed.'
     required: false
     default: 'full'
+  report-target:
+    description: "Where to write the report: `comment` (PR comment), `summary` (the workflow run's job summary; needs no write permission) or `both`. `comment-level` applies to both."
+    required: false
+    default: 'comment'
   report-groups:
     description: >
       Define named report groups. When provided, paths can be omitted and groups define their own paths.
@@ -199,6 +203,7 @@ runs:
         INPUT_PR_NUMBER: ${{ inputs.pr-number }}
         INPUT_METRIC: ${{ inputs.metric }}
         INPUT_COMMENT_LEVEL: ${{ inputs.comment-level }}
+        INPUT_REPORT_TARGET: ${{ inputs.report-target }}
         INPUT_REPORT_GROUPS: ${{ inputs.report-groups }}
         INPUT_SKIP_UNCHANGED: ${{ inputs.skip-unchanged }}
         INPUT_EVALUATE_UNCHANGED: ${{ inputs.evaluate-unchanged }}

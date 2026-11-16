@@ -14,6 +14,8 @@ title and updates it in place rather than posting a new one. Two parallel workfl
 different `title` values will create two independent comments.
 
 `update-comment` controls whether the action edits an existing comment or always appends a new one.
+With `report-target: summary` it is ignored, because no PR comment is created, updated or removed.
+See [report-target.md](report-target.md).
 
 ## Valid values
 

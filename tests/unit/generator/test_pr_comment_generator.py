@@ -17,6 +17,12 @@ from jacoco_report.utils.enums import CommentLevelEnum, MetricTypeEnum
 from jacoco_report.utils.github import GitHub
 
 
+def _comment_body(gen, comment_level):
+    """Return the PR comment body the generator builds for comment_level, cut to the limit as currently patched."""
+    _, parts = gen._get_comment_content(comment_level)
+    return gen._comment_body(parts)
+
+
 @pytest.fixture
 def mock_github(mocker):
     return mocker.Mock()
@@ -1675,7 +1681,7 @@ def test_no_warning_all_reports_grouped(mocker, mock_github, test_evaluator):
     _configure_generator_for_comment_tests(gen, mocker, comment_level=CommentLevelEnum.FULL)
     _set_mixed_comment_level_fixture(gen)
 
-    title, body = gen._get_comment_content(CommentLevelEnum.FULL)
+    body = _comment_body(gen, CommentLevelEnum.FULL)
 
     assert "Warning:" not in body
     assert "not assigned to any group" not in body
@@ -1689,7 +1695,7 @@ def test_warning_one_ungrouped_report(mocker, mock_github, test_evaluator):
     _configure_generator_for_comment_tests(gen, mocker, comment_level=CommentLevelEnum.FULL)
     _set_mixed_comment_level_fixture(gen)
 
-    title, body = gen._get_comment_content(CommentLevelEnum.FULL)
+    body = _comment_body(gen, CommentLevelEnum.FULL)
 
     assert "Warning:" in body or "warning" in body.lower()
     assert "not assigned to any group" in body
@@ -1703,7 +1709,7 @@ def test_warning_multiple_ungrouped(mocker, mock_github, test_evaluator):
     _configure_generator_for_comment_tests(gen, mocker, comment_level=CommentLevelEnum.FULL)
     _set_mixed_comment_level_fixture(gen)
 
-    title, body = gen._get_comment_content(CommentLevelEnum.FULL)
+    body = _comment_body(gen, CommentLevelEnum.FULL)
 
     assert "infra/target/jacoco.xml" in body
     assert "tests/target/jacoco.xml" in body
@@ -1715,7 +1721,7 @@ def test_no_warning_empty_ungrouped_list(mocker, mock_github, test_evaluator):
     _configure_generator_for_comment_tests(gen, mocker, comment_level=CommentLevelEnum.FULL)
     _set_mixed_comment_level_fixture(gen)
 
-    title, body = gen._get_comment_content(CommentLevelEnum.FULL)
+    body = _comment_body(gen, CommentLevelEnum.FULL)
 
     assert "not assigned to any group" not in body
     mock_github.add_comment.assert_not_called()
@@ -1799,7 +1805,7 @@ def test_comment_over_real_limit_is_cut_to_fit(pr_comment_generator, mocker, mon
     monkeypatch.setattr("jacoco_report.generator.pr_comment_generator.MAX_COMMENT_LENGTH", 10**9)
     _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="full")
     _populate_large_evaluator(pr_comment_generator)
-    _, uncut = pr_comment_generator._get_comment_content("full")
+    uncut = _comment_body(pr_comment_generator, "full")
     assert len(uncut) > 65_536
 
     monkeypatch.setattr("jacoco_report.generator.pr_comment_generator.MAX_COMMENT_LENGTH", 65_536)
@@ -1826,7 +1832,7 @@ def test_cut_body_keeps_only_whole_table_rows_and_headers_with_rows(pr_comment_g
     """A cut table keeps its header and at least one row, and the rows are the first ones in document order."""
     _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="full")
     _populate_large_evaluator(pr_comment_generator)
-    _, body = pr_comment_generator._get_comment_content("full")
+    body = _comment_body(pr_comment_generator, "full")
 
     assert _has_row_after_header(body, "| File Path |")
     assert _has_row_after_header(body, "| Report |") or "| Report |" not in body
@@ -1852,7 +1858,7 @@ def test_omitted_rows_are_logged_with_their_table_header(pr_comment_generator, m
     _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="full")
     _populate_large_evaluator(pr_comment_generator)
     monkeypatch.setattr("jacoco_report.generator.pr_comment_generator.MAX_COMMENT_LENGTH", 10**9)
-    _, uncut = pr_comment_generator._get_comment_content("full")
+    uncut = _comment_body(pr_comment_generator, "full")
     monkeypatch.undo()
 
     with caplog.at_level(logging.INFO, logger="jacoco_report.generator.pr_comment_generator"):
@@ -1875,14 +1881,14 @@ def test_body_exactly_at_limit_is_unchanged_and_one_over_is_cut(pr_comment_gener
     _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="full")
     _populate_large_evaluator(pr_comment_generator)
     monkeypatch.setattr("jacoco_report.generator.pr_comment_generator.MAX_COMMENT_LENGTH", 10**9)
-    _, uncut = pr_comment_generator._get_comment_content("full")
+    uncut = _comment_body(pr_comment_generator, "full")
 
     monkeypatch.setattr("jacoco_report.generator.pr_comment_generator.MAX_COMMENT_LENGTH", len(uncut))
-    _, at_limit = pr_comment_generator._get_comment_content("full")
+    at_limit = _comment_body(pr_comment_generator, "full")
     assert at_limit == uncut
 
     monkeypatch.setattr("jacoco_report.generator.pr_comment_generator.MAX_COMMENT_LENGTH", len(uncut) - 1)
-    _, over_limit = pr_comment_generator._get_comment_content("full")
+    over_limit = _comment_body(pr_comment_generator, "full")
     assert over_limit != uncut
     assert len(over_limit) <= len(uncut) - 1
     assert over_limit.startswith("**JaCoCo**")
@@ -1893,7 +1899,7 @@ def test_table_with_all_rows_omitted_leaves_no_header(pr_comment_generator, mock
     _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="full")
     _populate_large_evaluator(pr_comment_generator)
     monkeypatch.setattr("jacoco_report.generator.pr_comment_generator.MAX_COMMENT_LENGTH", 10**9)
-    _, uncut = pr_comment_generator._get_comment_content("full")
+    uncut = _comment_body(pr_comment_generator, "full")
 
     # Head, group and report rows, a note counting every changed-file row, and the footer: nothing else fits.
     prefix = uncut[: uncut.index("\n\n| File Path |")]
@@ -1902,7 +1908,7 @@ def test_table_with_all_rows_omitted_leaves_no_header(pr_comment_generator, mock
     expected = f"{prefix}\n\n{note}{footer}"
 
     monkeypatch.setattr("jacoco_report.generator.pr_comment_generator.MAX_COMMENT_LENGTH", len(expected))
-    _, body = pr_comment_generator._get_comment_content("full")
+    body = _comment_body(pr_comment_generator, "full")
 
     assert body == expected
     assert "| File Path |" not in body
@@ -1915,7 +1921,7 @@ def test_last_resort_cuts_body_to_limit_and_keeps_title(pr_comment_generator, mo
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_title", return_value="T" * 70_000)
 
     with caplog.at_level(logging.WARNING, logger="jacoco_report.generator.pr_comment_generator"):
-        _, body = pr_comment_generator._get_comment_content("full")
+        body = _comment_body(pr_comment_generator, "full")
 
     assert len(body) == 65_536
     assert body.startswith("**TTT")
@@ -1932,7 +1938,7 @@ def test_line_breaks_in_names_keep_rows_whole_and_cut_at_row_boundaries(pr_comme
     report0.changed_files_passed[bad_path] = True
     pr_comment_generator.evaluator.evaluated_reports_coverage["report-1"].name = "report\r\n1"
 
-    _, body = pr_comment_generator._get_comment_content("full")
+    body = _comment_body(pr_comment_generator, "full")
 
     assert len(body) <= 65_536
     assert "[Bad File.java](" in body
@@ -1992,7 +1998,7 @@ def test_cut_body_works_with_baseline_changed_files_table(pr_comment_generator, 
     }
     pr_comment_generator.bs_evaluator = baseline
 
-    _, body = pr_comment_generator._get_comment_content("full")
+    body = _comment_body(pr_comment_generator, "full")
 
     assert len(body) <= 65_536
     assert "| File Path | Coverage | Threshold | Δ Coverage | Status |" in body

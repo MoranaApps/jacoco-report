@@ -25,6 +25,7 @@ from jacoco_report.utils.constants import (
     DEFAULT_REPORT_THRESHOLDS_DEFAULT,
     TITLE,
     COMMENT_LEVEL,
+    REPORT_TARGET,
     REPORT_GROUPS,
     SKIP_UNCHANGED,
     EVALUATE_UNCHANGED,
@@ -42,7 +43,7 @@ from jacoco_report.utils.constants import (
 )
 
 from jacoco_report.model.report_group import ReportGroup
-from jacoco_report.utils.enums import CommentLevelEnum, MetricTypeEnum, FailOnThresholdEnum
+from jacoco_report.utils.enums import CommentLevelEnum, MetricTypeEnum, FailOnThresholdEnum, ReportTargetEnum
 from jacoco_report.utils.gh_action import get_action_input
 from jacoco_report.utils.github import GitHub
 
@@ -342,6 +343,14 @@ class ActionInputs:  # pylint: disable=too-many-public-methods
         Get the comment level from the action inputs.
         """
         return get_action_input(COMMENT_LEVEL, CommentLevelEnum.FULL)
+
+    @staticmethod
+    def get_report_target() -> str:
+        """
+        Get the report-target input ('comment', 'summary' or 'both'), stripped and lower-cased.
+        An empty value means 'comment'.
+        """
+        return get_action_input(REPORT_TARGET, ReportTargetEnum.COMMENT).strip().lower() or ReportTargetEnum.COMMENT
 
     @overload
     @staticmethod
@@ -646,6 +655,12 @@ class ActionInputs:  # pylint: disable=too-many-public-methods
         return []
 
     @staticmethod
+    def _validate_report_target() -> list[str]:
+        if ActionInputs.get_report_target() not in {target.value for target in ReportTargetEnum}:
+            return ["'report-target' must be one of: 'comment', 'summary', 'both'."]
+        return []
+
+    @staticmethod
     def _validate_global_overall_scope() -> list[str]:
         global_overall_scope = ActionInputs.get_global_overall_scope()
         if global_overall_scope not in (GLOBAL_OVERALL_SCOPE_ALL, GLOBAL_OVERALL_SCOPE_GROUPS_ONLY):
@@ -675,6 +690,7 @@ class ActionInputs:  # pylint: disable=too-many-public-methods
         errors.extend(ActionInputs._validate_report_thresholds_default())
         errors.extend(ActionInputs._validate_metric())
         errors.extend(ActionInputs._validate_comment_level())
+        errors.extend(ActionInputs._validate_report_target())
 
         report_groups_raw: str = ActionInputs.get_report_groups(raw=True)
         errors.extend(ActionInputs.validate_report_groups(report_groups_raw))
@@ -733,6 +749,7 @@ class ActionInputs:  # pylint: disable=too-many-public-methods
             "Metric: %s\n"
             "Title: %s\n"
             "Comment level: %s\n"
+            "Report target: %s\n"
             "\n"
             "Skip unchanged: %s\n"
             "Evaluate unchanged: %s\n"
@@ -753,6 +770,7 @@ class ActionInputs:  # pylint: disable=too-many-public-methods
             ActionInputs.get_metric(),
             ActionInputs.get_title(),
             ActionInputs.get_comment_level(),
+            ActionInputs.get_report_target(),
             skip_unchanged,
             evaluate_unchanged,
             update_comment,

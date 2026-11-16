@@ -7,14 +7,18 @@ import logging
 
 from jacoco_report.action_inputs import ActionInputs
 from jacoco_report.evaluator.coverage_evaluator import CoverageEvaluator
-from jacoco_report.generator.pr_comment_generator import PRCommentGenerator
+from jacoco_report.generator.pr_comment_generator import (
+    SUMMARY_NO_COMMENT_INFO,
+    PRCommentGenerator,
+    all_filtered_summary_body,
+)
 from jacoco_report.model.report_file_coverage import ReportFileCoverage
 from jacoco_report.model.report_group import ReportGroup
 from jacoco_report.parser.jacoco_report_parser import JaCoCoReportParser
 from jacoco_report.scanner.jacoco_report_input_scanner import JaCoCoReportInputScanner
 from jacoco_report.utils.constants import DEFAULT_PATHS, GLOBAL_OVERALL_SCOPE_ALL
-from jacoco_report.utils.enums import FailOnThresholdEnum
-from jacoco_report.utils.gh_action import print_action_warning
+from jacoco_report.utils.enums import CommentLevelEnum, FailOnThresholdEnum, ReportTargetEnum
+from jacoco_report.utils.gh_action import print_action_warning, write_job_summary
 from jacoco_report.utils.github import GitHub, get_api_url
 
 logger = logging.getLogger(__name__)
@@ -143,10 +147,18 @@ class JaCoCoReport:
         generator = PRCommentGenerator(
             gh, evaluator_for_results, bs_evaluator, pr_number, skip_report_names, ungrouped_reports
         )
-        if generator.generate():
-            logger.info("PR comment(s) generated successfully.")
-        else:
+        self._report_generator_result(generator)
+
+    @staticmethod
+    def _report_generator_result(generator: PRCommentGenerator) -> None:
+        """Generate the report, then print its warnings: a job summary not written, or a comment that may be stale."""
+        comment_ok = generator.generate()
+        if generator.summary_warning:
+            print_action_warning(generator.summary_warning)
+        if not comment_ok:
             print_action_warning(PR_COMMENT_MAY_BE_STALE_WARNING)
+        elif ActionInputs.get_report_target() != ReportTargetEnum.SUMMARY:
+            logger.info("PR comment(s) generated successfully.")
 
     @staticmethod
     def _split_unchanged_reports(
@@ -200,7 +212,7 @@ class JaCoCoReport:
             self.total_changed_files_coverage_passed = True
             self.evaluated_coverage_reports = "{}"
             self.evaluated_coverage_groups = "{}"
-            self._delete_stale_comment_if_update_enabled(gh=gh, pr_number=pr_number)
+            self._finish_all_filtered_output(gh=gh, pr_number=pr_number)
             return
 
         logger.info(
@@ -215,6 +227,21 @@ class JaCoCoReport:
             for evaluated_report in filtered_evaluator.evaluated_reports_coverage.values()
         )
         self._apply_results(filtered_evaluator, fail_unchanged_passed)
+        self._finish_all_filtered_output(gh=gh, pr_number=pr_number)
+
+    def _finish_all_filtered_output(self, gh: GitHub, pr_number: int) -> None:
+        """Write the all-unchanged message to the job summary, then remove the stale comment as the comment target does.
+
+        The summary target never touches a comment, so it only logs that it does not.
+        """
+        report_target = ActionInputs.get_report_target()
+        if report_target != ReportTargetEnum.COMMENT and ActionInputs.get_comment_level() != CommentLevelEnum.NONE:
+            warning = write_job_summary(report_target, all_filtered_summary_body())
+            if warning:
+                print_action_warning(warning)
+        if report_target == ReportTargetEnum.SUMMARY:
+            logger.info("%s", SUMMARY_NO_COMMENT_INFO)
+            return
         self._delete_stale_comment_if_update_enabled(gh=gh, pr_number=pr_number)
 
     def _evaluate_coverage(

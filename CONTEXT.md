@@ -2,10 +2,11 @@
 
 ## Purpose
 
-A GitHub composite Action that parses JaCoCo XML coverage reports and posts/updates a structured
-coverage summary as a pull-request comment, evaluating configurable coverage thresholds and failing
-the workflow run when they aren't met. For teams with JaCoCo-instrumented JVM builds (Maven/Gradle)
-who want coverage visible directly in PR review, without digging through CI logs.
+A GitHub composite Action that parses JaCoCo XML coverage reports and publishes a structured coverage
+report as a pull-request comment and/or in the workflow run's job summary (`report-target`), evaluating
+configurable coverage thresholds and failing the workflow run when they aren't met. For teams with
+JaCoCo-instrumented JVM builds (Maven/Gradle) who want coverage visible directly in PR review, without
+digging through CI logs.
 
 ## Tech stack
 
@@ -26,7 +27,7 @@ who want coverage visible directly in PR review, without digging through CI logs
 - `jacoco_report/` — the action's package: `action_inputs.py` (reads/validates every `INPUT_*` env
   var), `jacoco_report.py` (orchestrator, class `JaCoCoReport`), `scanner/` (glob-based XML
   discovery), `parser/` (JaCoCo XML → model), `evaluator/` (threshold evaluation), `generator/` (PR
-  comment markdown), `model/` (data classes), `utils/` (GitHub API client, GH Actions I/O, enums,
+  comment and job summary markdown), `model/` (data classes), `utils/` (GitHub API client, GH Actions I/O, enums,
   constants, logging)
 - `main.py` — entry point: `ActionInputs` → `JaCoCoReport` → GH Action outputs/exit code
 - `action.yml` — composite action definition: the real inputs/outputs contract; a `setup` step builds
@@ -67,15 +68,16 @@ flowchart LR
   evaluator --> generator[PRCommentGenerator]
   report --> gh["GitHub client (utils/github.py)"]
   generator --> gh
+  generator -->|append markdown| summary[("Job summary file<br/>GITHUB_STEP_SUMMARY")]
   gh -->|REST API| ghapi[("GitHub API<br/>External")]
   main -->|GITHUB_OUTPUT| gha
 ```
 
 `main.py` validates inputs, then `JaCoCoReport.run()` scans for JaCoCo XML files (per report-group if
 configured), parses each with `JaCoCoReportParser` (cross-referencing the PR's changed files from the
-GitHub API), evaluates coverage against thresholds with `CoverageEvaluator`, and renders/posts the PR
-comment with `PRCommentGenerator`. Results and pass/fail are written back via `GITHUB_OUTPUT` and the
-process exit code.
+GitHub API), evaluates coverage against thresholds with `CoverageEvaluator`, and renders the report with
+`PRCommentGenerator`, which writes it to the PR comment and/or the job summary (`report-target`). Results
+and pass/fail are written back via `GITHUB_OUTPUT` and the process exit code.
 
 ## Domain
 
@@ -167,14 +169,18 @@ service is needed.
   evaluate_filtered_unchanged)` (static) returns `(kept, filtered_unchanged)` and logs one line per filtered report;
   with skip-unchanged off it returns `(reports, [])`. If nothing is kept, `run()` calls
   `_handle_all_reports_filtered(gh, pr_number, report_groups, filtered, evaluate_filtered_unchanged,
-  fail_unchanged_enabled)` and returns. Otherwise `_evaluate_coverage(parser, report_groups, kept, filtered,
-  evaluate_unchanged, fail_unchanged_enabled)` owns the baseline collection (`_collect_baseline_reports(parser,
-  report_groups)`, which hands grouped runs to `_collect_group_baseline_reports`: group inheritance of global
-  `baseline-paths`, ambiguity skip, `[]` = disabled; called before the "Evaluating the coverage" log), the overall,
-  results and baseline evaluators, fail-unchanged and `_apply_results`; it returns `(results evaluator, baseline
-  evaluator)`. Comment generation stays in `run()`. The parser is built once in
-  `run()` from the changed files and shared by the report and baseline parses. `run()` reads `report-groups` and
-  `global-overall-scope` once and passes them in.
+  fail_unchanged_enabled)` and returns. That ends in `_finish_all_filtered_output(gh, pr_number)`: for
+  `summary`/`both` with `comment-level` ≠ `none` it writes `all_filtered_summary_body()` (title, the all-unchanged
+  message, footer) to the job summary. `summary` then logs `SUMMARY_NO_COMMENT_INFO` and skips
+  `_delete_stale_comment_if_update_enabled`; `comment`/`both` delete the stale comment when `update-comment` is true.
+  Otherwise `_evaluate_coverage(parser, report_groups, kept, filtered, evaluate_unchanged, fail_unchanged_enabled)`
+  owns the baseline collection (`_collect_baseline_reports(parser, report_groups)`, which hands grouped runs to
+  `_collect_group_baseline_reports`: group inheritance of global `baseline-paths`, ambiguity skip, `[]` = disabled;
+  called before the "Evaluating the coverage" log), the overall, results and baseline evaluators, fail-unchanged and
+  `_apply_results`; it returns `(results evaluator, baseline evaluator)`. `run()` builds the `PRCommentGenerator` and
+  passes it to `_report_generator_result(generator)`. The parser is built once in `run()` from the changed files and
+  shared by the report and baseline parses. `run()` reads `report-groups` and `global-overall-scope` once and passes
+  them in.
 - `run()` sits at the `too-many-locals` limit (`max-locals=20`, enabled; `self` counts): a new local there trips it,
   so new logic goes in a helper.
 - `CoverageEvaluator` sits at the `too-many-instance-attributes` limit (`max-attributes=15`): a new attribute trips it.
@@ -192,6 +198,9 @@ service is needed.
   `groups-only` restores pre-v3 behaviour.
 - Reports filtered out by `skip-unchanged` still count toward the informational overall-coverage total
   (issue #202), even though they're hidden from PR-comment rows.
+- `report-target` default stays `comment`; `summary` is an optional second channel, not a new standard (owner
+  decision). `summary` makes no comment API call, so it needs no write permission, and an existing comment is left
+  as it is (not deleted).
 - The venv is built per call in a fresh dir under `$RUNNER_TEMP` (see the `setup` invariant), not in the
   caller's workspace, so the checkout stays clean. Not a fixed path: reuse risks a stale `bin/python` after a
   Python switch and a venv planted by an earlier PR-code step. Accepted cost: reinstall on every call.
@@ -291,7 +300,9 @@ service is needed.
     `BASE_REF`); top-level `permissions` is read-only; every `actions/setup-python` step with `cache: pip` lists
     `requirements.txt` and `requirements-dev.txt` in `cache-dependency-path`.
   - `self-test` job: a local `uses: ./` run takes `steps.ca.outputs.path` (certifi); a `continue-on-error` run takes
-    `ca-bundle` and its outcome is read through a step `env`.
+    `ca-bundle` and its outcome is read through a step `env`. The `report-target: summary` run is read the same way and
+    compared with `success`
+    (`test_self_test_runs_report_target_summary_with_default_update_comment_and_asserts_its_outcome`).
   - `actionlint` job (`static_analysis_and_tests.yml`): no `if:`, `docker://rhysd/actionlint:<tag>@sha256:` pin, listed in
     `ci-result.needs` (`test_actionlint_runs_on_every_event_and_gates_ci_result`). A workflow actionlint rejects fails
     `CI result`, and so does any shellcheck finding (its bundled shellcheck, `info` level included): new `run:` scripts
@@ -325,8 +336,12 @@ service is needed.
   action outputs (`coverage-overall` 91.62, 8 reports) computed from `tests/data/test_project/module_large/`
   + `context/**` fixture XMLs; editing those XMLs means updating the expected values in
   `static_analysis_and_tests.yml`. Its assertions use `jq`. Its `title` is hostile (`$(…)`, backticks), and it
-  asserts the marker file `$RUNNER_TEMP/jacoco-pwned` was not created. It runs with `comment-level: none`
-  + `update-comment: false` — the only mode that makes no comment API call — so it works on fork PRs.
+  asserts the marker file `$RUNNER_TEMP/jacoco-pwned` was not created. Its first run uses `comment-level: none`
+  + `update-comment: false`, which makes no comment API call. A second run uses `report-target: summary`
+  (`comment-level: full`, default `update-comment`, title `Self-test job summary`, `continue-on-error: true`), which
+  makes no comment API call either. Its assert step reads the outcome through `env`, requires `success`, and checks
+  the same outputs as the first run. Each step gets its own job summary file, so the summary's content is checked by
+  hand in the run's UI.
   It also runs `ca-bundle` twice: certifi's bundle (must pass) and a missing path (`continue-on-error`).
   Before the missing-path run, a step records the count of `$RUNNER_TEMP/jacoco-report-venv.*` dirs; the assert step
   requires outcome `failure` AND an unchanged count (proves the failure came from the `setup` check, before any venv).
@@ -341,14 +356,36 @@ service is needed.
 - `GitHub` (`utils/github.py`) passes `verify=<path>` per request, only when `ca-bundle` is set. Reason: requests lets
   `REQUESTS_CA_BUNDLE`/`CURL_CA_BUNDLE` override `session.verify` but not a per-request `verify`. Unset → no `verify`
   kwarg (tests pin the exact call args).
-- PR comment footer (`PRCommentGenerator._get_metadata_footer`): the action ref comes from `GITHUB_ACTION_PATH`
-  (`.../_actions/<owner>/<repo>/<ref>`, `ActionInputs.get_action_ref`) because `GITHUB_ACTION_REF` is empty in
-  composite steps (actions/runner#2473); `""` for a local `uses: ./`. `GITHUB_RUN_STARTED_AT` is not a GitHub default
-  var, so the footer has no start time. The "Generated by" line always renders (never an empty footer).
-- PR comment length limit (`pr_comment_generator.py`): `GITHUB_COMMENT_LIMIT = 65_536` (GitHub's comment limit);
-  `MAX_COMMENT_LENGTH` is the same value, the one checked (tests lower it). Measured with `len()` on the body (code
-  points). `_get_comment_content` builds `head` + `_Section`s, `_fit_to_comment_limit` returns the body unchanged when
-  `len <= MAX_COMMENT_LENGTH`.
+- `report-target` (`ReportTargetEnum`: `comment` default, `summary`, `both`): `ActionInputs.get_report_target()` strips
+  and lower-cases, empty → `comment`. `_validate_report_target()` runs right after `_validate_comment_level()`.
+  - `comment-level` decides the content for both channels; `none` writes nothing to the job summary either. Thresholds,
+    outputs and job result never depend on the target.
+  - `GITHUB_STEP_SUMMARY` is a runner variable, not an input. Only `gh_action.get_step_summary_path()` reads it, and
+    only through `write_job_summary(target, body)`, which is called only when the target is not `comment`.
+  - `gh_action.append_step_summary(path, text) -> bool` appends exactly `text` as UTF-8, with no added newline, so a
+    body cut to the limit stays within it. An `OSError` is logged with `exc_info` and returns False.
+  - `write_job_summary` returns `None` when written, else the warning text for the caller: the variable unset or empty
+    (`SUMMARY_NOT_SET_WARNING`), or the write failed (`SUMMARY_WRITE_FAILED_WARNING`). Nothing in `gh_action` or the
+    generator prints it; `JaCoCoReport` prints it with `print_action_warning`. A summary problem never changes the job
+    result or outputs.
+- `pr_comment_generator.py` is close to pylint's `max-module-lines=1000`. Move the cut/body helpers (`_CutRules`,
+  `_fit_to_limit` and friends) to their own module before adding more. A moved helper reads its limit and logs through
+  its own module, so tests that patch `MAX_COMMENT_LENGTH` / `MAX_SUMMARY_BYTES` on `pr_comment_generator` and filter
+  `caplog` by its logger name must be retargeted.
+- PR comment footer (`_metadata_footer(server_url, repository)`, module-level): the action ref comes from
+  `GITHUB_ACTION_PATH` (`.../_actions/<owner>/<repo>/<ref>`, `ActionInputs.get_action_ref`) because
+  `GITHUB_ACTION_REF` is empty in composite steps (actions/runner#2473); `""` for a local `uses: ./`.
+  `GITHUB_RUN_STARTED_AT` is not a GitHub default var, so the footer has no start time. The "Generated by" line
+  always renders (never an empty footer).
+- Report length limits, one cut algorithm for both channels (`pr_comment_generator.py`):
+  - Comment: `GITHUB_COMMENT_LIMIT = 65_536` (GitHub's limit); `MAX_COMMENT_LENGTH` is the cap checked (tests lower
+    it). Measured with `len()` (code points).
+  - Job summary: `GITHUB_SUMMARY_LIMIT = MAX_SUMMARY_BYTES = 1_048_576`, measured in UTF-8 bytes (tests lower
+    `MAX_SUMMARY_BYTES`). It is cut only at this limit, never at the comment limit.
+  - `_get_comment_content(comment_level)` returns `(title, _ReportParts(head, sections, footer))`. `_fit_to_limit(parts,
+    rules)` returns the body unchanged when it is within `rules.limit`; `_render_body(parts, keep, rules)` joins the
+    parts with `keep` rows; `_log_cut(parts, keep, body, rules)` logs. `rules` is a frozen `_CutRules` built by
+    `_comment_rules(summary_written, run_url)` or `_summary_rules(run_url)`. Limits are read at call time.
   - Parts: head = title + basic table (+ "No rows match the selected comment level." when no detail table; never cut).
     Cuttable sections, in order: detail tables (groups, reports, changed files), then the ungrouped-reports warning.
     Tail = metadata footer only. Joined by `\n\n`.
@@ -362,14 +399,20 @@ service is needed.
     split. A table with all rows cut is dropped with its header.
   - Names in rows (changed-file names, report names, group names, ungrouped-report paths) get `\r`/`\n` replaced by a
     space (`_single_line`), so each row is one line.
-  - Note paragraph, placed just before the footer: `… N row(s) omitted (GitHub's 65,536-character comment limit), see
-    the job log.`
-  - Log (`logger`): one `warning` (body length, limit, rows omitted), then one `info` per cut section: a table with its
-    2 header lines, ungrouped items with `Reports not assigned to any group:`; each lists its omitted rows. Rows can
-    carry PR file names, so they go through `WorkflowCommandSafeFormatter`.
+  - Note paragraph, placed just before the footer. Comment: `… N row(s) omitted (GitHub's 65,536-character comment
+    limit), see the job log.` (`comment`, or `both` when the summary was not written); `see the [job summary](<run
+    URL>).` (`both` with the summary written). Job summary: `… N row(s) omitted (GitHub's 1 MiB job summary limit), the
+    full report is in the [job log](<run URL>).` The run URL is `_run_url`, the footer's run URL; without a run id or
+    repository the note has no link.
+  - Log (`logger`). Comment: one `warning` (body length, limit, rows omitted), then one `info` (`Omitted from the PR
+    comment:`) per cut section: its 2 header lines and its omitted rows; ungrouped items use `Reports not assigned to
+    any group:`. Job summary: one `warning`, then one `info` (`Full report (job summary was cut):`) with the whole
+    uncut body; omitted rows are not logged separately. Rows can carry PR file names, so they go through
+    `WorkflowCommandSafeFormatter`.
   - Backstop: only if the fixed parts (title, basic table, frames, note, footer; e.g. an absurdly long `title`) still
-    exceed the limit, the body is cut to `MAX_COMMENT_LENGTH` characters (may end mid-line, no longer valid markdown)
-    and a second `warning` is logged.
+    exceed the limit, the body is cut to the limit (`MAX_COMMENT_LENGTH` characters, or `MAX_SUMMARY_BYTES` bytes,
+    never splitting a UTF-8 character; a character cut may end mid-line, no longer valid markdown) and a second
+    `warning` is logged.
   - Reason for cutting from the end: the issue asks for a row-boundary cut, and the aggregate tables matter more than
     per-file rows. Other options rejected: hard cut of the string (breaks tables, loses the count); renderers
     returning row lists (larger refactor of 5 renderers for the same result).
@@ -389,14 +432,20 @@ service is needed.
     method, so `_GetOnlyRetry.increment` fails a non-GET as requests' default `Retry(0, read=False)` does.
   - Failed HTTP status hints (#257): directly after the `HTTP error occurred` ERROR line (and its traceback),
     `_hint_for_http_error` logs one more `Hint: ...` ERROR line for 401 (token invalid/expired), 403 (missing
-    permission; the read-only fork/Dependabot token) or 404 (no access, or wrong `GITHUB_API_URL` on GHES). Callers
+    permission; the hint says `report-target: summary` shows the report without write permission) or 404 (no access,
+    or wrong `GITHUB_API_URL` on GHES). Callers
     may log more after it. 403 with `X-RateLimit-Remaining: 0` gets the rate-limit hint instead. Static text from module constants: no token, URL or body. No hint for 5xx, 422,
     other statuses, or `HTTPError` without a response. No extra API call.
   `get_comments` returns `None` when a read is incomplete; both callers then make no comment change. With
   `update-comment: false` the generator doesn't read comments at all.
-  - `PRCommentGenerator.generate()` returns `bool`: True when no comment operation failed (incl. nothing to do:
-    `comment-level: none` + `update-comment: false`), False on an unreadable read or a failed add/update/delete. It
-    prints nothing.
+  - `PRCommentGenerator.generate()` writes the job summary first (target ≠ `comment`, via `_write_summary`), then the
+    comment. It sets `summary_written` and `summary_warning` and prints nothing. It returns `bool`: True when no comment
+    operation failed (incl. nothing to do: `comment-level: none` + `update-comment: false`), False on an unreadable
+    read or a failed add/update/delete.
+  - Target `summary`: after the summary it logs `SUMMARY_NO_COMMENT_INFO` at INFO and returns True before any comment
+    read, so it makes no comment API call (no GET, POST, PATCH or DELETE).
+  - `JaCoCoReport._report_generator_result` prints `summary_warning`, then `PR_COMMENT_MAY_BE_STALE_WARNING` when the
+    result is False. It logs `PR comment(s) generated successfully.` only when the target is not `summary`.
   - `update_comment` returns False, never raises, on an unusable 2xx response (non-JSON body, no `body` key, or JSON
     that isn't an object), logged with `logger.error`. A body mismatch also returns False.
   - `JaCoCoReport` owns the warning (`PR_COMMENT_MAY_BE_STALE_WARNING`, `print_action_warning`; text says the comment
@@ -433,7 +482,8 @@ service is needed.
 ## Read more
 
 - `docs/inputs/*.md` — one file per input group (paths, thresholds, report-groups, comment-level,
-  skip-unchanged, baseline-paths, symbols-and-metric, pr-settings, debug, global-overall-scope, ca-bundle)
+  report-target, skip-unchanged, baseline-paths, symbols-and-metric, pr-settings, debug, global-overall-scope,
+  ca-bundle)
 - `docs/v2-v3-migration-guide.md` — breaking changes v2 → v3, and the v3.4.0 caller-visible changes (section 8)
 - `DEVELOPER.md` — local dev setup, running scripts/tests/lint, releasing
 - `.github/copilot-instructions.md` — project-specific additions for Copilot, on top of `AGENTS.md`
