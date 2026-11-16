@@ -2,10 +2,13 @@
 Utility functions for interacting with GitHub Actions.
 """
 
+import logging
 import os
 import re
 import sys
 import uuid
+
+logger = logging.getLogger(__name__)
 
 # The runner's legacy `##[command]` syntax is found anywhere in a line, so `##[` is broken up as well.
 LEGACY_COMMAND_PREFIX = re.compile(r"##\[")
@@ -81,6 +84,61 @@ def set_action_output_text(name: str, value: str, default_output_path: str = "de
     'GITHUB_OUTPUT' environment variable is not set. Defaults to "default_output.txt".
     """
     _write_action_output(name, value, default_output_path)
+
+
+def get_step_summary_path() -> str:
+    """
+    Get the job summary file the runner set for this step ('GITHUB_STEP_SUMMARY').
+
+    @return: The file path, or an empty string when the variable is not set (outside a GitHub Actions runner,
+    or on GHES older than 3.6).
+    """
+    return os.getenv("GITHUB_STEP_SUMMARY", "")
+
+
+def append_step_summary(path: str, text: str) -> bool:
+    """
+    Append markdown to the job summary file, as UTF-8. Nothing is added, so a body within the limit keeps the file
+    within it.
+
+    @param path: The job summary file path, as returned by get_step_summary_path().
+    @param text: The markdown to append.
+    @return: True when the text was written. False when the write failed: the error is logged with its traceback.
+    """
+    try:
+        with open(path, "a", encoding="utf-8") as f:
+            f.write(text)
+    except OSError:
+        logger.error("Could not write the job summary to GITHUB_STEP_SUMMARY.", exc_info=True)
+        return False
+    return True
+
+
+SUMMARY_NOT_SET_WARNING = (
+    "report-target '{target}' writes to the job summary, but GITHUB_STEP_SUMMARY is not set (not a GitHub Actions "
+    "runner, or GHES older than 3.6). The report was not written to the job summary."
+)
+SUMMARY_WRITE_FAILED_WARNING = (
+    "report-target '{target}' writes to the job summary, but writing to GITHUB_STEP_SUMMARY failed. "
+    "The report was not written to the job summary. See the job log for the error."
+)
+
+
+def write_job_summary(target: str, body: str) -> str | None:
+    """
+    Append a report body to the job summary of this step.
+
+    @param target: The report-target value, named in the warning.
+    @param body: The markdown to append.
+    @return: None when it was written, else the warning for the caller to print: GITHUB_STEP_SUMMARY is not set,
+    or the write failed.
+    """
+    path = get_step_summary_path()
+    if not path:
+        return SUMMARY_NOT_SET_WARNING.format(target=target)
+    if not append_step_summary(path, body):
+        return SUMMARY_WRITE_FAILED_WARNING.format(target=target)
+    return None
 
 
 def escape_workflow_command_data(value: str) -> str:

@@ -1,7 +1,7 @@
 import pytest
 
 from jacoco_report.action_inputs import ActionInputs
-from jacoco_report.utils.enums import CommentLevelEnum, MetricTypeEnum, FailOnThresholdEnum
+from jacoco_report.utils.enums import CommentLevelEnum, FailOnThresholdEnum, MetricTypeEnum, ReportTargetEnum
 from jacoco_report.utils.github import GitHub
 
 # Data-driven test cases
@@ -18,6 +18,7 @@ success_case = {
     "get_title": "Custom Title",
     "get_metric": "instruction",
     "get_comment_level": "full",
+    "get_report_target": "comment",
     "get_report_groups": "",
     "get_skip_unchanged": True,
     "get_evaluate_unchanged": True,
@@ -318,6 +319,7 @@ def test_validate_inputs_logs_errors_in_validation_order(tmp_path, mocker):
             "get_report_thresholds_default": "0*0*101",
             "get_metric": "bogus",
             "get_comment_level": "bogus",
+            "get_report_target": "bogus",
             "get_report_groups": "- name: ''\n  paths: ['**']",
             "get_global_overall_scope": "invalid",
             "get_pass_symbol": "",
@@ -343,6 +345,7 @@ def test_validate_inputs_logs_errors_in_validation_order(tmp_path, mocker):
             "'instruction', 'line', 'branch', 'complexity', 'method', 'class'.",
             "'comment-level' must be a string from these options: "
             "'none', 'minimal', 'full', 'changed', 'failed', 'failed-or-changed'.",
+            "'report-target' must be one of: 'comment', 'summary', 'both'.",
             "'report-groups' entry #1 must have a non-empty 'name'.",
             raising_getters["get_skip_unchanged"],
             raising_getters["get_evaluate_unchanged"],
@@ -1393,5 +1396,80 @@ def test_validate_inputs_accepts_unset_ca_bundle(mocker):
 
         mock_error.assert_not_called()
         mock_exit.assert_not_called()
+    finally:
+        stop_mocks(patchers)
+
+
+# ---------------------------------------------------------------------------
+# report-target
+# ---------------------------------------------------------------------------
+
+
+def test_get_report_target_default_is_comment(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="comment")
+    assert ActionInputs.get_report_target() == ReportTargetEnum.COMMENT
+
+
+@pytest.mark.parametrize("value", ["comment", "summary", "both"])
+def test_get_report_target_returns_each_valid_value(mocker, value):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value=value)
+    assert ActionInputs.get_report_target() == value
+
+
+def test_get_report_target_strips_and_lowercases(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="  SUMMARY \n")
+    assert ActionInputs.get_report_target() == ReportTargetEnum.SUMMARY
+
+
+def test_get_report_target_empty_value_means_comment(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="   ")
+    assert ActionInputs.get_report_target() == ReportTargetEnum.COMMENT
+
+
+def test_get_report_target_reads_the_input_with_default_comment(mocker):
+    mock_get = mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="comment")
+    ActionInputs.get_report_target()
+    mock_get.assert_called_once_with("report-target", "comment")
+
+
+@pytest.mark.parametrize("value", ["comment", "summary", "both"])
+def test_validate_inputs_accepts_report_target(mocker, value):
+    case = success_case.copy()
+    case["get_report_target"] = value
+    patchers = apply_mocks(case, mocker)
+    try:
+        mock_error = mocker.patch("jacoco_report.action_inputs.logger.error")
+        mock_exit = mocker.patch("sys.exit")
+        ActionInputs.validate_inputs()
+        mock_error.assert_not_called()
+        mock_exit.assert_not_called()
+    finally:
+        stop_mocks(patchers)
+
+
+def test_validate_inputs_rejects_invalid_report_target(mocker):
+    case = success_case.copy()
+    case["get_report_target"] = "pr"
+    patchers = apply_mocks(case, mocker)
+    try:
+        mock_error = mocker.patch("jacoco_report.action_inputs.logger.error")
+        mock_exit = mocker.patch("sys.exit")
+        ActionInputs.validate_inputs()
+        mock_error.assert_any_call("%s", "'report-target' must be one of: 'comment', 'summary', 'both'.")
+        mock_exit.assert_called_once_with(1)
+    finally:
+        stop_mocks(patchers)
+
+
+def test_validate_inputs_logs_report_target_value(mocker):
+    case = success_case.copy()
+    case["get_report_target"] = "summary"
+    patchers = apply_mocks(case, mocker)
+    try:
+        mock_info = mocker.patch("jacoco_report.action_inputs.logger.info")
+        ActionInputs.validate_inputs()
+        logged = mock_info.call_args_list[0].args
+        assert "Report target: %s\n" in logged[0]
+        assert "summary" in logged
     finally:
         stop_mocks(patchers)

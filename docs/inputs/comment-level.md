@@ -2,15 +2,16 @@
 
 ## Theory
 
-`comment-level` controls how much information appears in the PR comment posted by the action.
-All levels still run coverage evaluation and honour `fail-on-threshold`; only the comment content
+`comment-level` controls how much information appears in the PR comment and in the job summary written by the action.
+It applies to both channels; [report-target.md](report-target.md) chooses which channels are used.
+All levels still run coverage evaluation and honour `fail-on-threshold`; only the report content
 differs.
 
 ## Valid values
 
 | Level | Global table | Groups table | Reports table | Changed-files table | Filter applied |
 |-------|:---:|:---:|:---:|:---:|----------------|
-| `none` | — | — | — | — | No comment posted |
+| `none` | — | — | — | — | No comment posted, no job summary written |
 | `minimal` | ✅ | — | — | — | None |
 | `full` | ✅ | ✅* | ✅ | ✅ | None |
 | `changed` | ✅ | ✅* | ✅ | ✅ | Hide rows with zero changed files |
@@ -26,7 +27,8 @@ Default: `full`
 ### `none`
 
 No PR comment is posted. If `update-comment: true` and a previous JaCoCo comment with the same
-title exists, that stale comment is deleted so the PR stays clean.
+title exists, that stale comment is deleted so the PR stays clean (`report-target: comment` or `both`;
+`summary` never changes a comment). No job summary is written either (`report-target: summary` or `both`).
 
 Use this when you need threshold enforcement in CI but do not want any comment noise.
 
@@ -177,6 +179,7 @@ rows before the length limit applies.
 
 ## See also
 
+- [report-target.md](report-target.md) — where the report goes: PR comment, job summary, or both
 - [report-groups.md](report-groups.md) — configuring named report groups (affects Groups table)
 - [skip-unchanged.md](skip-unchanged.md) — scan-stage filter applied before `comment-level`
 - [baseline-paths.md](baseline-paths.md) — enabling the Δ Coverage column

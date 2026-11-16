@@ -20,6 +20,7 @@ PR_NUMBER = "pr-number"
 METRIC = "metric"
 
 COMMENT_LEVEL = "comment-level"
+REPORT_TARGET = "report-target"
 REPORT_GROUPS = "report-groups"
 
 SKIP_UNCHANGED = "skip-unchanged"

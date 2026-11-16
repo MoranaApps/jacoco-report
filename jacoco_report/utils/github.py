@@ -34,7 +34,7 @@ HINT_RATE_LIMITED = (
 )
 HINT_FORBIDDEN = (
     "Hint: the token lacks a permission. The job needs `contents: read`, `pull-requests: read` and `issues: write`. "
-    "On fork PRs and Dependabot PRs the token is read-only, so the comment can't be posted."
+    "`report-target: summary` shows the report without write permission."
 )
 HINT_NOT_FOUND = (
     "Hint: the token can't access this repository or pull request, e.g. a private repository it can't see, "

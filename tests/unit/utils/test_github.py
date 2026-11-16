@@ -747,6 +747,20 @@ def test_http_error_logs_hint_after_error(
     assert "ghs_secret_token_value" not in caplog.text
 
 
+@pytest.mark.parametrize("method", ["GET", "POST"])
+def test_forbidden_hint_names_report_target_summary(method: str, mocker: MockerFixture, caplog) -> None:
+    # Points a read-only token at the write-free target: the comment needs `issues: write`, the summary does not.
+    _fake_transport(mocker, [(403, {})])
+    caplog.set_level(logging.ERROR, logger="jacoco_report.utils.github")
+
+    GitHub("ghs_secret_token_value").send_request(method, "https://api.github.com/test", data={})
+
+    errors = _error_messages(caplog)
+    assert "`report-target: summary` shows the report without write permission." in errors[1]
+    assert "fork PRs" not in errors[1]
+    assert "Dependabot" not in errors[1]
+
+
 @pytest.mark.parametrize(
     "method, outcomes",
     [

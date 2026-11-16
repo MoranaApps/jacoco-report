@@ -18,6 +18,16 @@ class CommentLevelEnum(StrEnum):
     FAILED_OR_CHANGED = "failed-or-changed"
 
 
+class ReportTargetEnum(StrEnum):
+    """
+    A class representing where the report is written: the PR comment, the job summary, or both.
+    """
+
+    COMMENT = "comment"
+    SUMMARY = "summary"
+    BOTH = "both"
+
+
 class MetricTypeEnum(StrEnum):
     """
     A class representing the metric type enum.

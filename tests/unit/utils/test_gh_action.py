@@ -1,10 +1,13 @@
+import logging
 import uuid
 
 import pytest
 
 from jacoco_report.utils.gh_action import (
+    append_step_summary,
     break_legacy_command_prefix,
     get_action_input,
+    get_step_summary_path,
     print_action_warning,
     set_action_failed,
     set_action_output,
@@ -236,3 +239,39 @@ def test_print_action_warning_escapes_percent_before_other_characters(capsys):
     print_action_warning("100% done\r\nnext")
 
     assert capsys.readouterr().out == "::warning::100%25 done%0D%0Anext\n"
+
+
+# job summary (GITHUB_STEP_SUMMARY)
+
+
+def test_step_summary_path_is_the_runner_variable(monkeypatch, tmp_path):
+    summary = tmp_path / "summary.md"
+    monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(summary))
+    assert get_step_summary_path() == str(summary)
+
+
+def test_step_summary_path_is_empty_when_unset(monkeypatch):
+    monkeypatch.delenv("GITHUB_STEP_SUMMARY", raising=False)
+    assert get_step_summary_path() == ""
+
+
+def test_append_step_summary_writes_exactly_the_text_as_utf8(tmp_path):
+    # Nothing is added: a body cut to the 1 MiB limit must leave the file at or under the limit.
+    summary = tmp_path / "summary.md"
+    assert append_step_summary(str(summary), "**Title** ✅ ok") is True
+    assert summary.read_bytes() == "**Title** ✅ ok".encode("utf-8")
+
+
+def test_append_step_summary_appends_to_existing_content(tmp_path):
+    summary = tmp_path / "summary.md"
+    summary.write_text("first\n", encoding="utf-8")
+    assert append_step_summary(str(summary), "second") is True
+    assert summary.read_text(encoding="utf-8") == "first\nsecond"
+
+
+def test_append_step_summary_returns_false_and_logs_the_error_when_the_write_fails(tmp_path, caplog):
+    # A directory cannot be opened for appending, so the write raises OSError.
+    with caplog.at_level(logging.ERROR, logger="jacoco_report.utils.gh_action"):
+        assert append_step_summary(str(tmp_path), "body") is False
+    assert "Could not write the job summary" in caplog.text
+    assert caplog.records[0].exc_info is not None

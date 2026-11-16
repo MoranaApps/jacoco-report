@@ -136,3 +136,24 @@ def test_pylint_job_fails_on_any_pylint_message():
         line.strip() for step in _all_steps() for line in step.get("run", "").splitlines() if "pylint" in line
     ]
     assert pylint_lines == ['pylint "${py_files[@]}"'], f"pylint is not run directly: {pylint_lines}"
+
+
+def test_self_test_runs_report_target_summary_with_default_update_comment_and_asserts_its_outcome():
+    # summary makes no comment API call, so this run works with the job's read-only token. Its outcome must be
+    # compared with success in a step that reads it through env, as the missing-ca-bundle run does.
+    steps = _workflow()["jobs"]["self-test"]["steps"]
+    summary_runs = [
+        step
+        for step in steps
+        if str(step.get("uses", "")).startswith("./") and step.get("with", {}).get("report-target") == "summary"
+    ]
+    assert len(summary_runs) == 1, "self-test has no single run with report-target: summary"
+    run = summary_runs[0]
+    assert "update-comment" not in run["with"], "the summary run must keep the default update-comment"
+    assert run["with"].get("comment-level", "full") != "none", "the summary run must write a report"
+    outcome = f"${{{{ steps.{run['id']}.outcome }}}}"
+    assert any(
+        re.search(r'"\$\w+"\s*!=\s*"success"', step.get("run", ""))
+        for step in steps
+        if outcome in step.get("env", {}).values()
+    ), "no step compares the summary run's outcome with success"
