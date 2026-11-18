@@ -386,6 +386,13 @@ def test_run_step_runs_main_with_dash_b_only_and_clears_only_pythonpath(tmp_path
     ]
 
 
+def test_token_input_is_optional_and_defaults_to_the_job_token():
+    # Callers need no `token:` line; an explicit token, even an empty one, still overrides this default.
+    token = _load_action()["inputs"]["token"]
+    assert token["required"] is False
+    assert token["default"] == "${{ github.token }}"
+
+
 def test_ca_bundle_input_is_optional_and_defaults_to_empty():
     ca_bundle = _load_action()["inputs"]["ca-bundle"]
     assert ca_bundle["required"] is False

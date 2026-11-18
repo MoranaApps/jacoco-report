@@ -105,7 +105,6 @@ second time and is not set.
 - name: Publish JaCoCo Report
   uses: MoranaApps/jacoco-report@v3
   with:
-    token: '${{ secrets.GITHUB_TOKEN }}'
     paths: '**/jacoco.xml'
     global-thresholds: '80*70'
     fail-on-threshold: 'overall,changed-files-average,per-changed-file'

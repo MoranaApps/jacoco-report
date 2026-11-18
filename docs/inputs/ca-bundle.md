@@ -87,7 +87,6 @@ jobs:
       - name: Publish JaCoCo Report in PR comments
         uses: MoranaApps/jacoco-report@v3
         with:
-          token: '${{ secrets.GITHUB_TOKEN }}'
           ca-bundle: /etc/ssl/certs/corp-root-ca.pem
 ```
 

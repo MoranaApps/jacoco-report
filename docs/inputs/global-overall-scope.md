@@ -49,7 +49,6 @@ groups contribute only to the global overall, with a warning.
 ```yaml
 - uses: MoranaApps/jacoco-report@v3
   with:
-    token: '${{ secrets.GITHUB_TOKEN }}'
     # paths defaults to '**/jacoco.xml' — no need to set it explicitly
     global-thresholds: '75*0'
     report-groups: |
@@ -74,7 +73,6 @@ exactly the reports belonging to defined groups.
 ```yaml
 - uses: MoranaApps/jacoco-report@v3
   with:
-    token: '${{ secrets.GITHUB_TOKEN }}'
     global-thresholds: '75*0'
     global-overall-scope: 'groups-only'
     report-groups: |
@@ -96,7 +94,6 @@ feed the global number, independently of group membership.
 ```yaml
 - uses: MoranaApps/jacoco-report@v3
   with:
-    token: '${{ secrets.GITHUB_TOKEN }}'
     paths: |
       core/**/jacoco.xml
       api/**/jacoco.xml

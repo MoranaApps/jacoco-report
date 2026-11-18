@@ -260,10 +260,14 @@ service is needed.
   `$RUNNER_TEMP`, and quote every path. Enforced by `tests/unit/test_action_yml.py`.
 - `inputs.token` may appear only in the Run step's `env.INPUT_TOKEN`. Never write `$GITHUB_ENV`: it leaks the token
   into the caller's later steps. Enforced by `tests/unit/test_action_yml.py`.
-- Expression allowlist: the only `${{` outside the Run step's `env` is `setup`'s
+- `token` is optional with `default: ${{ github.token }}` (#286). An explicit value, even an empty one (e.g. a secret
+  that doesn't exist), replaces the default, and `_validate_token` then fails the run. Python has no default of its
+  own for it: a local run must set `INPUT_TOKEN`.
+- Expression allowlist: in `runs.steps`, the only `${{` outside the Run step's `env` is `setup`'s
   `env.INPUT_CA_BUNDLE: ${{ inputs.ca-bundle }}`. Each non-Run step's `env` equals its exact allowlist (`setup`:
   `{INPUT_CA_BUNDLE}`; others `{}`). The Run step's `${{` stay in its `env`. Enforced by
-  `tests/unit/test_action_yml.py`.
+  `tests/unit/test_action_yml.py`. Outside `runs.steps` there are only the `token` default and the `outputs.*.value`
+  step-output references (no test pins this part).
 - `action.yml` has exactly two steps: `setup` (`id: setup`, "Install Python dependencies") and the Run step.
   Composite steps get no `INPUT_*` vars, so `setup` gets `ca-bundle` only through its own `env`.
 - `setup` runs every Python call with `-I`: the cwd is the caller's checkout, and a planted module there
@@ -337,7 +341,8 @@ service is needed.
   + `context/**` fixture XMLs; editing those XMLs means updating the expected values in
   `static_analysis_and_tests.yml`. Its assertions use `jq`. Its `title` is hostile (`$(…)`, backticks), and it
   asserts the marker file `$RUNNER_TEMP/jacoco-pwned` was not created. Its first run uses `comment-level: none`
-  + `update-comment: false`, which makes no comment API call. A second run uses `report-target: summary`
+  + `update-comment: false`, which makes no comment API call, and passes no `token`: it is the only check that the
+  `github.token` default reaches the action. The other runs pass `token` explicitly. A second run uses `report-target: summary`
   (`comment-level: full`, default `update-comment`, title `Self-test job summary`, `continue-on-error: true`), which
   makes no comment API call either. Its assert step reads the outcome through `env`, requires `success`, and checks
   the same outputs as the first run. Each step gets its own job summary file, so the summary's content is checked by

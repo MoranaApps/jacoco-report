@@ -218,11 +218,11 @@ jobs:
 
       # comment-level none + update-comment false makes no comment API call, so this read-only
       # run also works on fork PRs, whose GITHUB_TOKEN cannot write.
+      # No `token` input: this run proves the default (github.token) reaches the action. The other runs pass it.
       - name: Run the action from this checkout
         id: jacoco-report
         uses: ./
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
           paths: |
             tests/data/test_project/module_large/jacoco.xml
             tests/data/test_project/context/**/jacoco.xml

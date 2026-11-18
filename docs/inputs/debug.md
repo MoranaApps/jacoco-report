@@ -30,7 +30,6 @@ re-running a job with "Enable debug logging" checked in the GitHub UI.
 - name: Publish JaCoCo Report
   uses: MoranaApps/jacoco-report@v3
   with:
-    token: '${{ secrets.GITHUB_TOKEN }}'
     paths: '**/jacoco/**/*.xml'
     debug: 'true'
 ```

@@ -37,7 +37,8 @@ jobs:
       - name: Publish JaCoCo Report
         uses: MoranaApps/jacoco-report@v3
         with:
-          token: '${{ secrets.GITHUB_TOKEN }}'
+          # token defaults to the job's GITHUB_TOKEN. Set it only to use a personal
+          # access token or a GitHub App token.
 
           # Global thresholds are evaluated over all reports combined,
           # independently of per-group thresholds.
