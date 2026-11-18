@@ -20,10 +20,13 @@ Automates the publication of JaCoCo coverage reports directly as comments in pul
 
 ## Requirements
 
-- **GitHub Token**: A GitHub token with permission to fetch repository data such as Issues and Pull Requests.
+- **GitHub Token**: The action uses the job's `GITHUB_TOKEN` by default, so no `token` input is needed. The job's
+  `permissions` must let it fetch repository data such as Issues and Pull Requests.
   Write permission (`issues: write`) is needed only for the PR comment. Without it the comment fails, but the
   threshold check still runs. With `report-target: summary`, read access is enough. See
-  [Permissions](docs/inputs/report-target.md#permissions).
+  [Permissions](docs/inputs/report-target.md#permissions). Pass your own token in `token` (a personal access token
+  or a GitHub App token) only when the job's token can't get the permission it needs, or to post the comment as
+  another account.
 - **Python 3.11+**: Python 3.11 or newer must be available as `python` or `python3` on `PATH`. On GitHub-hosted runners, we recommend an `actions/setup-python` step to pin the version.
 - **Supported event**: `pull_request` only. If you need another event, please [open an issue](https://github.com/MoranaApps/jacoco-report/issues) describing your setup.
 - **Runner**: Linux (`ubuntu-*`). macOS and Windows runners are not supported.
@@ -77,7 +80,6 @@ jobs:
       - name: Publish JaCoCo Report in PR comments
         uses: MoranaApps/jacoco-report@v3
         with:
-          token: '${{ secrets.GITHUB_TOKEN }}'
           paths: |
             src/reports/jacoco/jacoco.xml
             **/jacoco.xml
@@ -95,7 +97,7 @@ Input values are passed to the action exactly as written: `$VAR`, `$(…)` and b
 
 | Name                | Description                                                                                                                                                                                                                    | Required | Default                                          |
 |---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------|--------------------------------------------------|
-| `token`             | GitHub token for authentication with the repository.                                                                                                                                                                           | **Yes**  |                                                  |
+| `token`             | GitHub token for authentication with the repository. Set it only to use a personal access token or a GitHub App token; see [Requirements](#requirements).                                                                     | No       | `${{ github.token }}`                            |
 | `paths`             | Newline-separated paths to JaCoCo XML reports. Supports wildcard glob patterns. Defaults to `**/jacoco.xml`; empty values fall back to the default at runtime.                                                                | No       | `**/jacoco.xml`                                  |
 | `exclude-paths`     | Newline-separated paths to exclude from coverage analysis. Supports glob patterns.                                                                                                                                             | No       | `''`                                             |
 | `global-thresholds` | Global thresholds in `overall*changed-files-average` format.                                                                                                                                        | No       | `0.0*0.0`                                        |
@@ -198,7 +200,6 @@ GitHub API calls with a certificate error. Point `ca-bundle` at a PEM file that 
 - name: Publish JaCoCo Report in PR comments
   uses: MoranaApps/jacoco-report@v3
   with:
-    token: '${{ secrets.GITHUB_TOKEN }}'
     ca-bundle: /etc/ssl/certs/corp-root-ca.pem
 ```
 
@@ -238,7 +239,7 @@ Prefer `ca-bundle`: it applies to pip and the API calls alike, and it overrides 
 
 Right after that error, a `Hint:` line names the likely cause:
 
-- **401**: the token is invalid or expired. Check the `token` input.
+- **401**: the token is invalid or expired. If you set the `token` input, check its value.
 - **403**: the token lacks a permission. Check the job `permissions` (see [Requirements](#requirements)).
   To get the report without write permission, use `report-target: summary`.
   If the log hint says the rate limit is exhausted, re-run the job after the limit resets.

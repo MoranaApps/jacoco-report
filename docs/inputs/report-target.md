@@ -130,7 +130,6 @@ jobs:
       - name: Publish JaCoCo Report
         uses: MoranaApps/jacoco-report@v3
         with:
-          token: '${{ secrets.GITHUB_TOKEN }}'
           report-target: summary
 ```
 
@@ -140,7 +139,6 @@ Comment and job summary:
       - name: Publish JaCoCo Report
         uses: MoranaApps/jacoco-report@v3
         with:
-          token: '${{ secrets.GITHUB_TOKEN }}'
           report-target: both
 ```
 

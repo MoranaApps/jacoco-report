@@ -2,8 +2,9 @@ name: 'JaCoCo Report to PR Comment'
 description: 'Add JaCoCo report to PR comment.'
 inputs:
   token:
-    description: 'GitHub token used to read PR data and create/update PR comments.'
-    required: true
+    description: "GitHub token used to read PR data and create/update PR comments. Defaults to the job's GITHUB_TOKEN."
+    required: false
+    default: ${{ github.token }}
   paths:
     description: 'Newline-separated paths or glob patterns to JaCoCo XML reports. Defaults to **/jacoco.xml.'
     required: false

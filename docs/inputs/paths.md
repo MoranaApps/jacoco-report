@@ -34,7 +34,6 @@ Both inputs accept a **newline-separated list** of glob patterns. Leading `*` va
 - name: Publish JaCoCo Report
   uses: MoranaApps/jacoco-report@v3
   with:
-    token: '${{ secrets.GITHUB_TOKEN }}'
     paths: '**/jacoco.xml'
 ```
 
@@ -44,7 +43,6 @@ Both inputs accept a **newline-separated list** of glob patterns. Leading `*` va
 - name: Publish JaCoCo Report
   uses: MoranaApps/jacoco-report@v3
   with:
-    token: '${{ secrets.GITHUB_TOKEN }}'
     paths: |
       module-a/target/jacoco/code-coverage.xml
       module-b/target/jacoco/code-coverage.xml
@@ -57,7 +55,6 @@ Both inputs accept a **newline-separated list** of glob patterns. Leading `*` va
 - name: Publish JaCoCo Report
   uses: MoranaApps/jacoco-report@v3
   with:
-    token: '${{ secrets.GITHUB_TOKEN }}'
     paths: |
       module-a/target/jacoco/code-coverage.xml
       module-b/target/jacoco/code-coverage.xml

@@ -37,7 +37,6 @@ baseline/master/jacoco/**/*.xml
 - name: Publish JaCoCo Report
   uses: MoranaApps/jacoco-report@v3
   with:
-    token: '${{ secrets.GITHUB_TOKEN }}'
     paths: '**/jacoco/**/*.xml'
     baseline-paths: 'baseline/master/jacoco/**/*.xml'
 ```

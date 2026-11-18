@@ -40,7 +40,6 @@ Any non-empty string. Examples: `✅`, `✔️`, `**Passed**`, `OK`, `❌`, `❗
 - name: Publish JaCoCo Report
   uses: MoranaApps/jacoco-report@v3
   with:
-    token: '${{ secrets.GITHUB_TOKEN }}'
     paths: '**/jacoco/**/*.xml'
     metric: 'line'
     pass-symbol: '✔️'

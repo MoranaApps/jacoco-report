@@ -181,7 +181,6 @@ group. Set `global-overall-scope: groups-only` to restrict it to grouped reports
 ```yaml
 - uses: MoranaApps/jacoco-report@v3
   with:
-    token: '${{ secrets.GITHUB_TOKEN }}'
     paths: '**/jacoco.xml'                # scanned for global overall (default value)
     global-thresholds: '70*0'             # aggregated overall must be ≥ 70 %
     global-overall-scope: 'all'           # default — includes ungrouped reports in global overall
@@ -205,7 +204,6 @@ group. Set `global-overall-scope: groups-only` to restrict it to grouped reports
 - name: Publish JaCoCo Report
   uses: MoranaApps/jacoco-report@v3
   with:
-    token: '${{ secrets.GITHUB_TOKEN }}'
     report-thresholds-default: '75*60*0'
     report-groups: |
       - name: Core

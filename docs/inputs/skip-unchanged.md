@@ -43,7 +43,6 @@ failures are raised.
 - name: Publish JaCoCo Report
   uses: MoranaApps/jacoco-report@v3
   with:
-    token: '${{ secrets.GITHUB_TOKEN }}'
     paths: '**/jacoco/**/*.xml'
     skip-unchanged: 'true'
     update-comment: 'true'

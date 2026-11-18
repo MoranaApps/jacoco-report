@@ -44,7 +44,6 @@ See [report-target.md](report-target.md).
 - name: Publish JaCoCo Report
   uses: MoranaApps/jacoco-report@v3
   with:
-    token: '${{ secrets.GITHUB_TOKEN }}'
     paths: '**/jacoco/**/*.xml'
     pr-number: '${{ github.event.pull_request.number }}'
 ```
@@ -55,7 +54,6 @@ See [report-target.md](report-target.md).
 - name: Publish JaCoCo Report
   uses: MoranaApps/jacoco-report@v3
   with:
-    token: '${{ secrets.GITHUB_TOKEN }}'
     paths: '**/jacoco/**/*.xml'
     title: 'Custom Coverage Report Title'
 ```
