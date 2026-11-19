@@ -52,6 +52,42 @@ Key capabilities:
 
 ---
 
+## Quick Start
+
+The action runs on Python, so Python 3.11+ must be on `PATH`; the `actions/setup-python` step pins that version
+instead of relying on whatever the runner image ships, and self-hosted runners may have no Python at all.
+
+```yaml
+name: JaCoCo coverage
+
+on: pull_request
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+
+      # Your build step that writes the JaCoCo XML report goes here, for example:
+      # - run: mvn -B verify
+
+      - uses: MoranaApps/jacoco-report@v3
+        with:
+          paths: '**/jacoco.xml'
+```
+
+For thresholds, report groups and baselines, see [Usage](#usage) and [Examples](#examples).
+
+---
+
 ## Usage
 
 ```yaml
@@ -71,7 +107,7 @@ jobs:
       pull-requests: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - uses: actions/setup-python@v7
         with:
