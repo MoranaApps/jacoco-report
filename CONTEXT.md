@@ -26,7 +26,8 @@ digging through CI logs.
 
 - `jacoco_report/` — the action's package: `action_inputs.py` (reads/validates every `INPUT_*` env
   var), `jacoco_report.py` (orchestrator, class `JaCoCoReport`), `scanner/` (glob-based XML
-  discovery), `parser/` (JaCoCo XML → model), `evaluator/` (threshold evaluation), `generator/` (PR
+  discovery), `parser/` (JaCoCo XML → model), `evaluator/` (threshold evaluation; `baseline_comparison.py`:
+  baseline matching and Δ), `generator/` (PR
   comment and job summary markdown), `model/` (data classes), `utils/` (GitHub API client, GH Actions I/O, enums,
   constants, logging)
 - `main.py` — entry point: `ActionInputs` → `JaCoCoReport` → GH Action outputs/exit code
@@ -34,7 +35,8 @@ digging through CI logs.
   a venv under `$RUNNER_TEMP`, then the Run step runs `main.py` with that venv's interpreter
 - `tests/unit/` — mirrors `jacoco_report/` package by package
 - `tests/integration/` — full-pipeline tests against fixture XML in `tests/data/` and
-  `tests/data_baseline/`, incl. golden snapshot tests (`tests/integration/fixtures/`) and a
+  `tests/data_baseline/`, incl. golden snapshot tests (`tests/integration/fixtures/`; `snapshot_baseline_*` pin the Δ
+  columns) and a
   skip-unchanged × comment-level matrix; `tests/integration/live/` posts to a real PR (needs a GitHub
   token, skipped on forks)
 - `docs/inputs/*.md` — one doc per action-input group, linked from `README.md`
@@ -154,12 +156,16 @@ service is needed.
   `PRCommentGenerator._has_baseline_data` then reports baseline data).
 - `JaCoCoReport` builds every `CoverageEvaluator` through `_new_evaluator(reports, report_groups,
   report_thresholds_default)` (static) and copies results into `self.*` only through `_apply_results(evaluator,
-  fail_unchanged_passed)` (#273). The caller reads `report-thresholds-default` once per path and passes it in: a
-  two-part value is accepted but logs a warning on every read; the global thresholds are read inside the factory. A
-  new action output set from an evaluator goes in `_apply_results`, so both the all-reports-unchanged path
+  bs_evaluator, fail_unchanged_passed)` (#273). The caller reads `report-thresholds-default` once per path and passes
+  it in: a two-part value is accepted but logs a warning on every read; the global thresholds are read inside the
+  factory. A new action output set from an evaluator goes in `_apply_results`, so both the all-reports-unchanged path
   (`_handle_all_reports_filtered`) and the main path (`_evaluate_coverage`) set it. Each passes its own fail-unchanged
   result: `_handle_all_reports_filtered` checks every evaluated report, `_evaluate_coverage` only the filtered
-  unchanged ones, read from `overall_evaluator`.
+  unchanged ones, read from `overall_evaluator`. With `evaluate_filtered_unchanged`, `_handle_all_reports_filtered`
+  also collects the baseline (`_collect_baseline_reports`) and compares the filtered reports with it, as the main path
+  does with `evaluate-unchanged`; without it nothing is evaluated and the deltas stay empty. Both paths build the
+  baseline evaluator through `_new_baseline_evaluator`. A new output also goes in `_EXPECTED_OUTPUTS` of
+  `tests/integration/test_unreadable_comments.py`, which pins the exact set of outputs written.
 - `JaCoCoReport.run()` delegates in order. `_scan_reports(report_groups, global-overall-scope)` owns the top-level
   scan: ungrouped runs scan `paths` (or `DEFAULT_PATHS`), grouped runs scan `paths` only for scope `all`, else `[]`.
   `run()` then exits with "No input JaCoCo xml file found" when the ungrouped scan is empty, **before**
@@ -168,7 +174,7 @@ service is needed.
   `(report_files_coverage, ungrouped_reports)`. `_split_unchanged_reports(reports, skip_unchanged,
   evaluate_filtered_unchanged)` (static) returns `(kept, filtered_unchanged)` and logs one line per filtered report;
   with skip-unchanged off it returns `(reports, [])`. If nothing is kept, `run()` calls
-  `_handle_all_reports_filtered(gh, pr_number, report_groups, filtered, evaluate_filtered_unchanged,
+  `_handle_all_reports_filtered(gh, pr_number, parser, report_groups, filtered, evaluate_filtered_unchanged,
   fail_unchanged_enabled)` and returns. That ends in `_finish_all_filtered_output(gh, pr_number)`: for
   `summary`/`both` with `comment-level` ≠ `none` it writes `all_filtered_summary_body()` (title, the all-unchanged
   message, footer) to the job summary. `summary` then logs `SUMMARY_NO_COMMENT_INFO` and skips
@@ -181,6 +187,24 @@ service is needed.
   passes it to `_report_generator_result(generator)`. The parser is built once in `run()` from the changed files and
   shared by the report and baseline parses. `run()` reads `report-groups` and `global-overall-scope` once and passes
   them in.
+- Baseline Δ has one source, `BaselineComparison(evaluator, bs_evaluator)` (`evaluator/baseline_comparison.py`, #288):
+  the generator renders it (comment and job summary) and `_apply_results` turns it into the outputs
+  `coverage-overall-delta`/`coverage-changed-files-delta` and the `delta` key (`CoverageDelta.to_dict()`:
+  `overall`, `changed_files`) of `reports-coverage`/`groups-coverage`, so all show the same numbers.
+  - Matching: a report row takes the baseline report with its path, else the first with its name; global and group
+    pair by path when any path matches, else by name. A group needs its name in the baseline's groups.
+  - Every Δ is in percentage points, rounded to two decimals, `-0.0` turned into `0.0`. Report Δ = difference of the
+    reached values. Global/group Δ = coverage of the reports now minus the same reports with each matched one's
+    counters swapped for its baseline counters (unmatched count as unchanged); an empty current counter gives `0.0`.
+    Rejected: the earlier `(covered now − covered baseline) / total now`, which is not percentage points once code
+    is added (a drop from 80 % to 79.41 % showed as +0.98 %).
+  - `None` = no baseline data or no matched report: the outputs are `""` (`main._delta_output`) and the entry has no
+    `delta`, while the tables render `0.0%` (`_diffs_or_zero`). `0.0` in an output would read as "no drop".
+  - The global Δ covers the results evaluator's reports, which with `skip-unchanged` and `evaluate-unchanged: false`
+    leave out the filtered reports that `coverage-overall` still counts.
+  - The generator builds the comparison per call (`_baseline()`), because tests replace `evaluator`/`bs_evaluator`
+    after construction. `calculate_baseline_group_diffs` and `_calculate_baseline_report_diffs` stay on the generator
+    as thin wrappers returning `(0.0, 0.0)` for no match; tests call them.
 - `run()` sits at the `too-many-locals` limit (`max-locals=20`, enabled; `self` counts): a new local there trips it,
   so new logic goes in a helper.
 - `CoverageEvaluator` sits at the `too-many-instance-attributes` limit (`max-attributes=15`): a new attribute trips it.
@@ -345,8 +369,13 @@ service is needed.
   `github.token` default reaches the action. The other runs pass `token` explicitly. A second run uses `report-target: summary`
   (`comment-level: full`, default `update-comment`, title `Self-test job summary`, `continue-on-error: true`), which
   makes no comment API call either. Its assert step reads the outcome through `env`, requires `success`, and checks
-  the same outputs as the first run. Each step gets its own job summary file, so the summary's content is checked by
+  the same coverage outputs as the first run. Each step gets its own job summary file, so the summary's content is checked by
   hand in the run's UI.
+  The first run also sets `baseline-paths: tests/data_baseline/test_project/**/jacoco.xml` and asserts
+  `coverage-overall-delta` 4.85, `coverage-changed-files-delta` 0.0 (the PR's changed files are not Java), 4 entries
+  with `delta` (matched by name; `user-info:  Controller Module Report` has a double space in the current fixture,
+  so it does not match) and Module Large's `delta.overall` −4.17. The summary run has no baseline and asserts empty
+  deltas. Editing `tests/data_baseline/` means updating those values too.
   It also runs `ca-bundle` twice: certifi's bundle (must pass) and a missing path (`continue-on-error`).
   Before the missing-path run, a step records the count of `$RUNNER_TEMP/jacoco-report-venv.*` dirs; the assert step
   requires outcome `failure` AND an unchanged count (proves the failure came from the `setup` check, before any venv).

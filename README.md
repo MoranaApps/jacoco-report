@@ -166,7 +166,13 @@ The following outputs are set by the JaCoCo GitHub Action:
 - `coverage-overall-passed`: A boolean indicating if overall code coverage meets the configured threshold. Example: `True`
 - `coverage-changed-files-passed`: A boolean indicating if changed-files average coverage
   meets the configured threshold. Example: `True`
-- `reports-coverage`: A JSON string containing the evaluated coverage per report. Example:
+- `coverage-overall-delta`: The change of the overall coverage against
+  [`baseline-paths`](docs/inputs/baseline-paths.md), in percentage points; negative when coverage dropped.
+  Empty without a baseline, or when no report matched a baseline report. Example: `-0.59`
+- `coverage-changed-files-delta`: The same change for the changed-files coverage; `0.0` when a baseline matched but
+  no report has changed-file coverage now. Example: `1.25`
+- `reports-coverage`: A JSON string containing the evaluated coverage per report. With `baseline-paths`, a report
+  that matched a baseline report also gets `delta` (percentage points, as in the outputs above). Example:
   ```json
   {
       "path/to/jacoco.xml": {
@@ -182,12 +188,13 @@ The following outputs are set by the JaCoCo GitHub Action:
           "changed_files_passed": { "src/main/java/Foo.java": true },
           "changed_files_threshold": 70.0,
           "changed_files_coverage_reached": { "src/main/java/Foo.java": 82.5 },
-          "per_changed_file_threshold": 70.0
+          "per_changed_file_threshold": 70.0,
+          "delta": { "overall": -0.59, "changed_files": 1.25 }
       }
   }
   ```
 - `groups-coverage`: A JSON string containing the evaluated coverage per report group
-  (populated when `report-groups` is defined). Example:
+  (populated when `report-groups` is defined). A group with a matched baseline gets `delta` as well. Example:
   ```json
   {
       "backend": {

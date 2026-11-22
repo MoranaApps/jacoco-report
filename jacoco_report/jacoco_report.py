@@ -4,8 +4,10 @@ A module for generating the JaCoCo report.
 
 import json
 import logging
+from typing import Optional
 
 from jacoco_report.action_inputs import ActionInputs
+from jacoco_report.evaluator.baseline_comparison import BaselineComparison
 from jacoco_report.evaluator.coverage_evaluator import CoverageEvaluator
 from jacoco_report.generator.pr_comment_generator import (
     SUMMARY_NO_COMMENT_INFO,
@@ -39,6 +41,9 @@ class JaCoCoReport:
         self.total_changed_files_coverage: float = 0.0
         self.total_overall_coverage_passed: bool = False
         self.total_changed_files_coverage_passed: bool = False
+        # Δ against the baseline in percentage points; None without a baseline or a matched baseline report.
+        self.total_overall_coverage_delta: Optional[float] = None
+        self.total_changed_files_coverage_delta: Optional[float] = None
 
         self.evaluated_coverage_reports: str = ""
         self.evaluated_coverage_groups: str = ""
@@ -118,6 +123,7 @@ class JaCoCoReport:
             self._handle_all_reports_filtered(
                 gh,
                 pr_number,
+                parser,
                 report_groups,
                 filtered_unchanged_reports,
                 evaluate_filtered_unchanged,
@@ -196,6 +202,7 @@ class JaCoCoReport:
         self,
         gh: GitHub,
         pr_number: int,
+        parser: JaCoCoReportParser,
         report_groups: list[ReportGroup],
         filtered_unchanged_reports: list[ReportFileCoverage],
         evaluate_filtered_unchanged: bool,
@@ -204,7 +211,8 @@ class JaCoCoReport:
         """Finish a run in which skip-unchanged filtered out every report, so no comment is generated.
 
         Without `evaluate_filtered_unchanged` the totals pass by default. With it, the filtered reports are evaluated
-        for the threshold result only, and fail-unchanged checks all of them. Either way the stale comment is deleted.
+        for the threshold result only, against the baseline for the delta outputs, and fail-unchanged checks all of
+        them. Either way the stale comment is deleted.
         """
         if not evaluate_filtered_unchanged:
             logger.info("All reports filtered out by skip-unchanged. No comment will be generated.")
@@ -218,15 +226,17 @@ class JaCoCoReport:
         logger.info(
             "All reports filtered out by skip-unchanged. Evaluating unchanged reports for threshold result only."
         )
+        bs_report_files_coverage = self._collect_baseline_reports(parser, report_groups)
         report_thresholds_default = ActionInputs.get_report_thresholds_default()
         filtered_evaluator = self._new_evaluator(filtered_unchanged_reports, report_groups, report_thresholds_default)
         filtered_evaluator.evaluate()
+        bs_evaluator = self._new_baseline_evaluator(bs_report_files_coverage, report_groups, report_thresholds_default)
         # Every evaluated report is an unchanged one here, so all of them count for fail-unchanged.
         fail_unchanged_passed = not fail_unchanged_enabled or all(
             evaluated_report.overall_passed
             for evaluated_report in filtered_evaluator.evaluated_reports_coverage.values()
         )
-        self._apply_results(filtered_evaluator, fail_unchanged_passed)
+        self._apply_results(filtered_evaluator, bs_evaluator, fail_unchanged_passed)
         self._finish_all_filtered_output(gh=gh, pr_number=pr_number)
 
     def _finish_all_filtered_output(self, gh: GitHub, pr_number: int) -> None:
@@ -289,9 +299,7 @@ class JaCoCoReport:
                 overall_evaluator.total_coverage_changed_files_passed
             )
 
-        bs_evaluator = self._new_evaluator(bs_report_files_coverage, report_groups, report_thresholds_default)
-        if bs_report_files_coverage:
-            bs_evaluator.evaluate()
+        bs_evaluator = self._new_baseline_evaluator(bs_report_files_coverage, report_groups, report_thresholds_default)
 
         # Only the filtered unchanged reports count for fail-unchanged, read from the evaluator that saw them.
         fail_unchanged_passed = True
@@ -302,7 +310,7 @@ class JaCoCoReport:
                 for report_name, evaluated_report in overall_evaluator.evaluated_reports_coverage.items()
                 if report_name in filtered_unchanged_report_names
             )
-        self._apply_results(evaluator_for_results, fail_unchanged_passed)
+        self._apply_results(evaluator_for_results, bs_evaluator, fail_unchanged_passed)
         return evaluator_for_results, bs_evaluator
 
     def _scan_reports(self, report_groups: list[ReportGroup], global_overall_scope: str) -> list[str]:
@@ -496,22 +504,50 @@ class JaCoCoReport:
             report_thresholds_default=report_thresholds_default,
         )
 
-    def _apply_results(self, evaluator: CoverageEvaluator, fail_unchanged_passed: bool) -> None:
-        """Copy an evaluated evaluator's totals, report/group JSON, violations and threshold flags into `self`.
+    @staticmethod
+    def _new_baseline_evaluator(
+        bs_reports: list[ReportFileCoverage],
+        report_groups: list[ReportGroup],
+        report_thresholds_default: tuple[float, float, float],
+    ) -> CoverageEvaluator:
+        """Build the baseline evaluator, evaluated only when baseline reports were found (else it holds no data)."""
+        bs_evaluator = JaCoCoReport._new_evaluator(bs_reports, report_groups, report_thresholds_default)
+        if bs_reports:
+            bs_evaluator.evaluate()
+        return bs_evaluator
 
-        The caller computes `fail_unchanged_passed`: the all-unchanged path and the main path derive it differently.
+    def _apply_results(
+        self, evaluator: CoverageEvaluator, bs_evaluator: Optional[CoverageEvaluator], fail_unchanged_passed: bool
+    ) -> None:
+        """Copy an evaluated evaluator's totals, Δ, report/group JSON, violations and threshold flags into `self`.
+
+        The Δ comes from the same `BaselineComparison` the generator renders, so outputs and comment agree. The caller
+        computes `fail_unchanged_passed`: the all-unchanged path and the main path derive it differently.
         """
         self.total_overall_coverage = evaluator.total_coverage_overall
         self.total_overall_coverage_passed = evaluator.total_coverage_overall_passed
         self.total_changed_files_coverage = evaluator.total_coverage_changed_files
         self.total_changed_files_coverage_passed = evaluator.total_coverage_changed_files_passed
 
-        self.evaluated_coverage_reports = json.dumps(
-            {k: v.to_dict() for k, v in evaluator.evaluated_reports_coverage.items()}, indent=4
-        )
-        self.evaluated_coverage_groups = json.dumps(
-            {k: v.to_dict() for k, v in evaluator.evaluated_groups_coverage.items()}, indent=4
-        )
+        baseline = BaselineComparison(evaluator, bs_evaluator)
+        global_delta = baseline.global_delta()
+        self.total_overall_coverage_delta = None if global_delta is None else global_delta.overall
+        self.total_changed_files_coverage_delta = None if global_delta is None else global_delta.changed_files
+
+        reports: dict[str, dict] = {}
+        for key, report in evaluator.evaluated_reports_coverage.items():
+            reports[key] = report.to_dict()
+            report_delta = baseline.report_delta(report)
+            if report_delta is not None:
+                reports[key]["delta"] = report_delta.to_dict()
+        groups: dict[str, dict] = {}
+        for key, group in evaluator.evaluated_groups_coverage.items():
+            groups[key] = group.to_dict()
+            group_delta = baseline.group_delta(group)
+            if group_delta is not None:
+                groups[key]["delta"] = group_delta.to_dict()
+        self.evaluated_coverage_reports = json.dumps(reports, indent=4)
+        self.evaluated_coverage_groups = json.dumps(groups, indent=4)
 
         self.violations = evaluator.violations
         self.reached_threshold_overall = evaluator.reached_threshold_overall

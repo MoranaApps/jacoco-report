@@ -4,12 +4,18 @@ The main module to run the JaCoCo GitHub Action adding the Json report to the pu
 
 import logging
 import sys
+from typing import Optional
 
 from jacoco_report.action_inputs import ActionInputs
 from jacoco_report.jacoco_report import JaCoCoReport
 from jacoco_report.utils.enums import FailOnThresholdEnum
 from jacoco_report.utils.gh_action import set_action_output, set_action_failed, set_action_output_text
 from jacoco_report.utils.logging_config import setup_logging
+
+
+def _delta_output(delta: Optional[float]) -> str:
+    """Return a Δ output value: empty when there is no baseline to compare with."""
+    return "" if delta is None else str(delta)
 
 
 def run() -> None:
@@ -37,6 +43,8 @@ def run() -> None:
     set_action_output("coverage-changed-files", str(jr.total_changed_files_coverage))
     set_action_output("coverage-overall-passed", str(jr.total_overall_coverage_passed))
     set_action_output("coverage-changed-files-passed", str(jr.total_changed_files_coverage_passed))
+    set_action_output("coverage-overall-delta", _delta_output(jr.total_overall_coverage_delta))
+    set_action_output("coverage-changed-files-delta", _delta_output(jr.total_changed_files_coverage_delta))
     set_action_output_text("reports-coverage", jr.evaluated_coverage_reports)
     set_action_output_text("groups-coverage", jr.evaluated_coverage_groups)
 
@@ -44,6 +52,8 @@ def run() -> None:
     logger.debug("Action output 'coverage-changed-files' set to: %s", jr.total_changed_files_coverage)
     logger.debug("Action output 'coverage-overall-passed' set to: %s", jr.total_overall_coverage_passed)
     logger.debug("Action output 'coverage-changed-files-passed' set to: %s", jr.total_changed_files_coverage_passed)
+    logger.debug("Action output 'coverage-overall-delta' set to: %s", jr.total_overall_coverage_delta)
+    logger.debug("Action output 'coverage-changed-files-delta' set to: %s", jr.total_changed_files_coverage_delta)
     logger.debug("Action output 'reports-coverage' set to: %s", jr.evaluated_coverage_reports)
     logger.debug("Action output 'groups-coverage' set to: %s", jr.evaluated_coverage_groups)
 
