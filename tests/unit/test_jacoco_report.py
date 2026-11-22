@@ -2756,6 +2756,149 @@ def test_groups_coverage_output_empty_json_when_no_groups(jacoco_report, mocker,
     assert jacoco_report.evaluated_coverage_groups == "{}"
 
 
+_MODULE_LARGE_CHANGED_FILES = ["com/example/module_large/MidClass.java", "com/example/module_large/BigClass.java"]
+
+
+def _reports_by_name(evaluated_coverage_json: str) -> dict:
+    return {entry["name"]: entry for entry in json.loads(evaluated_coverage_json).values()}
+
+
+def test_delta_outputs_with_baseline(jacoco_report, mocker):
+    """The delta outputs and the per-report delta carry the comment's Δ values (snapshot_baseline_no_groups.md)."""
+    _patch_jr_run_inputs(mocker)
+    mocker.patch(
+        "jacoco_report.action_inputs.ActionInputs.get_paths", return_value=["tests/data/test_project/**/jacoco.xml"]
+    )
+    mocker.patch(
+        "jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["tests/data_baseline/**/*.xml"]
+    )
+    mocker.patch("jacoco_report.utils.github.GitHub.get_pr_changed_files", return_value=_MODULE_LARGE_CHANGED_FILES)
+
+    jacoco_report.run()
+
+    assert jacoco_report.total_overall_coverage_delta == 4.5
+    assert jacoco_report.total_changed_files_coverage_delta == -4.75
+    reports = _reports_by_name(jacoco_report.evaluated_coverage_reports)
+    assert reports["Module Large Report"]["delta"] == {"overall": -4.17, "changed_files": -4.75}
+    assert "delta" not in reports["Module Small Report"]
+
+
+def test_delta_outputs_empty_without_baseline(jacoco_report, mocker):
+    """Without baseline-paths the delta outputs stay empty and no report entry gets a delta."""
+    _patch_jr_run_inputs(mocker)
+    mocker.patch(
+        "jacoco_report.action_inputs.ActionInputs.get_paths", return_value=["tests/data/test_project/**/jacoco.xml"]
+    )
+    mocker.patch("jacoco_report.utils.github.GitHub.get_pr_changed_files", return_value=_MODULE_LARGE_CHANGED_FILES)
+
+    jacoco_report.run()
+
+    assert jacoco_report.total_overall_coverage_delta is None
+    assert jacoco_report.total_changed_files_coverage_delta is None
+    assert all("delta" not in entry for entry in json.loads(jacoco_report.evaluated_coverage_reports).values())
+
+
+def test_delta_outputs_empty_when_no_report_matches_the_baseline(jacoco_report, mocker):
+    """A baseline whose reports match none of the current ones gives empty outputs, not 0.0."""
+    _patch_jr_run_inputs(mocker)
+    mocker.patch(
+        "jacoco_report.action_inputs.ActionInputs.get_paths",
+        return_value=["tests/data/test_project/context/notification/**/jacoco.xml"],
+    )
+    mocker.patch(
+        "jacoco_report.action_inputs.ActionInputs.get_baseline_paths",
+        return_value=["tests/data_baseline/test_project/module_large/jacoco.xml"],
+    )
+
+    jacoco_report.run()
+
+    assert jacoco_report.total_overall_coverage_delta is None
+    assert jacoco_report.total_changed_files_coverage_delta is None
+
+
+def test_group_delta_only_for_groups_with_a_baseline(jacoco_report, mocker):
+    """groups-coverage carries a delta for the group with a baseline and none for the group without one."""
+    from jacoco_report.model.report_group import ReportGroup
+
+    groups = [
+        ReportGroup(name="notification", paths=["tests/data/test_project/context/notification/**/jacoco.xml"]),
+        ReportGroup(
+            name="user-info",
+            paths=["tests/data/test_project/context/user-info/**/jacoco.xml"],
+            baseline_paths=["tests/data_baseline/test_project/context/user-info/**/jacoco.xml"],
+        ),
+    ]
+    _patch_jr_run_inputs(mocker, report_groups=groups)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=[])
+
+    jacoco_report.run()
+
+    groups_data = json.loads(jacoco_report.evaluated_coverage_groups)
+    assert groups_data["user-info"]["delta"] == {"overall": 22.0, "changed_files": 0.0}
+    assert "delta" not in groups_data["notification"]
+
+
+def test_global_delta_covers_only_kept_reports_when_evaluate_unchanged_is_false(jacoco_report, mocker):
+    """With skip-unchanged and evaluate-unchanged false, the global Δ covers only the kept reports (see baseline-paths docs)."""
+    _patch_jr_run_inputs(mocker)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_unchanged", return_value=True)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_evaluate_unchanged", return_value=False)
+    mocker.patch(
+        "jacoco_report.action_inputs.ActionInputs.get_paths", return_value=["tests/data/test_project/**/jacoco.xml"]
+    )
+    mocker.patch(
+        "jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["tests/data_baseline/**/*.xml"]
+    )
+    mocker.patch("jacoco_report.utils.github.GitHub.get_pr_changed_files", return_value=_MODULE_LARGE_CHANGED_FILES)
+
+    jacoco_report.run()
+
+    assert list(_reports_by_name(jacoco_report.evaluated_coverage_reports)) == ["Module Large Report"]
+    assert jacoco_report.total_overall_coverage_delta == -4.17
+    assert jacoco_report.total_changed_files_coverage_delta == -4.75
+
+
+def test_delta_outputs_empty_when_all_reports_are_filtered_without_evaluate_unchanged(jacoco_report, mocker):
+    """All reports filtered by skip-unchanged and none evaluated: there is nothing to compare, so no Δ is set."""
+    _patch_jr_run_inputs(mocker)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_unchanged", return_value=True)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_evaluate_unchanged", return_value=False)
+    mocker.patch(
+        "jacoco_report.action_inputs.ActionInputs.get_paths", return_value=["tests/data/test_project/**/jacoco.xml"]
+    )
+    mocker.patch(
+        "jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["tests/data_baseline/**/*.xml"]
+    )
+    mocker.patch("jacoco_report.utils.github.GitHub.get_pr_changed_files", return_value=[])
+
+    jacoco_report.run()
+
+    assert jacoco_report.total_overall_coverage_delta is None
+    assert jacoco_report.total_changed_files_coverage_delta is None
+
+
+def test_delta_output_set_when_all_reports_are_filtered_and_evaluate_unchanged_true(jacoco_report, mocker):
+    """All reports filtered with evaluate-unchanged true: the evaluated unchanged reports are compared with the baseline.
+
+    Same value as the main path over all nine reports (snapshot_baseline_no_groups.md); no report has changed files.
+    """
+    _patch_jr_run_inputs(mocker)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_unchanged", return_value=True)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_evaluate_unchanged", return_value=True)
+    mocker.patch(
+        "jacoco_report.action_inputs.ActionInputs.get_paths", return_value=["tests/data/test_project/**/jacoco.xml"]
+    )
+    mocker.patch(
+        "jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["tests/data_baseline/**/*.xml"]
+    )
+    mocker.patch("jacoco_report.utils.github.GitHub.get_pr_changed_files", return_value=[])
+
+    jacoco_report.run()
+
+    assert jacoco_report.total_overall_coverage_delta == 4.5
+    assert jacoco_report.total_changed_files_coverage_delta == 0.0
+
+
 def test_exclude_paths_forwarded_to_scan_jacoco_xml_files(jacoco_report, mocker, make_report_file_coverage):
     """JaCoCoReport.scan_jacoco_xml_files receives the exclude_paths configured in action inputs."""
     report = make_report_file_coverage(name="mod")

@@ -10,6 +10,7 @@ from textwrap import dedent
 from typing import NamedTuple, Optional
 
 from jacoco_report.action_inputs import ActionInputs
+from jacoco_report.evaluator.baseline_comparison import BaselineComparison, CoverageDelta
 from jacoco_report.evaluator.coverage_evaluator import CoverageEvaluator
 from jacoco_report.model.evaluated_report_coverage import EvaluatedReportCoverage
 from jacoco_report.utils.constants import ACTION_REPOSITORY, ACTION_REPOSITORY_URL
@@ -68,6 +69,13 @@ def _single_line(text: str) -> str:
 def _escape_md_link_text(text: str) -> str:
     """Escape characters that break Markdown inline-link text."""
     return _single_line(text).translate(_MD_LINK_TEXT_UNSAFE)
+
+
+def _diffs_or_zero(delta: Optional[CoverageDelta]) -> tuple[float, float]:
+    """Return a Δ as (overall, changed files) for a table row; a row without a matched baseline shows 0.0%."""
+    if delta is None:
+        return 0.0, 0.0
+    return delta.overall, delta.changed_files
 
 
 def _split_table(section: str) -> _Section:
@@ -487,12 +495,13 @@ class PRCommentGenerator:
             or any(not passed for passed in coverage.changed_files_passed.values())
         )
 
+    def _baseline(self) -> BaselineComparison:
+        """Return the baseline comparison of the current evaluators, built per call as tests replace them."""
+        return BaselineComparison(self.evaluator, self.bs_evaluator)
+
     def _has_baseline_data(self) -> bool:
         """Return whether baseline evaluator data is available for diff columns."""
-        if self.bs_evaluator is None:
-            return False
-
-        return bool(self.bs_evaluator.evaluated_reports_coverage) or bool(self.bs_evaluator.evaluated_groups_coverage)
+        return self._baseline().has_baseline_data()
 
     def get_basic_table_for_all(self, p: str, f: str) -> str:
         """Render the global summary table, with baseline deltas when available."""
@@ -509,55 +518,11 @@ class PRCommentGenerator:
         if not self._has_baseline_data():
             return self.get_basic_table(p, f, ActionInputs.get_metric(), overall, changed_files)
 
-        # bs_evaluator is guaranteed non-None here due to _has_baseline_data() check
-        bs_evaluator = self.bs_evaluator
-        assert bs_evaluator is not None
-        # Compute diffs from matched report names only to avoid comparing N current
-        # reports against a partial baseline that covers fewer reports.
-        diff_o, diff_ch = self._compute_matched_global_diffs(bs_evaluator)
+        # With baseline data but no matched report the Δ column still shows, as 0.0%.
+        diff_o, diff_ch = _diffs_or_zero(self._baseline().global_delta())
         return self._render_basic_table_with_delta(
             p, f, ActionInputs.get_metric(), overall, changed_files, diff_o, diff_ch
         )
-
-    def _compute_matched_global_diffs(self, bs_evaluator: "CoverageEvaluator") -> tuple[float, float]:
-        """Return (diff_overall, diff_changed) using reports matched between both evaluators.
-
-        Matching is path-first (same directory structure) with a name-based fallback for setups
-        where current and baseline reports live in different directory trees.
-        """
-        curr_by_path = self.evaluator.evaluated_reports_coverage
-        bs_by_path = bs_evaluator.evaluated_reports_coverage
-
-        matched_paths = set(curr_by_path.keys()) & set(bs_by_path.keys())
-        if matched_paths:
-            pairs = [(curr_by_path[p], bs_by_path[p]) for p in matched_paths]
-        else:
-            bs_by_name = {v.name: v for v in bs_by_path.values()}
-            pairs = [(curr, bs_by_name[curr.name]) for curr in curr_by_path.values() if curr.name in bs_by_name]
-
-        if not pairs:
-            return 0.0, 0.0
-
-        curr_covered_o = bs_covered_o = 0
-        curr_covered_ch = bs_covered_ch = 0
-        for curr, bs in pairs:
-            curr_covered_o += curr.overall_coverage.covered
-            bs_covered_o += bs.overall_coverage.covered
-            curr_covered_ch += curr.avg_changed_files_coverage.covered
-            bs_covered_ch += bs.avg_changed_files_coverage.covered
-
-        global_total_o = sum(
-            erc.overall_coverage.covered + erc.overall_coverage.missed for erc in curr_by_path.values()
-        )
-        global_total_ch = sum(
-            erc.avg_changed_files_coverage.covered + erc.avg_changed_files_coverage.missed
-            for erc in curr_by_path.values()
-        )
-
-        diff_o = round((curr_covered_o - bs_covered_o) / global_total_o * 100, 2) if global_total_o > 0 else 0.0
-        diff_ch = round((curr_covered_ch - bs_covered_ch) / global_total_ch * 100, 2) if global_total_ch > 0 else 0.0
-
-        return diff_o, diff_ch
 
     # Full example of the table
     # | Metric (Instruction) | Coverage | Threshold | Δ Coverage | Status |
@@ -787,70 +752,12 @@ class PRCommentGenerator:
         )
 
     def calculate_baseline_group_diffs(self, evaluated_coverage: EvaluatedReportCoverage) -> tuple[float, float]:
-        """Calculate baseline deltas for one rendered group row using path-first, name-fallback matching."""
-        if self.bs_evaluator is None or evaluated_coverage.name not in self.bs_evaluator.evaluated_groups_coverage:
-            return 0.0, 0.0
-
-        group_name = evaluated_coverage.name
-        curr_in_group = {
-            path: erc for path, erc in self.evaluator.evaluated_reports_coverage.items() if erc.group_name == group_name
-        }
-
-        bs_reports = self.bs_evaluator.evaluated_reports_coverage
-
-        matched_paths = set(curr_in_group.keys()) & set(bs_reports.keys())
-        if matched_paths:
-            pairs = [(curr_in_group[p], bs_reports[p]) for p in matched_paths]
-        else:
-            bs_by_name = {v.name: v for v in bs_reports.values()}
-            pairs = [(curr, bs_by_name[curr.name]) for curr in curr_in_group.values() if curr.name in bs_by_name]
-
-        if not pairs:
-            return 0.0, 0.0
-
-        curr_covered_o = bs_covered_o = 0
-        curr_covered_ch = bs_covered_ch = 0
-        for curr, bs in pairs:
-            curr_covered_o += curr.overall_coverage.covered
-            bs_covered_o += bs.overall_coverage.covered
-            curr_covered_ch += curr.avg_changed_files_coverage.covered
-            bs_covered_ch += bs.avg_changed_files_coverage.covered
-
-        group_total_o = sum(
-            erc.overall_coverage.covered + erc.overall_coverage.missed for erc in curr_in_group.values()
-        )
-        group_total_ch = sum(
-            erc.avg_changed_files_coverage.covered + erc.avg_changed_files_coverage.missed
-            for erc in curr_in_group.values()
-        )
-
-        diff_o = round((curr_covered_o - bs_covered_o) / group_total_o * 100, 2) if group_total_o > 0 else 0.0
-        diff_ch = round((curr_covered_ch - bs_covered_ch) / group_total_ch * 100, 2) if group_total_ch > 0 else 0.0
-
-        return diff_o, diff_ch
-
-    def _find_baseline_report(self, evaluated_coverage: EvaluatedReportCoverage) -> Optional["EvaluatedReportCoverage"]:
-        """Return the matching baseline EvaluatedReportCoverage, or None.
-
-        Tries path-based lookup first (same directory structure), then falls back to name-based
-        matching for setups where current and baseline reports live in different directory trees.
-        """
-        if self.bs_evaluator is None:
-            return None
-        bs = self.bs_evaluator.evaluated_reports_coverage
-        if evaluated_coverage.path and evaluated_coverage.path in bs:
-            return bs[evaluated_coverage.path]
-        return next((v for v in bs.values() if v.name == evaluated_coverage.name), None)
+        """Return the (overall, changed files) Δ of one rendered group row, (0.0, 0.0) without a matched baseline."""
+        return _diffs_or_zero(self._baseline().group_delta(evaluated_coverage))
 
     def _calculate_baseline_report_diffs(self, evaluated_coverage: EvaluatedReportCoverage) -> tuple[float, float]:
-        """Calculate baseline deltas for one rendered report row."""
-        bs_coverage = self._find_baseline_report(evaluated_coverage)
-        if bs_coverage is None:
-            return 0.0, 0.0
-
-        diff_o = evaluated_coverage.overall_coverage_reached - bs_coverage.overall_coverage_reached
-        diff_ch = evaluated_coverage.avg_changed_files_coverage_reached - bs_coverage.avg_changed_files_coverage_reached
-        return diff_o, diff_ch
+        """Return the (overall, changed files) Δ of one rendered report row, (0.0, 0.0) without a matched baseline."""
+        return _diffs_or_zero(self._baseline().report_delta(evaluated_coverage))
 
     # Full example of the table
     # | File Path                                      | Coverage | Threshold | Δ Coverage | Status |
@@ -956,10 +863,11 @@ class PRCommentGenerator:
         if evaluated_reports_coverage is None:
             evaluated_reports_coverage = self.evaluator.evaluated_reports_coverage
 
+        baseline = self._baseline()
         lines = []
         for ecr_key in evaluated_reports_coverage.keys():
             curr_erc = evaluated_reports_coverage[ecr_key]
-            bs_erc = self._find_baseline_report(curr_erc)
+            bs_erc = baseline.find_baseline_report(curr_erc)
             for file_key in curr_erc.changed_files_coverage_reached.keys():
                 filename = _escape_md_link_text(os.path.basename(file_key))
                 file_hash = hashlib.sha256(file_key.encode("utf-8")).hexdigest()

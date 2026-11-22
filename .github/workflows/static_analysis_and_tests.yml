@@ -219,6 +219,7 @@ jobs:
       # comment-level none + update-comment false makes no comment API call, so this read-only
       # run also works on fork PRs, whose GITHUB_TOKEN cannot write.
       # No `token` input: this run proves the default (github.token) reaches the action. The other runs pass it.
+      # The baseline matches four of the eight reports by name, which the delta outputs show.
       - name: Run the action from this checkout
         id: jacoco-report
         uses: ./
@@ -226,18 +227,22 @@ jobs:
           paths: |
             tests/data/test_project/module_large/jacoco.xml
             tests/data/test_project/context/**/jacoco.xml
+          baseline-paths: tests/data_baseline/test_project/**/jacoco.xml
           comment-level: none
           update-comment: 'false'
           # Hostile on purpose: if the title were ever shell-expanded, the marker file would be created.
           title: 'x $(touch "$RUNNER_TEMP/jacoco-pwned") `touch "$RUNNER_TEMP/jacoco-pwned"` "y"'
 
-      # Expected values follow from the fixture XMLs in `paths`; update them when those fixtures change.
+      # Expected values follow from the fixture XMLs in `paths` and `baseline-paths`; update them when those fixtures
+      # change.
       - name: Assert action outputs
         env:
           COVERAGE_OVERALL: ${{ steps.jacoco-report.outputs.coverage-overall }}
           COVERAGE_CHANGED_FILES: ${{ steps.jacoco-report.outputs.coverage-changed-files }}
           COVERAGE_OVERALL_PASSED: ${{ steps.jacoco-report.outputs.coverage-overall-passed }}
           COVERAGE_CHANGED_FILES_PASSED: ${{ steps.jacoco-report.outputs.coverage-changed-files-passed }}
+          COVERAGE_OVERALL_DELTA: ${{ steps.jacoco-report.outputs.coverage-overall-delta }}
+          COVERAGE_CHANGED_FILES_DELTA: ${{ steps.jacoco-report.outputs.coverage-changed-files-delta }}
           REPORTS_COVERAGE: ${{ steps.jacoco-report.outputs.reports-coverage }}
           GROUPS_COVERAGE: ${{ steps.jacoco-report.outputs.groups-coverage }}
         run: |
@@ -256,6 +261,10 @@ jobs:
           check coverage-changed-files-passed True "$COVERAGE_CHANGED_FILES_PASSED"
           check "reports-coverage entries" 8 "$(jq length <<< "$REPORTS_COVERAGE")"
           check groups-coverage '{}' "$(jq -c . <<< "$GROUPS_COVERAGE")"
+          check coverage-overall-delta 4.85 "$COVERAGE_OVERALL_DELTA"
+          check coverage-changed-files-delta 0.0 "$COVERAGE_CHANGED_FILES_DELTA"
+          check "reports-coverage entries with delta" 4 "$(jq '[.[] | select(has("delta"))] | length' <<< "$REPORTS_COVERAGE")"
+          check "Module Large Report delta" -4.17 "$(jq -r '.[] | select(.name == "Module Large Report") | .delta.overall' <<< "$REPORTS_COVERAGE")"
           check hostile-title-not-expanded absent "$(if [ -e "$RUNNER_TEMP/jacoco-pwned" ]; then echo present; else echo absent; fi)"
           exit $failed
 
@@ -273,7 +282,8 @@ jobs:
           comment-level: full
           title: Self-test job summary
 
-      # Same expected values as the first run: the outputs do not depend on where the report goes.
+      # Same coverage values as the first run: the outputs do not depend on where the report goes. This run has no
+      # baseline, so the delta outputs are empty.
       - name: Assert the job summary run
         env:
           OUTCOME: ${{ steps.jacoco-report-summary.outcome }}
@@ -281,6 +291,8 @@ jobs:
           COVERAGE_CHANGED_FILES: ${{ steps.jacoco-report-summary.outputs.coverage-changed-files }}
           COVERAGE_OVERALL_PASSED: ${{ steps.jacoco-report-summary.outputs.coverage-overall-passed }}
           COVERAGE_CHANGED_FILES_PASSED: ${{ steps.jacoco-report-summary.outputs.coverage-changed-files-passed }}
+          COVERAGE_OVERALL_DELTA: ${{ steps.jacoco-report-summary.outputs.coverage-overall-delta }}
+          COVERAGE_CHANGED_FILES_DELTA: ${{ steps.jacoco-report-summary.outputs.coverage-changed-files-delta }}
           REPORTS_COVERAGE: ${{ steps.jacoco-report-summary.outputs.reports-coverage }}
           GROUPS_COVERAGE: ${{ steps.jacoco-report-summary.outputs.groups-coverage }}
         run: |
@@ -303,6 +315,9 @@ jobs:
           check coverage-changed-files-passed True "$COVERAGE_CHANGED_FILES_PASSED"
           check "reports-coverage entries" 8 "$(jq length <<< "$REPORTS_COVERAGE")"
           check groups-coverage '{}' "$(jq -c . <<< "$GROUPS_COVERAGE")"
+          check coverage-overall-delta '' "$COVERAGE_OVERALL_DELTA"
+          check coverage-changed-files-delta '' "$COVERAGE_CHANGED_FILES_DELTA"
+          check "reports-coverage entries with delta" 0 "$(jq '[.[] | select(has("delta"))] | length' <<< "$REPORTS_COVERAGE")"
           exit $failed
 
       - name: Locate certifi's CA bundle

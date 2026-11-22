@@ -17,7 +17,9 @@ import pytest
 from pytest_mock import MockerFixture
 
 from tests.integration.helpers import (
+    BASELINE_PROJECT_GLOB,
     DATA_DIR,
+    TESTS_DIR,
     TEST_PROJECT_GLOB,
     capture_run,
     make_env_base,
@@ -28,6 +30,9 @@ FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
 _NOTIFICATION_GLOB = str(DATA_DIR / "test_project" / "context" / "notification" / "**" / "jacoco.xml")
 _USER_INFO_GLOB = str(DATA_DIR / "test_project" / "context" / "user-info" / "**" / "jacoco.xml")
+_USER_INFO_BASELINE_GLOB = str(
+    TESTS_DIR / "data_baseline" / "test_project" / "context" / "user-info" / "**" / "jacoco.xml"
+)
 
 # Changed files for scenario 1: only module_large reports have changed files
 _CHANGED_FILES_NO_GROUPS = [
@@ -53,6 +58,18 @@ _REPORT_GROUPS_YAML = f"""\
 - name: user-info
   paths:
     - {_USER_INFO_GLOB}
+"""
+
+# Only user-info has a baseline; notification shows the Δ of a group without one.
+_REPORT_GROUPS_WITH_BASELINE_YAML = f"""\
+- name: notification
+  paths:
+    - {_NOTIFICATION_GLOB}
+- name: user-info
+  paths:
+    - {_USER_INFO_GLOB}
+  baseline-paths:
+    - {_USER_INFO_BASELINE_GLOB}
 """
 
 
@@ -171,6 +188,53 @@ def test_snapshot_skip_unchanged(mocker: MockerFixture) -> None:
     )
 
     _assert_or_write_snapshot("skip_unchanged", captured[0])
+
+
+def test_snapshot_baseline_no_groups(mocker: MockerFixture) -> None:
+    """Full comment with a baseline: every table gets the Δ column.
+
+    The baseline holds five of the nine reports; the others show a Δ of 0.0%.
+    """
+    captured = mock_github_offline(mocker, _CHANGED_FILES_NO_GROUPS)
+
+    env = make_env_base(
+        INPUT_PATHS=TEST_PROJECT_GLOB,
+        INPUT_BASELINE_PATHS=BASELINE_PROJECT_GLOB,
+        INPUT_COMMENT_LEVEL="full",
+        INPUT_SKIP_UNCHANGED="false",
+    )
+    result = capture_run(env)
+
+    assert result.exit_code == 0, (
+        f"Action exited with code {result.exit_code}.\n" f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}"
+    )
+    assert len(captured) == 1, (
+        f"Expected exactly one comment posted, got {len(captured)}.\n" f"stdout:\n{result.stdout}"
+    )
+
+    _assert_or_write_snapshot("baseline_no_groups", captured[0])
+
+
+def test_snapshot_baseline_with_groups(mocker: MockerFixture) -> None:
+    """Full comment with a per-group baseline for user-info only, which adds the Δ column to the groups table."""
+    captured = mock_github_offline(mocker, _CHANGED_FILES_WITH_GROUPS)
+
+    env = make_env_base(
+        INPUT_PATHS="",
+        INPUT_REPORT_GROUPS=_REPORT_GROUPS_WITH_BASELINE_YAML,
+        INPUT_COMMENT_LEVEL="full",
+        INPUT_SKIP_UNCHANGED="false",
+    )
+    result = capture_run(env)
+
+    assert result.exit_code == 0, (
+        f"Action exited with code {result.exit_code}.\n" f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}"
+    )
+    assert len(captured) == 1, (
+        f"Expected exactly one comment posted, got {len(captured)}.\n" f"stdout:\n{result.stdout}"
+    )
+
+    _assert_or_write_snapshot("baseline_with_groups", captured[0])
 
 
 def test_ungrouped_reports_warning(mocker: MockerFixture) -> None:

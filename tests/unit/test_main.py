@@ -317,3 +317,33 @@ def test_main_sets_coverage_changed_files_passed_false_when_failing(mocker):
     mock_set_output.assert_any_call("coverage-overall-passed", "True")
     mock_set_output.assert_any_call("coverage-changed-files-passed", "False")
     mock_set_failed.assert_called_once_with(messages=["Changed files coverage below threshold."], fail=True)
+
+
+def _run_with_deltas(mocker, overall_delta, changed_files_delta):
+    mocker.patch("main.setup_logging")
+    mocker.patch.object(ActionInputs, "validate_inputs")
+    mock_jr = mocker.patch("main.JaCoCoReport").return_value
+    mock_set_output = mocker.patch("main.set_action_output")
+    mocker.patch("main.set_action_output_text")
+    mocker.patch("sys.exit")
+    mock_jr.total_overall_coverage_delta = overall_delta
+    mock_jr.total_changed_files_coverage_delta = changed_files_delta
+    mock_jr.violations = []
+
+    run()
+
+    return mock_set_output
+
+
+def test_run_sets_delta_outputs_from_baseline(mocker):
+    mock_set_output = _run_with_deltas(mocker, -0.59, 1.5)
+
+    mock_set_output.assert_any_call("coverage-overall-delta", "-0.59")
+    mock_set_output.assert_any_call("coverage-changed-files-delta", "1.5")
+
+
+def test_run_sets_empty_delta_outputs_without_baseline(mocker):
+    mock_set_output = _run_with_deltas(mocker, None, None)
+
+    mock_set_output.assert_any_call("coverage-overall-delta", "")
+    mock_set_output.assert_any_call("coverage-changed-files-delta", "")

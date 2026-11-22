@@ -117,6 +117,12 @@ outputs:
   coverage-changed-files-passed:
     description: 'Coverage for changed files pass status. (True/False)'
     value: ${{ steps.jacoco-report-to-pr-comment.outputs.coverage-changed-files-passed }}
+  coverage-overall-delta:
+    description: 'Change of the overall coverage against baseline-paths, in percentage points (e.g. -0.59). Empty without a matched baseline.'
+    value: ${{ steps.jacoco-report-to-pr-comment.outputs.coverage-overall-delta }}
+  coverage-changed-files-delta:
+    description: 'Change of the changed-files coverage against baseline-paths, in percentage points. Empty without a matched baseline.'
+    value: ${{ steps.jacoco-report-to-pr-comment.outputs.coverage-changed-files-delta }}
   reports-coverage:
     description: 'Coverage for each report.'
     value: ${{ steps.jacoco-report-to-pr-comment.outputs.reports-coverage }}
