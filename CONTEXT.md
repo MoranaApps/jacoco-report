@@ -221,6 +221,9 @@ service is needed.
   - A row drops (`OverallChange.is_drop`) when its Δ (the rounded value the comment shows) is `< -max_decrease` and
     its missed count of the selected metric grew, so deleting covered code passes. Group/global counters come from
     `_aggregate_counters`, the same ones as the Δ; a report compares its own counters with its baseline report's.
+    A report row's Δ is the difference of the rounded reached values (as the comment shows it), so it can be up to
+    0.01 off the exact change: a 0.004 pp drop across a rounding step is `-0.01` and fails `max-decrease: 0.0`, while
+    global/group rows round the exact change once.
   - No baseline data → only `NO_BASELINE_VIOLATION`. `NO_MATCH_VIOLATION` (alone) only when no report of the run
     matches a baseline report: results evaluator, `unchanged_reports` and `match_evidence`. It is meant for
     misconfiguration (renamed `<title>`, wrong folder); counting the filtered reports keeps a PR that only adds a

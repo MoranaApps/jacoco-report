@@ -99,7 +99,11 @@ A float from 0 to 100, inclusive. Empty or whitespace-only means `0.0`. Other va
 
 - Checks only the **overall coverage** of the global row, each group and each report, using the same Δ the
   comment shows. Changed-files coverage and per-file coverage are not checked.
-- The Δ is rounded to two decimals, so a drop below 0.005 percentage points rounds to `0.0` and passes.
+- The Δ has two decimals, as in the comment. The global and group rows round the exact change, so a drop below
+  0.005 percentage points shows as `0.0` and passes. A report row subtracts the rounded coverages, as the comment's
+  report row does, so its Δ can differ from the exact change by up to 0.01: a drop of 0.004 points (80.005 % →
+  80.001 %, shown as 80.01 % → 80.0 %) shows as `-0.01` and fails with `max-decrease: 0.0`. Set `max-decrease: 0.01`
+  to ignore such rounding steps.
 - A row fails when its Δ is below `-max-decrease` **and** its missed count of the selected `metric` is higher
   than in the baseline. A drop of exactly `max-decrease` passes.
 - Deleting covered code lowers the covered count but not the missed count, so it passes.
