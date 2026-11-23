@@ -2,6 +2,7 @@ import logging
 import uuid
 
 import pytest
+from pytest_mock import MockerFixture
 
 from jacoco_report.utils.gh_action import (
     append_step_summary,
@@ -19,14 +20,14 @@ FIXED_DELIMITER = f"ghadelimiter_{FIXED_UUID}"
 
 
 @pytest.fixture
-def fixed_delimiter(mocker):
+def fixed_delimiter(mocker: MockerFixture):
     mocker.patch("uuid.uuid4", return_value=FIXED_UUID)
 
 
 # get_input
 
 
-def test_get_input_with_hyphen(mocker):
+def test_get_input_with_hyphen(mocker: MockerFixture):
     mock_getenv = mocker.patch("os.getenv", return_value="test_value")
 
     result = get_action_input("test-input", default="")
@@ -35,7 +36,7 @@ def test_get_input_with_hyphen(mocker):
     assert "test_value" == result
 
 
-def test_get_input_without_hyphen(mocker):
+def test_get_input_without_hyphen(mocker: MockerFixture):
     mock_getenv = mocker.patch("os.getenv", return_value="another_test_value")
 
     result = get_action_input("anotherinput", default="")
@@ -47,7 +48,7 @@ def test_get_input_without_hyphen(mocker):
 # set_output
 
 
-def test_set_output_default(mocker, fixed_delimiter):
+def test_set_output_default(mocker: MockerFixture, fixed_delimiter):
     mocker.patch("os.getenv", return_value="default_output.txt")
     mock_open = mocker.patch("builtins.open", new_callable=mocker.mock_open)
 
@@ -60,7 +61,7 @@ def test_set_output_default(mocker, fixed_delimiter):
     handle.write.assert_any_call(f"{FIXED_DELIMITER}\n")
 
 
-def test_set_output_custom_path(mocker, fixed_delimiter):
+def test_set_output_custom_path(mocker: MockerFixture, fixed_delimiter):
     mocker.patch("os.getenv", return_value="custom_output.txt")
     mock_open = mocker.patch("builtins.open", new_callable=mocker.mock_open)
 
@@ -76,7 +77,7 @@ def test_set_output_custom_path(mocker, fixed_delimiter):
 # set_output_text
 
 
-def test_set_output_text_default(mocker, fixed_delimiter):
+def test_set_output_text_default(mocker: MockerFixture, fixed_delimiter):
     mocker.patch("os.getenv", return_value="default_output.txt")
     mock_open = mocker.patch("builtins.open", new_callable=mocker.mock_open)
 
@@ -89,7 +90,7 @@ def test_set_output_text_default(mocker, fixed_delimiter):
     handle.write.assert_any_call(f"{FIXED_DELIMITER}\n")
 
 
-def test_set_output_text_custom_path(mocker, fixed_delimiter):
+def test_set_output_text_custom_path(mocker: MockerFixture, fixed_delimiter):
     mocker.patch("os.getenv", return_value="custom_output.txt")
     mock_open = mocker.patch("builtins.open", new_callable=mocker.mock_open)
 
@@ -167,7 +168,7 @@ def test_break_legacy_command_prefix_leaves_other_text_unchanged():
     assert break_legacy_command_prefix("## Heading [1]") == "## Heading [1]"
 
 
-def test_set_failed(mocker):
+def test_set_failed(mocker: MockerFixture):
     mock_print = mocker.patch("builtins.print", return_value=None)
     mock_exit = mocker.patch("sys.exit", return_value=None)
 
@@ -177,7 +178,7 @@ def test_set_failed(mocker):
     mock_exit.assert_called_with(1)
 
 
-def test_set_failed_escapes_newline_so_message_cannot_inject_command(mocker):
+def test_set_failed_escapes_newline_so_message_cannot_inject_command(mocker: MockerFixture):
     mock_print = mocker.patch("builtins.print", return_value=None)
     mocker.patch("sys.exit", return_value=None)
 
@@ -186,7 +187,7 @@ def test_set_failed_escapes_newline_so_message_cannot_inject_command(mocker):
     mock_print.assert_called_once_with("::error::ok%0A::add-mask::x")
 
 
-def test_set_failed_breaks_legacy_command_prefix(mocker):
+def test_set_failed_breaks_legacy_command_prefix(mocker: MockerFixture):
     mock_print = mocker.patch("builtins.print", return_value=None)
     mocker.patch("sys.exit", return_value=None)
 
@@ -195,7 +196,7 @@ def test_set_failed_breaks_legacy_command_prefix(mocker):
     mock_print.assert_called_once_with("::error::bad ## [add-mask]x")
 
 
-def test_set_failed_escapes_percent_before_other_characters(mocker):
+def test_set_failed_escapes_percent_before_other_characters(mocker: MockerFixture):
     mock_print = mocker.patch("builtins.print", return_value=None)
     mocker.patch("sys.exit", return_value=None)
 
@@ -207,7 +208,7 @@ def test_set_failed_escapes_percent_before_other_characters(mocker):
 # print_action_warning
 
 
-def test_print_action_warning_prints_warning_command(mocker, capsys):
+def test_print_action_warning_prints_warning_command(mocker: MockerFixture, capsys):
     mocker.patch("sys.exit", return_value=None)
 
     print_action_warning("comment not changed")
@@ -215,7 +216,7 @@ def test_print_action_warning_prints_warning_command(mocker, capsys):
     assert capsys.readouterr().out == "::warning::comment not changed\n"
 
 
-def test_print_action_warning_does_not_exit(mocker):
+def test_print_action_warning_does_not_exit(mocker: MockerFixture):
     mock_exit = mocker.patch("sys.exit", return_value=None)
 
     print_action_warning("comment not changed")

@@ -1,6 +1,7 @@
 import logging
 
 import pytest
+from pytest_mock import MockerFixture
 
 from jacoco_report.action_inputs import ActionInputs
 from jacoco_report.utils.enums import CommentLevelEnum, FailOnThresholdEnum, MetricTypeEnum, ReportTargetEnum
@@ -152,7 +153,7 @@ failure_cases = [
 ]
 
 
-def apply_mocks(case, mocker):
+def apply_mocks(case, mocker: MockerFixture):
     patchers = []
     for key, value in case.items():
         patcher = mocker.patch(f"jacoco_report.action_inputs.ActionInputs.{key}", return_value=value)
@@ -166,7 +167,7 @@ def stop_mocks(patchers):
         patcher.stop()
 
 
-def test_validate_inputs_success(mocker):
+def test_validate_inputs_success(mocker: MockerFixture):
     patchers = apply_mocks(success_case, mocker)
     try:
         ActionInputs.validate_inputs()
@@ -178,7 +179,7 @@ def test_validate_inputs_success(mocker):
     "comment_level",
     ["none", "minimal", "full", "changed", "failed", "failed-or-changed"],
 )
-def test_validate_inputs_accepts_all_comment_levels(comment_level, mocker):
+def test_validate_inputs_accepts_all_comment_levels(comment_level, mocker: MockerFixture):
     case = success_case.copy()
     case["get_comment_level"] = comment_level
     patchers = apply_mocks(case, mocker)
@@ -201,7 +202,7 @@ def test_validate_inputs_accepts_all_comment_levels(comment_level, mocker):
         ("get_report_thresholds_default", "0*0*100"),
     ],
 )
-def test_validate_inputs_accepts_threshold_100(method, value, mocker):
+def test_validate_inputs_accepts_threshold_100(method, value, mocker: MockerFixture):
     case = success_case.copy()
     case[method] = value
     patchers = apply_mocks(case, mocker)
@@ -248,7 +249,7 @@ def test_validate_inputs_accepts_threshold_100(method, value, mocker):
         ),
     ],
 )
-def test_validate_inputs_rejects_threshold_above_100_or_below_0(method, value, expected_error, mocker):
+def test_validate_inputs_rejects_threshold_above_100_or_below_0(method, value, expected_error, mocker: MockerFixture):
     case = success_case.copy()
     case[method] = value
     patchers = apply_mocks(case, mocker)
@@ -265,7 +266,7 @@ def test_validate_inputs_rejects_threshold_above_100_or_below_0(method, value, e
 
 
 @pytest.mark.parametrize("comment_level", ["failing", "change and failing", "detailed"])
-def test_validate_inputs_rejects_noncanonical_comment_level_aliases(comment_level, mocker):
+def test_validate_inputs_rejects_noncanonical_comment_level_aliases(comment_level, mocker: MockerFixture):
     case = success_case.copy()
     case["get_comment_level"] = comment_level
     patchers = apply_mocks(case, mocker)
@@ -286,7 +287,7 @@ def test_validate_inputs_rejects_noncanonical_comment_level_aliases(comment_leve
 
 
 @pytest.mark.parametrize("method, value, expected_error", failure_cases)
-def test_validate_inputs_failure(method, value, expected_error, mocker):
+def test_validate_inputs_failure(method, value, expected_error, mocker: MockerFixture):
     case = success_case.copy()
     case[method] = value
     patchers = apply_mocks(case, mocker)
@@ -303,7 +304,7 @@ def test_validate_inputs_failure(method, value, expected_error, mocker):
         stop_mocks(patchers)
 
 
-def test_validate_inputs_logs_errors_in_validation_order(tmp_path, mocker):
+def test_validate_inputs_logs_errors_in_validation_order(tmp_path, mocker: MockerFixture):
     """Every validated input is invalid at once, so the logged errors pin the full validation order."""
     raising_getters = {
         "get_skip_unchanged": "'skip-unchanged' must be a boolean ('true' or 'false').",
@@ -368,22 +369,22 @@ def test_validate_inputs_logs_errors_in_validation_order(tmp_path, mocker):
         stop_mocks(patchers)
 
 
-def test_get_token(mocker):
+def test_get_token(mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="some_token")
     assert "some_token" == ActionInputs.get_token()
 
 
-def test_get_token_strips_surrounding_whitespace(mocker):
+def test_get_token_strips_surrounding_whitespace(mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="  some_token\n")
     assert "some_token" == ActionInputs.get_token()
 
 
-def test_get_token_strips_optional_bearer_prefix(mocker):
+def test_get_token_strips_optional_bearer_prefix(mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="Bearer some_token")
     assert "some_token" == ActionInputs.get_token()
 
 
-def test_validate_inputs_accepts_short_non_empty_token(mocker):
+def test_validate_inputs_accepts_short_non_empty_token(mocker: MockerFixture):
     """Token validation no longer enforces a format — any non-empty string is accepted."""
     case = success_case.copy()
     case["get_token"] = "-1"
@@ -398,7 +399,7 @@ def test_validate_inputs_accepts_short_non_empty_token(mocker):
         stop_mocks(patchers)
 
 
-def test_get_paths(mocker):
+def test_get_paths(mocker: MockerFixture):
     data = """
     test/path1
     test/path2
@@ -407,7 +408,7 @@ def test_get_paths(mocker):
     assert ["test/path1", "test/path2"] == ActionInputs.get_paths()
 
 
-def test_get_paths_with_comment(mocker):
+def test_get_paths_with_comment(mocker: MockerFixture):
     data = """
     test/path1
     test/path2      # another comment
@@ -417,7 +418,7 @@ def test_get_paths_with_comment(mocker):
     assert ["test/path1", "test/path2"] == ActionInputs.get_paths()
 
 
-def test_get_paths_raw(mocker):
+def test_get_paths_raw(mocker: MockerFixture):
     data = """
     test/path1
     test/path2
@@ -426,12 +427,12 @@ def test_get_paths_raw(mocker):
     assert data == ActionInputs.get_paths(raw=True)
 
 
-def test_get_paths_none(mocker):
+def test_get_paths_none(mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value=None)
     assert [] == ActionInputs.get_paths()
 
 
-def test_get_exclude_paths(mocker):
+def test_get_exclude_paths(mocker: MockerFixture):
     data = """
     test/path1
     test/path2
@@ -440,7 +441,7 @@ def test_get_exclude_paths(mocker):
     assert ["test/path1", "test/path2"] == ActionInputs.get_exclude_paths()
 
 
-def test_get_exclude_paths_with_comment(mocker):
+def test_get_exclude_paths_with_comment(mocker: MockerFixture):
     data = """
     test/path1
     test/path2      # another comment
@@ -450,7 +451,7 @@ def test_get_exclude_paths_with_comment(mocker):
     assert ["test/path1", "test/path2"] == ActionInputs.get_exclude_paths()
 
 
-def test_get_exclude_paths_raw(mocker):
+def test_get_exclude_paths_raw(mocker: MockerFixture):
     data = """
     test/path1
     test/path2
@@ -459,12 +460,12 @@ def test_get_exclude_paths_raw(mocker):
     assert data == ActionInputs.get_exclude_paths(raw=True)
 
 
-def test_get_global_overall_threshold(mocker):
+def test_get_global_overall_threshold(mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="0")
     assert 0.0 == ActionInputs.get_global_overall_threshold()
 
 
-def test_get_global_changed_files_average_threshold(mocker):
+def test_get_global_changed_files_average_threshold(mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="0")
     assert 0.0 == ActionInputs.get_global_changed_files_average_threshold()
 
@@ -477,23 +478,23 @@ report_thresholds_default_cases = [
 
 
 @pytest.mark.parametrize("raw_input, expected_tuple", report_thresholds_default_cases)
-def test_get_report_thresholds_default_parsed(raw_input, expected_tuple, mocker):
+def test_get_report_thresholds_default_parsed(raw_input, expected_tuple, mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value=raw_input)
     assert ActionInputs.get_report_thresholds_default() == expected_tuple
 
 
-def test_get_report_thresholds_default_raw(mocker):
+def test_get_report_thresholds_default_raw(mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="75.0*60.0*40.0")
     assert ActionInputs.get_report_thresholds_default(raw=True) == "75.0*60.0*40.0"
 
 
-def test_get_report_thresholds_default_missing_uses_zeros(mocker):
+def test_get_report_thresholds_default_missing_uses_zeros(mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="0.0*0.0*0.0")
     result = ActionInputs.get_report_thresholds_default()
     assert result == (0.0, 0.0, 0.0)
 
 
-def test_get_report_thresholds_default_two_components_warns_per_changed_file(mocker):
+def test_get_report_thresholds_default_two_components_warns_per_changed_file(mocker: MockerFixture):
     mock_warning = mocker.patch("jacoco_report.action_inputs.logger.warning")
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="80*70")
 
@@ -507,7 +508,7 @@ def test_get_report_thresholds_default_two_components_warns_per_changed_file(moc
     assert any("Adding default value for per-changed-file threshold." in message for message in warning_messages)
 
 
-def test_get_global_thresholds_two_components_parsed(mocker):
+def test_get_global_thresholds_two_components_parsed(mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="80*70")
 
     result = ActionInputs.get_global_thresholds()
@@ -515,7 +516,7 @@ def test_get_global_thresholds_two_components_parsed(mocker):
     assert result == (80.0, 70.0)
 
 
-def test_get_global_thresholds_invalid_component_logs_warning_without_warning_prefix(mocker):
+def test_get_global_thresholds_invalid_component_logs_warning_without_warning_prefix(mocker: MockerFixture):
     mock_warning = mocker.patch("jacoco_report.action_inputs.logger.warning")
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="x*1")
 
@@ -539,7 +540,9 @@ def test_get_global_thresholds_invalid_component_logs_warning_without_warning_pr
         ("get_report_thresholds_default", "report-thresholds-default", (0.0, 0.0, 0.0)),
     ],
 )
-def test_thresholds_without_separator_fall_back_to_default_and_warn(method, input_label, expected, mocker):
+def test_thresholds_without_separator_fall_back_to_default_and_warn(
+    method, input_label, expected, mocker: MockerFixture
+):
     mock_warning = mocker.patch("jacoco_report.action_inputs.logger.warning")
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="80")
 
@@ -553,7 +556,7 @@ def test_thresholds_without_separator_fall_back_to_default_and_warn(method, inpu
     assert f"'{input_label}' input is not formatted correctly." in warning_messages
 
 
-def test_get_report_thresholds_default_invalid_third_component_logs_per_changed_file_label(mocker):
+def test_get_report_thresholds_default_invalid_third_component_logs_per_changed_file_label(mocker: MockerFixture):
     mock_warning = mocker.patch("jacoco_report.action_inputs.logger.warning")
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="1*2*x")
 
@@ -578,23 +581,23 @@ failure_cases_modes = [
 
 
 @pytest.mark.parametrize("input_title, expected_title", failure_cases_modes)
-def test_get_title(input_title, expected_title, mocker):
+def test_get_title(input_title, expected_title, mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value=input_title)
 
     assert expected_title == ActionInputs.get_title()
 
 
-def test_get_comment_level(mocker):
+def test_get_comment_level(mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="full")
     assert "full" == ActionInputs.get_comment_level()
 
 
-def test_get_report_groups_empty(mocker):
+def test_get_report_groups_empty(mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="")
     assert [] == ActionInputs.get_report_groups()
 
 
-def test_get_report_groups_valid_yaml(mocker):
+def test_get_report_groups_valid_yaml(mocker: MockerFixture):
     yaml_input = """
 - name: backend
   paths:
@@ -611,147 +614,147 @@ def test_get_report_groups_valid_yaml(mocker):
     assert groups[0].min_coverage_per_changed_file == 60.0
 
 
-def test_get_report_groups_raw(mocker):
+def test_get_report_groups_raw(mocker: MockerFixture):
     raw = "- name: g\n  paths: ['**']"
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value=raw)
     assert raw == ActionInputs.get_report_groups(raw=True)
 
 
-def test_validate_report_groups_valid(mocker):
+def test_validate_report_groups_valid(mocker: MockerFixture):
     yaml_input = "- name: g\n  paths: ['**/jacoco.xml']"
     errors = ActionInputs.validate_report_groups(yaml_input)
     assert errors == []
 
 
-def test_validate_report_groups_empty(mocker):
+def test_validate_report_groups_empty(mocker: MockerFixture):
     assert ActionInputs.validate_report_groups("") == []
 
 
-def test_validate_report_groups_not_list(mocker):
+def test_validate_report_groups_not_list(mocker: MockerFixture):
     errors = ActionInputs.validate_report_groups("not_a_list")
     assert "'report-groups' must be a YAML list." in errors
 
 
-def test_validate_report_groups_missing_name(mocker):
+def test_validate_report_groups_missing_name(mocker: MockerFixture):
     errors = ActionInputs.validate_report_groups("- name: ''\n  paths: ['**']")
     assert any("non-empty 'name'" in e for e in errors)
 
 
-def test_validate_report_groups_whitespace_only_name_invalid(mocker):
+def test_validate_report_groups_whitespace_only_name_invalid(mocker: MockerFixture):
     errors = ActionInputs.validate_report_groups("- name: '   '\n  paths: ['**']")
     assert any("non-empty 'name'" in e for e in errors)
 
 
-def test_validate_report_groups_missing_paths(mocker):
+def test_validate_report_groups_missing_paths(mocker: MockerFixture):
     errors = ActionInputs.validate_report_groups("- name: group1")
     assert any("non-empty 'paths'" in e for e in errors)
 
 
-def test_validate_report_groups_whitespace_only_paths_item(mocker):
+def test_validate_report_groups_whitespace_only_paths_item(mocker: MockerFixture):
     errors = ActionInputs.validate_report_groups("- name: group1\n  paths: ['  ']")
     assert any("non-empty 'paths'" in e for e in errors)
 
 
-def test_validate_report_groups_duplicate_names(mocker):
+def test_validate_report_groups_duplicate_names(mocker: MockerFixture):
     errors = ActionInputs.validate_report_groups(
         "- name: group1\n  paths: ['**/a.xml']\n- name: group1\n  paths: ['**/b.xml']"
     )
     assert any("duplicate 'name' value 'group1'" in e for e in errors)
 
 
-def test_validate_report_groups_duplicate_names_after_strip(mocker):
+def test_validate_report_groups_duplicate_names_after_strip(mocker: MockerFixture):
     errors = ActionInputs.validate_report_groups(
         "- name: group1\n  paths: ['**/a.xml']\n- name: ' group1 '\n  paths: ['**/b.xml']"
     )
     assert any("duplicate 'name' value 'group1'" in e for e in errors)
 
 
-def test_validate_report_groups_invalid_threshold_format(mocker):
+def test_validate_report_groups_invalid_threshold_format(mocker: MockerFixture):
     errors = ActionInputs.validate_report_groups("- name: g\n  paths: ['**']\n  thresholds: '80'")
     assert any("O*A*P" in e for e in errors)
 
 
-def test_validate_report_groups_invalid_threshold_value_overall_label(mocker):
+def test_validate_report_groups_invalid_threshold_value_overall_label(mocker: MockerFixture):
     errors = ActionInputs.validate_report_groups("- name: g\n  paths: ['**']\n  thresholds: 'x*70*60'")
     assert any("overall value" in e and "[0, 100]" in e for e in errors)
 
 
-def test_validate_report_groups_invalid_threshold_value_changed_files_average_label(mocker):
+def test_validate_report_groups_invalid_threshold_value_changed_files_average_label(mocker: MockerFixture):
     errors = ActionInputs.validate_report_groups("- name: g\n  paths: ['**']\n  thresholds: '80*x*60'")
     assert any("changed-files-average value" in e and "[0, 100]" in e for e in errors)
 
 
-def test_validate_report_groups_invalid_threshold_value_changed_file_label(mocker):
+def test_validate_report_groups_invalid_threshold_value_changed_file_label(mocker: MockerFixture):
     errors = ActionInputs.validate_report_groups("- name: g\n  paths: ['**']\n  thresholds: '80*70*x'")
     assert any("changed-file value" in e and "[0, 100]" in e for e in errors)
 
 
-def test_validate_report_groups_thresholds_accepts_100(mocker):
+def test_validate_report_groups_thresholds_accepts_100(mocker: MockerFixture):
     errors = ActionInputs.validate_report_groups("- name: g\n  paths: ['**']\n  thresholds: '100*100*100'")
     assert errors == []
 
 
-def test_validate_report_groups_thresholds_rejects_above_100(mocker):
+def test_validate_report_groups_thresholds_rejects_above_100(mocker: MockerFixture):
     errors = ActionInputs.validate_report_groups("- name: g\n  paths: ['**']\n  thresholds: '100.01*70*60'")
     assert errors == ["'report-groups' entry #1 'thresholds' overall value '100.01' must be a float in [0, 100]."]
 
 
-def test_validate_report_groups_thresholds_non_string_number(mocker):
+def test_validate_report_groups_thresholds_non_string_number(mocker: MockerFixture):
     errors = ActionInputs.validate_report_groups("- name: g\n  paths: ['**']\n  thresholds: 0")
     assert any("'thresholds' must be a non-empty string" in e for e in errors)
 
 
-def test_validate_report_groups_thresholds_non_string_boolean(mocker):
+def test_validate_report_groups_thresholds_non_string_boolean(mocker: MockerFixture):
     errors = ActionInputs.validate_report_groups("- name: g\n  paths: ['**']\n  thresholds: false")
     assert any("'thresholds' must be a non-empty string" in e for e in errors)
 
 
-def test_validate_report_groups_thresholds_empty_string(mocker):
+def test_validate_report_groups_thresholds_empty_string(mocker: MockerFixture):
     errors = ActionInputs.validate_report_groups("- name: g\n  paths: ['**']\n  thresholds: ''")
     assert any("'thresholds' must be a non-empty string" in e for e in errors)
 
 
-def test_validate_report_groups_thresholds_whitespace_only(mocker):
+def test_validate_report_groups_thresholds_whitespace_only(mocker: MockerFixture):
     errors = ActionInputs.validate_report_groups("- name: g\n  paths: ['**']\n  thresholds: '   '")
     assert any("'thresholds' must be a non-empty string" in e for e in errors)
 
 
-def test_validate_report_groups_thresholds_missing_key_is_allowed(mocker):
+def test_validate_report_groups_thresholds_missing_key_is_allowed(mocker: MockerFixture):
     errors = ActionInputs.validate_report_groups("- name: g\n  paths: ['**']")
     assert not any("'thresholds'" in e for e in errors)
 
 
-def test_validate_report_groups_invalid_baseline_paths_item_type(mocker):
+def test_validate_report_groups_invalid_baseline_paths_item_type(mocker: MockerFixture):
     errors = ActionInputs.validate_report_groups("- name: g\n  paths: ['**']\n  baseline-paths: [123]")
     assert any("baseline-paths" in e and "non-empty strings" in e for e in errors)
 
 
-def test_validate_report_groups_invalid_baseline_paths_empty_item(mocker):
+def test_validate_report_groups_invalid_baseline_paths_empty_item(mocker: MockerFixture):
     errors = ActionInputs.validate_report_groups("- name: g\n  paths: ['**']\n  baseline-paths: ['']")
     assert any("baseline-paths" in e and "non-empty strings" in e for e in errors)
 
 
-def test_validate_report_groups_invalid_baseline_paths_null(mocker):
+def test_validate_report_groups_invalid_baseline_paths_null(mocker: MockerFixture):
     errors = ActionInputs.validate_report_groups("- name: g\n  paths: ['**']\n  baseline-paths: null")
     assert any("baseline-paths" in e and "must be a list" in e for e in errors)
 
 
-def test_get_skip_unchanged_true(mocker):
+def test_get_skip_unchanged_true(mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="true")
     assert ActionInputs.get_skip_unchanged()
 
 
-def test_get_skip_unchanged_false(mocker):
+def test_get_skip_unchanged_false(mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="false")
     assert not ActionInputs.get_skip_unchanged()
 
 
-def test_get_skip_unchanged_mixed_case_true(mocker):
+def test_get_skip_unchanged_mixed_case_true(mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value=" TrUe ")
     assert ActionInputs.get_skip_unchanged() is True
 
 
-def test_get_skip_unchanged_invalid_literal_raises_value_error(mocker):
+def test_get_skip_unchanged_invalid_literal_raises_value_error(mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="yes")
 
     with pytest.raises(ValueError) as exc_info:
@@ -760,17 +763,17 @@ def test_get_skip_unchanged_invalid_literal_raises_value_error(mocker):
     assert "'skip-unchanged' must be a boolean ('true' or 'false')." in str(exc_info.value)
 
 
-def test_get_evaluate_unchanged_true(mocker):
+def test_get_evaluate_unchanged_true(mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="true")
     assert ActionInputs.get_evaluate_unchanged()
 
 
-def test_get_evaluate_unchanged_false(mocker):
+def test_get_evaluate_unchanged_false(mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="false")
     assert not ActionInputs.get_evaluate_unchanged()
 
 
-def test_get_evaluate_unchanged_invalid_literal_raises_value_error(mocker):
+def test_get_evaluate_unchanged_invalid_literal_raises_value_error(mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="on")
 
     with pytest.raises(ValueError) as exc_info:
@@ -779,17 +782,17 @@ def test_get_evaluate_unchanged_invalid_literal_raises_value_error(mocker):
     assert "'evaluate-unchanged' must be a boolean ('true' or 'false')." in str(exc_info.value)
 
 
-def test_get_update_comment_true(mocker):
+def test_get_update_comment_true(mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="true")
     assert True == ActionInputs.get_update_comment()
 
 
-def test_get_update_comment_false(mocker):
+def test_get_update_comment_false(mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="false")
     assert False == ActionInputs.get_update_comment()
 
 
-def test_get_update_comment_invalid_literal_raises_value_error(mocker):
+def test_get_update_comment_invalid_literal_raises_value_error(mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="enabled")
 
     with pytest.raises(ValueError) as exc_info:
@@ -798,17 +801,17 @@ def test_get_update_comment_invalid_literal_raises_value_error(mocker):
     assert "'update-comment' must be a boolean ('true' or 'false')." in str(exc_info.value)
 
 
-def test_get_pass_symbol(mocker):
+def test_get_pass_symbol(mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="P")
     assert "P" == ActionInputs.get_pass_symbol()
 
 
-def test_get_fail_symbol(mocker):
+def test_get_fail_symbol(mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="F")
     assert "F" == ActionInputs.get_fail_symbol()
 
 
-def test_get_fail_on_threshold_true_rejected(mocker):
+def test_get_fail_on_threshold_true_rejected(mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="true")
 
     with pytest.raises(ValueError) as exc_info:
@@ -817,7 +820,7 @@ def test_get_fail_on_threshold_true_rejected(mocker):
     assert "Boolean values for 'fail-on-threshold' are no longer supported." in str(exc_info.value)
 
 
-def test_get_fail_on_threshold_false_rejected(mocker):
+def test_get_fail_on_threshold_false_rejected(mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="false")
 
     with pytest.raises(ValueError) as exc_info:
@@ -826,12 +829,12 @@ def test_get_fail_on_threshold_false_rejected(mocker):
     assert "Boolean values for 'fail-on-threshold' are no longer supported." in str(exc_info.value)
 
 
-def test_get_fail_on_threshold_overall(mocker):
+def test_get_fail_on_threshold_overall(mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="overall")
     assert ActionInputs.get_fail_on_threshold() == [FailOnThresholdEnum.OVERALL]
 
 
-def test_get_fail_on_threshold_overall_changed_average(mocker):
+def test_get_fail_on_threshold_overall_changed_average(mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="overall\nchanged-files-average")
     assert ActionInputs.get_fail_on_threshold() == [
         FailOnThresholdEnum.OVERALL,
@@ -839,22 +842,22 @@ def test_get_fail_on_threshold_overall_changed_average(mocker):
     ]
 
 
-def test_get_fail_on_threshold_accepts_fail_unchanged(mocker):
+def test_get_fail_on_threshold_accepts_fail_unchanged(mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="overall,fail-unchanged")
     assert ActionInputs.get_fail_on_threshold() == [FailOnThresholdEnum.OVERALL, FailOnThresholdEnum.FAIL_UNCHANGED]
 
 
-def test_get_fail_on_threshold_empty_string_returns_empty_list(mocker):
+def test_get_fail_on_threshold_empty_string_returns_empty_list(mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="")
     assert ActionInputs.get_fail_on_threshold() == []
 
 
-def test_get_fail_on_threshold_whitespace_only_returns_empty_list(mocker):
+def test_get_fail_on_threshold_whitespace_only_returns_empty_list(mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="  \n  ")
     assert ActionInputs.get_fail_on_threshold() == []
 
 
-def test_get_fail_on_threshold_invalid_format(mocker):
+def test_get_fail_on_threshold_invalid_format(mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="not supported")
 
     with pytest.raises(ValueError) as exc_info:
@@ -863,7 +866,7 @@ def test_get_fail_on_threshold_invalid_format(mocker):
     assert "Unsupported threshold levels: not supported" in str(exc_info.value)
 
 
-def test_get_fail_on_threshold_accepts_no_decrease(mocker):
+def test_get_fail_on_threshold_accepts_no_decrease(mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="overall,no-decrease")
     assert ActionInputs.get_fail_on_threshold() == [FailOnThresholdEnum.OVERALL, FailOnThresholdEnum.NO_DECREASE]
 
@@ -879,13 +882,13 @@ def test_get_fail_on_threshold_accepts_no_decrease(mocker):
         pytest.param("  \n ", 0.0, id="whitespace-defaults-to-zero"),
     ],
 )
-def test_get_max_decrease(raw, expected, mocker):
+def test_get_max_decrease(raw, expected, mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value=raw)
     assert ActionInputs.get_max_decrease() == expected
 
 
 @pytest.mark.parametrize("raw", ["-0.1", "100.1", "abc", "nan", "inf"])
-def test_get_max_decrease_rejects_values_outside_zero_to_hundred(raw, mocker):
+def test_get_max_decrease_rejects_values_outside_zero_to_hundred(raw, mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value=raw)
 
     with pytest.raises(ValueError) as exc_info:
@@ -894,7 +897,7 @@ def test_get_max_decrease_rejects_values_outside_zero_to_hundred(raw, mocker):
     assert str(exc_info.value) == "'max-decrease' must be a float between 0 and 100 (inclusive)."
 
 
-def test_validate_inputs_logs_max_decrease(mocker, caplog):
+def test_validate_inputs_logs_max_decrease(mocker: MockerFixture, caplog):
     case = success_case.copy()
     case["get_max_decrease"] = 2.5
     patchers = apply_mocks(case, mocker)
@@ -906,17 +909,17 @@ def test_validate_inputs_logs_max_decrease(mocker, caplog):
         stop_mocks(patchers)
 
 
-def test_get_debug_true(mocker):
+def test_get_debug_true(mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="true")
     assert True == ActionInputs.get_debug()
 
 
-def test_get_debug_false(mocker):
+def test_get_debug_false(mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="false")
     assert False == ActionInputs.get_debug()
 
 
-def test_get_debug_invalid_literal_raises_value_error(mocker):
+def test_get_debug_invalid_literal_raises_value_error(mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="1")
 
     with pytest.raises(ValueError) as exc_info:
@@ -925,7 +928,7 @@ def test_get_debug_invalid_literal_raises_value_error(mocker):
     assert "'debug' must be a boolean ('true' or 'false')." in str(exc_info.value)
 
 
-def test_validate_inputs_rejects_invalid_skip_unchanged_literal(mocker):
+def test_validate_inputs_rejects_invalid_skip_unchanged_literal(mocker: MockerFixture):
     case = success_case.copy()
     patchers = apply_mocks(case, mocker)
     try:
@@ -944,7 +947,7 @@ def test_validate_inputs_rejects_invalid_skip_unchanged_literal(mocker):
         stop_mocks(patchers)
 
 
-def test_validate_inputs_rejects_invalid_evaluate_unchanged_literal(mocker):
+def test_validate_inputs_rejects_invalid_evaluate_unchanged_literal(mocker: MockerFixture):
     case = success_case.copy()
     patchers = apply_mocks(case, mocker)
     try:
@@ -963,7 +966,7 @@ def test_validate_inputs_rejects_invalid_evaluate_unchanged_literal(mocker):
         stop_mocks(patchers)
 
 
-def test_validate_inputs_rejects_invalid_update_comment_literal(mocker):
+def test_validate_inputs_rejects_invalid_update_comment_literal(mocker: MockerFixture):
     case = success_case.copy()
     patchers = apply_mocks(case, mocker)
     try:
@@ -982,7 +985,7 @@ def test_validate_inputs_rejects_invalid_update_comment_literal(mocker):
         stop_mocks(patchers)
 
 
-def test_validate_inputs_rejects_invalid_debug_literal(mocker):
+def test_validate_inputs_rejects_invalid_debug_literal(mocker: MockerFixture):
     case = success_case.copy()
     patchers = apply_mocks(case, mocker)
     try:
@@ -1002,7 +1005,7 @@ def test_validate_inputs_rejects_invalid_debug_literal(mocker):
 
 
 @pytest.mark.parametrize("legacy_value", ["true", "false"])
-def test_validate_inputs_rejects_boolean_fail_on_threshold(mocker, legacy_value):
+def test_validate_inputs_rejects_boolean_fail_on_threshold(mocker: MockerFixture, legacy_value):
     case = success_case.copy()
     patchers = apply_mocks(case, mocker)
     try:
@@ -1021,7 +1024,7 @@ def test_validate_inputs_rejects_boolean_fail_on_threshold(mocker, legacy_value)
         stop_mocks(patchers)
 
 
-def test_get_baseline_paths(mocker):
+def test_get_baseline_paths(mocker: MockerFixture):
     data = """
     test/path1
     test/path2
@@ -1030,7 +1033,7 @@ def test_get_baseline_paths(mocker):
     assert ["test/path1", "test/path2"] == ActionInputs.get_baseline_paths()
 
 
-def test_get_baseline_paths_with_comment(mocker):
+def test_get_baseline_paths_with_comment(mocker: MockerFixture):
     data = """
     test/path1
     test/path2      # another comment
@@ -1040,7 +1043,7 @@ def test_get_baseline_paths_with_comment(mocker):
     assert ["test/path1", "test/path2"] == ActionInputs.get_baseline_paths()
 
 
-def test_get_baseline_paths_raw(mocker):
+def test_get_baseline_paths_raw(mocker: MockerFixture):
     data = """
     test/path1
     test/path2
@@ -1049,7 +1052,7 @@ def test_get_baseline_paths_raw(mocker):
     assert data == ActionInputs.get_baseline_paths(raw=True)
 
 
-def test_get_pr_number(mocker):
+def test_get_pr_number(mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="123")
     gh = mocker.Mock(spec=GitHub)
     assert ActionInputs.get_pr_number(gh) == 123
@@ -1073,12 +1076,12 @@ def test_get_pr_number(mocker):
     mock_logger.error.assert_called_once_with("'pr-number' input '%s' is not a valid integer.", "not_a_number")
 
 
-def test_get_metric(mocker):
+def test_get_metric(mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="branch")
     assert ActionInputs.get_metric() == "branch"
 
 
-def test_get_event_name(mocker):
+def test_get_event_name(mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="push")
     assert ActionInputs.get_event_name() == "push"
 
@@ -1106,7 +1109,7 @@ def test_get_action_ref_parses_ref_from_action_path(monkeypatch, action_path, ex
 
 
 # --- Issue 6: whitespace-only paths ---
-def test_validate_inputs_paths_whitespace_only_allowed_without_groups(mocker):
+def test_validate_inputs_paths_whitespace_only_allowed_without_groups(mocker: MockerFixture):
     case = success_case.copy()
     case["get_paths"] = "  \n  "
     case["get_report_groups"] = ""
@@ -1126,7 +1129,7 @@ def test_validate_inputs_paths_whitespace_only_allowed_without_groups(mocker):
         stop_mocks(patchers)
 
 
-def test_validate_inputs_paths_whitespace_only_allowed_with_groups(mocker):
+def test_validate_inputs_paths_whitespace_only_allowed_with_groups(mocker: MockerFixture):
     case = success_case.copy()
     case["get_paths"] = "  \n  "
     case["get_report_groups"] = "- name: g1\n  paths: ['**']"
@@ -1147,7 +1150,7 @@ def test_validate_inputs_paths_whitespace_only_allowed_with_groups(mocker):
 
 
 # --- Issue 7: yaml.YAMLError handling ---
-def test_get_report_groups_yaml_syntax_error_raises_value_error(mocker):
+def test_get_report_groups_yaml_syntax_error_raises_value_error(mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="invalid: yaml: [")
 
     with pytest.raises(ValueError) as exc_info:
@@ -1157,7 +1160,7 @@ def test_get_report_groups_yaml_syntax_error_raises_value_error(mocker):
 
 
 # --- Issue 8: entry validation in get_report_groups ---
-def test_get_report_groups_entry_not_mapping_raises_value_error(mocker):
+def test_get_report_groups_entry_not_mapping_raises_value_error(mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value='["not-a-dict"]')
 
     with pytest.raises(ValueError) as exc_info:
@@ -1166,7 +1169,7 @@ def test_get_report_groups_entry_not_mapping_raises_value_error(mocker):
     assert "mapping" in str(exc_info.value).lower() or "dict" in str(exc_info.value).lower()
 
 
-def test_get_report_groups_missing_name_raises_value_error(mocker):
+def test_get_report_groups_missing_name_raises_value_error(mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="- paths: ['**']")
 
     with pytest.raises(ValueError) as exc_info:
@@ -1175,7 +1178,7 @@ def test_get_report_groups_missing_name_raises_value_error(mocker):
     assert "name" in str(exc_info.value).lower()
 
 
-def test_get_report_groups_missing_paths_raises_value_error(mocker):
+def test_get_report_groups_missing_paths_raises_value_error(mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="- name: g1")
 
     with pytest.raises(ValueError) as exc_info:
@@ -1184,7 +1187,7 @@ def test_get_report_groups_missing_paths_raises_value_error(mocker):
     assert "paths" in str(exc_info.value).lower()
 
 
-def test_get_report_groups_paths_not_list_raises_value_error(mocker):
+def test_get_report_groups_paths_not_list_raises_value_error(mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="- name: g1\n  paths: single-string")
 
     with pytest.raises(ValueError) as exc_info:
@@ -1193,7 +1196,7 @@ def test_get_report_groups_paths_not_list_raises_value_error(mocker):
     assert "list" in str(exc_info.value).lower()
 
 
-def test_get_report_groups_empty_paths_raises_value_error(mocker):
+def test_get_report_groups_empty_paths_raises_value_error(mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="- name: g1\n  paths: []")
 
     with pytest.raises(ValueError) as exc_info:
@@ -1202,7 +1205,7 @@ def test_get_report_groups_empty_paths_raises_value_error(mocker):
     assert "non-empty" in str(exc_info.value).lower() or "empty" in str(exc_info.value).lower()
 
 
-def test_get_report_groups_invalid_threshold_format_raises_value_error(mocker):
+def test_get_report_groups_invalid_threshold_format_raises_value_error(mocker: MockerFixture):
     mocker.patch(
         "jacoco_report.action_inputs.get_action_input", return_value="- name: g1\n  paths: ['**']\n  thresholds: '80'"
     )
@@ -1214,7 +1217,7 @@ def test_get_report_groups_invalid_threshold_format_raises_value_error(mocker):
     assert "o*a*p" in str(exc_info.value).lower()
 
 
-def test_get_report_groups_normalizes_name_and_paths(mocker):
+def test_get_report_groups_normalizes_name_and_paths(mocker: MockerFixture):
     yaml_input = "- name: '  backend  '\n  paths:\n    - '  backend/**/jacoco.xml  '\n  thresholds: 80*70*60"
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value=yaml_input)
 
@@ -1225,7 +1228,7 @@ def test_get_report_groups_normalizes_name_and_paths(mocker):
     assert groups[0].paths == ["backend/**/jacoco.xml"]
 
 
-def test_get_report_groups_normalizes_baseline_paths(mocker):
+def test_get_report_groups_normalizes_baseline_paths(mocker: MockerFixture):
     yaml_input = (
         "- name: backend\n"
         "  paths:\n"
@@ -1267,7 +1270,7 @@ failure_cases_defaults = [
 
 
 @pytest.mark.parametrize("method, expected_value", failure_cases_defaults)
-def test_validate_inputs_default(method, expected_value, mocker):
+def test_validate_inputs_default(method, expected_value, mocker: MockerFixture):
     case = success_case.copy()
     case.pop(method)
 
@@ -1282,7 +1285,7 @@ def test_validate_inputs_default(method, expected_value, mocker):
         stop_mocks(patchers)
 
 
-def test_validate_inputs_allows_empty_paths_when_report_groups_configured(mocker):
+def test_validate_inputs_allows_empty_paths_when_report_groups_configured(mocker: MockerFixture):
     case = success_case.copy()
     case["get_paths"] = ""
     case["get_report_groups"] = "- name: group1\n  paths: ['**/jacoco.xml']"
@@ -1296,7 +1299,7 @@ def test_validate_inputs_allows_empty_paths_when_report_groups_configured(mocker
         stop_mocks(patchers)
 
 
-def test_validate_inputs_allows_empty_paths_when_report_groups_not_configured(mocker):
+def test_validate_inputs_allows_empty_paths_when_report_groups_not_configured(mocker: MockerFixture):
     case = success_case.copy()
     case["get_paths"] = ""
     case["get_report_groups"] = ""
@@ -1311,7 +1314,7 @@ def test_validate_inputs_allows_empty_paths_when_report_groups_not_configured(mo
         stop_mocks(patchers)
 
 
-def test_validate_inputs_allows_empty_paths_when_report_groups_is_empty_yaml_list(mocker):
+def test_validate_inputs_allows_empty_paths_when_report_groups_is_empty_yaml_list(mocker: MockerFixture):
     case = success_case.copy()
     case["get_paths"] = ""
     case["get_report_groups"] = "[]"
@@ -1331,22 +1334,22 @@ def test_validate_inputs_allows_empty_paths_when_report_groups_is_empty_yaml_lis
 # ---------------------------------------------------------------------------
 
 
-def test_get_global_overall_scope_default(mocker):
+def test_get_global_overall_scope_default(mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="all")
     assert ActionInputs.get_global_overall_scope() == "all"
 
 
-def test_get_global_overall_scope_groups_only(mocker):
+def test_get_global_overall_scope_groups_only(mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="groups-only")
     assert ActionInputs.get_global_overall_scope() == "groups-only"
 
 
-def test_get_global_overall_scope_strips_and_lowercases(mocker):
+def test_get_global_overall_scope_strips_and_lowercases(mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="  ALL  ")
     assert ActionInputs.get_global_overall_scope() == "all"
 
 
-def test_validate_inputs_accepts_all_scope(mocker):
+def test_validate_inputs_accepts_all_scope(mocker: MockerFixture):
     case = success_case.copy()
     case["get_global_overall_scope"] = "all"
     patchers = apply_mocks(case, mocker)
@@ -1358,7 +1361,7 @@ def test_validate_inputs_accepts_all_scope(mocker):
         stop_mocks(patchers)
 
 
-def test_validate_inputs_accepts_groups_only_scope(mocker):
+def test_validate_inputs_accepts_groups_only_scope(mocker: MockerFixture):
     case = success_case.copy()
     case["get_global_overall_scope"] = "groups-only"
     patchers = apply_mocks(case, mocker)
@@ -1370,7 +1373,7 @@ def test_validate_inputs_accepts_groups_only_scope(mocker):
         stop_mocks(patchers)
 
 
-def test_validate_inputs_rejects_invalid_global_overall_scope(mocker):
+def test_validate_inputs_rejects_invalid_global_overall_scope(mocker: MockerFixture):
     case = success_case.copy()
     case["get_global_overall_scope"] = "invalid"
     patchers = apply_mocks(case, mocker)
@@ -1396,12 +1399,12 @@ def test_validate_inputs_rejects_invalid_global_overall_scope(mocker):
         ("   ", ""),
     ],
 )
-def test_get_ca_bundle(raw_value, expected, mocker):
+def test_get_ca_bundle(raw_value, expected, mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value=raw_value)
     assert ActionInputs.get_ca_bundle() == expected
 
 
-def test_validate_inputs_rejects_missing_ca_bundle_file(tmp_path, mocker):
+def test_validate_inputs_rejects_missing_ca_bundle_file(tmp_path, mocker: MockerFixture):
     missing = str(tmp_path / "missing.pem")
     patchers = apply_mocks(success_case, mocker)
     try:
@@ -1417,7 +1420,7 @@ def test_validate_inputs_rejects_missing_ca_bundle_file(tmp_path, mocker):
         stop_mocks(patchers)
 
 
-def test_validate_inputs_accepts_existing_ca_bundle_file(tmp_path, mocker):
+def test_validate_inputs_accepts_existing_ca_bundle_file(tmp_path, mocker: MockerFixture):
     pem = tmp_path / "corp-ca.pem"
     pem.write_text("-----BEGIN CERTIFICATE-----\n", encoding="utf-8")
     patchers = apply_mocks(success_case, mocker)
@@ -1434,7 +1437,7 @@ def test_validate_inputs_accepts_existing_ca_bundle_file(tmp_path, mocker):
         stop_mocks(patchers)
 
 
-def test_validate_inputs_accepts_unset_ca_bundle(mocker):
+def test_validate_inputs_accepts_unset_ca_bundle(mocker: MockerFixture):
     patchers = apply_mocks(success_case, mocker)
     try:
         mocker.patch.object(ActionInputs, "get_ca_bundle", return_value="")
@@ -1454,35 +1457,35 @@ def test_validate_inputs_accepts_unset_ca_bundle(mocker):
 # ---------------------------------------------------------------------------
 
 
-def test_get_report_target_default_is_comment(mocker):
+def test_get_report_target_default_is_comment(mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="comment")
     assert ActionInputs.get_report_target() == ReportTargetEnum.COMMENT
 
 
 @pytest.mark.parametrize("value", ["comment", "summary", "both"])
-def test_get_report_target_returns_each_valid_value(mocker, value):
+def test_get_report_target_returns_each_valid_value(mocker: MockerFixture, value):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value=value)
     assert ActionInputs.get_report_target() == value
 
 
-def test_get_report_target_strips_and_lowercases(mocker):
+def test_get_report_target_strips_and_lowercases(mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="  SUMMARY \n")
     assert ActionInputs.get_report_target() == ReportTargetEnum.SUMMARY
 
 
-def test_get_report_target_empty_value_means_comment(mocker):
+def test_get_report_target_empty_value_means_comment(mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="   ")
     assert ActionInputs.get_report_target() == ReportTargetEnum.COMMENT
 
 
-def test_get_report_target_reads_the_input_with_default_comment(mocker):
+def test_get_report_target_reads_the_input_with_default_comment(mocker: MockerFixture):
     mock_get = mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="comment")
     ActionInputs.get_report_target()
     mock_get.assert_called_once_with("report-target", "comment")
 
 
 @pytest.mark.parametrize("value", ["comment", "summary", "both"])
-def test_validate_inputs_accepts_report_target(mocker, value):
+def test_validate_inputs_accepts_report_target(mocker: MockerFixture, value):
     case = success_case.copy()
     case["get_report_target"] = value
     patchers = apply_mocks(case, mocker)
@@ -1496,7 +1499,7 @@ def test_validate_inputs_accepts_report_target(mocker, value):
         stop_mocks(patchers)
 
 
-def test_validate_inputs_rejects_invalid_report_target(mocker):
+def test_validate_inputs_rejects_invalid_report_target(mocker: MockerFixture):
     case = success_case.copy()
     case["get_report_target"] = "pr"
     patchers = apply_mocks(case, mocker)
@@ -1510,7 +1513,7 @@ def test_validate_inputs_rejects_invalid_report_target(mocker):
         stop_mocks(patchers)
 
 
-def test_validate_inputs_logs_report_target_value(mocker):
+def test_validate_inputs_logs_report_target_value(mocker: MockerFixture):
     case = success_case.copy()
     case["get_report_target"] = "summary"
     patchers = apply_mocks(case, mocker)

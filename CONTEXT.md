@@ -151,6 +151,9 @@ service is needed.
 - `tests/` is excluded from pylint (`.pylintrc` `ignore-paths=tests`) and coverage
   (`omit = ["tests/*"]`), but not from mypy: `mypy .` (with `check_untyped_defs`) type-checks the tests
   too, so a patched method used as a mock needs a `cast(MagicMock, ...)` before `.call_args` and friends.
+- Every `mocker` parameter in `tests/` is annotated `mocker: MockerFixture` (`.github/copilot-instructions.md`). A
+  helper returning a `mocker.patch(...)` result is annotated `MockType` (from `pytest_mock`), not `MagicMock`:
+  `patch` returns that union, and mypy rejects the narrower type.
 - Code reads attributes of the project's own types directly: no defensive `getattr(obj, "x", default)` or
   `isinstance` fallbacks (#269); an optional object gets an explicit `is None` branch. A test passing a `Mock` in place
   of one of them (`CoverageEvaluator`, `JaCoCoReport`, `ReportGroup`) must set every attribute the code path reads: an

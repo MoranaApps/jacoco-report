@@ -9,6 +9,7 @@ import re
 from unittest.mock import MagicMock
 
 import pytest
+from pytest_mock import MockerFixture
 
 from jacoco_report.evaluator.coverage_evaluator import CoverageEvaluator
 from jacoco_report.generator import pr_comment_generator as generator_module
@@ -59,7 +60,7 @@ def _table_rows(text):
 
 
 @pytest.fixture
-def gh(mocker):
+def gh(mocker: MockerFixture):
     client = mocker.Mock()
     client.get_comments.return_value = []
     client.add_comment.return_value = True
@@ -90,7 +91,7 @@ def summary_file(tmp_path, monkeypatch):
 
 
 @pytest.fixture
-def configure(mocker):
+def configure(mocker: MockerFixture):
     """Patch the ActionInputs getters the generator reads, with a run link of owner/repo run 42."""
 
     def _configure(*, report_target="comment", comment_level="full", update_comment=True):

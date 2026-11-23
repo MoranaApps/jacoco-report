@@ -797,7 +797,7 @@ def _make_report_with_changed_file_instruction(
 # ---------------------------------------------------------------------------
 
 
-def test_duplicate_report_name_emits_warning(make_report_file_coverage, mocker, caplog):
+def test_duplicate_report_name_emits_warning(make_report_file_coverage, mocker: MockerFixture, caplog):
     """Evaluator logs a WARNING when two reports share the same XML name (title)."""
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
     report_a = make_report_file_coverage(path="module-a/jacoco.xml", name="same-name")
@@ -815,7 +815,7 @@ def test_duplicate_report_name_emits_warning(make_report_file_coverage, mocker, 
     assert "Duplicate report name 'same-name' detected" in caplog.text
 
 
-def test_duplicate_report_name_does_not_lose_data(make_report_file_coverage, mocker):
+def test_duplicate_report_name_does_not_lose_data(make_report_file_coverage, mocker: MockerFixture):
     """When two reports share the XML name but have different paths, both are preserved."""
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
     report_a = make_report_file_coverage(path="module-a/jacoco.xml", name="JaCoCo Coverage Report")
@@ -838,7 +838,7 @@ def test_duplicate_report_name_does_not_lose_data(make_report_file_coverage, moc
 # ---------------------------------------------------------------------------
 
 
-def test_baseline_does_not_affect_threshold_evaluation(make_report_file_coverage, make_coverage, mocker):
+def test_baseline_does_not_affect_threshold_evaluation(make_report_file_coverage, make_coverage, mocker: MockerFixture):
     """High-coverage baseline does not cause a low-coverage current report to pass thresholds."""
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
 
@@ -869,7 +869,9 @@ def test_baseline_does_not_affect_threshold_evaluation(make_report_file_coverage
     assert bs_evaluator.total_coverage_overall_passed is True
 
 
-def test_low_baseline_does_not_cause_high_coverage_to_fail(make_report_file_coverage, make_coverage, mocker):
+def test_low_baseline_does_not_cause_high_coverage_to_fail(
+    make_report_file_coverage, make_coverage, mocker: MockerFixture
+):
     """Low-coverage baseline does not drag down a passing current report."""
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
 
@@ -903,7 +905,7 @@ def test_low_baseline_does_not_cause_high_coverage_to_fail(make_report_file_cove
 # ---------------------------------------------------------------------------
 
 
-def test_metric_instruction_passes_when_line_would_fail(mocker):
+def test_metric_instruction_passes_when_line_would_fail(mocker: MockerFixture):
     """Instruction coverage passes an 80% threshold; line coverage (0%) would fail the same threshold."""
     report = ReportFileCoverage(
         path="test.xml",
@@ -930,7 +932,7 @@ def test_metric_instruction_passes_when_line_would_fail(mocker):
     assert ev_instr.total_coverage_overall == 100.0
 
 
-def test_metric_line_fails_when_instruction_would_pass(mocker):
+def test_metric_line_fails_when_instruction_would_pass(mocker: MockerFixture):
     """Line coverage (0%) fails an 80% threshold even though instruction coverage is 100%."""
     report = ReportFileCoverage(
         path="test.xml",
@@ -1216,7 +1218,7 @@ def test_changed_file_with_zero_metric_weight_but_data_in_other_metric(
     ],
 )
 def test_global_overall_threshold_100_is_inclusive(
-    make_report_file_coverage, make_coverage, mocker, missed, covered, passed
+    make_report_file_coverage, make_coverage, mocker: MockerFixture, missed, covered, passed
 ):
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
     report = make_report_file_coverage(
@@ -1241,7 +1243,9 @@ def test_global_overall_threshold_100_is_inclusive(
         (1, 999, False),
     ],
 )
-def test_report_threshold_100_is_inclusive(make_report_file_coverage, make_coverage, mocker, missed, covered, passed):
+def test_report_threshold_100_is_inclusive(
+    make_report_file_coverage, make_coverage, mocker: MockerFixture, missed, covered, passed
+):
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
     report = make_report_file_coverage(
         path="mod.xml",

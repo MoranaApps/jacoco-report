@@ -1,4 +1,5 @@
 import pytest
+from pytest_mock import MockerFixture
 
 from jacoco_report.model.coverage import Coverage
 from jacoco_report.model.counter import Counter
@@ -37,7 +38,7 @@ def test_initialization():
     assert coverage.clazz == clazz
 
 
-def test_get_coverage_by_metric(coverage, mocker):
+def test_get_coverage_by_metric(coverage, mocker: MockerFixture):
     mock_logger = mocker.patch("jacoco_report.model.coverage.logger")
     assert coverage.get_coverage_by_metric(MetricTypeEnum.INSTRUCTION) == round(10 / 15 * 100, 2)
     assert coverage.get_coverage_by_metric(MetricTypeEnum.BRANCH) == round(7 / 10 * 100, 2)
@@ -49,7 +50,7 @@ def test_get_coverage_by_metric(coverage, mocker):
     mock_logger.error.assert_called_once_with("Unknown metric type: %s", "unknown")
 
 
-def test_get_values_by_metric(coverage, mocker):
+def test_get_values_by_metric(coverage, mocker: MockerFixture):
     mock_logger = mocker.patch("jacoco_report.model.coverage.logger")
     assert coverage.get_values_by_metric(MetricTypeEnum.INSTRUCTION) == (5, 10)
     assert coverage.get_values_by_metric(MetricTypeEnum.BRANCH) == (3, 7)
