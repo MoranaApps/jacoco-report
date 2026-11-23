@@ -8,6 +8,7 @@ Automates the publication of JaCoCo coverage reports directly as comments in pul
 - [Motivation](#motivation)
 - [Quick Start](#quick-start)
 - [Usage](#usage)
+  - [Coverage must not drop](#coverage-must-not-drop)
   - [Action Inputs](#action-inputs)
   - [Outputs](#outputs)
   - [Examples](#examples)
@@ -125,6 +126,22 @@ jobs:
 
 ```
 
+### Coverage must not drop
+
+Fails the step when overall coverage drops against the reports of the base branch. The baseline reports must be
+stored by a previous run on the base branch; see [Baseline Paths](docs/inputs/baseline-paths.md) and
+[thresholds](docs/inputs/thresholds.md#no-decrease-rules). Listing only `no-decrease` turns off the default
+`overall,changed-files-average,per-changed-file` checks; list them too to keep them.
+
+```yaml
+      - name: Publish JaCoCo Report in PR comments
+        uses: MoranaApps/jacoco-report@v3
+        with:
+          paths: '**/jacoco.xml'
+          baseline-paths: 'baseline/master/jacoco/**/*.xml'
+          fail-on-threshold: 'no-decrease'
+```
+
 ---
 
 ### Action Inputs
@@ -151,7 +168,8 @@ Input values are passed to the action exactly as written: `$VAR`, `$(…)` and b
 | `update-comment`    | If `true`, updates an existing comment instead of creating a new one.                                                                                                                                                          | No       | `true`                                           |
 | `pass-symbol`       | Symbol for passing checks in PR comments (e.g., ✅, **Passed**).                                                                                                                                                               | No       | `✅`                                              |
 | `fail-symbol`       | Symbol for failing checks in PR comments (e.g., ❌, **Failed**).                                                                                                                                                               | No       | `❌`                                              |
-| `fail-on-threshold` | List value (comma- or newline-separated) of thresholds that must pass: `overall`, `changed-files-average`, `per-changed-file`, `fail-unchanged`. Leave empty to disable.                                                     | No       | `overall,changed-files-average,per-changed-file` |
+| `fail-on-threshold` | List value (comma- or newline-separated) of thresholds that must pass: `overall`, `changed-files-average`, `per-changed-file`, `fail-unchanged`, `no-decrease`. Leave empty to disable.                                        | No       | `overall,changed-files-average,per-changed-file` |
+| `max-decrease`      | Largest allowed overall coverage drop against `baseline-paths` when `fail-on-threshold` has `no-decrease`, in percentage points (0 to 100). See [docs/inputs/thresholds.md](docs/inputs/thresholds.md).                        | No       | `0.0`                                            |
 | `debug`             | Enables detailed logging. Automatically activated when `RUNNER_DEBUG=1` (GitHub runner debug mode).                                                                                                                             | No       | `false`                                          |
 | `ca-bundle`         | Path (absolute, or relative to the workspace) to a PEM CA bundle trusted for the action's pip install and all GitHub API calls. Use behind a TLS-intercepting proxy. See [docs/inputs/ca-bundle.md](docs/inputs/ca-bundle.md). | No       | `''`                                             |
 
@@ -296,6 +314,11 @@ Right after that error, a `Hint:` line names the likely cause:
   By default, `overall`, `changed-files-average`, and `per-changed-file` checks are enabled;
   the per-changed-file check uses report/group thresholds.
 - When `report-groups` is used, group thresholds are evaluated separately from `global-thresholds`.
+- With `no-decrease` in `fail-on-threshold`, a coverage drop fails the step. The comment shows the drop only in the
+  Δ column, and the log names the row that dropped.
+- The step fails with `'no-decrease' needs a baseline` when no baseline report is found, or with
+  `'no-decrease' found baseline reports, but none matches` when no current report matches one. Check
+  `baseline-paths` and the report paths or names. See [thresholds](docs/inputs/thresholds.md#no-decrease-rules).
 
 ### `fail-on-threshold` selection looks incorrect
 

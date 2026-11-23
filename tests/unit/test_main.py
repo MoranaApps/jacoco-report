@@ -347,3 +347,51 @@ def test_run_sets_empty_delta_outputs_without_baseline(mocker):
 
     mock_set_output.assert_any_call("coverage-overall-delta", "")
     mock_set_output.assert_any_call("coverage-changed-files-delta", "")
+
+
+def _patch_no_decrease_run(mocker, fail_on_threshold):
+    mocker.patch("main.setup_logging")
+    mocker.patch.object(ActionInputs, "validate_inputs")
+    mock_jr_cls = mocker.patch("main.JaCoCoReport")
+    mocker.patch("main.set_action_output")
+    mocker.patch("main.set_action_output_text")
+    mock_set_action_failed = mocker.patch("main.set_action_failed")
+    mocker.patch(
+        "jacoco_report.action_inputs.ActionInputs.get_fail_on_threshold",
+        return_value=fail_on_threshold,
+    )
+    mock_jr = mock_jr_cls.return_value
+    mock_jr.total_overall_coverage = 70.0
+    mock_jr.total_changed_files_coverage = 75.0
+    mock_jr.evaluated_coverage_reports = "{}"
+    mock_jr.evaluated_coverage_groups = "{}"
+    mock_jr.reached_threshold_overall = True
+    mock_jr.reached_threshold_changed_files_average = True
+    mock_jr.reached_threshold_per_change_file = True
+    mock_jr.reached_threshold_fail_unchanged = True
+    mock_jr.has_operational_failure = False
+    return mock_jr, mock_set_action_failed
+
+
+def test_run_no_decrease_selected_fails_when_the_gate_is_not_reached(mocker):
+    mock_jr, mock_set_action_failed = _patch_no_decrease_run(mocker, [FailOnThresholdEnum.NO_DECREASE])
+    mock_jr.violations = ["Global overall coverage dropped from 80.0 to 70.0."]
+    mock_jr.reached_threshold_no_decrease = False
+
+    run()
+
+    mock_set_action_failed.assert_called_once_with(
+        messages=["Global overall coverage dropped from 80.0 to 70.0."], fail=True
+    )
+
+
+def test_run_no_decrease_not_selected_does_not_fail_on_its_flag(mocker):
+    mock_jr, mock_set_action_failed = _patch_no_decrease_run(mocker, [FailOnThresholdEnum.OVERALL])
+    mock_jr.violations = ["Global overall coverage dropped from 80.0 to 70.0."]
+    mock_jr.reached_threshold_no_decrease = False
+
+    run()
+
+    mock_set_action_failed.assert_called_once_with(
+        messages=["Global overall coverage dropped from 80.0 to 70.0."], fail=False
+    )

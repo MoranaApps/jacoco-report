@@ -1,3 +1,5 @@
+import logging
+
 import pytest
 
 from jacoco_report.action_inputs import ActionInputs
@@ -26,6 +28,7 @@ success_case = {
     "get_pass_symbol": "**Passed**",
     "get_fail_symbol": "❗",
     "get_fail_on_threshold": ["overall", "changed-files-average", "per-changed-file"],
+    "get_max_decrease": 0.0,
     "get_debug": True,
 }
 
@@ -307,6 +310,7 @@ def test_validate_inputs_logs_errors_in_validation_order(tmp_path, mocker):
         "get_evaluate_unchanged": "'evaluate-unchanged' must be a boolean ('true' or 'false').",
         "get_update_comment": "'update-comment' must be a boolean ('true' or 'false').",
         "get_fail_on_threshold": "Unsupported threshold levels: bogus",
+        "get_max_decrease": "'max-decrease' must be a float between 0 and 100 (inclusive).",
         "get_debug": "'debug' must be a boolean ('true' or 'false').",
     }
     missing_ca_bundle = str(tmp_path / "missing.pem")
@@ -354,6 +358,7 @@ def test_validate_inputs_logs_errors_in_validation_order(tmp_path, mocker):
             "'pass-symbol' must be a non-empty string and have a length from 1.",
             "'fail-symbol' must be a non-empty string and have a length from 1.",
             raising_getters["get_fail_on_threshold"],
+            raising_getters["get_max_decrease"],
             raising_getters["get_debug"],
             f"'ca-bundle' must be a path to an existing PEM file: '{missing_ca_bundle}'.",
         ]
@@ -858,6 +863,49 @@ def test_get_fail_on_threshold_invalid_format(mocker):
     assert "Unsupported threshold levels: not supported" in str(exc_info.value)
 
 
+def test_get_fail_on_threshold_accepts_no_decrease(mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="overall,no-decrease")
+    assert ActionInputs.get_fail_on_threshold() == [FailOnThresholdEnum.OVERALL, FailOnThresholdEnum.NO_DECREASE]
+
+
+@pytest.mark.parametrize(
+    "raw, expected",
+    [
+        pytest.param("0", 0.0, id="zero"),
+        pytest.param("2.5", 2.5, id="fraction"),
+        pytest.param(" 1.5 ", 1.5, id="surrounding-whitespace"),
+        pytest.param("100", 100.0, id="upper-bound"),
+        pytest.param("", 0.0, id="empty-defaults-to-zero"),
+        pytest.param("  \n ", 0.0, id="whitespace-defaults-to-zero"),
+    ],
+)
+def test_get_max_decrease(raw, expected, mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value=raw)
+    assert ActionInputs.get_max_decrease() == expected
+
+
+@pytest.mark.parametrize("raw", ["-0.1", "100.1", "abc", "nan", "inf"])
+def test_get_max_decrease_rejects_values_outside_zero_to_hundred(raw, mocker):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value=raw)
+
+    with pytest.raises(ValueError) as exc_info:
+        ActionInputs.get_max_decrease()
+
+    assert str(exc_info.value) == "'max-decrease' must be a float between 0 and 100 (inclusive)."
+
+
+def test_validate_inputs_logs_max_decrease(mocker, caplog):
+    case = success_case.copy()
+    case["get_max_decrease"] = 2.5
+    patchers = apply_mocks(case, mocker)
+    try:
+        caplog.set_level(logging.INFO, logger="jacoco_report.action_inputs")
+        ActionInputs.validate_inputs()
+        assert "Max decrease: 2.5" in caplog.text
+    finally:
+        stop_mocks(patchers)
+
+
 def test_get_debug_true(mocker):
     mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="true")
     assert True == ActionInputs.get_debug()
@@ -1210,6 +1258,7 @@ failure_cases_defaults = [
         "get_fail_on_threshold",
         [FailOnThresholdEnum.OVERALL, FailOnThresholdEnum.CHANGED_FILES_AVERAGE, FailOnThresholdEnum.PER_CHANGED_FILE],
     ),
+    ("get_max_decrease", 0.0),
     ("get_debug", False),
     ("get_global_thresholds", (0.0, 0.0)),
     ("get_global_overall_threshold", 0.0),

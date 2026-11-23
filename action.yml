@@ -87,11 +87,21 @@ inputs:
   fail-on-threshold:
     description: >
       Controls which threshold breaches fail the action.
-      List input (comma- or newline-separated): overall, changed-files-average, per-changed-file, fail-unchanged.
+      List input (comma- or newline-separated): overall, changed-files-average, per-changed-file, fail-unchanged,
+      no-decrease.
       fail-unchanged applies when skip-unchanged is true and enforces overall checks for filtered reports.
+      no-decrease fails when the overall coverage of the global result, a group or a report drops against its baseline
+      by more than max-decrease percentage points and its missed count grows. It needs baseline-paths.
       Leave empty to disable failing on threshold breaches.
     required: false
     default: 'overall,changed-files-average,per-changed-file'
+  max-decrease:
+    description: >
+      The largest drop in overall coverage, in percentage points, that fail-on-threshold no-decrease tolerates.
+      A float from 0 to 100 (inclusive). Used only when fail-on-threshold has no-decrease; an invalid value fails
+      validation either way.
+    required: false
+    default: '0.0'
   debug:
     description: 'Enable detail logging.'
     required: false
@@ -220,6 +230,7 @@ runs:
         INPUT_PASS_SYMBOL: ${{ inputs.pass-symbol }}
         INPUT_FAIL_SYMBOL: ${{ inputs.fail-symbol }}
         INPUT_FAIL_ON_THRESHOLD: ${{ inputs.fail-on-threshold }}
+        INPUT_MAX_DECREASE: ${{ inputs.max-decrease }}
         INPUT_DEBUG: ${{ inputs.debug }}
         INPUT_CA_BUNDLE: ${{ inputs.ca-bundle }}
       run: |

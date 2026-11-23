@@ -97,6 +97,8 @@ and pass/fail are written back via `GITHUB_OUTPUT` and the process exit code.
 - Two independent threshold passes: **global** (`global-thresholds`: overall + changed-files-average,
   one evaluation across all reports/groups) and **per-report/group** (`report-thresholds-default` →
   group override, adds a per-changed-file check). They never fall back into each other.
+- Baseline gate `no-decrease` (opt-in `fail-on-threshold` value, tolerance `max-decrease` in percentage points): a third
+  check, against `baseline-paths` instead of a fixed minimum; overall coverage of the global row, groups and reports.
 
 ## Contracts
 
@@ -205,9 +207,25 @@ service is needed.
   - The generator builds the comparison per call (`_baseline()`), because tests replace `evaluator`/`bs_evaluator`
     after construction. `calculate_baseline_group_diffs` and `_calculate_baseline_report_diffs` stay on the generator
     as thin wrappers returning `(0.0, 0.0)` for no match; tests call them.
+  - The `no-decrease` gate is `BaselineComparison.no_decrease_violations(max_decrease)`, called from `_apply_results`
+    only when `no-decrease` is selected: `set_action_failed` prints violations as `::notice::` even when nothing
+    fails, so always computing it would add messages for existing callers. It then sets
+    `reached_threshold_no_decrease` and `self.violations = evaluator.violations + gate violations` (a new list; the
+    evaluator's is not mutated). Order: global, groups, reports of the results evaluator.
+  - A row drops (`OverallChange.is_drop`) when its Δ (the rounded value the comment shows) is `< -max_decrease` and
+    its missed count of the selected metric grew, so deleting covered code passes. Group/global counters come from
+    `_aggregate_counters`, the same ones as the Δ; a report compares its own counters with its baseline report's.
+  - No baseline data → only `NO_BASELINE_VIOLATION`; baseline data but no matched report (`_global_pairs()` None) →
+    only `NO_MATCH_VIOLATION` (else nothing would be checked). A group or report without a match is skipped with an
+    INFO log. When skip-unchanged filters every report without evaluating them, `_apply_results` is not called and
+    the gate passes. `max-decrease` is validated even when `no-decrease` is not selected.
+- A new `fail-on-threshold` value needs a `FailOnThresholdEnum` member, a `reached_threshold_*` flag on `JaCoCoReport`
+  set in `_apply_results` and reset to False in `_mark_operational_failure`, and an entry in `main.py`'s
+  `threshold_checks`.
 - `run()` sits at the `too-many-locals` limit (`max-locals=20`, enabled; `self` counts): a new local there trips it,
   so new logic goes in a helper.
-- `CoverageEvaluator` sits at the `too-many-instance-attributes` limit (`max-attributes=15`): a new attribute trips it.
+- `CoverageEvaluator` and `JaCoCoReport` sit at the `too-many-instance-attributes` limit (`max-attributes=15`): a new
+  attribute trips it.
   Its public result attributes are read by `PRCommentGenerator` and set directly by tests (`report_group_order`
   included), so keep them plain attributes. A group's threshold fallback (group field → `report-thresholds-default`)
   lives only in `_group_thresholds(group)`, used by `evaluate_group` and `_set_thresholds`.

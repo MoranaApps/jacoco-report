@@ -38,8 +38,8 @@ baseline/master/jacoco/**/*.xml
   there is no baseline or no report matched one. See [README → Outputs](../../README.md#outputs).
 - With `skip-unchanged` and `evaluate-unchanged: false`, the global Δ (comment and outputs) covers
   only the reports with changed files, while `coverage-overall` still counts the filtered ones.
-- Has no effect on threshold evaluation — thresholds always compare against the configured
-  minimum, not the baseline.
+- Has no effect on threshold evaluation unless `fail-on-threshold` includes `no-decrease`. Then the baseline is
+  the reference of that gate. See [thresholds.md](thresholds.md#no-decrease-rules).
 
 ## Examples
 
@@ -67,6 +67,20 @@ baseline/master/jacoco/**/*.xml
   # The comparison reads the output as a number; an empty output (no baseline) counts as 0.
   if: steps.jacoco.outputs.coverage-overall-delta < 0
   run: echo "::warning::Overall coverage dropped against the baseline."
+```
+
+### Fail when coverage dropped
+
+Fails the step when overall coverage drops against the baseline. Listing `no-decrease` replaces the default
+`fail-on-threshold` list, so add the other dimensions if you want them enforced too.
+
+```yaml
+- name: Publish JaCoCo Report
+  uses: MoranaApps/jacoco-report@v3
+  with:
+    paths: '**/jacoco/**/*.xml'
+    baseline-paths: 'baseline/master/jacoco/**/*.xml'
+    fail-on-threshold: 'no-decrease'
 ```
 
 ### Per-group baselines (via `report-groups`)

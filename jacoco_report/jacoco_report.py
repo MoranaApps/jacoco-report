@@ -53,6 +53,7 @@ class JaCoCoReport:
         self.reached_threshold_changed_files_average = True
         self.reached_threshold_per_change_file = True
         self.reached_threshold_fail_unchanged = True
+        self.reached_threshold_no_decrease = True
         self.has_operational_failure = False
 
     def run(self) -> None:
@@ -555,6 +556,13 @@ class JaCoCoReport:
         self.reached_threshold_per_change_file = evaluator.reached_threshold_per_change_file
         self.reached_threshold_fail_unchanged = fail_unchanged_passed
 
+        # The gate is opt-in: nothing is computed and no violation is added unless no-decrease is selected.
+        self.reached_threshold_no_decrease = True
+        if FailOnThresholdEnum.NO_DECREASE in ActionInputs.get_fail_on_threshold():
+            gate_violations = baseline.no_decrease_violations(ActionInputs.get_max_decrease())
+            self.violations = evaluator.violations + gate_violations
+            self.reached_threshold_no_decrease = not gate_violations
+
     def _delete_stale_comment_if_update_enabled(self, gh: GitHub, pr_number: int) -> None:
         """Delete the previous JaCoCo PR comment when update-comment is enabled."""
         if not ActionInputs.get_update_comment():
@@ -581,3 +589,4 @@ class JaCoCoReport:
         self.reached_threshold_changed_files_average = False
         self.reached_threshold_per_change_file = False
         self.reached_threshold_fail_unchanged = False
+        self.reached_threshold_no_decrease = False

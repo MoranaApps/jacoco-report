@@ -50,3 +50,4 @@ class FailOnThresholdEnum(StrEnum):
     CHANGED_FILES_AVERAGE = "changed-files-average"
     PER_CHANGED_FILE = "per-changed-file"
     FAIL_UNCHANGED = "fail-unchanged"
+    NO_DECREASE = "no-decrease"

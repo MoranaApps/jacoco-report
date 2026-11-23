@@ -15,8 +15,9 @@ When `true` (the default), filtered reports still contribute to overall threshol
 though they do not appear in the PR comment. When `false`, they are completely excluded from
 evaluation as well.
 
-If all reports are filtered, the action exits cleanly: no comment is posted and no threshold
-failures are raised.
+If all reports are filtered, no comment is posted. With `evaluate-unchanged: false` (and no
+`fail-unchanged`), nothing is evaluated and no threshold failures are raised; otherwise the filtered
+reports are still evaluated for the threshold result, `no-decrease` included.
 
 ## Valid values
 
@@ -33,7 +34,7 @@ failures are raised.
 |------------------|----------------------|------------------------------------|----------------------------------------|
 | `false`          | any                  | Shown (normal flow)                | Yes (normal evaluation)                |
 | `true`           | `false`              | Hidden                             | No                                     |
-| `true`           | `true`               | Hidden                             | Yes (overall threshold only)           |
+| `true`           | `true`               | Hidden                             | Yes (overall threshold and `no-decrease` only) |
 
 ## Examples
 
