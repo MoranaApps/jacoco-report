@@ -128,7 +128,7 @@ class JaCoCoReport:
                 parser,
                 report_groups,
                 filtered_unchanged_reports,
-                evaluate_filtered_unchanged,
+                evaluate_unchanged,
                 fail_unchanged_enabled,
             )
             return
@@ -207,15 +207,17 @@ class JaCoCoReport:
         parser: JaCoCoReportParser,
         report_groups: list[ReportGroup],
         filtered_unchanged_reports: list[ReportFileCoverage],
-        evaluate_filtered_unchanged: bool,
+        evaluate_unchanged: bool,
         fail_unchanged_enabled: bool,
     ) -> None:
         """Finish a run in which skip-unchanged filtered out every report, so no comment is generated.
 
-        Without `evaluate_filtered_unchanged` the totals pass by default. With it, the filtered reports are evaluated
-        for the threshold result only, against the baseline for the delta outputs, and fail-unchanged checks all of
-        them. Either way the stale comment is deleted.
+        Without evaluate-unchanged or fail-unchanged the totals pass by default. With either, the filtered reports are
+        evaluated for the threshold result only, against the baseline for the delta outputs, and fail-unchanged checks
+        all of them. Either way the stale comment is deleted. Without `evaluate_unchanged` the 'no-decrease' gate
+        checks only their report rows, as it does for the filtered reports of a mixed run.
         """
+        evaluate_filtered_unchanged = evaluate_unchanged or fail_unchanged_enabled
         if not evaluate_filtered_unchanged:
             logger.info("All reports filtered out by skip-unchanged. No comment will be generated.")
             self.total_overall_coverage_passed = True
@@ -238,7 +240,9 @@ class JaCoCoReport:
             evaluated_report.overall_passed
             for evaluated_report in filtered_evaluator.evaluated_reports_coverage.values()
         )
-        self._apply_results(filtered_evaluator, bs_evaluator, fail_unchanged_passed)
+        self._apply_results(
+            filtered_evaluator, bs_evaluator, fail_unchanged_passed, include_aggregate_rows=evaluate_unchanged
+        )
         self._finish_all_filtered_output(gh=gh, pr_number=pr_number)
 
     def _finish_all_filtered_output(self, gh: GitHub, pr_number: int) -> None:
@@ -538,13 +542,14 @@ class JaCoCoReport:
         fail_unchanged_passed: bool,
         unchanged_reports: Collection[EvaluatedReportCoverage] = (),
         match_evidence: Collection[EvaluatedReportCoverage] = (),
+        include_aggregate_rows: bool = True,
     ) -> None:
         """Copy an evaluated evaluator's totals, Δ, report/group JSON, violations and threshold flags into `self`.
 
         The Δ comes from the same `BaselineComparison` the generator renders, so outputs and comment agree. The caller
         computes `fail_unchanged_passed`: the all-unchanged path and the main path derive it differently. The
         'no-decrease' gate also checks `unchanged_reports`, rows the evaluator leaves out, and takes `match_evidence`
-        as matches only; neither adds outputs.
+        as matches only; neither adds outputs. `include_aggregate_rows` false gates report rows only.
         """
         self.total_overall_coverage = evaluator.total_coverage_overall
         self.total_overall_coverage_passed = evaluator.total_coverage_overall_passed
@@ -581,7 +586,7 @@ class JaCoCoReport:
         self.reached_threshold_no_decrease = True
         if FailOnThresholdEnum.NO_DECREASE in ActionInputs.get_fail_on_threshold():
             gate_violations = baseline.no_decrease_violations(
-                ActionInputs.get_max_decrease(), unchanged_reports, match_evidence
+                ActionInputs.get_max_decrease(), unchanged_reports, match_evidence, include_aggregate_rows
             )
             self.violations = evaluator.violations + gate_violations
             self.reached_threshold_no_decrease = not gate_violations

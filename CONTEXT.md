@@ -176,8 +176,8 @@ service is needed.
   `(report_files_coverage, ungrouped_reports)`. `_split_unchanged_reports(reports, skip_unchanged,
   evaluate_filtered_unchanged)` (static) returns `(kept, filtered_unchanged)` and logs one line per filtered report;
   with skip-unchanged off it returns `(reports, [])`. If nothing is kept, `run()` calls
-  `_handle_all_reports_filtered(gh, pr_number, parser, report_groups, filtered, evaluate_filtered_unchanged,
-  fail_unchanged_enabled)` and returns. That ends in `_finish_all_filtered_output(gh, pr_number)`: for
+  `_handle_all_reports_filtered(gh, pr_number, parser, report_groups, filtered, evaluate_unchanged,
+  fail_unchanged_enabled)` (it derives `evaluate_filtered_unchanged` itself) and returns. That ends in `_finish_all_filtered_output(gh, pr_number)`: for
   `summary`/`both` with `comment-level` ≠ `none` it writes `all_filtered_summary_body()` (title, the all-unchanged
   message, footer) to the job summary. `summary` then logs `SUMMARY_NO_COMMENT_INFO` and skips
   `_delete_stale_comment_if_update_enabled`; `comment`/`both` delete the stale comment when `update-comment` is true.
@@ -226,7 +226,10 @@ service is needed.
     misconfiguration (renamed `<title>`, wrong folder); counting the filtered reports keeps a PR that only adds a
     new module (no baseline yet) from failing. If only `unchanged_reports`/`match_evidence` matched, the global row is
     skipped with an INFO log. A group or report without a match is skipped with an INFO log. When skip-unchanged
-    filters every report without evaluating them, `_apply_results` is not called and the gate passes.
+    filters every report without evaluating them, `_apply_results` is not called and the gate passes. When it
+    evaluates them only because of `fail-unchanged` (`evaluate-unchanged: false`), `_apply_results` gets
+    `include_aggregate_rows=False`: report rows only, as for the filtered reports of a mixed run. A global row over
+    unchanged reports can drop with every report row unchanged (stale baseline, report sizes changed).
     `max-decrease` is validated even when `no-decrease` is not selected.
 - A new `fail-on-threshold` value needs a `FailOnThresholdEnum` member, a `reached_threshold_*` flag on `JaCoCoReport`
   set in `_apply_results` and reset to False in `_mark_operational_failure`, and an entry in `main.py`'s

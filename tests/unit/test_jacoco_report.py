@@ -3692,3 +3692,55 @@ def test_no_decrease_new_module_pr_with_filtered_baseline_matches_passes(jacoco_
 
     assert jacoco_report.violations == []
     assert jacoco_report.reached_threshold_no_decrease is True
+
+
+def _write_coverage_report(path, name: str, missed: int, covered: int) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        f'<?xml version="1.0" encoding="UTF-8"?>\n<report name="{name}">'
+        f'<counter type="INSTRUCTION" missed="{missed}" covered="{covered}"/></report>\n',
+        encoding="utf-8",
+    )
+
+
+def _write_all_filtered_reports(root) -> None:
+    """Reports A and B: A is 90 % in both runs; B grew from 100 to 200 instructions at the same 10 %."""
+    _write_coverage_report(root / "baseline" / "a" / "jacoco.xml", "A", missed=10, covered=90)
+    _write_coverage_report(root / "baseline" / "b" / "jacoco.xml", "B", missed=90, covered=10)
+    _write_coverage_report(root / "current" / "a" / "jacoco.xml", "A", missed=10, covered=90)
+    _write_coverage_report(root / "current" / "b" / "jacoco.xml", "B", missed=180, covered=20)
+
+
+def _patch_all_filtered_run(mocker, fail_on_threshold: list[str], evaluate_unchanged: bool) -> None:
+    _patch_no_decrease_run(
+        mocker,
+        fail_on_threshold=fail_on_threshold,
+        skip_unchanged=True,
+        evaluate_unchanged=evaluate_unchanged,
+    )
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=["current/**/jacoco.xml"])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["baseline/**/jacoco.xml"])
+
+
+def test_all_filtered_fail_unchanged_gates_report_rows_only(jacoco_report, mocker, monkeypatch, tmp_path):
+    """Every report filtered, evaluate-unchanged false: the global row (50 % to 36.67 %) is not gated, no report dropped."""
+    _write_all_filtered_reports(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    _patch_all_filtered_run(mocker, ["fail-unchanged", "no-decrease"], evaluate_unchanged=False)
+
+    jacoco_report.run()
+
+    assert jacoco_report.violations == []
+    assert jacoco_report.reached_threshold_no_decrease is True
+
+
+def test_all_filtered_evaluate_unchanged_gates_the_global_row(jacoco_report, mocker, monkeypatch, tmp_path):
+    """Counterpart: with evaluate-unchanged true the same data gives the global drop."""
+    _write_all_filtered_reports(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    _patch_all_filtered_run(mocker, ["fail-unchanged", "no-decrease"], evaluate_unchanged=True)
+
+    jacoco_report.run()
+
+    assert any(message.startswith("Global overall coverage dropped") for message in jacoco_report.violations)
+    assert jacoco_report.reached_threshold_no_decrease is False

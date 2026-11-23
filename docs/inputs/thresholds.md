@@ -116,8 +116,9 @@ A float from 0 to 100, inclusive. Empty or whitespace-only means `0.0`. Other va
   `fail-unchanged`), the gate passes. Otherwise the filtered reports are compared with the baseline too (see
   [skip-unchanged.md](skip-unchanged.md)).
 - With `skip-unchanged: true`, `evaluate-unchanged: false` and `fail-unchanged` in the list, the filtered unchanged
-  reports are checked as report rows. The global and group rows still cover only reports with changed files. If
-  only unchanged reports match the baseline, the global row is skipped with an INFO log line.
+  reports are checked as report rows. The global and group rows still cover only reports with changed files, and
+  when every report is filtered, only the report rows are checked. If only unchanged reports match the baseline,
+  the global row is skipped with an INFO log line.
 - Without `no-decrease` in the list, none of this is computed and the baseline does not affect the exit code.
 
 ## Impact

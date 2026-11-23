@@ -407,3 +407,36 @@ def test_no_decrease_no_match_anywhere_is_still_no_match_with_evidence_that_does
     bs = _evaluator([_erc("B", (20, 80), path="b.xml")])
 
     assert _no_decrease([new_module], bs, evidence=[filtered_core]) == [NO_MATCH]
+
+
+def test_no_decrease_without_aggregate_rows_checks_only_the_report_rows(caplog):
+    # Reports A and B are unchanged in coverage, but the global coverage fell because B grew: only report rows count.
+    curr_a = _erc("A", (10, 90), path="a.xml")
+    curr_b = _erc("B", (180, 20), path="b.xml")
+    bs = _evaluator([_erc("A", (10, 90), path="a.xml"), _erc("B", (90, 10), path="b.xml")])
+    caplog.set_level(logging.INFO, logger="jacoco_report.evaluator.baseline_comparison")
+
+    assert (
+        BaselineComparison(_evaluator([curr_a, curr_b]), bs).no_decrease_violations(0.0, include_aggregate_rows=False)
+        == []
+    )
+    assert "Global overall coverage" not in caplog.text
+
+
+def test_no_decrease_without_aggregate_rows_still_checks_a_report_drop():
+    curr_a = _erc("A", (30, 70), path="a.xml")
+    bs = _evaluator([_erc("A", (20, 80), path="a.xml")])
+
+    assert BaselineComparison(_evaluator([curr_a]), bs).no_decrease_violations(0.0, include_aggregate_rows=False) == [
+        "Report 'A' overall coverage dropped from 80.0 to 70.0 (-10.0 percentage points) against the baseline, "
+        "more than 'max-decrease' 0.0."
+    ]
+
+
+def test_no_decrease_without_aggregate_rows_still_gives_no_match_when_nothing_matches():
+    curr_a = _erc("A", (30, 70), path="a.xml")
+    bs = _evaluator([_erc("B", (20, 80), path="b.xml")])
+
+    assert BaselineComparison(_evaluator([curr_a]), bs).no_decrease_violations(0.0, include_aggregate_rows=False) == [
+        NO_MATCH
+    ]

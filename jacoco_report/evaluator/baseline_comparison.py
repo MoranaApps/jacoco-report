@@ -202,16 +202,18 @@ class BaselineComparison:
         max_decrease: float,
         unchanged_reports: Collection[EvaluatedReportCoverage] = (),
         match_evidence: Collection[EvaluatedReportCoverage] = (),
+        include_aggregate_rows: bool = True,
     ) -> list[str]:
         """Return the 'no-decrease' violations: rows whose overall coverage dropped against the baseline.
 
         Checks the global row, every group and every report of the evaluator, then each of `unchanged_reports` as a
-        report row, in that order. The global and group rows cover the evaluator only. A row dropped when its coverage
-        fell by more than `max_decrease` percentage points and its missed count grew. A row with no matching baseline is
-        skipped with an INFO log. `match_evidence` reports are never checked for drops; they only count as matches, so
-        a PR that adds a module is not a misconfiguration. With no baseline data, or no match among the evaluator,
-        `unchanged_reports` and `match_evidence`, the only violation says so. When only those matched, the global row is
-        skipped with an INFO log.
+        report row, in that order. The global and group rows cover the evaluator only; `include_aggregate_rows` false
+        leaves them out, so only report rows are checked. A row dropped when its coverage fell by more than
+        `max_decrease` percentage points and its missed count grew. A row with no matching baseline is skipped with an
+        INFO log. `match_evidence` reports are never checked for drops; they only count as matches, so a PR that adds a
+        module is not a misconfiguration. With no baseline data, or no match among the evaluator, `unchanged_reports`
+        and `match_evidence`, the only violation says so. When only those matched, the global row is skipped with an
+        INFO log.
         """
         if not self.has_baseline_data():
             return [NO_BASELINE_VIOLATION]
@@ -222,6 +224,15 @@ class BaselineComparison:
         if global_pairs is None and not matched_outside_evaluator:
             return [NO_MATCH_VIOLATION]
 
+        violations: list[str] = []
+        if include_aggregate_rows:
+            violations.extend(self._aggregate_violations(global_pairs, max_decrease))
+        violations.extend(self._report_violations(self.evaluator.evaluated_reports_coverage.values(), max_decrease))
+        violations.extend(self._report_violations(unchanged_reports, max_decrease))
+        return violations
+
+    def _aggregate_violations(self, global_pairs: Optional[list[_Pair]], max_decrease: float) -> list[str]:
+        """Return the violations of the global row and of every group; a row without a match is skipped with a log."""
         violations: list[str] = []
         if global_pairs is None:
             logger.info("Global overall coverage has no matching baseline report, skipped by 'no-decrease'.")
@@ -238,9 +249,6 @@ class BaselineComparison:
                 )
             elif group_change.is_drop(max_decrease):
                 violations.append(_drop_message(f"Group '{group.name}' overall coverage", group_change, max_decrease))
-
-        violations.extend(self._report_violations(self.evaluator.evaluated_reports_coverage.values(), max_decrease))
-        violations.extend(self._report_violations(unchanged_reports, max_decrease))
         return violations
 
     def _report_violations(self, reports: Iterable[EvaluatedReportCoverage], max_decrease: float) -> list[str]:
