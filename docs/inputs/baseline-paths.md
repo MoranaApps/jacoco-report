@@ -28,6 +28,12 @@ Newline-separated glob patterns resolved relative to the repository root.
 baseline/master/jacoco/**/*.xml
 ```
 
+The current `paths` must not match the baseline files. The baseline reports are scanned separately; if `paths`
+(or the default `**/jacoco.xml`) also matches them, they are parsed as current reports too. Each baseline report
+then pairs with itself, the global Δ becomes 0, and `coverage-overall` counts it twice. `exclude-paths` filters
+only the current scan and does not affect the baseline scan, so exclude the baseline folder with
+`exclude-paths: 'baseline/**'`.
+
 ## Impact
 
 - Adds a **Δ Coverage** column to all comment tables (global, groups, reports, changed-files).
@@ -50,6 +56,7 @@ baseline/master/jacoco/**/*.xml
   uses: MoranaApps/jacoco-report@v3
   with:
     paths: '**/jacoco/**/*.xml'
+    exclude-paths: 'baseline/**'
     baseline-paths: 'baseline/master/jacoco/**/*.xml'
 ```
 
@@ -61,6 +68,7 @@ baseline/master/jacoco/**/*.xml
   uses: MoranaApps/jacoco-report@v3
   with:
     paths: '**/jacoco/**/*.xml'
+    exclude-paths: 'baseline/**'
     baseline-paths: 'baseline/master/jacoco/**/*.xml'
 
 - name: Warn on a coverage drop
@@ -71,14 +79,18 @@ baseline/master/jacoco/**/*.xml
 
 ### Fail when coverage dropped
 
-Fails the step when overall coverage drops against the baseline. Listing `no-decrease` replaces the default
-`fail-on-threshold` list, so add the other dimensions if you want them enforced too.
+Fails the step when overall coverage drops against the baseline. The base-branch reports must already be in
+`baseline/master/jacoco/` before this step, for example downloaded by an earlier step.
+
+Listing only `no-decrease` replaces the default `fail-on-threshold` list (`overall,changed-files-average,per-changed-file`).
+To keep those checks, list them too: `fail-on-threshold: 'overall,changed-files-average,per-changed-file,no-decrease'`.
 
 ```yaml
 - name: Publish JaCoCo Report
   uses: MoranaApps/jacoco-report@v3
   with:
     paths: '**/jacoco/**/*.xml'
+    exclude-paths: 'baseline/**'
     baseline-paths: 'baseline/master/jacoco/**/*.xml'
     fail-on-threshold: 'no-decrease'
 ```

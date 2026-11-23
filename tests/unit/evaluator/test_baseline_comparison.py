@@ -1,5 +1,5 @@
 import logging
-from typing import Optional
+from typing import Collection, Optional
 
 import pytest
 
@@ -227,8 +227,10 @@ def _no_decrease(
     bs: Optional[CoverageEvaluator],
     groups: Optional[list[EvaluatedReportCoverage]] = None,
     max_decrease: float = 0.0,
+    unchanged: Collection[EvaluatedReportCoverage] = (),
+    evidence: Collection[EvaluatedReportCoverage] = (),
 ) -> list[str]:
-    return BaselineComparison(_evaluator(reports, groups), bs).no_decrease_violations(max_decrease)
+    return BaselineComparison(_evaluator(reports, groups), bs).no_decrease_violations(max_decrease, unchanged, evidence)
 
 
 def test_no_decrease_passes_when_coverage_rises():
@@ -330,3 +332,78 @@ def test_no_decrease_skips_a_group_without_baseline_and_checks_the_others(caplog
         "more than 'max-decrease' 0.0.",
     ]
     assert "Group 'h' has no matching baseline group or report, skipped by 'no-decrease'." in caplog.text
+
+
+def test_no_decrease_checks_an_unchanged_report_after_the_regular_rows():
+    curr_a = _erc("A", (30, 70), path="a.xml")
+    unchanged_u = _erc("U", (30, 70), path="u.xml")
+    bs = _evaluator([_erc("A", (20, 80), path="a.xml"), _erc("U", (20, 80), path="u.xml")])
+
+    assert _no_decrease([curr_a], bs, unchanged=[unchanged_u]) == [
+        "Global overall coverage dropped from 80.0 to 70.0 (-10.0 percentage points) against the baseline, "
+        "more than 'max-decrease' 0.0.",
+        "Report 'A' overall coverage dropped from 80.0 to 70.0 (-10.0 percentage points) against the baseline, "
+        "more than 'max-decrease' 0.0.",
+        "Report 'U' overall coverage dropped from 80.0 to 70.0 (-10.0 percentage points) against the baseline, "
+        "more than 'max-decrease' 0.0.",
+    ]
+
+
+def test_no_decrease_unchanged_report_without_match_is_skipped_and_logged(caplog):
+    curr_a = _erc("A", (20, 80), path="a.xml")
+    unchanged_u = _erc("U", (30, 70), path="u.xml")
+    bs = _evaluator([_erc("A", (20, 80), path="a.xml")])
+    caplog.set_level(logging.INFO, logger="jacoco_report.evaluator.baseline_comparison")
+
+    assert _no_decrease([curr_a], bs, unchanged=[unchanged_u]) == []
+    assert "Report 'U' has no matching baseline report, skipped by 'no-decrease'." in caplog.text
+
+
+def test_no_decrease_only_unchanged_reports_match_skips_the_global_row_with_a_log(caplog):
+    curr_a = _erc("A", (30, 70), path="a.xml")
+    unchanged_u = _erc("U", (30, 70), path="u.xml")
+    bs = _evaluator([_erc("U", (20, 80), path="u.xml")])
+    caplog.set_level(logging.INFO, logger="jacoco_report.evaluator.baseline_comparison")
+
+    assert _no_decrease([curr_a], bs, unchanged=[unchanged_u]) == [
+        "Report 'U' overall coverage dropped from 80.0 to 70.0 (-10.0 percentage points) against the baseline, "
+        "more than 'max-decrease' 0.0.",
+    ]
+    assert "Global overall coverage has no matching baseline report, skipped by 'no-decrease'." in caplog.text
+    assert "Report 'A' has no matching baseline report, skipped by 'no-decrease'." in caplog.text
+
+
+def test_no_decrease_no_match_stays_one_violation_when_unchanged_reports_do_not_match():
+    curr_a = _erc("A", (30, 70), path="a.xml")
+    unchanged_u = _erc("U", (30, 70), path="u.xml")
+    bs = _evaluator([_erc("B", (20, 80), path="b.xml")])
+
+    assert _no_decrease([curr_a], bs, unchanged=[unchanged_u]) == [NO_MATCH]
+
+
+def test_no_decrease_match_evidence_prevents_no_match_and_skips_the_global_row(caplog):
+    # A new module: its report has no baseline, the matching report is filtered out of the evaluator.
+    new_module = _erc("New", (30, 70), path="new.xml")
+    filtered_core = _erc("Core", (20, 80), path="core.xml")
+    bs = _evaluator([_erc("Core", (20, 80), path="core.xml")])
+    caplog.set_level(logging.INFO, logger="jacoco_report.evaluator.baseline_comparison")
+
+    assert _no_decrease([new_module], bs, evidence=[filtered_core]) == []
+    assert "Global overall coverage has no matching baseline report, skipped by 'no-decrease'." in caplog.text
+    assert "Report 'New' has no matching baseline report, skipped by 'no-decrease'." in caplog.text
+
+
+def test_no_decrease_match_evidence_is_never_reported_even_when_it_dropped():
+    new_module = _erc("New", (30, 70), path="new.xml")
+    filtered_core = _erc("Core", (30, 70), path="core.xml")
+    bs = _evaluator([_erc("Core", (20, 80), path="core.xml")])
+
+    assert _no_decrease([new_module], bs, evidence=[filtered_core]) == []
+
+
+def test_no_decrease_no_match_anywhere_is_still_no_match_with_evidence_that_does_not_match():
+    new_module = _erc("New", (30, 70), path="new.xml")
+    filtered_core = _erc("Core", (30, 70), path="core.xml")
+    bs = _evaluator([_erc("B", (20, 80), path="b.xml")])
+
+    assert _no_decrease([new_module], bs, evidence=[filtered_core]) == [NO_MATCH]

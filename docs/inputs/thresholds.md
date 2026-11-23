@@ -107,12 +107,17 @@ A float from 0 to 100, inclusive. Empty or whitespace-only means `0.0`. Other va
 - The step fails when there is no baseline at all: `baseline-paths` is unset, no baseline report is found, or
   every group is skipped for ambiguous inheritance of `baseline-paths` (see [baseline-paths.md](baseline-paths.md)).
   Groups skipped that way while others have a baseline are skipped like any group without a match.
-- The step fails when baseline reports are found but none matches a current report by path or report name.
+- The step fails when baseline reports are found but none of the reports found in this run matches one by path or
+  report name. Reports filtered by `skip-unchanged` count too, even when they are not checked, so a PR that only
+  adds a new module (no baseline yet) passes while the unchanged modules match the baseline.
 - Renaming a report (its `<title>`) or removing it takes it out of the comparison, because it no longer matches a
   baseline report. The gate guards against coverage regressions, not against a PR that changes its own reports.
 - If `skip-unchanged` filters every report and they are not evaluated (`evaluate-unchanged: false` and no
   `fail-unchanged`), the gate passes. Otherwise the filtered reports are compared with the baseline too (see
   [skip-unchanged.md](skip-unchanged.md)).
+- With `skip-unchanged: true`, `evaluate-unchanged: false` and `fail-unchanged` in the list, the filtered unchanged
+  reports are checked as report rows. The global and group rows still cover only reports with changed files. If
+  only unchanged reports match the baseline, the global row is skipped with an INFO log line.
 - Without `no-decrease` in the list, none of this is computed and the baseline does not affect the exit code.
 
 ## Impact
@@ -195,6 +200,7 @@ Fails when overall coverage drops against the baseline. Set `baseline-paths` (se
 [baseline-paths.md](baseline-paths.md)) and list `no-decrease`.
 
 ```yaml
+    exclude-paths: 'baseline/**'
     baseline-paths: 'baseline/master/jacoco/**/*.xml'
     fail-on-threshold: 'overall,changed-files-average,per-changed-file,no-decrease'
 ```
@@ -202,6 +208,7 @@ Fails when overall coverage drops against the baseline. Set `baseline-paths` (se
 ### Allow a small drop
 
 ```yaml
+    exclude-paths: 'baseline/**'
     baseline-paths: 'baseline/master/jacoco/**/*.xml'
     fail-on-threshold: 'no-decrease'
     max-decrease: '0.5'

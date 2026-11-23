@@ -207,18 +207,27 @@ service is needed.
   - The generator builds the comparison per call (`_baseline()`), because tests replace `evaluator`/`bs_evaluator`
     after construction. `calculate_baseline_group_diffs` and `_calculate_baseline_report_diffs` stay on the generator
     as thin wrappers returning `(0.0, 0.0)` for no match; tests call them.
-  - The `no-decrease` gate is `BaselineComparison.no_decrease_violations(max_decrease)`, called from `_apply_results`
-    only when `no-decrease` is selected: `set_action_failed` prints violations as `::notice::` even when nothing
+  - The `no-decrease` gate is `BaselineComparison.no_decrease_violations(max_decrease, unchanged_reports,
+    match_evidence)`, called from `_apply_results` only when `no-decrease` is selected: `set_action_failed` prints violations as `::notice::` even when nothing
     fails, so always computing it would add messages for existing callers. It then sets
     `reached_threshold_no_decrease` and `self.violations = evaluator.violations + gate violations` (a new list; the
-    evaluator's is not mutated). Order: global, groups, reports of the results evaluator.
+    evaluator's is not mutated). Order: global, groups, reports of the results evaluator, then `unchanged_reports`.
+  - When the results evaluator leaves the filtered unchanged reports out (`skip-unchanged`, `evaluate-unchanged:
+    false`, so `evaluator_for_results is not overall_evaluator`), `_evaluate_coverage` passes their
+    `overall_evaluator` rows on: with `fail-unchanged` as `unchanged_reports` (checked as report rows, as
+    `fail-unchanged` checks their overall threshold), else as `match_evidence` (never checked, they only count as
+    matches). The global and group rows keep the results evaluator's scope (the comment's Δ); neither list adds
+    outputs.
   - A row drops (`OverallChange.is_drop`) when its Δ (the rounded value the comment shows) is `< -max_decrease` and
     its missed count of the selected metric grew, so deleting covered code passes. Group/global counters come from
     `_aggregate_counters`, the same ones as the Δ; a report compares its own counters with its baseline report's.
-  - No baseline data → only `NO_BASELINE_VIOLATION`; baseline data but no matched report (`_global_pairs()` None) →
-    only `NO_MATCH_VIOLATION` (else nothing would be checked). A group or report without a match is skipped with an
-    INFO log. When skip-unchanged filters every report without evaluating them, `_apply_results` is not called and
-    the gate passes. `max-decrease` is validated even when `no-decrease` is not selected.
+  - No baseline data → only `NO_BASELINE_VIOLATION`. `NO_MATCH_VIOLATION` (alone) only when no report of the run
+    matches a baseline report: results evaluator, `unchanged_reports` and `match_evidence`. It is meant for
+    misconfiguration (renamed `<title>`, wrong folder); counting the filtered reports keeps a PR that only adds a
+    new module (no baseline yet) from failing. If only `unchanged_reports`/`match_evidence` matched, the global row is
+    skipped with an INFO log. A group or report without a match is skipped with an INFO log. When skip-unchanged
+    filters every report without evaluating them, `_apply_results` is not called and the gate passes.
+    `max-decrease` is validated even when `no-decrease` is not selected.
 - A new `fail-on-threshold` value needs a `FailOnThresholdEnum` member, a `reached_threshold_*` flag on `JaCoCoReport`
   set in `_apply_results` and reset to False in `_mark_operational_failure`, and an entry in `main.py`'s
   `threshold_checks`.

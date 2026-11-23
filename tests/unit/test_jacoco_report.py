@@ -3489,90 +3489,117 @@ def test_split_unchanged_reports_evaluate_filtered_logs_threshold_only_message(
     )
 
 
-# --- no-decrease gate applied in _apply_results ---
+# --- no-decrease gate through run() ---
+
+_TEST_PROJECT_PATHS = ["tests/data/test_project/**/jacoco.xml"]
+_BASELINE_PATHS = ["tests/data_baseline/**/*.xml"]
+_USER_INFO_API_CHANGED_FILES = ["com/example/user-info/api/ApiClass.java"]
+_MODULE_SMALL_CHANGED_FILES = ["com/example/module_small/ClassS1.java"]
+_MODULE_LARGE_DROP = "Report 'Module Large Report' overall coverage dropped"
+_DROP_SUFFIX = " against the baseline"
+_NO_BASELINE_MESSAGE = (
+    "'no-decrease' needs a baseline, but no baseline report was found. "
+    "Set 'baseline-paths' to the JaCoCo reports of the base branch."
+)
 
 
-def _gate_report(path: str, overall: tuple[int, int]) -> EvaluatedReportCoverage:
-    erc = EvaluatedReportCoverage(path, path=path)
-    erc.overall_coverage = Counter(*overall)
-    erc.overall_coverage_reached = erc.overall_coverage.coverage()
-    return erc
-
-
-def _gate_evaluator(reports: list[EvaluatedReportCoverage]) -> CoverageEvaluator:
-    evaluator = CoverageEvaluator(
-        report_files_coverage=[], global_min_coverage_overall=0.0, global_min_coverage_changed_files=0.0
-    )
-    evaluator.evaluated_reports_coverage = {erc.path: erc for erc in reports}
-    return evaluator
-
-
-def _patch_gate_inputs(mocker, fail_on_threshold, max_decrease=0.0):
+def _patch_no_decrease_run(
+    mocker,
+    *,
+    fail_on_threshold: list[str],
+    skip_unchanged: bool = False,
+    evaluate_unchanged: bool = True,
+    changed_files: list[str] | None = None,
+    baseline_paths: list[str] | None = None,
+    max_decrease: float = 0.0,
+    event_name: str = "pull_request",
+):
+    """Patch the run() inputs on the tests/data test project and its baseline; return the max-decrease mock."""
+    _patch_jr_run_inputs(mocker)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value=event_name)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_unchanged", return_value=skip_unchanged)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_evaluate_unchanged", return_value=evaluate_unchanged)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_fail_on_threshold", return_value=fail_on_threshold)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=_TEST_PROJECT_PATHS)
+    mocker.patch(
+        "jacoco_report.action_inputs.ActionInputs.get_baseline_paths",
+        return_value=_BASELINE_PATHS if baseline_paths is None else baseline_paths,
+    )
+    mocker.patch(
+        "jacoco_report.utils.github.GitHub.get_pr_changed_files",
+        return_value=[] if changed_files is None else changed_files,
+    )
     return mocker.patch("jacoco_report.action_inputs.ActionInputs.get_max_decrease", return_value=max_decrease)
 
 
-_DROP_MESSAGES = [
-    "Global overall coverage dropped from 80.0 to 70.0 (-10.0 percentage points) against the baseline, "
-    "more than 'max-decrease' 0.0.",
-    "Report 'a.xml' overall coverage dropped from 80.0 to 70.0 (-10.0 percentage points) against the baseline, "
-    "more than 'max-decrease' 0.0.",
-]
+def _drop_messages(violations: list[str]) -> list[str]:
+    return [message for message in violations if _DROP_SUFFIX in message]
 
 
-def test_apply_results_without_no_decrease_computes_no_gate(jacoco_report, mocker):
-    """Without no-decrease in fail-on-threshold the gate is not computed and adds no violation."""
-    max_decrease = _patch_gate_inputs(mocker, [FailOnThresholdEnum.OVERALL])
-    evaluator = _gate_evaluator([_gate_report("a.xml", (30, 70))])
-    baseline = _gate_evaluator([_gate_report("a.xml", (20, 80))])
+def test_no_decrease_gate_not_selected_does_not_read_max_decrease(jacoco_report, mocker):
+    """Without no-decrease the drop of Module Large is not gated: max-decrease is not read and no drop is reported."""
+    max_decrease = _patch_no_decrease_run(
+        mocker, fail_on_threshold=[FailOnThresholdEnum.OVERALL], changed_files=_MODULE_LARGE_CHANGED_FILES
+    )
 
-    jacoco_report._apply_results(evaluator, baseline, True)
+    jacoco_report.run()
 
     max_decrease.assert_not_called()
+    assert _drop_messages(jacoco_report.violations) == []
+    assert jacoco_report.reached_threshold_no_decrease is True
+
+
+def test_no_decrease_drop_is_appended_after_the_threshold_violations(jacoco_report, mocker):
+    _patch_no_decrease_run(
+        mocker,
+        fail_on_threshold=[FailOnThresholdEnum.OVERALL, FailOnThresholdEnum.NO_DECREASE],
+        changed_files=_MODULE_LARGE_CHANGED_FILES,
+    )
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_threshold", return_value=100.0)
+
+    jacoco_report.run()
+
+    assert jacoco_report.violations[0].startswith("Global overall coverage ")
+    assert "is below the threshold" in jacoco_report.violations[0]
+    assert any(message.startswith(_MODULE_LARGE_DROP) for message in jacoco_report.violations[1:])
+    assert jacoco_report.reached_threshold_no_decrease is False
+
+
+def test_no_decrease_drop_within_max_decrease_passes(jacoco_report, mocker):
+    """Module Large dropped 4.17 points, so a tolerance of 10 lets the run pass."""
+    _patch_no_decrease_run(
+        mocker,
+        fail_on_threshold=[FailOnThresholdEnum.NO_DECREASE],
+        changed_files=_MODULE_LARGE_CHANGED_FILES,
+        max_decrease=10.0,
+    )
+
+    jacoco_report.run()
+
     assert jacoco_report.violations == []
     assert jacoco_report.reached_threshold_no_decrease is True
 
 
-def test_apply_results_no_decrease_adds_drop_violations_and_keeps_the_evaluator_list(jacoco_report, mocker):
-    _patch_gate_inputs(mocker, [FailOnThresholdEnum.NO_DECREASE])
-    evaluator = _gate_evaluator([_gate_report("a.xml", (30, 70))])
-    evaluator.violations = ["Overall coverage threshold not reached."]
-    baseline = _gate_evaluator([_gate_report("a.xml", (20, 80))])
+def test_no_decrease_without_baseline_gives_exactly_the_no_baseline_violation(jacoco_report, mocker):
+    _patch_no_decrease_run(
+        mocker,
+        fail_on_threshold=[FailOnThresholdEnum.NO_DECREASE],
+        changed_files=_MODULE_LARGE_CHANGED_FILES,
+        baseline_paths=[],
+    )
 
-    jacoco_report._apply_results(evaluator, baseline, True)
+    jacoco_report.run()
 
-    assert jacoco_report.violations == ["Overall coverage threshold not reached.", *_DROP_MESSAGES]
-    assert evaluator.violations == ["Overall coverage threshold not reached."]
+    assert jacoco_report.violations == [_NO_BASELINE_MESSAGE]
     assert jacoco_report.reached_threshold_no_decrease is False
 
 
-def test_apply_results_no_decrease_passes_a_drop_within_max_decrease(jacoco_report, mocker):
-    _patch_gate_inputs(mocker, [FailOnThresholdEnum.NO_DECREASE], max_decrease=10.0)
-    evaluator = _gate_evaluator([_gate_report("a.xml", (30, 70))])
-    baseline = _gate_evaluator([_gate_report("a.xml", (20, 80))])
+def test_no_decrease_operational_failure_fails_the_gate(jacoco_report, mocker):
+    _patch_no_decrease_run(mocker, fail_on_threshold=[FailOnThresholdEnum.NO_DECREASE], event_name="push")
 
-    jacoco_report._apply_results(evaluator, baseline, True)
+    jacoco_report.run()
 
-    assert jacoco_report.violations == []
-    assert jacoco_report.reached_threshold_no_decrease is True
-
-
-def test_apply_results_no_decrease_without_baseline_fails(jacoco_report, mocker):
-    _patch_gate_inputs(mocker, [FailOnThresholdEnum.NO_DECREASE])
-    evaluator = _gate_evaluator([_gate_report("a.xml", (30, 70))])
-
-    jacoco_report._apply_results(evaluator, None, True)
-
-    assert jacoco_report.violations == [
-        "'no-decrease' needs a baseline, but no baseline report was found. "
-        "Set 'baseline-paths' to the JaCoCo reports of the base branch."
-    ]
-    assert jacoco_report.reached_threshold_no_decrease is False
-
-
-def test_operational_failure_sets_the_no_decrease_flag_to_failed(jacoco_report):
-    jacoco_report._mark_operational_failure()
-
+    assert jacoco_report.has_operational_failure is True
     assert jacoco_report.reached_threshold_no_decrease is False
 
 
@@ -3617,3 +3644,51 @@ def test_no_decrease_is_applied_when_all_reports_are_filtered_and_evaluate_uncha
         message.startswith("Report 'Module Large Report' overall coverage dropped")
         for message in jacoco_report.violations
     )
+
+
+def test_no_decrease_with_fail_unchanged_gates_a_filtered_report_that_dropped(jacoco_report, mocker):
+    """A filtered report that dropped is gated when fail-unchanged reads it, though it is left out of the results."""
+    _patch_no_decrease_run(
+        mocker,
+        fail_on_threshold=["fail-unchanged", "no-decrease"],
+        skip_unchanged=True,
+        evaluate_unchanged=False,
+        changed_files=_USER_INFO_API_CHANGED_FILES,
+    )
+
+    jacoco_report.run()
+
+    assert any(message.startswith(_MODULE_LARGE_DROP) for message in jacoco_report.violations)
+    assert jacoco_report.reached_threshold_no_decrease is False
+
+
+def test_no_decrease_without_fail_unchanged_does_not_gate_a_filtered_report(jacoco_report, mocker):
+    """Without fail-unchanged the filtered report is out of the results, so its drop is not gated."""
+    _patch_no_decrease_run(
+        mocker,
+        fail_on_threshold=["no-decrease"],
+        skip_unchanged=True,
+        evaluate_unchanged=False,
+        changed_files=_USER_INFO_API_CHANGED_FILES,
+    )
+
+    jacoco_report.run()
+
+    assert not any(message.startswith(_MODULE_LARGE_DROP) for message in jacoco_report.violations)
+    assert jacoco_report.reached_threshold_no_decrease is True
+
+
+def test_no_decrease_new_module_pr_with_filtered_baseline_matches_passes(jacoco_report, mocker):
+    """A PR that only adds module Small: no kept report has a baseline, the filtered ones match, so no NO_MATCH."""
+    _patch_no_decrease_run(
+        mocker,
+        fail_on_threshold=[FailOnThresholdEnum.NO_DECREASE],
+        skip_unchanged=True,
+        evaluate_unchanged=False,
+        changed_files=_MODULE_SMALL_CHANGED_FILES,
+    )
+
+    jacoco_report.run()
+
+    assert jacoco_report.violations == []
+    assert jacoco_report.reached_threshold_no_decrease is True

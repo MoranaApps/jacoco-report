@@ -4,7 +4,7 @@ A module for generating the JaCoCo report.
 
 import json
 import logging
-from typing import Optional
+from typing import Collection, Optional
 
 from jacoco_report.action_inputs import ActionInputs
 from jacoco_report.evaluator.baseline_comparison import BaselineComparison
@@ -14,6 +14,7 @@ from jacoco_report.generator.pr_comment_generator import (
     PRCommentGenerator,
     all_filtered_summary_body,
 )
+from jacoco_report.model.evaluated_report_coverage import EvaluatedReportCoverage
 from jacoco_report.model.report_file_coverage import ReportFileCoverage
 from jacoco_report.model.report_group import ReportGroup
 from jacoco_report.parser.jacoco_report_parser import JaCoCoReportParser
@@ -304,14 +305,27 @@ class JaCoCoReport:
 
         # Only the filtered unchanged reports count for fail-unchanged, read from the evaluator that saw them.
         fail_unchanged_passed = True
-        if fail_unchanged_enabled and filtered_unchanged_reports:
+        # The results evaluator leaves the filtered reports out: the 'no-decrease' gate gets them as gated rows with
+        # fail-unchanged, else as match evidence only, so a PR that adds a module does not look misconfigured.
+        unchanged_gate_reports: list[EvaluatedReportCoverage] = []
+        match_evidence_reports: list[EvaluatedReportCoverage] = []
+        if filtered_unchanged_reports:
             filtered_unchanged_report_names = {report.path for report in filtered_unchanged_reports}
-            fail_unchanged_passed = all(
-                evaluated_report.overall_passed
+            filtered_evaluated_reports = [
+                evaluated_report
                 for report_name, evaluated_report in overall_evaluator.evaluated_reports_coverage.items()
                 if report_name in filtered_unchanged_report_names
-            )
-        self._apply_results(evaluator_for_results, bs_evaluator, fail_unchanged_passed)
+            ]
+            if fail_unchanged_enabled:
+                fail_unchanged_passed = all(report.overall_passed for report in filtered_evaluated_reports)
+            if evaluator_for_results is not overall_evaluator:
+                if fail_unchanged_enabled:
+                    unchanged_gate_reports = filtered_evaluated_reports
+                else:
+                    match_evidence_reports = filtered_evaluated_reports
+        self._apply_results(
+            evaluator_for_results, bs_evaluator, fail_unchanged_passed, unchanged_gate_reports, match_evidence_reports
+        )
         return evaluator_for_results, bs_evaluator
 
     def _scan_reports(self, report_groups: list[ReportGroup], global_overall_scope: str) -> list[str]:
@@ -518,12 +532,19 @@ class JaCoCoReport:
         return bs_evaluator
 
     def _apply_results(
-        self, evaluator: CoverageEvaluator, bs_evaluator: Optional[CoverageEvaluator], fail_unchanged_passed: bool
+        self,
+        evaluator: CoverageEvaluator,
+        bs_evaluator: Optional[CoverageEvaluator],
+        fail_unchanged_passed: bool,
+        unchanged_reports: Collection[EvaluatedReportCoverage] = (),
+        match_evidence: Collection[EvaluatedReportCoverage] = (),
     ) -> None:
         """Copy an evaluated evaluator's totals, Δ, report/group JSON, violations and threshold flags into `self`.
 
         The Δ comes from the same `BaselineComparison` the generator renders, so outputs and comment agree. The caller
-        computes `fail_unchanged_passed`: the all-unchanged path and the main path derive it differently.
+        computes `fail_unchanged_passed`: the all-unchanged path and the main path derive it differently. The
+        'no-decrease' gate also checks `unchanged_reports`, rows the evaluator leaves out, and takes `match_evidence`
+        as matches only; neither adds outputs.
         """
         self.total_overall_coverage = evaluator.total_coverage_overall
         self.total_overall_coverage_passed = evaluator.total_coverage_overall_passed
@@ -559,7 +580,9 @@ class JaCoCoReport:
         # The gate is opt-in: nothing is computed and no violation is added unless no-decrease is selected.
         self.reached_threshold_no_decrease = True
         if FailOnThresholdEnum.NO_DECREASE in ActionInputs.get_fail_on_threshold():
-            gate_violations = baseline.no_decrease_violations(ActionInputs.get_max_decrease())
+            gate_violations = baseline.no_decrease_violations(
+                ActionInputs.get_max_decrease(), unchanged_reports, match_evidence
+            )
             self.violations = evaluator.violations + gate_violations
             self.reached_threshold_no_decrease = not gate_violations
 

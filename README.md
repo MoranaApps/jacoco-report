@@ -8,7 +8,6 @@ Automates the publication of JaCoCo coverage reports directly as comments in pul
 - [Motivation](#motivation)
 - [Quick Start](#quick-start)
 - [Usage](#usage)
-  - [Coverage must not drop](#coverage-must-not-drop)
   - [Action Inputs](#action-inputs)
   - [Outputs](#outputs)
   - [Examples](#examples)
@@ -45,7 +44,8 @@ Key capabilities:
 
 - **Global thresholds** — enforce overall and average-changed minimums in one input.
 - **Report groups** — organise multi-module projects into named groups with per-group thresholds.
-- **Baseline comparison** — show Δ coverage against a stored baseline (e.g. the `master` branch reports).
+- **Baseline comparison** — show Δ coverage against a stored baseline (e.g. the `master` branch reports), and
+  optionally fail a PR that lowers coverage (`fail-on-threshold: no-decrease`).
 - **Flexible comment levels** — from a single-line summary to full per-file detail, or no comment at all.
 - **Job summary** — write the report to the workflow run's job summary, instead of or next to the PR comment
   (`report-target`). It needs no write permission.
@@ -126,22 +126,6 @@ jobs:
 
 ```
 
-### Coverage must not drop
-
-Fails the step when overall coverage drops against the reports of the base branch. The baseline reports must be
-stored by a previous run on the base branch; see [Baseline Paths](docs/inputs/baseline-paths.md) and
-[thresholds](docs/inputs/thresholds.md#no-decrease-rules). Listing only `no-decrease` turns off the default
-`overall,changed-files-average,per-changed-file` checks; list them too to keep them.
-
-```yaml
-      - name: Publish JaCoCo Report in PR comments
-        uses: MoranaApps/jacoco-report@v3
-        with:
-          paths: '**/jacoco.xml'
-          baseline-paths: 'baseline/master/jacoco/**/*.xml'
-          fail-on-threshold: 'no-decrease'
-```
-
 ---
 
 ### Action Inputs
@@ -163,8 +147,8 @@ Input values are passed to the action exactly as written: `$VAR`, `$(…)` and b
 | `report-target`     | Where to write the report: `comment` (PR comment), `summary` (the workflow run's job summary; needs no write permission) or `both`. See [docs/inputs/report-target.md](docs/inputs/report-target.md). | No       | `comment`                                        |
 | `report-groups`     | Named report groups as a YAML list. Each entry: `name` (required), `paths` (required list of globs), `thresholds` (optional `O*A*P`), `baseline-paths` (optional list). See [docs/inputs/report-groups.md](docs/inputs/report-groups.md). | No  | `''`                                      |
 | `skip-unchanged`    | If `true`, reports with no changed files are filtered out from comment rows. With default `evaluate-unchanged=true`, filtered reports can still affect threshold results.                                                        | No       | `false`                                          |
-| `evaluate-unchanged` | Applies only when `skip-unchanged=true`. If `true`, filtered reports can still fail overall thresholds. If `false`, they are excluded from threshold evaluation as well.                                                       | No       | `true`                                           |
-| `baseline-paths`    | Paths to baseline coverage reports for comparison. Supports wildcard glob patterns.                                                                                                                                            | No       | `''`                                             |
+| `evaluate-unchanged` | Applies only when `skip-unchanged=true`. If `true`, filtered reports can still fail overall thresholds. If `false`, they are excluded from threshold evaluation, except reports read by `fail-unchanged`, which `no-decrease` also checks. | No       | `true`                                           |
+| `baseline-paths`    | Paths to baseline coverage reports for comparison. Supports wildcard glob patterns. With `no-decrease` in `fail-on-threshold`, a coverage drop fails the step, see [baseline-paths](docs/inputs/baseline-paths.md).            | No       | `''`                                             |
 | `update-comment`    | If `true`, updates an existing comment instead of creating a new one.                                                                                                                                                          | No       | `true`                                           |
 | `pass-symbol`       | Symbol for passing checks in PR comments (e.g., ✅, **Passed**).                                                                                                                                                               | No       | `✅`                                              |
 | `fail-symbol`       | Symbol for failing checks in PR comments (e.g., ❌, **Failed**).                                                                                                                                                               | No       | `❌`                                              |
@@ -244,7 +228,7 @@ The following outputs are set by the JaCoCo GitHub Action:
 - [Comment Level](docs/inputs/comment-level.md)
 - [Report Target (PR comment, job summary, or both)](docs/inputs/report-target.md)
 - [Skip Unchanged and Evaluate Unchanged](docs/inputs/skip-unchanged.md)
-- [Baseline Paths](docs/inputs/baseline-paths.md)
+- [Baseline Paths (Δ coverage and the coverage-must-not-drop gate)](docs/inputs/baseline-paths.md)
 - [Symbols and Metric Type](docs/inputs/symbols-and-metric.md)
 - [PR Number, Title, and Update Comment](docs/inputs/pr-settings.md)
 - [Debug Mode](docs/inputs/debug.md)
@@ -317,7 +301,8 @@ Right after that error, a `Hint:` line names the likely cause:
 - With `no-decrease` in `fail-on-threshold`, a coverage drop fails the step. The comment shows the drop only in the
   Δ column, and the log names the row that dropped.
 - The step fails with `'no-decrease' needs a baseline` when no baseline report is found, or with
-  `'no-decrease' found baseline reports, but none matches` when no current report matches one. Check
+  `'no-decrease' found baseline reports, but none matches` when no report found in the run (reports filtered by
+  `skip-unchanged` included) matches one. Check
   `baseline-paths` and the report paths or names. See [thresholds](docs/inputs/thresholds.md#no-decrease-rules).
 
 ### `fail-on-threshold` selection looks incorrect

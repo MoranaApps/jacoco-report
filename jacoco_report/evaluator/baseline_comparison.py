@@ -4,7 +4,7 @@ A module matching evaluated reports to their baseline and computing the coverage
 
 import logging
 from dataclasses import dataclass
-from typing import Callable, Collection, Optional
+from typing import Callable, Collection, Iterable, Optional
 
 from jacoco_report.evaluator.coverage_evaluator import CoverageEvaluator
 from jacoco_report.model.counter import Counter
@@ -197,23 +197,38 @@ class BaselineComparison:
 
         return _aggregate_delta(self.evaluator.evaluated_reports_coverage.values(), pairs)
 
-    def no_decrease_violations(self, max_decrease: float) -> list[str]:
+    def no_decrease_violations(
+        self,
+        max_decrease: float,
+        unchanged_reports: Collection[EvaluatedReportCoverage] = (),
+        match_evidence: Collection[EvaluatedReportCoverage] = (),
+    ) -> list[str]:
         """Return the 'no-decrease' violations: rows whose overall coverage dropped against the baseline.
 
-        Checks the global row, every group and every report of the evaluator, in that order. A row dropped when its
-        coverage fell by more than `max_decrease` percentage points and its missed count grew. A row with no matching
-        baseline is skipped with an INFO log. With no baseline data, or no matched report, the only violation says so.
+        Checks the global row, every group and every report of the evaluator, then each of `unchanged_reports` as a
+        report row, in that order. The global and group rows cover the evaluator only. A row dropped when its coverage
+        fell by more than `max_decrease` percentage points and its missed count grew. A row with no matching baseline is
+        skipped with an INFO log. `match_evidence` reports are never checked for drops; they only count as matches, so
+        a PR that adds a module is not a misconfiguration. With no baseline data, or no match among the evaluator,
+        `unchanged_reports` and `match_evidence`, the only violation says so. When only those matched, the global row is
+        skipped with an INFO log.
         """
         if not self.has_baseline_data():
             return [NO_BASELINE_VIOLATION]
         global_pairs = self._global_pairs()
-        if global_pairs is None:
+        matched_outside_evaluator = any(
+            self.find_baseline_report(report) is not None for report in (*unchanged_reports, *match_evidence)
+        )
+        if global_pairs is None and not matched_outside_evaluator:
             return [NO_MATCH_VIOLATION]
 
         violations: list[str] = []
-        global_change = _aggregate_overall_change(self.evaluator.evaluated_reports_coverage.values(), global_pairs)
-        if global_change.is_drop(max_decrease):
-            violations.append(_drop_message("Global overall coverage", global_change, max_decrease))
+        if global_pairs is None:
+            logger.info("Global overall coverage has no matching baseline report, skipped by 'no-decrease'.")
+        else:
+            global_change = _aggregate_overall_change(self.evaluator.evaluated_reports_coverage.values(), global_pairs)
+            if global_change.is_drop(max_decrease):
+                violations.append(_drop_message("Global overall coverage", global_change, max_decrease))
 
         for group in self.evaluator.evaluated_groups_coverage.values():
             group_change = self._group_change(group)
@@ -224,7 +239,14 @@ class BaselineComparison:
             elif group_change.is_drop(max_decrease):
                 violations.append(_drop_message(f"Group '{group.name}' overall coverage", group_change, max_decrease))
 
-        for report in self.evaluator.evaluated_reports_coverage.values():
+        violations.extend(self._report_violations(self.evaluator.evaluated_reports_coverage.values(), max_decrease))
+        violations.extend(self._report_violations(unchanged_reports, max_decrease))
+        return violations
+
+    def _report_violations(self, reports: Iterable[EvaluatedReportCoverage], max_decrease: float) -> list[str]:
+        """Return the 'no-decrease' violations of report rows; a report without a matching baseline is skipped."""
+        violations: list[str] = []
+        for report in reports:
             report_change = self._report_change(report)
             if report_change is None:
                 logger.info("Report '%s' has no matching baseline report, skipped by 'no-decrease'.", report.name)
@@ -232,7 +254,6 @@ class BaselineComparison:
                 violations.append(
                     _drop_message(f"Report '{report.name}' overall coverage", report_change, max_decrease)
                 )
-
         return violations
 
     def _report_change(self, evaluated_report: EvaluatedReportCoverage) -> Optional[OverallChange]:

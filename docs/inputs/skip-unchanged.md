@@ -12,8 +12,8 @@ from v2, where unchanged reports were still evaluated internally even when hidde
 
 `evaluate-unchanged` gives back control over the threshold pass for those filtered reports.
 When `true` (the default), filtered reports still contribute to overall threshold evaluation even
-though they do not appear in the PR comment. When `false`, they are completely excluded from
-evaluation as well.
+though they do not appear in the PR comment. When `false`, they are excluded from evaluation as well,
+unless `fail-unchanged` is in `fail-on-threshold`.
 
 If all reports are filtered, no comment is posted. With `evaluate-unchanged: false` (and no
 `fail-unchanged`), nothing is evaluated and no threshold failures are raised; otherwise the filtered
@@ -33,7 +33,7 @@ reports are still evaluated for the threshold result, `no-decrease` included.
 | `skip-unchanged` | `evaluate-unchanged` | Comment rows for unchanged reports | Can unchanged reports fail the action? |
 |------------------|----------------------|------------------------------------|----------------------------------------|
 | `false`          | any                  | Shown (normal flow)                | Yes (normal evaluation)                |
-| `true`           | `false`              | Hidden                             | No                                     |
+| `true`           | `false`              | Hidden                             | Only with `fail-unchanged` (overall threshold and `no-decrease` report rows) |
 | `true`           | `true`               | Hidden                             | Yes (overall threshold and `no-decrease` only) |
 
 ## Examples
