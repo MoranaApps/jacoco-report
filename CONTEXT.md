@@ -225,6 +225,10 @@ service is needed.
     marks group/report rows that dropped (`BaselineComparison.group_dropped`/`report_dropped`, the gate's rule) as
     failing for `comment-level: failed`/`failed-or-changed`, else a row failing only the gate is hidden while the
     step fails. The Status column stays fixed-threshold; `get_max_decrease` is read only when `no-decrease` is on.
+  - Before the comment-level filter, rows whose changed files all have zero weight for the selected metric
+    (`had_changed_files_before_filtering`) are hidden at every level, except rows that fail a fixed threshold or
+    dropped (`_keep_zero_weight_rows_that_fail`; drops are computed before it). Such a kept row counts as changed
+    for `changed`/`failed-or-changed` and renders its changed-files cells as `0.0%` ✅, like rows without data.
   - A row drops (`OverallChange.is_drop`) when its Δ (the rounded value the comment shows) is `< -max_decrease` and
     its missed count of the selected metric grew, so deleting covered code passes. Group/global counters come from
     `_aggregate_counters`, the same ones as the Δ; a report compares its own counters with its baseline report's.

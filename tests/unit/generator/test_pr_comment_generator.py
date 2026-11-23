@@ -2113,3 +2113,143 @@ def test_failed_or_changed_level_renders_a_dropped_report_without_changed_files(
     gen.generate()
 
     assert "`api`" in mock_github.add_comment.call_args[0][1]
+
+
+def _zero_weight_generator(
+    mock_github,
+    mocker: MockerFixture,
+    *,
+    comment_level,
+    fail_on_threshold,
+    overall_passed=True,
+    current=(20, 80),
+    baseline=(10, 90),
+    group_passed=True,
+):
+    """A generator whose report `api` (group `backend`) has changed files with zero weight for the selected metric.
+
+    `current` and `baseline` are (missed, covered) overall counters; the fixed overall result is `overall_passed`.
+    """
+    api = _make_evaluated_coverage("api", group_name="backend", overall_passed=overall_passed)
+    api.overall_coverage = Counter(*current)
+    api.overall_coverage_reached = api.overall_coverage.coverage()
+    api.had_changed_files_before_filtering = True
+    api.avg_changed_files_coverage_reached = 0.0
+    baseline_api = _make_evaluated_coverage("api", group_name="backend")
+    baseline_api.overall_coverage = Counter(*baseline)
+    baseline_api.overall_coverage_reached = baseline_api.overall_coverage.coverage()
+    baseline_api.avg_changed_files_coverage_reached = 0.0
+    group = _make_evaluated_coverage("backend", overall_passed=group_passed, overall_coverage=80.0)
+    group.had_changed_files_before_filtering = True
+    group.avg_changed_files_coverage_reached = 0.0
+
+    evaluator = CoverageEvaluator(
+        report_files_coverage=[], global_min_coverage_overall=75.0, global_min_coverage_changed_files=70.0
+    )
+    evaluator.total_coverage_overall = 80.0
+    evaluator.total_coverage_overall_passed = True
+    evaluator.total_coverage_changed_files = 0.0
+    evaluator.total_coverage_changed_files_passed = True
+    evaluator.evaluated_reports_coverage = {"api": api}
+    evaluator.evaluated_groups_coverage = {"backend": group}
+    bs_evaluator = CoverageEvaluator(
+        report_files_coverage=[], global_min_coverage_overall=75.0, global_min_coverage_changed_files=70.0
+    )
+    bs_evaluator.evaluated_reports_coverage = {"api": baseline_api}
+    bs_evaluator.evaluated_groups_coverage = {"backend": _make_evaluated_coverage("backend", overall_coverage=90.0)}
+
+    gen = PRCommentGenerator(mock_github, evaluator, bs_evaluator, 1)
+    _configure_generator_for_comment_tests(gen, mocker, comment_level=comment_level)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_fail_on_threshold", return_value=fail_on_threshold)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_max_decrease", return_value=0.0)
+    return gen
+
+
+def test_full_level_shows_a_zero_weight_report_that_fails_its_threshold(mock_github, mocker: MockerFixture):
+    gen = _zero_weight_generator(
+        mock_github,
+        mocker,
+        comment_level=CommentLevelEnum.FULL,
+        fail_on_threshold=["overall"],
+        overall_passed=False,
+        current=(40, 60),
+        baseline=(40, 60),
+    )
+
+    gen.generate()
+
+    assert "`api`" in mock_github.add_comment.call_args[0][1]
+
+
+def test_full_level_shows_a_zero_weight_group_that_fails_its_threshold(mock_github, mocker: MockerFixture):
+    gen = _zero_weight_generator(
+        mock_github,
+        mocker,
+        comment_level=CommentLevelEnum.FULL,
+        fail_on_threshold=["overall"],
+        overall_passed=True,
+        current=(10, 90),
+        baseline=(10, 90),
+        group_passed=False,
+    )
+
+    gen.generate()
+
+    assert "`backend`" in mock_github.add_comment.call_args[0][1]
+
+
+@pytest.mark.parametrize(
+    "comment_level",
+    [CommentLevelEnum.FULL, CommentLevelEnum.FAILED, CommentLevelEnum.FAILED_OR_CHANGED],
+)
+def test_no_decrease_shows_a_zero_weight_report_that_dropped(mock_github, mocker: MockerFixture, comment_level):
+    """The fixed threshold passes (80 % >= 75 %), but the missed count grew from 10 to 20: a drop."""
+    gen = _zero_weight_generator(mock_github, mocker, comment_level=comment_level, fail_on_threshold=["no-decrease"])
+
+    gen.generate()
+
+    assert "`api`" in mock_github.add_comment.call_args[0][1]
+
+
+def test_zero_weight_report_that_passes_everything_stays_hidden(mock_github, mocker: MockerFixture):
+    gen = _zero_weight_generator(
+        mock_github,
+        mocker,
+        comment_level=CommentLevelEnum.FULL,
+        fail_on_threshold=["no-decrease"],
+        current=(10, 90),
+        baseline=(10, 90),
+    )
+
+    gen.generate()
+
+    body = mock_github.add_comment.call_args[0][1]
+    assert "`api`" not in body
+    assert "`backend`" not in body
+
+
+def test_changed_level_shows_a_zero_weight_report_that_fails_its_threshold(mock_github, mocker: MockerFixture):
+    """A zero-weight row had changed files, so the changed level counts it as a row with changed files."""
+    gen = _zero_weight_generator(
+        mock_github,
+        mocker,
+        comment_level=CommentLevelEnum.CHANGED,
+        fail_on_threshold=["overall"],
+        overall_passed=False,
+        current=(40, 60),
+        baseline=(40, 60),
+    )
+
+    gen.generate()
+
+    assert "`api`" in mock_github.add_comment.call_args[0][1]
+
+
+def test_changed_level_keeps_a_zero_weight_report_that_passes_hidden(mock_github, mocker: MockerFixture):
+    gen = _zero_weight_generator(
+        mock_github, mocker, comment_level=CommentLevelEnum.CHANGED, fail_on_threshold=["overall"]
+    )
+
+    gen.generate()
+
+    assert "`api`" not in mock_github.add_comment.call_args[0][1]

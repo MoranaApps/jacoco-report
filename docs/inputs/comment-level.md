@@ -20,6 +20,10 @@ differs.
 
 \* Groups table is included only when `report-groups` is configured.
 
+A group or report row whose changed files all have no data for the selected `metric` (for example
+`metric: branch` and a change to a class without branches) is hidden at every level, unless it fails
+its threshold or, with `no-decrease` in `fail-on-threshold`, dropped against the baseline.
+
 Default: `full`
 
 ## Level descriptions
