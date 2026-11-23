@@ -14,7 +14,7 @@ from jacoco_report.evaluator.baseline_comparison import BaselineComparison, Cove
 from jacoco_report.evaluator.coverage_evaluator import CoverageEvaluator
 from jacoco_report.model.evaluated_report_coverage import EvaluatedReportCoverage
 from jacoco_report.utils.constants import ACTION_REPOSITORY, ACTION_REPOSITORY_URL
-from jacoco_report.utils.enums import CommentLevelEnum, ReportTargetEnum
+from jacoco_report.utils.enums import CommentLevelEnum, FailOnThresholdEnum, ReportTargetEnum
 from jacoco_report.utils.gh_action import write_job_summary
 from jacoco_report.utils.github import GitHub, get_server_url
 
@@ -401,8 +401,12 @@ class PRCommentGenerator:
             filtered_groups = {k: v for k, v in filtered_groups.items() if not v.had_changed_files_before_filtering}
 
             if comment_level != CommentLevelEnum.FULL:
-                filtered_groups = self._filter_evaluated_coverage_rows(filtered_groups, comment_level)
-                filtered_reports = self._filter_evaluated_coverage_rows(filtered_reports, comment_level)
+                dropped_groups = self._dropped_row_keys(filtered_groups, is_group=True)
+                dropped_reports = self._dropped_row_keys(filtered_reports, is_group=False)
+                filtered_groups = self._filter_evaluated_coverage_rows(filtered_groups, comment_level, dropped_groups)
+                filtered_reports = self._filter_evaluated_coverage_rows(
+                    filtered_reports, comment_level, dropped_reports
+                )
 
             groups_table = self.get_groups_table(p, f, filtered_groups)
             if groups_table:
@@ -449,25 +453,47 @@ class PRCommentGenerator:
         )
         return warning_content
 
+    def _dropped_row_keys(
+        self, evaluated_coverages: dict[str, EvaluatedReportCoverage], is_group: bool
+    ) -> frozenset[str]:
+        """Return the keys of the rows that dropped against the baseline under 'no-decrease'.
+
+        Empty unless 'no-decrease' is selected, so the max-decrease input is only read then. A row without a matching
+        baseline is not dropped.
+        """
+        if FailOnThresholdEnum.NO_DECREASE not in ActionInputs.get_fail_on_threshold():
+            return frozenset()
+
+        max_decrease = ActionInputs.get_max_decrease()
+        baseline = self._baseline()
+        dropped = baseline.group_dropped if is_group else baseline.report_dropped
+        return frozenset(key for key, coverage in evaluated_coverages.items() if dropped(coverage, max_decrease))
+
     def _filter_evaluated_coverage_rows(
         self,
         evaluated_coverages: dict[str, EvaluatedReportCoverage],
         comment_level: str,
+        dropped_keys: frozenset[str],
     ) -> dict[str, EvaluatedReportCoverage]:
-        """Filter group or report rows according to the selected comment level."""
+        """Filter group or report rows according to the selected comment level; `dropped_keys` are failing rows."""
         return {
             key: coverage
             for key, coverage in evaluated_coverages.items()
-            if self._should_include_coverage_row(coverage, comment_level)
+            if self._should_include_coverage_row(coverage, comment_level, key in dropped_keys)
         }
 
-    def _should_include_coverage_row(self, coverage: EvaluatedReportCoverage, comment_level: str) -> bool:
-        """Return whether one evaluated group or report row should be rendered."""
+    def _should_include_coverage_row(
+        self, coverage: EvaluatedReportCoverage, comment_level: str, dropped: bool
+    ) -> bool:
+        """Return whether one evaluated group or report row should be rendered.
+
+        A row is failing when a fixed threshold fails or, under 'no-decrease', when it dropped against the baseline.
+        """
         if comment_level == CommentLevelEnum.FULL:
             return True
 
         has_changed_files = self._has_changed_files(coverage)
-        is_failing = self._is_failing_coverage(coverage)
+        is_failing = dropped or self._is_failing_coverage(coverage)
 
         if comment_level == CommentLevelEnum.CHANGED:
             return has_changed_files

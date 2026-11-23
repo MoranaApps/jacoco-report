@@ -299,7 +299,8 @@ Right after that error, a `Hint:` line names the likely cause:
   the per-changed-file check uses report/group thresholds.
 - When `report-groups` is used, group thresholds are evaluated separately from `global-thresholds`.
 - With `no-decrease` in `fail-on-threshold`, a coverage drop fails the step. The comment shows the drop only in the
-  Δ column, and the log names the row that dropped.
+  Δ column, and the log names the row that dropped. With `comment-level: failed` or `failed-or-changed`, a row
+  that dropped is shown even when it passes its fixed threshold.
 - The step fails with `'no-decrease' needs a baseline` when no baseline report is found, or with
   `'no-decrease' found baseline reports, but none matches` when no report found in the run (reports filtered by
   `skip-unchanged` included) matches one. Check

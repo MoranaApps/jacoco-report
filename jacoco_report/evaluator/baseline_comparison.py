@@ -197,6 +197,22 @@ class BaselineComparison:
 
         return _aggregate_delta(self.evaluator.evaluated_reports_coverage.values(), pairs)
 
+    def report_dropped(self, evaluated_report: EvaluatedReportCoverage, max_decrease: float) -> bool:
+        """Return whether one report dropped against its baseline under the 'no-decrease' rule.
+
+        False without a matching baseline report.
+        """
+        change = self._report_change(evaluated_report)
+        return change is not None and change.is_drop(max_decrease)
+
+    def group_dropped(self, evaluated_group: EvaluatedReportCoverage, max_decrease: float) -> bool:
+        """Return whether one group dropped against its baseline under the 'no-decrease' rule.
+
+        False without a matching baseline group or report.
+        """
+        change = self._group_change(evaluated_group)
+        return change is not None and change.is_drop(max_decrease)
+
     def no_decrease_violations(
         self,
         max_decrease: float,

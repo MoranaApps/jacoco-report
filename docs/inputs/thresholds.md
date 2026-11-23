@@ -123,6 +123,9 @@ A float from 0 to 100, inclusive. Empty or whitespace-only means `0.0`. Other va
   reports are checked as report rows. The global and group rows still cover only reports with changed files, and
   when every report is filtered, only the report rows are checked. If only unchanged reports match the baseline,
   the global row is skipped with an INFO log line.
+- In the comment, a group or report row that dropped counts as failing for `comment-level: failed` and
+  `failed-or-changed`, so it is shown; its Status column still shows the fixed threshold (see
+  [comment-level.md](comment-level.md)).
 - Without `no-decrease` in the list, none of this is computed and the baseline does not affect the exit code.
 
 ## Impact

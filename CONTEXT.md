@@ -221,6 +221,10 @@ service is needed.
     `fail-unchanged` checks their overall threshold), else as `match_evidence` (never checked, they only count as
     matches). The global and group rows keep the results evaluator's scope (the comment's Δ); neither list adds
     outputs.
+  - The comment's row filter knows the gate too: with `no-decrease` selected, `PRCommentGenerator._dropped_row_keys`
+    marks group/report rows that dropped (`BaselineComparison.group_dropped`/`report_dropped`, the gate's rule) as
+    failing for `comment-level: failed`/`failed-or-changed`, else a row failing only the gate is hidden while the
+    step fails. The Status column stays fixed-threshold; `get_max_decrease` is read only when `no-decrease` is on.
   - A row drops (`OverallChange.is_drop`) when its Δ (the rounded value the comment shows) is `< -max_decrease` and
     its missed count of the selected metric grew, so deleting covered code passes. Group/global counters come from
     `_aggregate_counters`, the same ones as the Δ; a report compares its own counters with its baseline report's.

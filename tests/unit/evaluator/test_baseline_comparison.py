@@ -440,3 +440,60 @@ def test_no_decrease_without_aggregate_rows_still_gives_no_match_when_nothing_ma
     assert BaselineComparison(_evaluator([curr_a]), bs).no_decrease_violations(0.0, include_aggregate_rows=False) == [
         NO_MATCH
     ]
+
+
+# --- report_dropped and group_dropped ---
+
+
+@pytest.mark.parametrize(
+    "current, baseline, max_decrease, dropped",
+    [
+        pytest.param((30, 70), (20, 80), 0.0, True, id="drop-above-tolerance"),
+        pytest.param((30, 70), (20, 80), 10.0, False, id="drop-within-tolerance"),
+        pytest.param((20, 60), (20, 80), 0.0, False, id="covered-code-deleted-missed-not-grown"),
+        pytest.param((10, 90), (20, 80), 0.0, False, id="rise"),
+    ],
+)
+def test_report_dropped_follows_the_no_decrease_rule(current, baseline, max_decrease, dropped):
+    curr = _erc("A", current, path="a.xml")
+    bs = _evaluator([_erc("A", baseline, path="a.xml")])
+
+    assert BaselineComparison(_evaluator([curr]), bs).report_dropped(curr, max_decrease) is dropped
+
+
+def test_report_dropped_is_false_without_a_matching_baseline_report():
+    curr = _erc("A", (30, 70), path="a.xml")
+    bs = _evaluator([_erc("B", (20, 80), path="b.xml")])
+
+    assert BaselineComparison(_evaluator([curr]), bs).report_dropped(curr, 0.0) is False
+
+
+def test_report_dropped_is_false_without_baseline_data():
+    curr = _erc("A", (30, 70), path="a.xml")
+
+    assert BaselineComparison(_evaluator([curr]), None).report_dropped(curr, 0.0) is False
+
+
+@pytest.mark.parametrize(
+    "max_decrease, dropped",
+    [
+        pytest.param(0.0, True, id="drop-above-tolerance"),
+        pytest.param(10.0, False, id="drop-within-tolerance"),
+    ],
+)
+def test_group_dropped_follows_the_no_decrease_rule(max_decrease, dropped):
+    curr = _erc("A", (30, 70), path="a.xml", group_name="g")
+    group = _erc("g", (30, 70), group_name="g")
+    bs = _evaluator([_erc("A", (20, 80), path="a.xml", group_name="g")], [_erc("g", (20, 80), group_name="g")])
+
+    comparison = BaselineComparison(_evaluator([curr], [group]), bs)
+
+    assert comparison.group_dropped(group, max_decrease) is dropped
+
+
+def test_group_dropped_is_false_without_a_matching_baseline_group():
+    curr = _erc("A", (30, 70), path="a.xml", group_name="g")
+    group = _erc("g", (30, 70), group_name="g")
+    bs = _evaluator([_erc("B", (20, 80), path="b.xml", group_name="h")])
+
+    assert BaselineComparison(_evaluator([curr], [group]), bs).group_dropped(group, 0.0) is False

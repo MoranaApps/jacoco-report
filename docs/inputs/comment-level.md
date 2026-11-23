@@ -114,6 +114,11 @@ comment-level: 'changed'
 Same structure as `full`, but only rows that **fail** their threshold are shown in the Groups,
 Reports, and Changed-files tables. The global summary table is always shown in full.
 
+With `no-decrease` in `fail-on-threshold`, a group or report row whose overall coverage dropped
+against the baseline counts as failing too, so it is shown even when it passes its fixed threshold.
+Its Status column still reflects the fixed threshold; the drop shows in the Δ column. The same applies
+to `failed-or-changed`.
+
 Use this in high-coverage projects where you only want the PR comment to highlight regressions.
 
 ```yaml

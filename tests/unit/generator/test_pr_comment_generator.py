@@ -2029,3 +2029,87 @@ def test_cut_body_works_with_baseline_changed_files_table(pr_comment_generator, 
     assert "| File Path | Coverage | Threshold | Δ Coverage | Status |" in body
     assert _has_row_after_header(body, "| File Path | Coverage | Threshold | Δ Coverage | Status |")
     assert "see the job log" in body
+
+
+def _dropped_api_generator(mock_github, mocker: MockerFixture, *, comment_level, fail_on_threshold):
+    """A generator whose report `api` (in group `backend`) passes its fixed threshold but dropped against the baseline.
+
+    Coverage falls from 90 % to 80 % with missed instructions growing from 10 to 20.
+    """
+    api = _make_evaluated_coverage("api", group_name="backend", overall_coverage=80.0)
+    api.overall_coverage = Counter(20, 80)
+    baseline_api = _make_evaluated_coverage("api", group_name="backend", overall_coverage=90.0)
+    baseline_api.overall_coverage = Counter(10, 90)
+    evaluator = CoverageEvaluator(
+        report_files_coverage=[], global_min_coverage_overall=75.0, global_min_coverage_changed_files=70.0
+    )
+    evaluator.total_coverage_overall = 80.0
+    evaluator.total_coverage_overall_passed = True
+    evaluator.evaluated_reports_coverage = {"api": api}
+    evaluator.evaluated_groups_coverage = {"backend": _make_evaluated_coverage("backend", overall_coverage=80.0)}
+    bs_evaluator = CoverageEvaluator(
+        report_files_coverage=[], global_min_coverage_overall=75.0, global_min_coverage_changed_files=70.0
+    )
+    bs_evaluator.evaluated_reports_coverage = {"api": baseline_api}
+    bs_evaluator.evaluated_groups_coverage = {"backend": _make_evaluated_coverage("backend", overall_coverage=90.0)}
+
+    gen = PRCommentGenerator(mock_github, evaluator, bs_evaluator, 1)
+    _configure_generator_for_comment_tests(gen, mocker, comment_level=comment_level)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_fail_on_threshold", return_value=fail_on_threshold)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_max_decrease", return_value=0.0)
+    return gen
+
+
+def test_failed_level_renders_a_report_that_dropped_under_no_decrease(mock_github, mocker: MockerFixture):
+    gen = _dropped_api_generator(
+        mock_github, mocker, comment_level=CommentLevelEnum.FAILED, fail_on_threshold=["no-decrease"]
+    )
+
+    gen.generate()
+
+    body = mock_github.add_comment.call_args[0][1]
+    assert "`api`" in body
+    assert "No rows match the selected comment level." not in body
+
+
+def test_failed_level_hides_the_dropped_report_without_no_decrease(mock_github, mocker: MockerFixture):
+    gen = _dropped_api_generator(
+        mock_github, mocker, comment_level=CommentLevelEnum.FAILED, fail_on_threshold=["overall"]
+    )
+
+    gen.generate()
+
+    body = mock_github.add_comment.call_args[0][1]
+    assert "`api`" not in body
+    assert "No rows match the selected comment level." in body
+
+
+def test_without_no_decrease_the_max_decrease_input_is_not_read(mock_github, mocker: MockerFixture):
+    gen = _dropped_api_generator(
+        mock_github, mocker, comment_level=CommentLevelEnum.FAILED, fail_on_threshold=["overall"]
+    )
+    max_decrease = mocker.patch("jacoco_report.action_inputs.ActionInputs.get_max_decrease", return_value=0.0)
+
+    gen.generate()
+
+    max_decrease.assert_not_called()
+
+
+def test_failed_level_renders_a_group_that_dropped_under_no_decrease(mock_github, mocker: MockerFixture):
+    gen = _dropped_api_generator(
+        mock_github, mocker, comment_level=CommentLevelEnum.FAILED, fail_on_threshold=["no-decrease"]
+    )
+
+    gen.generate()
+
+    assert "`backend`" in mock_github.add_comment.call_args[0][1]
+
+
+def test_failed_or_changed_level_renders_a_dropped_report_without_changed_files(mock_github, mocker: MockerFixture):
+    gen = _dropped_api_generator(
+        mock_github, mocker, comment_level=CommentLevelEnum.FAILED_OR_CHANGED, fail_on_threshold=["no-decrease"]
+    )
+
+    gen.generate()
+
+    assert "`api`" in mock_github.add_comment.call_args[0][1]
