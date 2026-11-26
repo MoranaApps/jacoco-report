@@ -155,6 +155,7 @@ report-groups: |
 ### Per-group baseline paths
 
 ```yaml
+exclude-paths: 'baseline/**'
 report-groups: |
   - name: backend
     paths:
@@ -204,6 +205,7 @@ group. Set `global-overall-scope: groups-only` to restrict it to grouped reports
 - name: Publish JaCoCo Report
   uses: MoranaApps/jacoco-report@v3
   with:
+    exclude-paths: 'baseline/**'
     report-thresholds-default: '75*60*0'
     report-groups: |
       - name: Core

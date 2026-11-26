@@ -33,6 +33,7 @@ UPDATE_COMMENT = "update-comment"
 PASS_SYMBOL = "pass-symbol"
 FAIL_SYMBOL = "fail-symbol"
 FAIL_ON_THRESHOLD = "fail-on-threshold"
+MAX_DECREASE = "max-decrease"
 DEBUG = "debug"
 
 BASELINE_PATHS = "baseline-paths"

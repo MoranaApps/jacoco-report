@@ -1,5 +1,7 @@
 import logging
 
+from pytest_mock import MockerFixture
+
 from jacoco_report.scanner.jacoco_report_input_scanner import JaCoCoReportInputScanner
 
 # __init__
@@ -17,7 +19,7 @@ def test_initialization():
 # scan
 
 
-def test_scan_exact_paths_one_input(mocker):
+def test_scan_exact_paths_one_input(mocker: MockerFixture):
     file_path_1 = "tests/data/test_project/module small/target/jacoco.xml"
 
     scanner = JaCoCoReportInputScanner([file_path_1], [])
@@ -28,7 +30,7 @@ def test_scan_exact_paths_one_input(mocker):
     assert file_path_1 in result[0]
 
 
-def test_scan_exact_paths_more_inputs(mocker):
+def test_scan_exact_paths_more_inputs(mocker: MockerFixture):
     file_path_1 = "tests/data/test_project/module small/target/jacoco.xml"
     file_path_2 = "tests/data/test_project/module_large/jacoco.xml"
 
@@ -41,7 +43,7 @@ def test_scan_exact_paths_more_inputs(mocker):
     assert any(file_path_2 in path for path in result), f"{file_path_2} not found in {result}"
 
 
-def test_scan_exact_paths_more_inputs_with_exclude(mocker):
+def test_scan_exact_paths_more_inputs_with_exclude(mocker: MockerFixture):
     file_path_1 = "tests/data/test_project/module small/target/jacoco.xml"
     file_path_2 = "tests/data/test_project/module_large/target/jacoco.xml"
 
@@ -62,7 +64,7 @@ def test_scan_exact_paths_more_inputs_with_exclude(mocker):
     assert not file_path_2_detected, f"{file_path_2} found in {result}"
 
 
-def test_scan_blob_paths_no_exclude(mocker):
+def test_scan_blob_paths_no_exclude(mocker: MockerFixture):
     blob_path = "tests/data/test_project/**/jacoco.xml"
 
     scanner = JaCoCoReportInputScanner([blob_path], [])
@@ -72,7 +74,7 @@ def test_scan_blob_paths_no_exclude(mocker):
     assert len(result) == 9
 
 
-def test_scan_blob_paths_with_exact_exclude(mocker):
+def test_scan_blob_paths_with_exact_exclude(mocker: MockerFixture):
     blob_path = "tests/data/test_project/**/jacoco.xml"
     ex_path = "tests/data/test_project/module_large/jacoco.xml"
 
@@ -89,7 +91,7 @@ def test_scan_blob_paths_with_exact_exclude(mocker):
     assert not ex_path_detected, f"{ex_path} found in {result}"
 
 
-def test_scan_blob_paths_with_blob_exclude(mocker):
+def test_scan_blob_paths_with_blob_exclude(mocker: MockerFixture):
     blob_path = "tests/data/test_project/**/jacoco.xml"
     ex_blob_path = "tests/data/test_project/module*/**/jacoco.xml"
 

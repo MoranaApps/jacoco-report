@@ -44,7 +44,8 @@ Key capabilities:
 
 - **Global thresholds** — enforce overall and average-changed minimums in one input.
 - **Report groups** — organise multi-module projects into named groups with per-group thresholds.
-- **Baseline comparison** — show Δ coverage against a stored baseline (e.g. the `master` branch reports).
+- **Baseline comparison** — show Δ coverage against a stored baseline (e.g. the `master` branch reports), and
+  optionally fail a PR that lowers coverage (`fail-on-threshold: no-decrease`).
 - **Flexible comment levels** — from a single-line summary to full per-file detail, or no comment at all.
 - **Job summary** — write the report to the workflow run's job summary, instead of or next to the PR comment
   (`report-target`). It needs no write permission.
@@ -146,12 +147,13 @@ Input values are passed to the action exactly as written: `$VAR`, `$(…)` and b
 | `report-target`     | Where to write the report: `comment` (PR comment), `summary` (the workflow run's job summary; needs no write permission) or `both`. See [docs/inputs/report-target.md](docs/inputs/report-target.md). | No       | `comment`                                        |
 | `report-groups`     | Named report groups as a YAML list. Each entry: `name` (required), `paths` (required list of globs), `thresholds` (optional `O*A*P`), `baseline-paths` (optional list). See [docs/inputs/report-groups.md](docs/inputs/report-groups.md). | No  | `''`                                      |
 | `skip-unchanged`    | If `true`, reports with no changed files are filtered out from comment rows. With default `evaluate-unchanged=true`, filtered reports can still affect threshold results.                                                        | No       | `false`                                          |
-| `evaluate-unchanged` | Applies only when `skip-unchanged=true`. If `true`, filtered reports can still fail overall thresholds. If `false`, they are excluded from threshold evaluation as well.                                                       | No       | `true`                                           |
-| `baseline-paths`    | Paths to baseline coverage reports for comparison. Supports wildcard glob patterns.                                                                                                                                            | No       | `''`                                             |
+| `evaluate-unchanged` | Applies only when `skip-unchanged=true`. If `true`, filtered reports can still fail overall thresholds. If `false`, they are excluded from threshold evaluation, except reports read by `fail-unchanged`, which `no-decrease` also checks. | No       | `true`                                           |
+| `baseline-paths`    | Paths to baseline coverage reports for comparison. Supports wildcard glob patterns. With `no-decrease` in `fail-on-threshold`, a coverage drop fails the step, see [baseline-paths](docs/inputs/baseline-paths.md).            | No       | `''`                                             |
 | `update-comment`    | If `true`, updates an existing comment instead of creating a new one.                                                                                                                                                          | No       | `true`                                           |
 | `pass-symbol`       | Symbol for passing checks in PR comments (e.g., ✅, **Passed**).                                                                                                                                                               | No       | `✅`                                              |
 | `fail-symbol`       | Symbol for failing checks in PR comments (e.g., ❌, **Failed**).                                                                                                                                                               | No       | `❌`                                              |
-| `fail-on-threshold` | List value (comma- or newline-separated) of thresholds that must pass: `overall`, `changed-files-average`, `per-changed-file`, `fail-unchanged`. Leave empty to disable.                                                     | No       | `overall,changed-files-average,per-changed-file` |
+| `fail-on-threshold` | List value (comma- or newline-separated) of thresholds that must pass: `overall`, `changed-files-average`, `per-changed-file`, `fail-unchanged`, `no-decrease`. Leave empty to disable.                                        | No       | `overall,changed-files-average,per-changed-file` |
+| `max-decrease`      | Largest allowed overall coverage drop against `baseline-paths` when `fail-on-threshold` has `no-decrease`, in percentage points (0 to 100). See [docs/inputs/thresholds.md](docs/inputs/thresholds.md).                        | No       | `0.0`                                            |
 | `debug`             | Enables detailed logging. Automatically activated when `RUNNER_DEBUG=1` (GitHub runner debug mode).                                                                                                                             | No       | `false`                                          |
 | `ca-bundle`         | Path (absolute, or relative to the workspace) to a PEM CA bundle trusted for the action's pip install and all GitHub API calls. Use behind a TLS-intercepting proxy. See [docs/inputs/ca-bundle.md](docs/inputs/ca-bundle.md). | No       | `''`                                             |
 
@@ -226,7 +228,7 @@ The following outputs are set by the JaCoCo GitHub Action:
 - [Comment Level](docs/inputs/comment-level.md)
 - [Report Target (PR comment, job summary, or both)](docs/inputs/report-target.md)
 - [Skip Unchanged and Evaluate Unchanged](docs/inputs/skip-unchanged.md)
-- [Baseline Paths](docs/inputs/baseline-paths.md)
+- [Baseline Paths (Δ coverage and the coverage-must-not-drop gate)](docs/inputs/baseline-paths.md)
 - [Symbols and Metric Type](docs/inputs/symbols-and-metric.md)
 - [PR Number, Title, and Update Comment](docs/inputs/pr-settings.md)
 - [Debug Mode](docs/inputs/debug.md)
@@ -296,6 +298,13 @@ Right after that error, a `Hint:` line names the likely cause:
   By default, `overall`, `changed-files-average`, and `per-changed-file` checks are enabled;
   the per-changed-file check uses report/group thresholds.
 - When `report-groups` is used, group thresholds are evaluated separately from `global-thresholds`.
+- With `no-decrease` in `fail-on-threshold`, a coverage drop fails the step. The comment shows the drop only in the
+  Δ column, and the log names the row that dropped. With `comment-level: failed` or `failed-or-changed`, a row
+  that dropped is shown even when it passes its fixed threshold.
+- The step fails with `'no-decrease' needs a baseline` when no baseline report is found, or with
+  `'no-decrease' found baseline reports, but none matches` when no report found in the run (reports filtered by
+  `skip-unchanged` included) matches one. Check
+  `baseline-paths` and the report paths or names. See [thresholds](docs/inputs/thresholds.md#no-decrease-rules).
 
 ### `fail-on-threshold` selection looks incorrect
 

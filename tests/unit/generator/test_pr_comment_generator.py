@@ -5,6 +5,7 @@ from typing import cast
 from unittest.mock import MagicMock
 
 import pytest
+from pytest_mock import MockerFixture
 
 from jacoco_report.action_inputs import ActionInputs
 from jacoco_report.evaluator.coverage_evaluator import CoverageEvaluator
@@ -24,12 +25,12 @@ def _comment_body(gen, comment_level):
 
 
 @pytest.fixture
-def mock_github(mocker):
+def mock_github(mocker: MockerFixture):
     return mocker.Mock()
 
 
 @pytest.fixture
-def test_evaluator(mocker):
+def test_evaluator(mocker: MockerFixture):
     ce = CoverageEvaluator(
         report_files_coverage=[],
         global_min_coverage_overall=80.0,
@@ -75,7 +76,7 @@ def _make_evaluated_coverage(
     return coverage
 
 
-def _configure_generator_for_comment_tests(generator, mocker, *, comment_level):
+def _configure_generator_for_comment_tests(generator, mocker: MockerFixture, *, comment_level):
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_comment_level", return_value=comment_level)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_title", return_value="JaCoCo")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_pass_symbol", return_value="✅")
@@ -109,7 +110,7 @@ def _set_mixed_comment_level_fixture(pr_comment_generator):
     }
 
 
-def test_get_basic_table(pr_comment_generator, mocker):
+def test_get_basic_table(pr_comment_generator, mocker: MockerFixture):
     table = pr_comment_generator.get_basic_table(
         "✅", "❌", MetricTypeEnum.INSTRUCTION, SummaryRow(85.2, True, 80.0), SummaryRow(78.4, False, 80.0)
     )
@@ -143,7 +144,7 @@ def test_get_changed_files_table_with_baseline(pr_comment_generator):
     )
 
 
-def test_calculate_group_diff(pr_comment_generator, mocker):
+def test_calculate_group_diff(pr_comment_generator, mocker: MockerFixture):
     # Current report: overall = 80/100 = 80.0%, changed = 85/100 = 85.0%, group="module-a"
     curr_erc = EvaluatedReportCoverage("module-a-report", group_name="module-a")
     curr_erc.overall_coverage = Counter(20, 80)
@@ -170,7 +171,7 @@ def test_calculate_group_diff(pr_comment_generator, mocker):
     assert diff_ch == 10.0
 
 
-def test_calculate_group_diff_no_group_in_baseline(pr_comment_generator, mocker):
+def test_calculate_group_diff_no_group_in_baseline(pr_comment_generator, mocker: MockerFixture):
     # Mock the baseline evaluator with no groups
     mock_baseline_evaluator = mocker.Mock()
     mock_baseline_evaluator.evaluated_groups_coverage = {}
@@ -189,7 +190,7 @@ def test_calculate_group_diff_no_group_in_baseline(pr_comment_generator, mocker)
     assert diff_ch == 0.0
 
 
-def test_generate_changed_files_table_with_baseline(pr_comment_generator, mocker):
+def test_generate_changed_files_table_with_baseline(pr_comment_generator, mocker: MockerFixture):
     # Mock the necessary methods and attributes
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["baseline.xml"])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups", return_value=[])
@@ -224,7 +225,9 @@ def test_generate_changed_files_table_with_baseline(pr_comment_generator, mocker
     assert table == expected_table
 
 
-def test_generate_changed_files_table_with_baseline_no_evaluated_report_coverage(pr_comment_generator, mocker):
+def test_generate_changed_files_table_with_baseline_no_evaluated_report_coverage(
+    pr_comment_generator, mocker: MockerFixture
+):
     # Mock the necessary methods and attributes
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["baseline.xml"])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups", return_value=[])
@@ -259,7 +262,7 @@ def test_generate_changed_files_table_with_baseline_no_evaluated_report_coverage
     assert table == expected_table
 
 
-def test_generate_changed_files_table_with_baseline_no_changed_file(pr_comment_generator, mocker):
+def test_generate_changed_files_table_with_baseline_no_changed_file(pr_comment_generator, mocker: MockerFixture):
     # Mock the necessary methods and attributes
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["baseline.xml"])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_report_groups", return_value=[])
@@ -294,13 +297,13 @@ def test_generate_changed_files_table_with_baseline_no_changed_file(pr_comment_g
     assert table == expected_table
 
 
-def test_get_groups_table_empty(pr_comment_generator, mocker):
+def test_get_groups_table_empty(pr_comment_generator, mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=[])
     pr_comment_generator.evaluator.evaluated_groups_coverage = {}
     assert pr_comment_generator.get_groups_table("✅", "❌") == ""
 
 
-def test_get_groups_table_without_baseline(pr_comment_generator, mocker):
+def test_get_groups_table_without_baseline(pr_comment_generator, mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=[])
     ev = EvaluatedReportCoverage("backend")
     ev.overall_coverage_reached = 85.0
@@ -317,7 +320,7 @@ def test_get_groups_table_without_baseline(pr_comment_generator, mocker):
     assert "| `backend` | 85.0% / 80.0% | 75.0% / 70.0% | ✅/✅ |" in table
 
 
-def test_get_groups_table_with_baseline(pr_comment_generator, mocker):
+def test_get_groups_table_with_baseline(pr_comment_generator, mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["baseline.xml"])
     ev = EvaluatedReportCoverage("backend")
     ev.overall_coverage_reached = 85.0
@@ -355,7 +358,7 @@ def test_get_groups_table_with_baseline(pr_comment_generator, mocker):
     assert "| `backend` | 85.0% / 80.0% | 75.0% / 70.0% | +5.0% / +5.0% | ✅/❌ |" in table
 
 
-def test_reports_table_uses_group_thresholds_when_groups_configured(pr_comment_generator, mocker):
+def test_reports_table_uses_group_thresholds_when_groups_configured(pr_comment_generator, mocker: MockerFixture):
     from jacoco_report.model.report_group import ReportGroup
 
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=[])
@@ -454,7 +457,7 @@ def test_report_table_without_report_groups_keeps_name_sort(pr_comment_generator
 # --- Issue 1: get_groups_table baseline decision logic ---
 
 
-def test_get_groups_table_baseline_decision_global_only(pr_comment_generator, mocker):
+def test_get_groups_table_baseline_decision_global_only(pr_comment_generator, mocker: MockerFixture):
     """Test that get_groups_table shows baseline Δ when global baseline-paths is set"""
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["baseline.xml"])
     ev = EvaluatedReportCoverage("backend")
@@ -492,7 +495,7 @@ def test_get_groups_table_baseline_decision_global_only(pr_comment_generator, mo
     assert "+5.0% / +5.0%" in table
 
 
-def test_get_groups_table_baseline_decision_group_only(pr_comment_generator, mocker):
+def test_get_groups_table_baseline_decision_group_only(pr_comment_generator, mocker: MockerFixture):
     """Test that get_groups_table shows baseline Δ when group has per-group baseline-paths"""
     # Global baseline-paths is empty
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=[])
@@ -521,7 +524,7 @@ def test_get_groups_table_baseline_decision_group_only(pr_comment_generator, moc
     assert "Δ Coverage" in table
 
 
-def test_get_reports_table_baseline_decision_group_only(pr_comment_generator, mocker):
+def test_get_reports_table_baseline_decision_group_only(pr_comment_generator, mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=[])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_threshold", return_value=50.0)
     mocker.patch(
@@ -551,7 +554,7 @@ def test_get_reports_table_baseline_decision_group_only(pr_comment_generator, mo
     assert "Δ Coverage (O/Ch)" in table
 
 
-def test_get_basic_table_baseline_decision_group_only(pr_comment_generator, mocker):
+def test_get_basic_table_baseline_decision_group_only(pr_comment_generator, mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=[])
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value=MetricTypeEnum.INSTRUCTION)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_threshold", return_value=50.0)
@@ -576,7 +579,7 @@ def test_get_basic_table_baseline_decision_group_only(pr_comment_generator, mock
     assert "Δ Coverage" in table
 
 
-def test_get_groups_table_baseline_decision_no_baseline(pr_comment_generator, mocker):
+def test_get_groups_table_baseline_decision_no_baseline(pr_comment_generator, mocker: MockerFixture):
     """Test that get_groups_table omits baseline Δ when no baseline data available"""
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=[])
 
@@ -602,7 +605,9 @@ def test_get_groups_table_baseline_decision_no_baseline(pr_comment_generator, mo
     assert "| Group |" in table
 
 
-def test_get_groups_table_hides_baseline_when_paths_set_but_no_evaluated_data(pr_comment_generator, mocker):
+def test_get_groups_table_hides_baseline_when_paths_set_but_no_evaluated_data(
+    pr_comment_generator, mocker: MockerFixture
+):
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["baseline.xml"])
 
     ev = EvaluatedReportCoverage("backend")
@@ -624,7 +629,7 @@ def test_get_groups_table_hides_baseline_when_paths_set_but_no_evaluated_data(pr
     assert "Δ Coverage" not in table
 
 
-def test_calculate_baseline_group_diffs_no_data_returns_zero(pr_comment_generator, mocker):
+def test_calculate_baseline_group_diffs_no_data_returns_zero(pr_comment_generator, mocker: MockerFixture):
     ev = EvaluatedReportCoverage("backend")
     ev.overall_coverage_reached = 85.0
     ev.avg_changed_files_coverage_reached = 80.0
@@ -648,7 +653,7 @@ def test_calculate_baseline_group_diffs_no_data_returns_zero(pr_comment_generato
 # --- comment-level expansion ---
 
 
-def test_generate_skips_github_comment_for_none(pr_comment_generator, mocker):
+def test_generate_skips_github_comment_for_none(pr_comment_generator, mocker: MockerFixture):
     _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="none")
 
     pr_comment_generator.generate()
@@ -658,7 +663,7 @@ def test_generate_skips_github_comment_for_none(pr_comment_generator, mocker):
     pr_comment_generator.gh.update_comment.assert_not_called()
 
 
-def test_none_deletes_existing_comment_when_update_comment_enabled(pr_comment_generator, mocker):
+def test_none_deletes_existing_comment_when_update_comment_enabled(pr_comment_generator, mocker: MockerFixture):
     _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="none")
     pr_comment_generator.gh.get_comments.return_value = [{"id": 123, "body": "**JaCoCo**\n\nold body"}]
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=True)
@@ -671,7 +676,7 @@ def test_none_deletes_existing_comment_when_update_comment_enabled(pr_comment_ge
     pr_comment_generator.gh.delete_comment.assert_called_once_with(123)
 
 
-def test_none_leaves_existing_comment_when_update_comment_disabled(pr_comment_generator, mocker):
+def test_none_leaves_existing_comment_when_update_comment_disabled(pr_comment_generator, mocker: MockerFixture):
     _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="none")
     pr_comment_generator.gh.get_comments.return_value = [{"id": 123, "body": "**JaCoCo**\n\nold body"}]
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=False)
@@ -684,7 +689,7 @@ def test_none_leaves_existing_comment_when_update_comment_disabled(pr_comment_ge
     pr_comment_generator.gh.delete_comment.assert_not_called()
 
 
-def test_unreadable_comments_skip_add_update_and_delete(mocker, mock_github, test_evaluator, caplog):
+def test_unreadable_comments_skip_add_update_and_delete(mocker: MockerFixture, mock_github, test_evaluator, caplog):
     """A failed comment read (None) must not add a second comment or touch the existing one."""
     gen = PRCommentGenerator(mock_github, test_evaluator, _make_empty_evaluator(), pr_number=1)
     _configure_generator_for_comment_tests(gen, mocker, comment_level=CommentLevelEnum.MINIMAL)
@@ -700,7 +705,9 @@ def test_unreadable_comments_skip_add_update_and_delete(mocker, mock_github, tes
     assert "Could not read PR comments" in caplog.text
 
 
-def test_unreadable_comments_skip_delete_at_comment_level_none(mocker, mock_github, test_evaluator, caplog):
+def test_unreadable_comments_skip_delete_at_comment_level_none(
+    mocker: MockerFixture, mock_github, test_evaluator, caplog
+):
     gen = PRCommentGenerator(mock_github, test_evaluator, _make_empty_evaluator(), pr_number=1)
     _configure_generator_for_comment_tests(gen, mocker, comment_level=CommentLevelEnum.NONE)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=True)
@@ -714,7 +721,9 @@ def test_unreadable_comments_skip_delete_at_comment_level_none(mocker, mock_gith
     assert "Could not read PR comments" in caplog.text
 
 
-def test_empty_comment_read_adds_comment_when_update_comment_enabled(mocker, mock_github, test_evaluator):
+def test_empty_comment_read_adds_comment_when_update_comment_enabled(
+    mocker: MockerFixture, mock_github, test_evaluator
+):
     gen = PRCommentGenerator(mock_github, test_evaluator, _make_empty_evaluator(), pr_number=1)
     _configure_generator_for_comment_tests(gen, mocker, comment_level=CommentLevelEnum.MINIMAL)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=True)
@@ -726,7 +735,7 @@ def test_empty_comment_read_adds_comment_when_update_comment_enabled(mocker, moc
     mock_github.update_comment.assert_not_called()
 
 
-def test_update_comment_disabled_appends_without_reading_comments(mocker, mock_github, test_evaluator):
+def test_update_comment_disabled_appends_without_reading_comments(mocker: MockerFixture, mock_github, test_evaluator):
     """With update-comment false each run appends a comment; no comment read is needed, so none is made."""
     gen = PRCommentGenerator(mock_github, test_evaluator, _make_empty_evaluator(), pr_number=1)
     _configure_generator_for_comment_tests(gen, mocker, comment_level=CommentLevelEnum.MINIMAL)
@@ -740,7 +749,9 @@ def test_update_comment_disabled_appends_without_reading_comments(mocker, mock_g
     mock_github.delete_comment.assert_not_called()
 
 
-def test_unreadable_second_page_posts_nothing_through_real_client(mocker, monkeypatch, test_evaluator, caplog):
+def test_unreadable_second_page_posts_nothing_through_real_client(
+    mocker: MockerFixture, monkeypatch, test_evaluator, caplog
+):
     """Page 1 full, page 2 fails: the real GitHub client returns None and generate sends no write request."""
     monkeypatch.setenv("GITHUB_REPOSITORY", "owner/repo")
     gen = PRCommentGenerator(mocker.Mock(), test_evaluator, _make_empty_evaluator(), pr_number=1)
@@ -762,7 +773,7 @@ def test_unreadable_second_page_posts_nothing_through_real_client(mocker, monkey
 @pytest.mark.parametrize("comment_level", [CommentLevelEnum.NONE, CommentLevelEnum.MINIMAL])
 @pytest.mark.parametrize("failing_page", [1, 2])
 def test_unreadable_read_through_real_client_sends_no_write(
-    mocker, monkeypatch, test_evaluator, caplog, failing_page, comment_level
+    mocker: MockerFixture, monkeypatch, test_evaluator, caplog, failing_page, comment_level
 ):
     """A failed page read through the real client sends only GET requests, at any failing page and comment level."""
     monkeypatch.setenv("GITHUB_REPOSITORY", "owner/repo")
@@ -790,7 +801,7 @@ def test_unreadable_read_through_real_client_sends_no_write(
 # --- generate() return value: True when no comment operation failed ---
 
 
-def test_generate_returns_true_for_none_without_update_comment(pr_comment_generator, mocker):
+def test_generate_returns_true_for_none_without_update_comment(pr_comment_generator, mocker: MockerFixture):
     _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="none")
 
     assert pr_comment_generator.generate() is True
@@ -798,7 +809,7 @@ def test_generate_returns_true_for_none_without_update_comment(pr_comment_genera
 
 
 @pytest.mark.parametrize("ok", [True, False])
-def test_generate_update_comment_false_returns_add_result(mocker, mock_github, test_evaluator, ok):
+def test_generate_update_comment_false_returns_add_result(mocker: MockerFixture, mock_github, test_evaluator, ok):
     gen = PRCommentGenerator(mock_github, test_evaluator, _make_empty_evaluator(), pr_number=1)
     _configure_generator_for_comment_tests(gen, mocker, comment_level=CommentLevelEnum.MINIMAL)
     mock_github.add_comment.return_value = ok
@@ -807,7 +818,7 @@ def test_generate_update_comment_false_returns_add_result(mocker, mock_github, t
     mock_github.get_comments.assert_not_called()
 
 
-def test_generate_returns_false_when_comments_unreadable(mocker, mock_github, test_evaluator, caplog):
+def test_generate_returns_false_when_comments_unreadable(mocker: MockerFixture, mock_github, test_evaluator, caplog):
     gen = PRCommentGenerator(mock_github, test_evaluator, _make_empty_evaluator(), pr_number=1)
     _configure_generator_for_comment_tests(gen, mocker, comment_level=CommentLevelEnum.MINIMAL)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=True)
@@ -818,7 +829,9 @@ def test_generate_returns_false_when_comments_unreadable(mocker, mock_github, te
 
 
 @pytest.mark.parametrize("ok", [True, False])
-def test_generate_none_level_returns_delete_result_for_existing_comment(mocker, mock_github, test_evaluator, ok):
+def test_generate_none_level_returns_delete_result_for_existing_comment(
+    mocker: MockerFixture, mock_github, test_evaluator, ok
+):
     gen = PRCommentGenerator(mock_github, test_evaluator, _make_empty_evaluator(), pr_number=1)
     _configure_generator_for_comment_tests(gen, mocker, comment_level=CommentLevelEnum.NONE)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=True)
@@ -828,7 +841,7 @@ def test_generate_none_level_returns_delete_result_for_existing_comment(mocker, 
     assert gen.generate() is ok
 
 
-def test_generate_none_level_returns_true_when_no_existing_comment(mocker, mock_github, test_evaluator):
+def test_generate_none_level_returns_true_when_no_existing_comment(mocker: MockerFixture, mock_github, test_evaluator):
     gen = PRCommentGenerator(mock_github, test_evaluator, _make_empty_evaluator(), pr_number=1)
     _configure_generator_for_comment_tests(gen, mocker, comment_level=CommentLevelEnum.NONE)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=True)
@@ -839,7 +852,7 @@ def test_generate_none_level_returns_true_when_no_existing_comment(mocker, mock_
 
 
 @pytest.mark.parametrize("ok", [True, False])
-def test_generate_returns_update_result_for_existing_comment(mocker, mock_github, test_evaluator, ok):
+def test_generate_returns_update_result_for_existing_comment(mocker: MockerFixture, mock_github, test_evaluator, ok):
     gen = PRCommentGenerator(mock_github, test_evaluator, _make_empty_evaluator(), pr_number=1)
     _configure_generator_for_comment_tests(gen, mocker, comment_level=CommentLevelEnum.MINIMAL)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=True)
@@ -851,7 +864,7 @@ def test_generate_returns_update_result_for_existing_comment(mocker, mock_github
 
 
 @pytest.mark.parametrize("ok", [True, False])
-def test_generate_returns_add_result_when_no_existing_comment(mocker, mock_github, test_evaluator, ok):
+def test_generate_returns_add_result_when_no_existing_comment(mocker: MockerFixture, mock_github, test_evaluator, ok):
     gen = PRCommentGenerator(mock_github, test_evaluator, _make_empty_evaluator(), pr_number=1)
     _configure_generator_for_comment_tests(gen, mocker, comment_level=CommentLevelEnum.MINIMAL)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_update_comment", return_value=True)
@@ -936,7 +949,7 @@ def test_generate_returns_add_result_when_no_existing_comment(mocker, mock_githu
 )
 def test_comment_level_final_pr_body_matrix(
     pr_comment_generator,
-    mocker,
+    mocker: MockerFixture,
     comment_level,
     expected_fragments,
     absent_fragments,
@@ -953,7 +966,7 @@ def test_comment_level_final_pr_body_matrix(
         assert fragment not in body
 
 
-def test_full_comment_contains_all_tables(pr_comment_generator, mocker):
+def test_full_comment_contains_all_tables(pr_comment_generator, mocker: MockerFixture):
     _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="full")
     pr_comment_generator.evaluator.evaluated_groups_coverage = {
         "backend": _make_evaluated_coverage("backend", changed_files={"src/Foo.java": 82.0})
@@ -975,7 +988,7 @@ def test_full_comment_contains_all_tables(pr_comment_generator, mocker):
     assert "| File Path |" in body
 
 
-def test_changed_filters_group_report_and_file_rows_without_changes(pr_comment_generator, mocker):
+def test_changed_filters_group_report_and_file_rows_without_changes(pr_comment_generator, mocker: MockerFixture):
     _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="changed")
     pr_comment_generator.evaluator.evaluated_groups_coverage = {
         "changed-group": _make_evaluated_coverage("changed-group", changed_files={"src/Foo.java": 82.0}),
@@ -996,7 +1009,7 @@ def test_changed_filters_group_report_and_file_rows_without_changes(pr_comment_g
     assert "[Foo.java]" in body
 
 
-def test_failed_filters_only_failing_rows(pr_comment_generator, mocker):
+def test_failed_filters_only_failing_rows(pr_comment_generator, mocker: MockerFixture):
     _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="failed")
     pr_comment_generator.evaluator.evaluated_groups_coverage = {
         "passing-group": _make_evaluated_coverage("passing-group", changed_files={"src/Foo.java": 82.0}),
@@ -1029,7 +1042,7 @@ def test_failed_filters_only_failing_rows(pr_comment_generator, mocker):
     assert "[Foo.java]" not in body
 
 
-def test_failed_or_changed_filters_union_of_rows(pr_comment_generator, mocker):
+def test_failed_or_changed_filters_union_of_rows(pr_comment_generator, mocker: MockerFixture):
     _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="failed-or-changed")
     pr_comment_generator.evaluator.evaluated_groups_coverage = {
         "changed-group": _make_evaluated_coverage("changed-group", changed_files={"src/Foo.java": 82.0}),
@@ -1062,7 +1075,9 @@ def test_failed_or_changed_filters_union_of_rows(pr_comment_generator, mocker):
 
 
 @pytest.mark.parametrize("comment_level", ["changed", "failed", "failed-or-changed"])
-def test_filtered_comment_levels_handle_empty_result_gracefully(pr_comment_generator, mocker, comment_level):
+def test_filtered_comment_levels_handle_empty_result_gracefully(
+    pr_comment_generator, mocker: MockerFixture, comment_level
+):
     _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level=comment_level)
     pr_comment_generator.evaluator.evaluated_groups_coverage = {
         "hidden-group": _make_evaluated_coverage("hidden-group", changed_files={})
@@ -1083,7 +1098,7 @@ def test_filtered_comment_levels_handle_empty_result_gracefully(pr_comment_gener
 @pytest.mark.parametrize("comment_level", ["changed", "failed", "failed-or-changed"])
 def test_filtered_comment_levels_empty_result_do_not_render_detail_table_headers(
     pr_comment_generator,
-    mocker,
+    mocker: MockerFixture,
     comment_level,
 ):
     _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level=comment_level)
@@ -1107,7 +1122,7 @@ def test_filtered_comment_levels_empty_result_do_not_render_detail_table_headers
 # --- skip_report_names row-filtering ---
 
 
-def test_skip_report_names_hides_specified_reports_from_rendered_rows(pr_comment_generator, mocker):
+def test_skip_report_names_hides_specified_reports_from_rendered_rows(pr_comment_generator, mocker: MockerFixture):
     _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="full")
     pr_comment_generator.evaluator.evaluated_groups_coverage = {}
     pr_comment_generator.evaluator.evaluated_reports_coverage = {
@@ -1123,7 +1138,7 @@ def test_skip_report_names_hides_specified_reports_from_rendered_rows(pr_comment
     assert "`unchanged-report`" not in body
 
 
-def test_skip_report_names_global_summary_still_shows_evaluator_totals(pr_comment_generator, mocker):
+def test_skip_report_names_global_summary_still_shows_evaluator_totals(pr_comment_generator, mocker: MockerFixture):
     _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="full")
     pr_comment_generator.evaluator.total_coverage_overall = 50.0
     pr_comment_generator.evaluator.total_coverage_overall_passed = False
@@ -1143,7 +1158,7 @@ def test_skip_report_names_global_summary_still_shows_evaluator_totals(pr_commen
     assert "`unchanged-report`" not in body
 
 
-def test_skip_report_names_empty_set_does_not_hide_any_reports(pr_comment_generator, mocker):
+def test_skip_report_names_empty_set_does_not_hide_any_reports(pr_comment_generator, mocker: MockerFixture):
     _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="full")
     pr_comment_generator.evaluator.evaluated_groups_coverage = {}
     pr_comment_generator.evaluator.evaluated_reports_coverage = {
@@ -1159,7 +1174,7 @@ def test_skip_report_names_empty_set_does_not_hide_any_reports(pr_comment_genera
     assert "`report-b`" in body
 
 
-def test_skip_report_names_hides_group_when_all_group_reports_are_skipped(pr_comment_generator, mocker):
+def test_skip_report_names_hides_group_when_all_group_reports_are_skipped(pr_comment_generator, mocker: MockerFixture):
     _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="full")
     # group "backend" has one report that is skipped; group "frontend" has one visible report
     pr_comment_generator.evaluator.evaluated_groups_coverage = {
@@ -1188,7 +1203,7 @@ def test_skip_report_names_hides_group_when_all_group_reports_are_skipped(pr_com
 GENERATED_BY_LINE = "*Generated by [MoranaApps/jacoco-report](https://github.com/MoranaApps/jacoco-report)"
 
 
-def test_metadata_footer_all_fields(pr_comment_generator, mocker):
+def test_metadata_footer_all_fields(pr_comment_generator, mocker: MockerFixture):
     _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="minimal")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_run_id", return_value="9876543210")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value="pull_request")
@@ -1208,7 +1223,7 @@ def test_metadata_footer_all_fields(pr_comment_generator, mocker):
     assert "Started:" not in body
 
 
-def test_metadata_footer_no_run_id(pr_comment_generator, mocker):
+def test_metadata_footer_no_run_id(pr_comment_generator, mocker: MockerFixture):
     _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="minimal")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_run_id", return_value="")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value="pull_request")
@@ -1222,7 +1237,7 @@ def test_metadata_footer_no_run_id(pr_comment_generator, mocker):
     assert "Run" not in body
 
 
-def test_metadata_footer_without_ref_has_no_version(pr_comment_generator, mocker):
+def test_metadata_footer_without_ref_has_no_version(pr_comment_generator, mocker: MockerFixture):
     _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="minimal")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_run_id", return_value="")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value="pull_request")
@@ -1235,7 +1250,7 @@ def test_metadata_footer_without_ref_has_no_version(pr_comment_generator, mocker
     assert body.endswith(f"---\n*Event: `pull_request`*\n{GENERATED_BY_LINE}*")
 
 
-def test_metadata_footer_all_empty_has_only_generated_by_line(pr_comment_generator, mocker):
+def test_metadata_footer_all_empty_has_only_generated_by_line(pr_comment_generator, mocker: MockerFixture):
     _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="minimal")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_run_id", return_value="")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value="")
@@ -1250,7 +1265,7 @@ def test_metadata_footer_all_empty_has_only_generated_by_line(pr_comment_generat
     assert "Event:" not in body
 
 
-def test_metadata_footer_run_id_without_repository(pr_comment_generator, mocker):
+def test_metadata_footer_run_id_without_repository(pr_comment_generator, mocker: MockerFixture):
     _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="minimal")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_run_id", return_value="42")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value="")
@@ -1265,7 +1280,7 @@ def test_metadata_footer_run_id_without_repository(pr_comment_generator, mocker)
     assert "actions/runs" not in body
 
 
-def test_metadata_footer_appended_to_comment_body(pr_comment_generator, mocker):
+def test_metadata_footer_appended_to_comment_body(pr_comment_generator, mocker: MockerFixture):
     _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="minimal")
     pr_comment_generator.github_repository = "owner/repo"
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_run_id", return_value="9876543210")
@@ -1280,7 +1295,7 @@ def test_metadata_footer_appended_to_comment_body(pr_comment_generator, mocker):
     assert f"{GENERATED_BY_LINE} `@v3.0.0`*" in body
 
 
-def test_metadata_footer_not_appended_for_none_level(pr_comment_generator, mocker):
+def test_metadata_footer_not_appended_for_none_level(pr_comment_generator, mocker: MockerFixture):
     _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="none")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_run_id", return_value="9876543210")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value="pull_request")
@@ -1449,7 +1464,9 @@ def test_custom_fail_symbol_in_changed_files_table(pr_comment_generator):
 # ---------------------------------------------------------------------------
 
 
-def test_baseline_report_matched_by_name(make_report_file_coverage, make_coverage, mocker, pr_comment_generator):
+def test_baseline_report_matched_by_name(
+    make_report_file_coverage, make_coverage, mocker: MockerFixture, pr_comment_generator
+):
     """Baseline delta for a report uses its name (title) as the match key."""
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
 
@@ -1485,7 +1502,7 @@ def test_baseline_report_matched_by_name(make_report_file_coverage, make_coverag
 
 
 def test_baseline_mismatched_name_yields_zero_delta(
-    make_report_file_coverage, make_coverage, mocker, pr_comment_generator
+    make_report_file_coverage, make_coverage, mocker: MockerFixture, pr_comment_generator
 ):
     """When the report name has no matching baseline entry, delta is 0.0."""
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
@@ -1516,7 +1533,7 @@ def test_baseline_mismatched_name_yields_zero_delta(
 # ---------------------------------------------------------------------------
 
 
-def test_title_change_creates_new_comment_orphans_old(mocker, mock_github, test_evaluator):
+def test_title_change_creates_new_comment_orphans_old(mocker: MockerFixture, mock_github, test_evaluator):
     """Changing title creates a new comment; the old comment with the previous title is not touched."""
     empty_bs = _make_empty_evaluator()
     gen = PRCommentGenerator(mock_github, test_evaluator, empty_bs, pr_number=1)
@@ -1537,7 +1554,7 @@ def test_title_change_creates_new_comment_orphans_old(mocker, mock_github, test_
 # ---------------------------------------------------------------------------
 
 
-def test_two_generators_with_different_titles_post_independently(mocker, mock_github):
+def test_two_generators_with_different_titles_post_independently(mocker: MockerFixture, mock_github):
     """Two PRCommentGenerators with distinct titles each post their own comment independently."""
     ev_a = CoverageEvaluator(
         report_files_coverage=[], global_min_coverage_overall=0.0, global_min_coverage_changed_files=0.0
@@ -1576,7 +1593,7 @@ def test_two_generators_with_different_titles_post_independently(mocker, mock_gi
 # ---------------------------------------------------------------------------
 
 
-def test_debug_flag_does_not_change_comment_body(mocker, mock_github, test_evaluator):
+def test_debug_flag_does_not_change_comment_body(mocker: MockerFixture, mock_github, test_evaluator):
     """Comment body is byte-for-byte identical whether get_debug() returns True or False."""
     empty_bs = _make_empty_evaluator()
 
@@ -1595,7 +1612,7 @@ def test_debug_flag_does_not_change_comment_body(mocker, mock_github, test_evalu
     assert body_false == body_true
 
 
-def test_debug_flag_not_consulted_during_generate(mocker, mock_github, test_evaluator):
+def test_debug_flag_not_consulted_during_generate(mocker: MockerFixture, mock_github, test_evaluator):
     """PRCommentGenerator.generate() never reads the debug flag."""
     empty_bs = _make_empty_evaluator()
     gen = PRCommentGenerator(mock_github, test_evaluator, empty_bs, pr_number=1)
@@ -1610,7 +1627,7 @@ def test_debug_flag_not_consulted_during_generate(mocker, mock_github, test_eval
 # ---------------------------------------------------------------------------
 
 
-def test_update_comment_false_appends_despite_matching_title(mocker, mock_github, test_evaluator):
+def test_update_comment_false_appends_despite_matching_title(mocker: MockerFixture, mock_github, test_evaluator):
     """update-comment=false causes add_comment to be called even when an existing comment matches the title."""
     empty_bs = _make_empty_evaluator()
     gen = PRCommentGenerator(mock_github, test_evaluator, empty_bs, pr_number=1)
@@ -1624,7 +1641,7 @@ def test_update_comment_false_appends_despite_matching_title(mocker, mock_github
 
 
 @pytest.mark.parametrize("level", [CommentLevelEnum.MINIMAL, CommentLevelEnum.FULL, CommentLevelEnum.CHANGED])
-def test_update_comment_false_appends_across_comment_levels(mocker, mock_github, test_evaluator, level):
+def test_update_comment_false_appends_across_comment_levels(mocker: MockerFixture, mock_github, test_evaluator, level):
     """update-comment=false appends a new comment for every comment level that posts content."""
     empty_bs = _make_empty_evaluator()
     gen = PRCommentGenerator(mock_github, test_evaluator, empty_bs, pr_number=1)
@@ -1642,7 +1659,7 @@ def test_update_comment_false_appends_across_comment_levels(mocker, mock_github,
 # ---------------------------------------------------------------------------
 
 
-def test_title_identity_key_does_not_match_different_title(mocker, mock_github, test_evaluator):
+def test_title_identity_key_does_not_match_different_title(mocker: MockerFixture, mock_github, test_evaluator):
     """Generator with 'New JaCoCo' title does not update a comment that starts with 'Old JaCoCo'."""
     empty_bs = _make_empty_evaluator()
     gen = PRCommentGenerator(mock_github, test_evaluator, empty_bs, pr_number=1)
@@ -1657,7 +1674,7 @@ def test_title_identity_key_does_not_match_different_title(mocker, mock_github, 
     mock_github.add_comment.assert_called_once()
 
 
-def test_title_identity_key_matches_correct_comment(mocker, mock_github, test_evaluator):
+def test_title_identity_key_matches_correct_comment(mocker: MockerFixture, mock_github, test_evaluator):
     """Generator with 'JaCoCo' title DOES update the comment that starts with '**JaCoCo**'."""
     empty_bs = _make_empty_evaluator()
     gen = PRCommentGenerator(mock_github, test_evaluator, empty_bs, pr_number=1)
@@ -1675,7 +1692,7 @@ def test_title_identity_key_matches_correct_comment(mocker, mock_github, test_ev
 # ---------------------------------------------------------------------------
 
 
-def test_no_warning_all_reports_grouped(mocker, mock_github, test_evaluator):
+def test_no_warning_all_reports_grouped(mocker: MockerFixture, mock_github, test_evaluator):
     """No warning when all reports are matched to groups."""
     gen = PRCommentGenerator(mock_github, test_evaluator, None, pr_number=1, ungrouped_reports=[])
     _configure_generator_for_comment_tests(gen, mocker, comment_level=CommentLevelEnum.FULL)
@@ -1687,7 +1704,7 @@ def test_no_warning_all_reports_grouped(mocker, mock_github, test_evaluator):
     assert "not assigned to any group" not in body
 
 
-def test_warning_one_ungrouped_report(mocker, mock_github, test_evaluator):
+def test_warning_one_ungrouped_report(mocker: MockerFixture, mock_github, test_evaluator):
     """Warning section appears when 1 report is unmatched."""
     gen = PRCommentGenerator(
         mock_github, test_evaluator, None, pr_number=1, ungrouped_reports=["infra/target/jacoco.xml"]
@@ -1702,7 +1719,7 @@ def test_warning_one_ungrouped_report(mocker, mock_github, test_evaluator):
     assert "infra/target/jacoco.xml" in body
 
 
-def test_warning_multiple_ungrouped(mocker, mock_github, test_evaluator):
+def test_warning_multiple_ungrouped(mocker: MockerFixture, mock_github, test_evaluator):
     """Warning section lists all ungrouped reports."""
     ungrouped = ["infra/target/jacoco.xml", "tests/target/jacoco.xml"]
     gen = PRCommentGenerator(mock_github, test_evaluator, None, pr_number=1, ungrouped_reports=ungrouped)
@@ -1715,7 +1732,7 @@ def test_warning_multiple_ungrouped(mocker, mock_github, test_evaluator):
     assert "tests/target/jacoco.xml" in body
 
 
-def test_no_warning_empty_ungrouped_list(mocker, mock_github, test_evaluator):
+def test_no_warning_empty_ungrouped_list(mocker: MockerFixture, mock_github, test_evaluator):
     """No warning when ungrouped_reports list is empty."""
     gen = PRCommentGenerator(mock_github, test_evaluator, None, pr_number=1, ungrouped_reports=[])
     _configure_generator_for_comment_tests(gen, mocker, comment_level=CommentLevelEnum.FULL)
@@ -1736,7 +1753,7 @@ def test_server_url_defaults_to_github_com_when_unset(mock_github, test_evaluato
     assert generator.github_server_url == "https://github.com"
 
 
-def test_run_link_uses_server_url(mock_github, test_evaluator, mocker, monkeypatch):
+def test_run_link_uses_server_url(mock_github, test_evaluator, mocker: MockerFixture, monkeypatch):
     monkeypatch.setenv("GITHUB_SERVER_URL", "https://ghes.example.com")
     generator = PRCommentGenerator(mock_github, test_evaluator, None, 1)
     _configure_generator_for_comment_tests(generator, mocker, comment_level="minimal")
@@ -1753,7 +1770,7 @@ def test_run_link_uses_server_url(mock_github, test_evaluator, mocker, monkeypat
     assert GENERATED_BY_LINE in body
 
 
-def test_changed_file_link_uses_server_url(mock_github, test_evaluator, mocker, monkeypatch):
+def test_changed_file_link_uses_server_url(mock_github, test_evaluator, mocker: MockerFixture, monkeypatch):
     monkeypatch.setenv("GITHUB_SERVER_URL", "https://ghes.example.com")
     generator = PRCommentGenerator(mock_github, test_evaluator, None, 1)
     generator.github_repository = "owner/repo"
@@ -1800,7 +1817,7 @@ def _count_table_rows(body):
     return len(_table_row_lines(body))
 
 
-def test_comment_over_real_limit_is_cut_to_fit(pr_comment_generator, mocker, monkeypatch):
+def test_comment_over_real_limit_is_cut_to_fit(pr_comment_generator, mocker: MockerFixture, monkeypatch):
     """Real-limit fixture: the body is over 65,536 characters without the cut, and fits with it."""
     monkeypatch.setattr("jacoco_report.generator.pr_comment_generator.MAX_COMMENT_LENGTH", 10**9)
     _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="full")
@@ -1828,7 +1845,7 @@ def test_comment_over_real_limit_is_cut_to_fit(pr_comment_generator, mocker, mon
             assert line.endswith("|")
 
 
-def test_cut_body_keeps_only_whole_table_rows_and_headers_with_rows(pr_comment_generator, mocker):
+def test_cut_body_keeps_only_whole_table_rows_and_headers_with_rows(pr_comment_generator, mocker: MockerFixture):
     """A cut table keeps its header and at least one row, and the rows are the first ones in document order."""
     _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="full")
     _populate_large_evaluator(pr_comment_generator)
@@ -1849,7 +1866,9 @@ def _has_row_after_header(body, header_start):
     return True
 
 
-def test_omitted_rows_are_logged_with_their_table_header(pr_comment_generator, mocker, monkeypatch, caplog):
+def test_omitted_rows_are_logged_with_their_table_header(
+    pr_comment_generator, mocker: MockerFixture, monkeypatch, caplog
+):
     """Every row cut from the comment is in the job log, with its table header.
 
     Rows are compared as whole lines: each changed-file row carries its report's path in its diff link, so no two
@@ -1876,7 +1895,9 @@ def test_omitted_rows_are_logged_with_their_table_header(pr_comment_generator, m
     assert "| File Path | Coverage | Threshold | Status |" in caplog.text
 
 
-def test_body_exactly_at_limit_is_unchanged_and_one_over_is_cut(pr_comment_generator, mocker, monkeypatch):
+def test_body_exactly_at_limit_is_unchanged_and_one_over_is_cut(
+    pr_comment_generator, mocker: MockerFixture, monkeypatch
+):
     """The limit is inclusive: a body of exactly MAX_COMMENT_LENGTH characters is not cut."""
     _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="full")
     _populate_large_evaluator(pr_comment_generator)
@@ -1894,7 +1915,7 @@ def test_body_exactly_at_limit_is_unchanged_and_one_over_is_cut(pr_comment_gener
     assert over_limit.startswith("**JaCoCo**")
 
 
-def test_table_with_all_rows_omitted_leaves_no_header(pr_comment_generator, mocker, monkeypatch):
+def test_table_with_all_rows_omitted_leaves_no_header(pr_comment_generator, mocker: MockerFixture, monkeypatch):
     """When the changed-files rows do not fit at all, their table disappears instead of keeping a bare header."""
     _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="full")
     _populate_large_evaluator(pr_comment_generator)
@@ -1914,7 +1935,7 @@ def test_table_with_all_rows_omitted_leaves_no_header(pr_comment_generator, mock
     assert "| File Path |" not in body
 
 
-def test_last_resort_cuts_body_to_limit_and_keeps_title(pr_comment_generator, mocker, caplog):
+def test_last_resort_cuts_body_to_limit_and_keeps_title(pr_comment_generator, mocker: MockerFixture, caplog):
     """When the title alone is over the limit, nothing can be cut: the body is cut to the limit, the title stays."""
     _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="full")
     _populate_large_evaluator(pr_comment_generator)
@@ -1928,7 +1949,9 @@ def test_last_resort_cuts_body_to_limit_and_keeps_title(pr_comment_generator, mo
     assert "still over the limit without its table rows" in caplog.text
 
 
-def test_line_breaks_in_names_keep_rows_whole_and_cut_at_row_boundaries(pr_comment_generator, mocker, monkeypatch):
+def test_line_breaks_in_names_keep_rows_whole_and_cut_at_row_boundaries(
+    pr_comment_generator, mocker: MockerFixture, monkeypatch
+):
     """A line break in a changed-file or report name renders as a space, so the table still cuts at row boundaries."""
     _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="full")
     _populate_large_evaluator(pr_comment_generator)
@@ -1954,7 +1977,9 @@ def test_line_breaks_in_names_keep_rows_whole_and_cut_at_row_boundaries(pr_comme
         assert line.endswith("|")
 
 
-def test_ungrouped_list_is_cut_by_items_and_keeps_its_frame(pr_comment_generator, mocker, monkeypatch, caplog):
+def test_ungrouped_list_is_cut_by_items_and_keeps_its_frame(
+    pr_comment_generator, mocker: MockerFixture, monkeypatch, caplog
+):
     """An oversized ungrouped-reports list loses items first; the frame, every table row and the footer stay."""
     _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="full")
     pr_comment_generator.evaluator.evaluated_groups_coverage = {}
@@ -1987,7 +2012,7 @@ def test_ungrouped_list_is_cut_by_items_and_keeps_its_frame(pr_comment_generator
             assert f"- `{name}`" in caplog.text
 
 
-def test_cut_body_works_with_baseline_changed_files_table(pr_comment_generator, mocker, monkeypatch):
+def test_cut_body_works_with_baseline_changed_files_table(pr_comment_generator, mocker: MockerFixture, monkeypatch):
     """The baseline variant of the changed-files table (with the delta column) is cut the same way."""
     _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="full")
     _populate_large_evaluator(pr_comment_generator)
@@ -2004,3 +2029,227 @@ def test_cut_body_works_with_baseline_changed_files_table(pr_comment_generator, 
     assert "| File Path | Coverage | Threshold | Δ Coverage | Status |" in body
     assert _has_row_after_header(body, "| File Path | Coverage | Threshold | Δ Coverage | Status |")
     assert "see the job log" in body
+
+
+def _dropped_api_generator(mock_github, mocker: MockerFixture, *, comment_level, fail_on_threshold):
+    """A generator whose report `api` (in group `backend`) passes its fixed threshold but dropped against the baseline.
+
+    Coverage falls from 90 % to 80 % with missed instructions growing from 10 to 20.
+    """
+    api = _make_evaluated_coverage("api", group_name="backend", overall_coverage=80.0)
+    api.overall_coverage = Counter(20, 80)
+    baseline_api = _make_evaluated_coverage("api", group_name="backend", overall_coverage=90.0)
+    baseline_api.overall_coverage = Counter(10, 90)
+    evaluator = CoverageEvaluator(
+        report_files_coverage=[], global_min_coverage_overall=75.0, global_min_coverage_changed_files=70.0
+    )
+    evaluator.total_coverage_overall = 80.0
+    evaluator.total_coverage_overall_passed = True
+    evaluator.evaluated_reports_coverage = {"api": api}
+    evaluator.evaluated_groups_coverage = {"backend": _make_evaluated_coverage("backend", overall_coverage=80.0)}
+    bs_evaluator = CoverageEvaluator(
+        report_files_coverage=[], global_min_coverage_overall=75.0, global_min_coverage_changed_files=70.0
+    )
+    bs_evaluator.evaluated_reports_coverage = {"api": baseline_api}
+    bs_evaluator.evaluated_groups_coverage = {"backend": _make_evaluated_coverage("backend", overall_coverage=90.0)}
+
+    gen = PRCommentGenerator(mock_github, evaluator, bs_evaluator, 1)
+    _configure_generator_for_comment_tests(gen, mocker, comment_level=comment_level)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_fail_on_threshold", return_value=fail_on_threshold)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_max_decrease", return_value=0.0)
+    return gen
+
+
+def test_failed_level_renders_a_report_that_dropped_under_no_decrease(mock_github, mocker: MockerFixture):
+    gen = _dropped_api_generator(
+        mock_github, mocker, comment_level=CommentLevelEnum.FAILED, fail_on_threshold=["no-decrease"]
+    )
+
+    gen.generate()
+
+    body = mock_github.add_comment.call_args[0][1]
+    assert "`api`" in body
+    assert "No rows match the selected comment level." not in body
+
+
+def test_failed_level_hides_the_dropped_report_without_no_decrease(mock_github, mocker: MockerFixture):
+    gen = _dropped_api_generator(
+        mock_github, mocker, comment_level=CommentLevelEnum.FAILED, fail_on_threshold=["overall"]
+    )
+
+    gen.generate()
+
+    body = mock_github.add_comment.call_args[0][1]
+    assert "`api`" not in body
+    assert "No rows match the selected comment level." in body
+
+
+def test_without_no_decrease_the_max_decrease_input_is_not_read(mock_github, mocker: MockerFixture):
+    gen = _dropped_api_generator(
+        mock_github, mocker, comment_level=CommentLevelEnum.FAILED, fail_on_threshold=["overall"]
+    )
+    max_decrease = mocker.patch("jacoco_report.action_inputs.ActionInputs.get_max_decrease", return_value=0.0)
+
+    gen.generate()
+
+    max_decrease.assert_not_called()
+
+
+def test_failed_level_renders_a_group_that_dropped_under_no_decrease(mock_github, mocker: MockerFixture):
+    gen = _dropped_api_generator(
+        mock_github, mocker, comment_level=CommentLevelEnum.FAILED, fail_on_threshold=["no-decrease"]
+    )
+
+    gen.generate()
+
+    assert "`backend`" in mock_github.add_comment.call_args[0][1]
+
+
+def test_failed_or_changed_level_renders_a_dropped_report_without_changed_files(mock_github, mocker: MockerFixture):
+    gen = _dropped_api_generator(
+        mock_github, mocker, comment_level=CommentLevelEnum.FAILED_OR_CHANGED, fail_on_threshold=["no-decrease"]
+    )
+
+    gen.generate()
+
+    assert "`api`" in mock_github.add_comment.call_args[0][1]
+
+
+def _zero_weight_generator(
+    mock_github,
+    mocker: MockerFixture,
+    *,
+    comment_level,
+    fail_on_threshold,
+    overall_passed=True,
+    current=(20, 80),
+    baseline=(10, 90),
+    group_passed=True,
+):
+    """A generator whose report `api` (group `backend`) has changed files with zero weight for the selected metric.
+
+    `current` and `baseline` are (missed, covered) overall counters; the fixed overall result is `overall_passed`.
+    """
+    api = _make_evaluated_coverage("api", group_name="backend", overall_passed=overall_passed)
+    api.overall_coverage = Counter(*current)
+    api.overall_coverage_reached = api.overall_coverage.coverage()
+    api.had_changed_files_before_filtering = True
+    api.avg_changed_files_coverage_reached = 0.0
+    baseline_api = _make_evaluated_coverage("api", group_name="backend")
+    baseline_api.overall_coverage = Counter(*baseline)
+    baseline_api.overall_coverage_reached = baseline_api.overall_coverage.coverage()
+    baseline_api.avg_changed_files_coverage_reached = 0.0
+    group = _make_evaluated_coverage("backend", overall_passed=group_passed, overall_coverage=80.0)
+    group.had_changed_files_before_filtering = True
+    group.avg_changed_files_coverage_reached = 0.0
+
+    evaluator = CoverageEvaluator(
+        report_files_coverage=[], global_min_coverage_overall=75.0, global_min_coverage_changed_files=70.0
+    )
+    evaluator.total_coverage_overall = 80.0
+    evaluator.total_coverage_overall_passed = True
+    evaluator.total_coverage_changed_files = 0.0
+    evaluator.total_coverage_changed_files_passed = True
+    evaluator.evaluated_reports_coverage = {"api": api}
+    evaluator.evaluated_groups_coverage = {"backend": group}
+    bs_evaluator = CoverageEvaluator(
+        report_files_coverage=[], global_min_coverage_overall=75.0, global_min_coverage_changed_files=70.0
+    )
+    bs_evaluator.evaluated_reports_coverage = {"api": baseline_api}
+    bs_evaluator.evaluated_groups_coverage = {"backend": _make_evaluated_coverage("backend", overall_coverage=90.0)}
+
+    gen = PRCommentGenerator(mock_github, evaluator, bs_evaluator, 1)
+    _configure_generator_for_comment_tests(gen, mocker, comment_level=comment_level)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_fail_on_threshold", return_value=fail_on_threshold)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_max_decrease", return_value=0.0)
+    return gen
+
+
+def test_full_level_shows_a_zero_weight_report_that_fails_its_threshold(mock_github, mocker: MockerFixture):
+    gen = _zero_weight_generator(
+        mock_github,
+        mocker,
+        comment_level=CommentLevelEnum.FULL,
+        fail_on_threshold=["overall"],
+        overall_passed=False,
+        current=(40, 60),
+        baseline=(40, 60),
+    )
+
+    gen.generate()
+
+    assert "`api`" in mock_github.add_comment.call_args[0][1]
+
+
+def test_full_level_shows_a_zero_weight_group_that_fails_its_threshold(mock_github, mocker: MockerFixture):
+    gen = _zero_weight_generator(
+        mock_github,
+        mocker,
+        comment_level=CommentLevelEnum.FULL,
+        fail_on_threshold=["overall"],
+        overall_passed=True,
+        current=(10, 90),
+        baseline=(10, 90),
+        group_passed=False,
+    )
+
+    gen.generate()
+
+    assert "`backend`" in mock_github.add_comment.call_args[0][1]
+
+
+@pytest.mark.parametrize(
+    "comment_level",
+    [CommentLevelEnum.FULL, CommentLevelEnum.FAILED, CommentLevelEnum.FAILED_OR_CHANGED],
+)
+def test_no_decrease_shows_a_zero_weight_report_that_dropped(mock_github, mocker: MockerFixture, comment_level):
+    """The fixed threshold passes (80 % >= 75 %), but the missed count grew from 10 to 20: a drop."""
+    gen = _zero_weight_generator(mock_github, mocker, comment_level=comment_level, fail_on_threshold=["no-decrease"])
+
+    gen.generate()
+
+    assert "`api`" in mock_github.add_comment.call_args[0][1]
+
+
+def test_zero_weight_report_that_passes_everything_stays_hidden(mock_github, mocker: MockerFixture):
+    gen = _zero_weight_generator(
+        mock_github,
+        mocker,
+        comment_level=CommentLevelEnum.FULL,
+        fail_on_threshold=["no-decrease"],
+        current=(10, 90),
+        baseline=(10, 90),
+    )
+
+    gen.generate()
+
+    body = mock_github.add_comment.call_args[0][1]
+    assert "`api`" not in body
+    assert "`backend`" not in body
+
+
+def test_changed_level_shows_a_zero_weight_report_that_fails_its_threshold(mock_github, mocker: MockerFixture):
+    """A zero-weight row had changed files, so the changed level counts it as a row with changed files."""
+    gen = _zero_weight_generator(
+        mock_github,
+        mocker,
+        comment_level=CommentLevelEnum.CHANGED,
+        fail_on_threshold=["overall"],
+        overall_passed=False,
+        current=(40, 60),
+        baseline=(40, 60),
+    )
+
+    gen.generate()
+
+    assert "`api`" in mock_github.add_comment.call_args[0][1]
+
+
+def test_changed_level_keeps_a_zero_weight_report_that_passes_hidden(mock_github, mocker: MockerFixture):
+    gen = _zero_weight_generator(
+        mock_github, mocker, comment_level=CommentLevelEnum.CHANGED, fail_on_threshold=["overall"]
+    )
+
+    gen.generate()
+
+    assert "`api`" not in mock_github.add_comment.call_args[0][1]

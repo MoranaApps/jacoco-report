@@ -1,4 +1,5 @@
-from typing import Optional
+import logging
+from typing import Collection, Optional
 
 import pytest
 
@@ -207,3 +208,292 @@ def test_group_delta_matches_reports_by_name_when_no_path_matches():
 
 def test_coverage_delta_serializes_to_a_json_object():
     assert CoverageDelta(1.5, -0.25).to_dict() == {"overall": 1.5, "changed_files": -0.25}
+
+
+# --- no_decrease_violations ---
+
+NO_BASELINE = (
+    "'no-decrease' needs a baseline, but no baseline report was found. "
+    "Set 'baseline-paths' to the JaCoCo reports of the base branch."
+)
+NO_MATCH = (
+    "'no-decrease' found baseline reports, but none matches a current report by path or report name, "
+    "so no coverage drop could be checked."
+)
+
+
+def _no_decrease(
+    reports: list[EvaluatedReportCoverage],
+    bs: Optional[CoverageEvaluator],
+    groups: Optional[list[EvaluatedReportCoverage]] = None,
+    max_decrease: float = 0.0,
+    unchanged: Collection[EvaluatedReportCoverage] = (),
+    evidence: Collection[EvaluatedReportCoverage] = (),
+) -> list[str]:
+    return BaselineComparison(_evaluator(reports, groups), bs).no_decrease_violations(max_decrease, unchanged, evidence)
+
+
+def test_no_decrease_passes_when_coverage_rises():
+    curr = _erc("A", (10, 90), path="a.xml")
+    bs = _evaluator([_erc("A", (20, 80), path="a.xml")])
+
+    assert _no_decrease([curr], bs) == []
+
+
+def test_no_decrease_reports_the_global_and_the_report_drop():
+    curr = _erc("A", (30, 70), path="a.xml")
+    bs = _evaluator([_erc("A", (20, 80), path="a.xml")])
+
+    assert _no_decrease([curr], bs) == [
+        "Global overall coverage dropped from 80.0 to 70.0 (-10.0 percentage points) against the baseline, "
+        "more than 'max-decrease' 0.0.",
+        "Report 'A' overall coverage dropped from 80.0 to 70.0 (-10.0 percentage points) against the baseline, "
+        "more than 'max-decrease' 0.0.",
+    ]
+
+
+@pytest.mark.parametrize(
+    "max_decrease, violated",
+    [
+        pytest.param(9.99, True, id="drop-above-tolerance"),
+        pytest.param(10.0, False, id="drop-equal-to-tolerance"),
+        pytest.param(10.5, False, id="drop-below-tolerance"),
+    ],
+)
+def test_no_decrease_tolerates_a_drop_up_to_max_decrease(max_decrease, violated):
+    curr = _erc("A", (30, 70), path="a.xml")
+    bs = _evaluator([_erc("A", (20, 80), path="a.xml")])
+
+    assert bool(_no_decrease([curr], bs, max_decrease=max_decrease)) is violated
+
+
+def test_no_decrease_passes_when_only_covered_code_was_deleted():
+    # Coverage falls from 80 % to 75 %, but the missed count stays at 20: nothing new is left uncovered.
+    curr = _erc("A", (20, 60), path="a.xml")
+    bs = _evaluator([_erc("A", (20, 80), path="a.xml")])
+
+    assert _no_decrease([curr], bs) == []
+
+
+def test_no_decrease_does_not_gate_the_changed_files_coverage():
+    curr = _erc("A", (10, 90), (50, 50), path="a.xml")
+    bs = _evaluator([_erc("A", (20, 80), (0, 100), path="a.xml")])
+
+    assert _no_decrease([curr], bs) == []
+
+
+def test_no_decrease_without_baseline_gives_one_violation():
+    curr = _erc("A", (30, 70), path="a.xml")
+
+    assert _no_decrease([curr], None) == [NO_BASELINE]
+    assert _no_decrease([curr], _evaluator([])) == [NO_BASELINE]
+
+
+def test_no_decrease_with_baseline_but_no_matched_report_gives_one_violation():
+    curr = _erc("A", (30, 70), path="a.xml")
+    bs = _evaluator([_erc("B", (20, 80), path="b.xml")])
+
+    assert _no_decrease([curr], bs) == [NO_MATCH]
+
+
+def test_no_decrease_skips_a_report_without_baseline_and_logs_it(caplog):
+    curr_a = _erc("A", (30, 70), path="a.xml")
+    curr_b = _erc("B", (50, 50), path="b.xml")
+    bs = _evaluator([_erc("A", (20, 80), path="a.xml")])
+    caplog.set_level(logging.INFO, logger="jacoco_report.evaluator.baseline_comparison")
+
+    # Global: 80/120 = 60 % now; the baseline swaps A back and keeps B unchanged: 70/130 = 65 %.
+    assert _no_decrease([curr_a, curr_b], bs) == [
+        "Global overall coverage dropped from 65.0 to 60.0 (-5.0 percentage points) against the baseline, "
+        "more than 'max-decrease' 0.0.",
+        "Report 'A' overall coverage dropped from 80.0 to 70.0 (-10.0 percentage points) against the baseline, "
+        "more than 'max-decrease' 0.0.",
+    ]
+    assert "Report 'B' has no matching baseline report, skipped by 'no-decrease'." in caplog.text
+
+
+def test_no_decrease_skips_a_group_without_baseline_and_checks_the_others(caplog):
+    curr_a = _erc("A", (30, 70), path="a.xml", group_name="g")
+    curr_b = _erc("B", (50, 50), path="b.xml", group_name="h")
+    group_g = _erc("g", (30, 70), group_name="g")
+    group_h = _erc("h", (50, 50), group_name="h")
+    bs = _evaluator(
+        [_erc("A", (20, 80), path="a.xml", group_name="g"), _erc("B", (50, 50), path="b.xml", group_name="h")],
+        [_erc("g", (20, 80), group_name="g")],
+    )
+    caplog.set_level(logging.INFO, logger="jacoco_report.evaluator.baseline_comparison")
+
+    assert _no_decrease([curr_a, curr_b], bs, groups=[group_g, group_h]) == [
+        "Global overall coverage dropped from 65.0 to 60.0 (-5.0 percentage points) against the baseline, "
+        "more than 'max-decrease' 0.0.",
+        "Group 'g' overall coverage dropped from 80.0 to 70.0 (-10.0 percentage points) against the baseline, "
+        "more than 'max-decrease' 0.0.",
+        "Report 'A' overall coverage dropped from 80.0 to 70.0 (-10.0 percentage points) against the baseline, "
+        "more than 'max-decrease' 0.0.",
+    ]
+    assert "Group 'h' has no matching baseline group or report, skipped by 'no-decrease'." in caplog.text
+
+
+def test_no_decrease_checks_an_unchanged_report_after_the_regular_rows():
+    curr_a = _erc("A", (30, 70), path="a.xml")
+    unchanged_u = _erc("U", (30, 70), path="u.xml")
+    bs = _evaluator([_erc("A", (20, 80), path="a.xml"), _erc("U", (20, 80), path="u.xml")])
+
+    assert _no_decrease([curr_a], bs, unchanged=[unchanged_u]) == [
+        "Global overall coverage dropped from 80.0 to 70.0 (-10.0 percentage points) against the baseline, "
+        "more than 'max-decrease' 0.0.",
+        "Report 'A' overall coverage dropped from 80.0 to 70.0 (-10.0 percentage points) against the baseline, "
+        "more than 'max-decrease' 0.0.",
+        "Report 'U' overall coverage dropped from 80.0 to 70.0 (-10.0 percentage points) against the baseline, "
+        "more than 'max-decrease' 0.0.",
+    ]
+
+
+def test_no_decrease_unchanged_report_without_match_is_skipped_and_logged(caplog):
+    curr_a = _erc("A", (20, 80), path="a.xml")
+    unchanged_u = _erc("U", (30, 70), path="u.xml")
+    bs = _evaluator([_erc("A", (20, 80), path="a.xml")])
+    caplog.set_level(logging.INFO, logger="jacoco_report.evaluator.baseline_comparison")
+
+    assert _no_decrease([curr_a], bs, unchanged=[unchanged_u]) == []
+    assert "Report 'U' has no matching baseline report, skipped by 'no-decrease'." in caplog.text
+
+
+def test_no_decrease_only_unchanged_reports_match_skips_the_global_row_with_a_log(caplog):
+    curr_a = _erc("A", (30, 70), path="a.xml")
+    unchanged_u = _erc("U", (30, 70), path="u.xml")
+    bs = _evaluator([_erc("U", (20, 80), path="u.xml")])
+    caplog.set_level(logging.INFO, logger="jacoco_report.evaluator.baseline_comparison")
+
+    assert _no_decrease([curr_a], bs, unchanged=[unchanged_u]) == [
+        "Report 'U' overall coverage dropped from 80.0 to 70.0 (-10.0 percentage points) against the baseline, "
+        "more than 'max-decrease' 0.0.",
+    ]
+    assert "Global overall coverage has no matching baseline report, skipped by 'no-decrease'." in caplog.text
+    assert "Report 'A' has no matching baseline report, skipped by 'no-decrease'." in caplog.text
+
+
+def test_no_decrease_no_match_stays_one_violation_when_unchanged_reports_do_not_match():
+    curr_a = _erc("A", (30, 70), path="a.xml")
+    unchanged_u = _erc("U", (30, 70), path="u.xml")
+    bs = _evaluator([_erc("B", (20, 80), path="b.xml")])
+
+    assert _no_decrease([curr_a], bs, unchanged=[unchanged_u]) == [NO_MATCH]
+
+
+def test_no_decrease_match_evidence_prevents_no_match_and_skips_the_global_row(caplog):
+    # A new module: its report has no baseline, the matching report is filtered out of the evaluator.
+    new_module = _erc("New", (30, 70), path="new.xml")
+    filtered_core = _erc("Core", (20, 80), path="core.xml")
+    bs = _evaluator([_erc("Core", (20, 80), path="core.xml")])
+    caplog.set_level(logging.INFO, logger="jacoco_report.evaluator.baseline_comparison")
+
+    assert _no_decrease([new_module], bs, evidence=[filtered_core]) == []
+    assert "Global overall coverage has no matching baseline report, skipped by 'no-decrease'." in caplog.text
+    assert "Report 'New' has no matching baseline report, skipped by 'no-decrease'." in caplog.text
+
+
+def test_no_decrease_match_evidence_is_never_reported_even_when_it_dropped():
+    new_module = _erc("New", (30, 70), path="new.xml")
+    filtered_core = _erc("Core", (30, 70), path="core.xml")
+    bs = _evaluator([_erc("Core", (20, 80), path="core.xml")])
+
+    assert _no_decrease([new_module], bs, evidence=[filtered_core]) == []
+
+
+def test_no_decrease_no_match_anywhere_is_still_no_match_with_evidence_that_does_not_match():
+    new_module = _erc("New", (30, 70), path="new.xml")
+    filtered_core = _erc("Core", (30, 70), path="core.xml")
+    bs = _evaluator([_erc("B", (20, 80), path="b.xml")])
+
+    assert _no_decrease([new_module], bs, evidence=[filtered_core]) == [NO_MATCH]
+
+
+def test_no_decrease_without_aggregate_rows_checks_only_the_report_rows(caplog):
+    # Reports A and B are unchanged in coverage, but the global coverage fell because B grew: only report rows count.
+    curr_a = _erc("A", (10, 90), path="a.xml")
+    curr_b = _erc("B", (180, 20), path="b.xml")
+    bs = _evaluator([_erc("A", (10, 90), path="a.xml"), _erc("B", (90, 10), path="b.xml")])
+    caplog.set_level(logging.INFO, logger="jacoco_report.evaluator.baseline_comparison")
+
+    assert (
+        BaselineComparison(_evaluator([curr_a, curr_b]), bs).no_decrease_violations(0.0, include_aggregate_rows=False)
+        == []
+    )
+    assert "Global overall coverage" not in caplog.text
+
+
+def test_no_decrease_without_aggregate_rows_still_checks_a_report_drop():
+    curr_a = _erc("A", (30, 70), path="a.xml")
+    bs = _evaluator([_erc("A", (20, 80), path="a.xml")])
+
+    assert BaselineComparison(_evaluator([curr_a]), bs).no_decrease_violations(0.0, include_aggregate_rows=False) == [
+        "Report 'A' overall coverage dropped from 80.0 to 70.0 (-10.0 percentage points) against the baseline, "
+        "more than 'max-decrease' 0.0."
+    ]
+
+
+def test_no_decrease_without_aggregate_rows_still_gives_no_match_when_nothing_matches():
+    curr_a = _erc("A", (30, 70), path="a.xml")
+    bs = _evaluator([_erc("B", (20, 80), path="b.xml")])
+
+    assert BaselineComparison(_evaluator([curr_a]), bs).no_decrease_violations(0.0, include_aggregate_rows=False) == [
+        NO_MATCH
+    ]
+
+
+# --- report_dropped and group_dropped ---
+
+
+@pytest.mark.parametrize(
+    "current, baseline, max_decrease, dropped",
+    [
+        pytest.param((30, 70), (20, 80), 0.0, True, id="drop-above-tolerance"),
+        pytest.param((30, 70), (20, 80), 10.0, False, id="drop-within-tolerance"),
+        pytest.param((20, 60), (20, 80), 0.0, False, id="covered-code-deleted-missed-not-grown"),
+        pytest.param((10, 90), (20, 80), 0.0, False, id="rise"),
+    ],
+)
+def test_report_dropped_follows_the_no_decrease_rule(current, baseline, max_decrease, dropped):
+    curr = _erc("A", current, path="a.xml")
+    bs = _evaluator([_erc("A", baseline, path="a.xml")])
+
+    assert BaselineComparison(_evaluator([curr]), bs).report_dropped(curr, max_decrease) is dropped
+
+
+def test_report_dropped_is_false_without_a_matching_baseline_report():
+    curr = _erc("A", (30, 70), path="a.xml")
+    bs = _evaluator([_erc("B", (20, 80), path="b.xml")])
+
+    assert BaselineComparison(_evaluator([curr]), bs).report_dropped(curr, 0.0) is False
+
+
+def test_report_dropped_is_false_without_baseline_data():
+    curr = _erc("A", (30, 70), path="a.xml")
+
+    assert BaselineComparison(_evaluator([curr]), None).report_dropped(curr, 0.0) is False
+
+
+@pytest.mark.parametrize(
+    "max_decrease, dropped",
+    [
+        pytest.param(0.0, True, id="drop-above-tolerance"),
+        pytest.param(10.0, False, id="drop-within-tolerance"),
+    ],
+)
+def test_group_dropped_follows_the_no_decrease_rule(max_decrease, dropped):
+    curr = _erc("A", (30, 70), path="a.xml", group_name="g")
+    group = _erc("g", (30, 70), group_name="g")
+    bs = _evaluator([_erc("A", (20, 80), path="a.xml", group_name="g")], [_erc("g", (20, 80), group_name="g")])
+
+    comparison = BaselineComparison(_evaluator([curr], [group]), bs)
+
+    assert comparison.group_dropped(group, max_decrease) is dropped
+
+
+def test_group_dropped_is_false_without_a_matching_baseline_group():
+    curr = _erc("A", (30, 70), path="a.xml", group_name="g")
+    group = _erc("g", (30, 70), group_name="g")
+    bs = _evaluator([_erc("B", (20, 80), path="b.xml", group_name="h")])
+
+    assert BaselineComparison(_evaluator([curr], [group]), bs).group_dropped(group, 0.0) is False

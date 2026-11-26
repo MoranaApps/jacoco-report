@@ -393,6 +393,21 @@ def test_token_input_is_optional_and_defaults_to_the_job_token():
     assert token["default"] == "${{ github.token }}"
 
 
+def test_max_decrease_input_is_optional_and_defaults_to_zero():
+    # Without no-decrease in fail-on-threshold the value is validated but never used to fail the run.
+    max_decrease = _load_action()["inputs"]["max-decrease"]
+    assert max_decrease["required"] is False
+    assert max_decrease["default"] == "0.0"
+
+
+def test_run_step_passes_max_decrease_to_main():
+    assert _step(RUN_ID)["env"]["INPUT_MAX_DECREASE"] == "${{ inputs.max-decrease }}"
+
+
+def test_fail_on_threshold_description_lists_no_decrease():
+    assert "no-decrease" in _load_action()["inputs"]["fail-on-threshold"]["description"]
+
+
 def test_ca_bundle_input_is_optional_and_defaults_to_empty():
     ca_bundle = _load_action()["inputs"]["ca-bundle"]
     assert ca_bundle["required"] is False

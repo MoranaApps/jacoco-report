@@ -20,6 +20,10 @@ differs.
 
 \* Groups table is included only when `report-groups` is configured.
 
+A group or report row whose changed files all have no data for the selected `metric` (for example
+`metric: branch` and a change to a class without branches) is hidden at every level, unless it fails
+its threshold or, with `no-decrease` in `fail-on-threshold`, dropped against the baseline.
+
 Default: `full`
 
 ## Level descriptions
@@ -113,6 +117,11 @@ comment-level: 'changed'
 
 Same structure as `full`, but only rows that **fail** their threshold are shown in the Groups,
 Reports, and Changed-files tables. The global summary table is always shown in full.
+
+With `no-decrease` in `fail-on-threshold`, a group or report row whose overall coverage dropped
+against the baseline counts as failing too, so it is shown even when it passes its fixed threshold.
+Its Status column still reflects the fixed threshold; the drop shows in the Δ column. The same applies
+to `failed-or-changed`.
 
 Use this in high-coverage projects where you only want the PR comment to highlight regressions.
 

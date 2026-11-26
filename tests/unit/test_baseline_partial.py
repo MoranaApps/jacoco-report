@@ -16,6 +16,7 @@ Scenario (used in the integration test below)
 """
 
 import pytest
+from pytest_mock import MockerFixture
 
 from jacoco_report.evaluator.coverage_evaluator import CoverageEvaluator
 from jacoco_report.generator.pr_comment_generator import PRCommentGenerator
@@ -79,7 +80,7 @@ def _make_group_erc(
     return erc
 
 
-def _mock_common_action_inputs(mocker) -> None:
+def _mock_common_action_inputs(mocker: MockerFixture) -> None:
     """Patch ActionInputs methods needed by PRCommentGenerator unit tests."""
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_metric", return_value="instruction")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_threshold", return_value=0.0)
@@ -96,7 +97,7 @@ def _mock_common_action_inputs(mocker) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_global_table_diff_wrong_with_partial_baseline(jacoco_report: JaCoCoReport, mocker):
+def test_global_table_diff_wrong_with_partial_baseline(jacoco_report: JaCoCoReport, mocker: MockerFixture):
     """
     Calculation
     -----------
@@ -187,7 +188,7 @@ def test_global_table_diff_wrong_with_partial_baseline(jacoco_report: JaCoCoRepo
 # ---------------------------------------------------------------------------
 
 
-def test_group_table_diff_wrong_with_partial_group_baseline(mocker):
+def test_group_table_diff_wrong_with_partial_group_baseline(mocker: MockerFixture):
     """
     Calculation
     -----------
@@ -284,7 +285,7 @@ def test_group_table_diff_wrong_with_partial_group_baseline(mocker):
 # ---------------------------------------------------------------------------
 
 
-def test_per_report_diffs_correct_despite_wrong_global_diff(mocker):
+def test_per_report_diffs_correct_despite_wrong_global_diff(mocker: MockerFixture):
     """
     _calculate_baseline_report_diffs does a name lookup in bs_evaluator.evaluated_reports_coverage.
 
@@ -359,7 +360,7 @@ def test_per_report_diffs_correct_despite_wrong_global_diff(mocker):
 # ---------------------------------------------------------------------------
 
 
-def test_global_diff_correct_when_all_reports_have_baseline(mocker):
+def test_global_diff_correct_when_all_reports_have_baseline(mocker: MockerFixture):
     """
     Calculation
     -----------
@@ -444,7 +445,7 @@ def test_global_diff_correct_when_all_reports_have_baseline(mocker):
 # ---------------------------------------------------------------------------
 
 
-def test_no_delta_column_when_baseline_evaluator_has_no_data(mocker):
+def test_no_delta_column_when_baseline_evaluator_has_no_data(mocker: MockerFixture):
     """
     When bs_evaluator's dictionaries are empty, _has_baseline_data() returns False
     and get_basic_table_for_all() renders the table without a Δ Coverage column.
@@ -497,7 +498,7 @@ def test_no_delta_column_when_baseline_evaluator_has_no_data(mocker):
 # ---------------------------------------------------------------------------
 
 
-def test_group_table_diff_correct_when_all_group_reports_have_baseline(mocker):
+def test_group_table_diff_correct_when_all_group_reports_have_baseline(mocker: MockerFixture):
     """
     Calculation
     -----------
@@ -596,7 +597,7 @@ def test_group_table_diff_correct_when_all_group_reports_have_baseline(mocker):
 # ---------------------------------------------------------------------------
 
 
-def test_per_file_diff_correct_and_zero_for_unmatched_reports(mocker):
+def test_per_file_diff_correct_and_zero_for_unmatched_reports(mocker: MockerFixture):
     """
     generate_changed_files_table_with_baseline looks up the baseline in two steps:
       1. Check if the report name (ecr_key) is in bs_evaluator.evaluated_reports_coverage
@@ -684,7 +685,7 @@ def test_per_file_diff_correct_and_zero_for_unmatched_reports(mocker):
 # ---------------------------------------------------------------------------
 
 
-def test_global_diff_misleading_when_no_report_names_match_baseline(mocker):
+def test_global_diff_misleading_when_no_report_names_match_baseline(mocker: MockerFixture):
     """
     _has_baseline_data() returns True when bs_evaluator.evaluated_reports_coverage
     is non-empty — regardless of whether any names correspond to current reports.
@@ -760,7 +761,7 @@ def test_global_diff_misleading_when_no_report_names_match_baseline(mocker):
 # ---------------------------------------------------------------------------
 
 
-def test_global_diff_correct_single_report_single_baseline_match(mocker):
+def test_global_diff_correct_single_report_single_baseline_match(mocker: MockerFixture):
     """
     Calculation
     -----------
@@ -820,7 +821,9 @@ def test_global_diff_correct_single_report_single_baseline_match(mocker):
 # ---------------------------------------------------------------------------
 
 
-def test_group_flow_partial_baseline_with_explicit_per_group_baseline_paths(jacoco_report: JaCoCoReport, mocker):
+def test_group_flow_partial_baseline_with_explicit_per_group_baseline_paths(
+    jacoco_report: JaCoCoReport, mocker: MockerFixture
+):
     """
     Integration test exercising the grouped code path in jacoco_report.run().
     Each group has baseline_paths explicitly set (baseline_paths_configured=True).
@@ -915,7 +918,7 @@ def test_group_flow_partial_baseline_with_explicit_per_group_baseline_paths(jaco
 # ---------------------------------------------------------------------------
 
 
-def test_per_file_diff_zero_when_changed_file_absent_from_baseline(mocker):
+def test_per_file_diff_zero_when_changed_file_absent_from_baseline(mocker: MockerFixture):
     """
     Even when the report name matches the baseline, a specific file that does not
     appear in the baseline's changed_files_coverage_reached gets diff = 0.0%.

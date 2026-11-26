@@ -97,6 +97,8 @@ and pass/fail are written back via `GITHUB_OUTPUT` and the process exit code.
 - Two independent threshold passes: **global** (`global-thresholds`: overall + changed-files-average,
   one evaluation across all reports/groups) and **per-report/group** (`report-thresholds-default` →
   group override, adds a per-changed-file check). They never fall back into each other.
+- Baseline gate `no-decrease` (opt-in `fail-on-threshold` value, tolerance `max-decrease` in percentage points): a third
+  check, against `baseline-paths` instead of a fixed minimum; overall coverage of the global row, groups and reports.
 
 ## Contracts
 
@@ -149,6 +151,9 @@ service is needed.
 - `tests/` is excluded from pylint (`.pylintrc` `ignore-paths=tests`) and coverage
   (`omit = ["tests/*"]`), but not from mypy: `mypy .` (with `check_untyped_defs`) type-checks the tests
   too, so a patched method used as a mock needs a `cast(MagicMock, ...)` before `.call_args` and friends.
+- Every `mocker` parameter in `tests/` is annotated `mocker: MockerFixture` (`.github/copilot-instructions.md`). A
+  helper returning a `mocker.patch(...)` result is annotated `MockType` (from `pytest_mock`), not `MagicMock`:
+  `patch` returns that union, and mypy rejects the narrower type.
 - Code reads attributes of the project's own types directly: no defensive `getattr(obj, "x", default)` or
   `isinstance` fallbacks (#269); an optional object gets an explicit `is None` branch. A test passing a `Mock` in place
   of one of them (`CoverageEvaluator`, `JaCoCoReport`, `ReportGroup`) must set every attribute the code path reads: an
@@ -174,8 +179,8 @@ service is needed.
   `(report_files_coverage, ungrouped_reports)`. `_split_unchanged_reports(reports, skip_unchanged,
   evaluate_filtered_unchanged)` (static) returns `(kept, filtered_unchanged)` and logs one line per filtered report;
   with skip-unchanged off it returns `(reports, [])`. If nothing is kept, `run()` calls
-  `_handle_all_reports_filtered(gh, pr_number, parser, report_groups, filtered, evaluate_filtered_unchanged,
-  fail_unchanged_enabled)` and returns. That ends in `_finish_all_filtered_output(gh, pr_number)`: for
+  `_handle_all_reports_filtered(gh, pr_number, parser, report_groups, filtered, evaluate_unchanged,
+  fail_unchanged_enabled)` (it derives `evaluate_filtered_unchanged` itself) and returns. That ends in `_finish_all_filtered_output(gh, pr_number)`: for
   `summary`/`both` with `comment-level` ≠ `none` it writes `all_filtered_summary_body()` (title, the all-unchanged
   message, footer) to the job summary. `summary` then logs `SUMMARY_NO_COMMENT_INFO` and skips
   `_delete_stale_comment_if_update_enabled`; `comment`/`both` delete the stale comment when `update-comment` is true.
@@ -205,9 +210,48 @@ service is needed.
   - The generator builds the comparison per call (`_baseline()`), because tests replace `evaluator`/`bs_evaluator`
     after construction. `calculate_baseline_group_diffs` and `_calculate_baseline_report_diffs` stay on the generator
     as thin wrappers returning `(0.0, 0.0)` for no match; tests call them.
+  - The `no-decrease` gate is `BaselineComparison.no_decrease_violations(max_decrease, unchanged_reports,
+    match_evidence)`, called from `_apply_results` only when `no-decrease` is selected: `set_action_failed` prints violations as `::notice::` even when nothing
+    fails, so always computing it would add messages for existing callers. It then sets
+    `reached_threshold_no_decrease` and `self.violations = evaluator.violations + gate violations` (a new list; the
+    evaluator's is not mutated). Order: global, groups, reports of the results evaluator, then `unchanged_reports`.
+  - When the results evaluator leaves the filtered unchanged reports out (`skip-unchanged`, `evaluate-unchanged:
+    false`, so `evaluator_for_results is not overall_evaluator`), `_evaluate_coverage` passes their
+    `overall_evaluator` rows on: with `fail-unchanged` as `unchanged_reports` (checked as report rows, as
+    `fail-unchanged` checks their overall threshold), else as `match_evidence` (never checked, they only count as
+    matches). The global and group rows keep the results evaluator's scope (the comment's Δ); neither list adds
+    outputs.
+  - The comment's row filter knows the gate too: with `no-decrease` selected, `PRCommentGenerator._dropped_row_keys`
+    marks group/report rows that dropped (`BaselineComparison.group_dropped`/`report_dropped`, the gate's rule) as
+    failing for `comment-level: failed`/`failed-or-changed`, else a row failing only the gate is hidden while the
+    step fails. The Status column stays fixed-threshold; `get_max_decrease` is read only when `no-decrease` is on.
+  - Before the comment-level filter, rows whose changed files all have zero weight for the selected metric
+    (`had_changed_files_before_filtering`) are hidden at every level, except rows that fail a fixed threshold or
+    dropped (`_keep_zero_weight_rows_that_fail`; drops are computed before it). Such a kept row counts as changed
+    for `changed`/`failed-or-changed` and renders its changed-files cells as `0.0%` ✅, like rows without data.
+  - A row drops (`OverallChange.is_drop`) when its Δ (the rounded value the comment shows) is `< -max_decrease` and
+    its missed count of the selected metric grew, so deleting covered code passes. Group/global counters come from
+    `_aggregate_counters`, the same ones as the Δ; a report compares its own counters with its baseline report's.
+    A report row's Δ is the difference of the rounded reached values (as the comment shows it), so it can be up to
+    0.01 off the exact change: a 0.004 pp drop across a rounding step is `-0.01` and fails `max-decrease: 0.0`, while
+    global/group rows round the exact change once.
+  - No baseline data → only `NO_BASELINE_VIOLATION`. `NO_MATCH_VIOLATION` (alone) only when no report of the run
+    matches a baseline report: results evaluator, `unchanged_reports` and `match_evidence`. It is meant for
+    misconfiguration (renamed `<title>`, wrong folder); counting the filtered reports keeps a PR that only adds a
+    new module (no baseline yet) from failing. If only `unchanged_reports`/`match_evidence` matched, the global row is
+    skipped with an INFO log. A group or report without a match is skipped with an INFO log. When skip-unchanged
+    filters every report without evaluating them, `_apply_results` is not called and the gate passes. When it
+    evaluates them only because of `fail-unchanged` (`evaluate-unchanged: false`), `_apply_results` gets
+    `include_aggregate_rows=False`: report rows only, as for the filtered reports of a mixed run. A global row over
+    unchanged reports can drop with every report row unchanged (stale baseline, report sizes changed).
+    `max-decrease` is validated even when `no-decrease` is not selected.
+- A new `fail-on-threshold` value needs a `FailOnThresholdEnum` member, a `reached_threshold_*` flag on `JaCoCoReport`
+  set in `_apply_results` and reset to False in `_mark_operational_failure`, and an entry in `main.py`'s
+  `threshold_checks`.
 - `run()` sits at the `too-many-locals` limit (`max-locals=20`, enabled; `self` counts): a new local there trips it,
   so new logic goes in a helper.
-- `CoverageEvaluator` sits at the `too-many-instance-attributes` limit (`max-attributes=15`): a new attribute trips it.
+- `CoverageEvaluator` and `JaCoCoReport` sit at the `too-many-instance-attributes` limit (`max-attributes=15`): a new
+  attribute trips it.
   Its public result attributes are read by `PRCommentGenerator` and set directly by tests (`report_group_order`
   included), so keep them plain attributes. A group's threshold fallback (group field → `report-thresholds-default`)
   lives only in `_group_thresholds(group)`, used by `evaluate_group` and `_set_thresholds`.

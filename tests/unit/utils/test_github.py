@@ -15,7 +15,7 @@ from jacoco_report.utils.github import GitHub, get_api_url, get_server_url
 # get_pr_changed_files
 
 
-def test_get_pr_changed_files(mocker, monkeypatch):
+def test_get_pr_changed_files(mocker: MockerFixture, monkeypatch):
     monkeypatch.setenv("GITHUB_REPOSITORY", "fake_repo")
     mock_response = mocker.Mock()
     mock_response.json.return_value = [{"filename": "file1.py"}, {"filename": "file2.py"}]
@@ -27,7 +27,7 @@ def test_get_pr_changed_files(mocker, monkeypatch):
     assert files == ["file1.py", "file2.py"]
 
 
-def test_get_pr_changed_files_uses_passed_pr_number_not_github_ref(mocker, monkeypatch):
+def test_get_pr_changed_files_uses_passed_pr_number_not_github_ref(mocker: MockerFixture, monkeypatch):
     monkeypatch.setenv("GITHUB_REPOSITORY", "fake_repo")
     monkeypatch.setenv("GITHUB_REF", "refs/heads/main")
     mock_response = mocker.Mock()
@@ -41,7 +41,7 @@ def test_get_pr_changed_files_uses_passed_pr_number_not_github_ref(mocker, monke
     assert mock_send.call_args.args[1] == "https://api.github.com/repos/fake_repo/pulls/5/files"
 
 
-def test_get_pr_changed_files_none_response(mocker, monkeypatch):
+def test_get_pr_changed_files_none_response(mocker: MockerFixture, monkeypatch):
     monkeypatch.setenv("GITHUB_REPOSITORY", "fake_repo")
     mocker.patch.object(GitHub, "send_request", return_value=None)
     github = GitHub("fake_token")
@@ -85,7 +85,7 @@ def test_get_server_url_falls_back_to_github_com(env_value, monkeypatch):
 # custom API base (GitHub Enterprise Server)
 
 
-def test_get_pr_changed_files_uses_custom_api_url(mocker, monkeypatch):
+def test_get_pr_changed_files_uses_custom_api_url(mocker: MockerFixture, monkeypatch):
     monkeypatch.setenv("GITHUB_REPOSITORY", "fake_repo")
     mock_send = mocker.patch.object(GitHub, "send_request", return_value=None)
     github = GitHub("fake_token", api_url="https://ghes.example.com/api/v3")
@@ -95,7 +95,7 @@ def test_get_pr_changed_files_uses_custom_api_url(mocker, monkeypatch):
     assert mock_send.call_args.args[1] == "https://ghes.example.com/api/v3/repos/fake_repo/pulls/1/files"
 
 
-def test_add_comment_uses_custom_api_url(mocker, monkeypatch):
+def test_add_comment_uses_custom_api_url(mocker: MockerFixture, monkeypatch):
     monkeypatch.setenv("GITHUB_REPOSITORY", "fake_repo")
     mock_send = mocker.patch.object(GitHub, "send_request", return_value=None)
     github = GitHub("fake_token", api_url="https://ghes.example.com/api/v3")
@@ -105,7 +105,7 @@ def test_add_comment_uses_custom_api_url(mocker, monkeypatch):
     assert mock_send.call_args.args[1] == "https://ghes.example.com/api/v3/repos/fake_repo/issues/1/comments"
 
 
-def _capture_request_headers(mocker):
+def _capture_request_headers(mocker: MockerFixture):
     """Patch the transport so the real requests session runs and the headers of the prepared request are recorded."""
     seen = []
 
@@ -120,7 +120,7 @@ def _capture_request_headers(mocker):
     return seen
 
 
-def test_session_sends_no_host_header_and_keeps_authorization(mocker):
+def test_session_sends_no_host_header_and_keeps_authorization(mocker: MockerFixture):
     seen = _capture_request_headers(mocker)
 
     GitHub("fake_token", api_url="https://ghes.example.com/api/v3").send_request("GET", "https://ghes.example.com/x")
@@ -132,7 +132,7 @@ def test_session_sends_no_host_header_and_keeps_authorization(mocker):
 # send_request
 
 
-def testsend_request_get(mocker):
+def testsend_request_get(mocker: MockerFixture):
     mock_session = mocker.Mock()
     mock_response = mocker.Mock()
     mock_response.raise_for_status = mocker.Mock()
@@ -147,7 +147,7 @@ def testsend_request_get(mocker):
     assert response == mock_response
 
 
-def testsend_request_post(mocker):
+def testsend_request_post(mocker: MockerFixture):
     mock_session = mocker.Mock()
     mock_response = mocker.Mock()
     mock_response.raise_for_status = mocker.Mock()
@@ -164,7 +164,7 @@ def testsend_request_post(mocker):
     assert response == mock_response
 
 
-def testsend_request_patch(mocker):
+def testsend_request_patch(mocker: MockerFixture):
     mock_session = mocker.Mock()
     mock_response = mocker.Mock()
     mock_response.raise_for_status = mocker.Mock()
@@ -181,7 +181,7 @@ def testsend_request_patch(mocker):
     assert response == mock_response
 
 
-def testsend_request_delete(mocker):
+def testsend_request_delete(mocker: MockerFixture):
     mock_session = mocker.Mock()
     mock_response = mocker.Mock()
     mock_response.raise_for_status = mocker.Mock()
@@ -198,7 +198,7 @@ def testsend_request_delete(mocker):
     assert response == mock_response
 
 
-def testsend_request_unsupported_method(mocker):
+def testsend_request_unsupported_method(mocker: MockerFixture):
     mock_logger = mocker.patch("jacoco_report.utils.github.logger")
     github = GitHub("fake_token")
 
@@ -208,7 +208,7 @@ def testsend_request_unsupported_method(mocker):
     assert response is None
 
 
-def testsend_request_get_http_error(mocker):
+def testsend_request_get_http_error(mocker: MockerFixture):
     mock_session = mocker.Mock()
     mock_response = mocker.Mock()
     mock_response.raise_for_status.side_effect = requests.HTTPError("HTTP Error")
@@ -223,7 +223,7 @@ def testsend_request_get_http_error(mocker):
     assert response is None
 
 
-def testsend_request_get_timeout(mocker):
+def testsend_request_get_timeout(mocker: MockerFixture):
     mock_session = mocker.Mock()
     mock_session.get.side_effect = requests.Timeout("Read timed out")
     mocker.patch("requests.Session", return_value=mock_session)
@@ -237,7 +237,7 @@ def testsend_request_get_timeout(mocker):
     assert response is None
 
 
-def testsend_request_post_request_exception(mocker):
+def testsend_request_post_request_exception(mocker: MockerFixture):
     mock_session = mocker.Mock()
     mock_session.post.side_effect = requests.RequestException("Request Exception")
     mocker.patch("requests.Session", return_value=mock_session)
@@ -254,7 +254,7 @@ def testsend_request_post_request_exception(mocker):
 # get_pr_number
 
 
-def test_get_pr_number(mocker):
+def test_get_pr_number(mocker: MockerFixture):
     mocker.patch("os.getenv", return_value="fake_event_path")
     mock_open = mocker.patch("builtins.open", mocker.mock_open(read_data='{"pull_request": {"number": 123}}'))
     github = GitHub("fake_token")
@@ -265,7 +265,7 @@ def test_get_pr_number(mocker):
     assert pr_number == 123
 
 
-def test_get_pr_number_no_pr(mocker):
+def test_get_pr_number_no_pr(mocker: MockerFixture):
     mocker.patch("os.getenv", return_value="fake_event_path")
     mock_open = mocker.patch("builtins.open", mocker.mock_open(read_data='{"not_a_pull_request": {}}'))
     github = GitHub("fake_token")
@@ -279,7 +279,7 @@ def test_get_pr_number_no_pr(mocker):
 # add_comment
 
 
-def test_add_comment(mocker):
+def test_add_comment(mocker: MockerFixture):
     mocker.patch("os.getenv", return_value="fake_repo")
     mock_response = mocker.Mock()
     mock_send_req = mocker.patch.object(GitHub, "send_request", return_value=mock_response)
@@ -292,7 +292,7 @@ def test_add_comment(mocker):
     )
 
 
-def test_add_comment_failed_request(mocker):
+def test_add_comment_failed_request(mocker: MockerFixture):
     mocker.patch("os.getenv", return_value="fake_repo")
     mock_send_req = mocker.patch.object(GitHub, "send_request", return_value=None)
     github = GitHub("fake_token")
@@ -307,7 +307,7 @@ def test_add_comment_failed_request(mocker):
 # get_comments
 
 
-def test_get_comments(mocker):
+def test_get_comments(mocker: MockerFixture):
     mocker.patch("os.getenv", return_value="fake_repo")
     mock_response = mocker.Mock()
     mock_response.json.return_value = [{"body": "comment1"}, {"body": "comment2"}]
@@ -322,7 +322,7 @@ def test_get_comments(mocker):
     assert comments == [{"body": "comment1"}, {"body": "comment2"}]
 
 
-def test_get_comments_pagination(mocker):
+def test_get_comments_pagination(mocker: MockerFixture):
     # Arrange
     comments_page_1 = [{"id": i, "body": f"comment {i}"} for i in range(100)]
     comments_page_2 = [{"id": 100, "body": "comment 100"}]
@@ -350,7 +350,7 @@ def test_get_comments_pagination(mocker):
     assert all_comments[-1]["id"] == 100
 
 
-def test_get_comments_unexpected_format(mocker):
+def test_get_comments_unexpected_format(mocker: MockerFixture):
     mock_logger = mocker.patch("jacoco_report.utils.github.logger")
     mocker.patch("os.getenv", return_value="fake_repo")
     mock_response = mocker.Mock()
@@ -370,7 +370,7 @@ def test_get_comments_unexpected_format(mocker):
     assert call_args[0][0] == "Unexpected response format (page %d): %s"
 
 
-def test_get_comments_page_1_request_fails_returns_none(mocker):
+def test_get_comments_page_1_request_fails_returns_none(mocker: MockerFixture):
     mocker.patch("os.getenv", return_value="fake_repo")
     mocker.patch.object(GitHub, "send_request", return_value=None)
     github = GitHub("fake_token")
@@ -378,7 +378,7 @@ def test_get_comments_page_1_request_fails_returns_none(mocker):
     assert github.get_comments(1) is None
 
 
-def test_get_comments_page_2_request_fails_returns_none(mocker):
+def test_get_comments_page_2_request_fails_returns_none(mocker: MockerFixture):
     mocker.patch("os.getenv", return_value="fake_repo")
     full_page = mocker.Mock()
     full_page.json.return_value = [{"id": i, "body": f"comment {i}"} for i in range(100)]
@@ -389,7 +389,7 @@ def test_get_comments_page_2_request_fails_returns_none(mocker):
     assert mock_send_req.call_count == 2
 
 
-def test_get_comments_non_json_body_returns_none(mocker):
+def test_get_comments_non_json_body_returns_none(mocker: MockerFixture):
     mock_logger = mocker.patch("jacoco_report.utils.github.logger")
     mocker.patch("os.getenv", return_value="fake_repo")
     mock_response = mocker.Mock()
@@ -402,7 +402,7 @@ def test_get_comments_non_json_body_returns_none(mocker):
 
 
 @pytest.mark.parametrize("body", [b"<html><body>Service unavailable</body></html>", b""], ids=["html", "empty"])
-def test_get_comments_real_non_json_response_returns_none(mocker, body):
+def test_get_comments_real_non_json_response_returns_none(mocker: MockerFixture, body):
     """A real 200 response whose body is not JSON makes get_comments return None instead of raising."""
     mocker.patch("os.getenv", return_value="fake_repo")
     response = requests.Response()
@@ -414,7 +414,7 @@ def test_get_comments_real_non_json_response_returns_none(mocker, body):
     assert github.get_comments(1) is None
 
 
-def test_get_comments_empty_list_returns_empty_list(mocker):
+def test_get_comments_empty_list_returns_empty_list(mocker: MockerFixture):
     mocker.patch("os.getenv", return_value="fake_repo")
     mock_response = mocker.Mock()
     mock_response.json.return_value = []
@@ -427,7 +427,7 @@ def test_get_comments_empty_list_returns_empty_list(mocker):
 # update_comment
 
 
-def test_update_comment_success(mocker):
+def test_update_comment_success(mocker: MockerFixture):
     mocker.patch("os.getenv", return_value="fake_repo")
     mock_response = mocker.Mock()
     mock_response.json.return_value = {"body": "Updated comment"}
@@ -442,7 +442,7 @@ def test_update_comment_success(mocker):
     assert result is True
 
 
-def test_update_comment_failed_request(mocker):
+def test_update_comment_failed_request(mocker: MockerFixture):
     mocker.patch("os.getenv", return_value="fake_repo")
     mock_send_req = mocker.patch.object(GitHub, "send_request", return_value=None)
     github = GitHub("fake_token")
@@ -455,7 +455,7 @@ def test_update_comment_failed_request(mocker):
     assert result is False
 
 
-def test_update_comment_unexpected_response_format(mocker):
+def test_update_comment_unexpected_response_format(mocker: MockerFixture):
     mocker.patch("os.getenv", return_value="fake_repo")
     mock_response = mocker.Mock()
     mock_response.json.return_value = {"body": "unexpected_value"}
@@ -479,7 +479,7 @@ def test_update_comment_unexpected_response_format(mocker):
         pytest.param(None, None, id="json-null"),
     ],
 )
-def test_update_comment_unusable_2xx_response_returns_false(mocker, caplog, json_return, json_error):
+def test_update_comment_unusable_2xx_response_returns_false(mocker: MockerFixture, caplog, json_return, json_error):
     mocker.patch("os.getenv", return_value="fake_repo")
     mock_response = mocker.Mock()
     mock_response.json.return_value = json_return
@@ -497,7 +497,7 @@ def test_update_comment_unusable_2xx_response_returns_false(mocker, caplog, json
 # delete pr comment
 
 
-def test_delete_pr_comment_success(mocker, github):
+def test_delete_pr_comment_success(mocker: MockerFixture, github):
     mock_response = mocker.Mock()
     mock_response.status_code = 204  # HTTP 204 No Content
     mocker.patch.object(github, "send_request", return_value=mock_response)
@@ -508,7 +508,7 @@ def test_delete_pr_comment_success(mocker, github):
     assert result is True
 
 
-def test_delete_pr_comment_failed_request(mocker, github):
+def test_delete_pr_comment_failed_request(mocker: MockerFixture, github):
     mocker.patch.object(github, "send_request", return_value=None)
 
     result = github.delete_comment(123)
@@ -517,7 +517,7 @@ def test_delete_pr_comment_failed_request(mocker, github):
     assert result is False
 
 
-def test_delete_pr_comment_unexpected_response(mocker, github):
+def test_delete_pr_comment_unexpected_response(mocker: MockerFixture, github):
     mock_response = mocker.Mock()
     mock_response.status_code = 400  # HTTP 400 Bad Request
     mocker.patch.object(github, "send_request", return_value=mock_response)
@@ -534,7 +534,7 @@ CA_PATH = "/etc/ssl/corp-ca.pem"
 
 
 @pytest.mark.parametrize("method", ["GET", "POST", "PATCH", "DELETE"])
-def test_send_request_passes_ca_bundle_as_verify(method, mocker):
+def test_send_request_passes_ca_bundle_as_verify(method, mocker: MockerFixture):
     mock_session = mocker.Mock()
     mocker.patch("requests.Session", return_value=mock_session)
     github = GitHub("fake_token", CA_PATH)
@@ -546,7 +546,7 @@ def test_send_request_passes_ca_bundle_as_verify(method, mocker):
     assert call.kwargs["verify"] == CA_PATH
 
 
-def _capture_verify_sent_to_adapter(mocker):
+def _capture_verify_sent_to_adapter(mocker: MockerFixture):
     """Patch the transport so the real requests merge logic runs and the verify value that reaches it is recorded."""
     seen = []
 
@@ -562,7 +562,7 @@ def _capture_verify_sent_to_adapter(mocker):
 
 
 @pytest.mark.parametrize("env_name", ["REQUESTS_CA_BUNDLE", "CURL_CA_BUNDLE"])
-def test_ca_bundle_input_wins_over_env_bundle(env_name, mocker):
+def test_ca_bundle_input_wins_over_env_bundle(env_name, mocker: MockerFixture):
     seen = _capture_verify_sent_to_adapter(mocker)
     mocker.patch.dict(os.environ, {env_name: "/env/other.pem"})
 
@@ -571,7 +571,7 @@ def test_ca_bundle_input_wins_over_env_bundle(env_name, mocker):
     assert seen == [CA_PATH]
 
 
-def test_unset_ca_bundle_keeps_requests_ca_bundle_env(mocker):
+def test_unset_ca_bundle_keeps_requests_ca_bundle_env(mocker: MockerFixture):
     seen = _capture_verify_sent_to_adapter(mocker)
     mocker.patch.dict(os.environ, {"REQUESTS_CA_BUNDLE": "/env/corp.pem"})
 
@@ -594,7 +594,7 @@ TRANSIENT_FAILURES = [
 ]
 
 
-def _fake_transport(mocker, outcomes):
+def _fake_transport(mocker: MockerFixture, outcomes):
     """
     Patch urllib3 below its retry loop: attempt n gets outcomes[n], a status code, a (status, headers) pair or an
     exception. Returns the methods of the attempts made and the mocked sleep.
@@ -617,7 +617,7 @@ def _fake_transport(mocker, outcomes):
 
 
 @pytest.mark.parametrize("failure", TRANSIENT_FAILURES)
-def test_get_retries_transient_failure(failure, mocker):
+def test_get_retries_transient_failure(failure, mocker: MockerFixture):
     methods, _ = _fake_transport(mocker, [failure, 200])
 
     response = GitHub("fake_token").send_request("GET", "https://api.github.com/test")
@@ -627,7 +627,7 @@ def test_get_retries_transient_failure(failure, mocker):
     assert methods == ["GET", "GET"]
 
 
-def test_get_gives_up_after_three_retries_with_exponential_backoff(mocker):
+def test_get_gives_up_after_three_retries_with_exponential_backoff(mocker: MockerFixture):
     methods, sleep = _fake_transport(mocker, [502, 502, 502, 502, 200])
 
     response = GitHub("fake_token").send_request("GET", "https://api.github.com/test")
@@ -640,7 +640,7 @@ def test_get_gives_up_after_three_retries_with_exponential_backoff(mocker):
 @pytest.mark.parametrize(
     "retry_after, expected_wait", [pytest.param("7", 7, id="honoured"), pytest.param("3600", 60, id="capped")]
 )
-def test_get_waits_for_retry_after(retry_after, expected_wait, mocker):
+def test_get_waits_for_retry_after(retry_after, expected_wait, mocker: MockerFixture):
     methods, sleep = _fake_transport(mocker, [(429, {"Retry-After": retry_after}), 200])
 
     response = GitHub("fake_token").send_request("GET", "https://api.github.com/test")
@@ -655,7 +655,7 @@ def test_get_waits_for_retry_after(retry_after, expected_wait, mocker):
 @pytest.mark.parametrize(
     "failure", TRANSIENT_FAILURES + [pytest.param(ssl.SSLError("bad record mac"), id="ssl-error-after-send")]
 )
-def test_write_is_sent_once_on_failure(method, failure, mocker):
+def test_write_is_sent_once_on_failure(method, failure, mocker: MockerFixture):
     methods, _ = _fake_transport(mocker, [failure, 200])
 
     response = GitHub("fake_token").send_request(method, "https://api.github.com/test", data={"body": "x"})
@@ -664,7 +664,7 @@ def test_write_is_sent_once_on_failure(method, failure, mocker):
     assert methods == [method]
 
 
-def test_each_retry_logs_a_warning(mocker, caplog):
+def test_each_retry_logs_a_warning(mocker: MockerFixture, caplog):
     _fake_transport(mocker, [502, ProtocolError("Connection aborted."), 200])
     caplog.set_level(logging.WARNING, logger="jacoco_report.utils.github")
 
@@ -681,7 +681,7 @@ def test_each_retry_logs_a_warning(mocker, caplog):
 
 
 @pytest.mark.parametrize("url", ["https://api.github.com/test", "http://ghes.example.com/api/v3/test"])
-def test_session_pins_retry_config(url, mocker):
+def test_session_pins_retry_config(url, mocker: MockerFixture):
     adapters = []
 
     def fake_send(adapter, request, **kwargs):

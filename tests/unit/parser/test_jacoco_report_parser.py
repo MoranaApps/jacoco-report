@@ -3,6 +3,7 @@ import os
 import time
 
 import pytest
+from pytest_mock import MockerFixture
 
 from jacoco_report.parser.jacoco_report_parser import JaCoCoReportParser, _index_workspace_files
 from jacoco_report.model.counter import Counter
@@ -314,7 +315,7 @@ def test_workspace_index_lists_root_and_nested_files_in_walk_order_without_git(t
     }
 
 
-def test_workspace_index_computes_relative_paths_per_directory_not_per_file(tmp_path, mocker):
+def test_workspace_index_computes_relative_paths_per_directory_not_per_file(tmp_path, mocker: MockerFixture):
     (tmp_path / "src").mkdir()
     for index in range(50):
         (tmp_path / "src" / f"File{index:02d}.java").write_text("")
@@ -325,7 +326,7 @@ def test_workspace_index_computes_relative_paths_per_directory_not_per_file(tmp_
     assert relpath_spy.call_count <= 2, "expected at most one call per directory (workspace root and src)"
 
 
-def test_workspace_is_walked_once_for_all_reports_of_a_parser(tmp_path, monkeypatch, mocker):
+def test_workspace_is_walked_once_for_all_reports_of_a_parser(tmp_path, monkeypatch, mocker: MockerFixture):
     (tmp_path / "com" / "example").mkdir(parents=True)
     (tmp_path / "com" / "example" / "Example.java").write_text("class Example {}")
     monkeypatch.chdir(tmp_path)

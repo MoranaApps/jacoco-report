@@ -33,6 +33,7 @@ from jacoco_report.utils.constants import (
     PASS_SYMBOL,
     FAIL_SYMBOL,
     FAIL_ON_THRESHOLD,
+    MAX_DECREASE,
     DEBUG,
     METRIC,
     PR_NUMBER,
@@ -472,7 +473,7 @@ class ActionInputs:  # pylint: disable=too-many-public-methods
         """
         Get the threshold levels that should trigger a failure.
         Supports comma- or newline-separated values:
-        overall, changed-files-average, per-changed-file, fail-unchanged.
+        overall, changed-files-average, per-changed-file, fail-unchanged, no-decrease.
         """
         value = get_action_input(FAIL_ON_THRESHOLD, "overall,changed-files-average,per-changed-file").strip().lower()
 
@@ -480,7 +481,7 @@ class ActionInputs:  # pylint: disable=too-many-public-methods
             raise ValueError(
                 "Boolean values for 'fail-on-threshold' are no longer supported. "
                 "Use a comma- or newline-separated list of: "
-                "overall, changed-files-average, per-changed-file, fail-unchanged. "
+                "overall, changed-files-average, per-changed-file, fail-unchanged, no-decrease. "
                 "Use an empty string to disable threshold failure."
             )
 
@@ -494,6 +495,23 @@ class ActionInputs:  # pylint: disable=too-many-public-methods
             raise ValueError(f"Unsupported threshold levels: {', '.join(invalid_items)}")
 
         return [FailOnThresholdEnum(item).value for item in raw_items]
+
+    @staticmethod
+    def get_max_decrease() -> float:
+        """
+        Get the largest drop in percentage points that 'no-decrease' tolerates, from 0 to 100 inclusive.
+        An empty value means 0.0.
+        """
+        raw = get_action_input(MAX_DECREASE, "0.0").strip()
+        if not raw:
+            return 0.0
+        try:
+            value = float(raw)
+        except ValueError:
+            value = None
+        if value is None or not 0.0 <= value <= 100.0:
+            raise ValueError("'max-decrease' must be a float between 0 and 100 (inclusive).")
+        return value
 
     @staticmethod
     def get_debug() -> bool:
@@ -701,6 +719,7 @@ class ActionInputs:  # pylint: disable=too-many-public-methods
         update_comment = _read_or_record(ActionInputs.get_update_comment, errors)
         errors.extend(ActionInputs._validate_symbols())
         fail_on_threshold = _read_or_record(ActionInputs.get_fail_on_threshold, errors) or []
+        max_decrease = _read_or_record(ActionInputs.get_max_decrease, errors)
         debug = _read_or_record(ActionInputs.get_debug, errors)
         errors.extend(ActionInputs.validate_ca_bundle())
 
@@ -710,6 +729,7 @@ class ActionInputs:  # pylint: disable=too-many-public-methods
             evaluate_unchanged=evaluate_unchanged,
             update_comment=update_comment,
             fail_on_threshold=fail_on_threshold,
+            max_decrease=max_decrease,
             debug=debug,
         )
 
@@ -729,6 +749,7 @@ class ActionInputs:  # pylint: disable=too-many-public-methods
         evaluate_unchanged: Optional[bool],
         update_comment: Optional[bool],
         fail_on_threshold: list[str],
+        max_decrease: Optional[float],
         debug: Optional[bool],
     ) -> None:
         """Log all resolved configuration values. Do not add token to this method."""
@@ -755,6 +776,7 @@ class ActionInputs:  # pylint: disable=too-many-public-methods
             "Evaluate unchanged: %s\n"
             "Update comment: %s\n"
             "Fail on threshold: %s\n"
+            "Max decrease: %s\n"
             "Debug logging enabled: %s\n"
             "Pass symbol: %s\n"
             "Fail symbol: %s",
@@ -775,6 +797,7 @@ class ActionInputs:  # pylint: disable=too-many-public-methods
             evaluate_unchanged,
             update_comment,
             fail_on_threshold if fail_on_threshold else [],
+            max_decrease,
             debug,
             ActionInputs.get_pass_symbol(),
             ActionInputs.get_fail_symbol(),

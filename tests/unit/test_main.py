@@ -1,9 +1,11 @@
+from pytest_mock import MockerFixture, MockType
+
 from jacoco_report.action_inputs import ActionInputs
 from jacoco_report.utils.enums import FailOnThresholdEnum
 from main import run
 
 
-def test_run_no_violations(mocker):
+def test_run_no_violations(mocker: MockerFixture):
     # Mock dependencies
     mocker.patch("main.setup_logging")
     mock_validate_inputs = mocker.patch.object(ActionInputs, "validate_inputs")
@@ -36,7 +38,7 @@ def test_run_no_violations(mocker):
     mock_sys_exit.assert_called_once_with(0)
 
 
-def test_run_fail_overall_level(mocker):
+def test_run_fail_overall_level(mocker: MockerFixture):
     # Mock dependencies
     mocker.patch("main.setup_logging")
     mock_validate_inputs = mocker.patch.object(ActionInputs, "validate_inputs")
@@ -72,7 +74,7 @@ def test_run_fail_overall_level(mocker):
     mock_set_action_failed.assert_called_once_with(messages=["Violation 1"], fail=True)
 
 
-def test_run_fail_changed_files_average_level(mocker):
+def test_run_fail_changed_files_average_level(mocker: MockerFixture):
     # Mock dependencies
     mocker.patch("main.setup_logging")
     mock_validate_inputs = mocker.patch.object(ActionInputs, "validate_inputs")
@@ -108,7 +110,7 @@ def test_run_fail_changed_files_average_level(mocker):
     mock_set_action_failed.assert_called_once_with(messages=["Violation 1"], fail=True)
 
 
-def test_run_fail_per_changed_file_level(mocker):
+def test_run_fail_per_changed_file_level(mocker: MockerFixture):
     # Mock dependencies
     mocker.patch("main.setup_logging")
     mock_validate_inputs = mocker.patch.object(ActionInputs, "validate_inputs")
@@ -144,7 +146,7 @@ def test_run_fail_per_changed_file_level(mocker):
     mock_set_action_failed.assert_called_once_with(messages=["Violation 1"], fail=True)
 
 
-def test_run_fail_disabled(mocker):
+def test_run_fail_disabled(mocker: MockerFixture):
     # Mock dependencies
     mocker.patch("main.setup_logging")
     mock_validate_inputs = mocker.patch.object(ActionInputs, "validate_inputs")
@@ -181,7 +183,7 @@ def test_run_fail_disabled(mocker):
     mock_set_action_failed.assert_called_once_with(messages=["Violation 1"], fail=False)
 
 
-def test_run_fail_disabled_level(mocker):
+def test_run_fail_disabled_level(mocker: MockerFixture):
     # Mock dependencies
     mocker.patch("main.setup_logging")
     mock_validate_inputs = mocker.patch.object(ActionInputs, "validate_inputs")
@@ -221,7 +223,7 @@ def test_run_fail_disabled_level(mocker):
     mock_set_action_failed.assert_called_once_with(messages=["Violation 1"], fail=False)
 
 
-def test_run_operational_violation_fails_even_with_fail_unchanged_only(mocker):
+def test_run_operational_violation_fails_even_with_fail_unchanged_only(mocker: MockerFixture):
     mocker.patch("main.setup_logging")
     mocker.patch.object(ActionInputs, "validate_inputs")
     mock_jacoco_report = mocker.patch("main.JaCoCoReport")
@@ -260,7 +262,7 @@ def test_run_operational_violation_fails_even_with_fail_unchanged_only(mocker):
 # ---------------------------------------------------------------------------
 
 
-def test_main_sets_coverage_overall_passed_output(mocker):
+def test_main_sets_coverage_overall_passed_output(mocker: MockerFixture):
     """main.run() writes coverage-overall-passed as a GitHub Actions output."""
     mocker.patch("main.setup_logging")
     mocker.patch.object(ActionInputs, "validate_inputs")
@@ -285,7 +287,7 @@ def test_main_sets_coverage_overall_passed_output(mocker):
     mock_set_output.assert_any_call("coverage-changed-files-passed", "False")
 
 
-def test_main_sets_coverage_changed_files_passed_false_when_failing(mocker):
+def test_main_sets_coverage_changed_files_passed_false_when_failing(mocker: MockerFixture):
     """main.run() correctly writes False when changed-files coverage does not pass."""
     mocker.patch("main.setup_logging")
     mocker.patch.object(ActionInputs, "validate_inputs")
@@ -319,7 +321,7 @@ def test_main_sets_coverage_changed_files_passed_false_when_failing(mocker):
     mock_set_failed.assert_called_once_with(messages=["Changed files coverage below threshold."], fail=True)
 
 
-def _run_with_deltas(mocker, overall_delta, changed_files_delta):
+def _run_with_deltas(mocker: MockerFixture, overall_delta, changed_files_delta):
     mocker.patch("main.setup_logging")
     mocker.patch.object(ActionInputs, "validate_inputs")
     mock_jr = mocker.patch("main.JaCoCoReport").return_value
@@ -335,15 +337,63 @@ def _run_with_deltas(mocker, overall_delta, changed_files_delta):
     return mock_set_output
 
 
-def test_run_sets_delta_outputs_from_baseline(mocker):
+def test_run_sets_delta_outputs_from_baseline(mocker: MockerFixture):
     mock_set_output = _run_with_deltas(mocker, -0.59, 1.5)
 
     mock_set_output.assert_any_call("coverage-overall-delta", "-0.59")
     mock_set_output.assert_any_call("coverage-changed-files-delta", "1.5")
 
 
-def test_run_sets_empty_delta_outputs_without_baseline(mocker):
+def test_run_sets_empty_delta_outputs_without_baseline(mocker: MockerFixture):
     mock_set_output = _run_with_deltas(mocker, None, None)
 
     mock_set_output.assert_any_call("coverage-overall-delta", "")
     mock_set_output.assert_any_call("coverage-changed-files-delta", "")
+
+
+def _patch_no_decrease_run(mocker: MockerFixture, fail_on_threshold: list[str]) -> tuple[MockType, MockType]:
+    mocker.patch("main.setup_logging")
+    mocker.patch.object(ActionInputs, "validate_inputs")
+    mock_jr_cls = mocker.patch("main.JaCoCoReport")
+    mocker.patch("main.set_action_output")
+    mocker.patch("main.set_action_output_text")
+    mock_set_action_failed = mocker.patch("main.set_action_failed")
+    mocker.patch(
+        "jacoco_report.action_inputs.ActionInputs.get_fail_on_threshold",
+        return_value=fail_on_threshold,
+    )
+    mock_jr = mock_jr_cls.return_value
+    mock_jr.total_overall_coverage = 70.0
+    mock_jr.total_changed_files_coverage = 75.0
+    mock_jr.evaluated_coverage_reports = "{}"
+    mock_jr.evaluated_coverage_groups = "{}"
+    mock_jr.reached_threshold_overall = True
+    mock_jr.reached_threshold_changed_files_average = True
+    mock_jr.reached_threshold_per_change_file = True
+    mock_jr.reached_threshold_fail_unchanged = True
+    mock_jr.has_operational_failure = False
+    return mock_jr, mock_set_action_failed
+
+
+def test_run_no_decrease_selected_fails_when_the_gate_is_not_reached(mocker: MockerFixture):
+    mock_jr, mock_set_action_failed = _patch_no_decrease_run(mocker, [FailOnThresholdEnum.NO_DECREASE])
+    mock_jr.violations = ["Global overall coverage dropped from 80.0 to 70.0."]
+    mock_jr.reached_threshold_no_decrease = False
+
+    run()
+
+    mock_set_action_failed.assert_called_once_with(
+        messages=["Global overall coverage dropped from 80.0 to 70.0."], fail=True
+    )
+
+
+def test_run_no_decrease_not_selected_does_not_fail_on_its_flag(mocker: MockerFixture):
+    mock_jr, mock_set_action_failed = _patch_no_decrease_run(mocker, [FailOnThresholdEnum.OVERALL])
+    mock_jr.violations = ["Global overall coverage dropped from 80.0 to 70.0."]
+    mock_jr.reached_threshold_no_decrease = False
+
+    run()
+
+    mock_set_action_failed.assert_called_once_with(
+        messages=["Global overall coverage dropped from 80.0 to 70.0."], fail=False
+    )

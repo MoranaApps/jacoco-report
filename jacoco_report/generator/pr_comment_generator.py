@@ -14,7 +14,7 @@ from jacoco_report.evaluator.baseline_comparison import BaselineComparison, Cove
 from jacoco_report.evaluator.coverage_evaluator import CoverageEvaluator
 from jacoco_report.model.evaluated_report_coverage import EvaluatedReportCoverage
 from jacoco_report.utils.constants import ACTION_REPOSITORY, ACTION_REPOSITORY_URL
-from jacoco_report.utils.enums import CommentLevelEnum, ReportTargetEnum
+from jacoco_report.utils.enums import CommentLevelEnum, FailOnThresholdEnum, ReportTargetEnum
 from jacoco_report.utils.gh_action import write_job_summary
 from jacoco_report.utils.github import GitHub, get_server_url
 
@@ -392,17 +392,20 @@ class PRCommentGenerator:
                 )
                 filtered_groups = {k: v for k, v in filtered_groups.items() if k in visible_group_names}
 
-            # Filter out reports with no changed files where metric weight is zero
-            # This indicates all changed files were filtered due to zero metric weight.
-            # Only hide when: had_changed_files_before_filtering is True
-            filtered_reports = {k: v for k, v in filtered_reports.items() if not v.had_changed_files_before_filtering}
+            # 'no-decrease' drops are found on the rows that survive skip-unchanged, before the zero-weight filter.
+            dropped_groups = self._dropped_row_keys(filtered_groups, is_group=True)
+            dropped_reports = self._dropped_row_keys(filtered_reports, is_group=False)
 
-            # Similar logic for groups
-            filtered_groups = {k: v for k, v in filtered_groups.items() if not v.had_changed_files_before_filtering}
+            # Hide reports and groups whose changed files all have zero metric weight, unless they fail a threshold
+            # or dropped against the baseline: a failing row must not vanish from the comment.
+            filtered_reports = self._keep_zero_weight_rows_that_fail(filtered_reports, dropped_reports)
+            filtered_groups = self._keep_zero_weight_rows_that_fail(filtered_groups, dropped_groups)
 
             if comment_level != CommentLevelEnum.FULL:
-                filtered_groups = self._filter_evaluated_coverage_rows(filtered_groups, comment_level)
-                filtered_reports = self._filter_evaluated_coverage_rows(filtered_reports, comment_level)
+                filtered_groups = self._filter_evaluated_coverage_rows(filtered_groups, comment_level, dropped_groups)
+                filtered_reports = self._filter_evaluated_coverage_rows(
+                    filtered_reports, comment_level, dropped_reports
+                )
 
             groups_table = self.get_groups_table(p, f, filtered_groups)
             if groups_table:
@@ -449,25 +452,59 @@ class PRCommentGenerator:
         )
         return warning_content
 
+    def _keep_zero_weight_rows_that_fail(
+        self, evaluated_coverages: dict[str, EvaluatedReportCoverage], dropped_keys: frozenset[str]
+    ) -> dict[str, EvaluatedReportCoverage]:
+        """Hide rows whose changed files all have zero metric weight, except rows that fail a threshold or dropped."""
+        return {
+            key: coverage
+            for key, coverage in evaluated_coverages.items()
+            if not coverage.had_changed_files_before_filtering
+            or key in dropped_keys
+            or self._is_failing_coverage(coverage)
+        }
+
+    def _dropped_row_keys(
+        self, evaluated_coverages: dict[str, EvaluatedReportCoverage], is_group: bool
+    ) -> frozenset[str]:
+        """Return the keys of the rows that dropped against the baseline under 'no-decrease'.
+
+        Empty unless 'no-decrease' is selected, so the max-decrease input is only read then. A row without a matching
+        baseline is not dropped.
+        """
+        if FailOnThresholdEnum.NO_DECREASE not in ActionInputs.get_fail_on_threshold():
+            return frozenset()
+
+        max_decrease = ActionInputs.get_max_decrease()
+        baseline = self._baseline()
+        dropped = baseline.group_dropped if is_group else baseline.report_dropped
+        return frozenset(key for key, coverage in evaluated_coverages.items() if dropped(coverage, max_decrease))
+
     def _filter_evaluated_coverage_rows(
         self,
         evaluated_coverages: dict[str, EvaluatedReportCoverage],
         comment_level: str,
+        dropped_keys: frozenset[str],
     ) -> dict[str, EvaluatedReportCoverage]:
-        """Filter group or report rows according to the selected comment level."""
+        """Filter group or report rows according to the selected comment level; `dropped_keys` are failing rows."""
         return {
             key: coverage
             for key, coverage in evaluated_coverages.items()
-            if self._should_include_coverage_row(coverage, comment_level)
+            if self._should_include_coverage_row(coverage, comment_level, key in dropped_keys)
         }
 
-    def _should_include_coverage_row(self, coverage: EvaluatedReportCoverage, comment_level: str) -> bool:
-        """Return whether one evaluated group or report row should be rendered."""
+    def _should_include_coverage_row(
+        self, coverage: EvaluatedReportCoverage, comment_level: str, dropped: bool
+    ) -> bool:
+        """Return whether one evaluated group or report row should be rendered.
+
+        A row is failing when a fixed threshold fails or, under 'no-decrease', when it dropped against the baseline.
+        """
         if comment_level == CommentLevelEnum.FULL:
             return True
 
         has_changed_files = self._has_changed_files(coverage)
-        is_failing = self._is_failing_coverage(coverage)
+        is_failing = dropped or self._is_failing_coverage(coverage)
 
         if comment_level == CommentLevelEnum.CHANGED:
             return has_changed_files
@@ -481,8 +518,11 @@ class PRCommentGenerator:
         return False
 
     def _has_changed_files(self, coverage: EvaluatedReportCoverage) -> bool:
-        """Return whether a coverage row represents at least one changed file."""
-        if coverage.changed_files_coverage_reached:
+        """Return whether a coverage row represents at least one changed file.
+
+        A row whose changed files all have zero weight for the selected metric still had changed files.
+        """
+        if coverage.changed_files_coverage_reached or coverage.had_changed_files_before_filtering:
             return True
 
         return (coverage.avg_changed_files_coverage.covered + coverage.avg_changed_files_coverage.missed) > 0

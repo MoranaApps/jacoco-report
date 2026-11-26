@@ -74,10 +74,59 @@ Comma- or newline-separated list of dimension names:
 | `changed-files-average` | Global average over changed files |
 | `per-changed-file` | Global per-changed-file and per-report / per-group per-changed-file threshold |
 | `fail-unchanged` | Unchanged reports filtered by `skip-unchanged` still fail |
+| `no-decrease` | Overall coverage must not drop against `baseline-paths` by more than `max-decrease`. See [`no-decrease` rules](#no-decrease-rules) |
 
 Leave empty (`fail-on-threshold: ''`) to disable all threshold-based failures.
 
 Default: `overall,changed-files-average,per-changed-file`
+
+Setting the value replaces the default list. To keep the other dimensions, list them as well.
+
+### `max-decrease`
+
+Largest allowed drop of the overall coverage against the baseline, in percentage points. Used only with
+`no-decrease`; the input is validated even when `no-decrease` is not selected.
+
+```text
+0.0   →  any drop that shows in the Δ column fails (default)
+0.5   →  a drop of up to 0.5 percentage points passes
+```
+
+A float from 0 to 100, inclusive. Empty or whitespace-only means `0.0`. Other values fail validation with
+`'max-decrease' must be a float between 0 and 100 (inclusive).`
+
+### `no-decrease` rules
+
+- Checks only the **overall coverage** of the global row, each group and each report, using the same Δ the
+  comment shows. Changed-files coverage and per-file coverage are not checked.
+- The Δ has two decimals, as in the comment. The global and group rows round the exact change, so a drop below
+  0.005 percentage points shows as `0.0` and passes. A report row subtracts the rounded coverages, as the comment's
+  report row does, so its Δ can differ from the exact change by up to 0.01: a drop of 0.004 points (80.005 % →
+  80.001 %, shown as 80.01 % → 80.0 %) shows as `-0.01` and fails with `max-decrease: 0.0`. Set `max-decrease: 0.01`
+  to ignore such rounding steps.
+- A row fails when its Δ is below `-max-decrease` **and** its missed count of the selected `metric` is higher
+  than in the baseline. A drop of exactly `max-decrease` passes.
+- Deleting covered code lowers the covered count but not the missed count, so it passes.
+- A report or group without a matching baseline is skipped, and an INFO log line names it.
+- The step fails when there is no baseline at all: `baseline-paths` is unset, no baseline report is found, or
+  every group is skipped for ambiguous inheritance of `baseline-paths` (see [baseline-paths.md](baseline-paths.md)).
+  Groups skipped that way while others have a baseline are skipped like any group without a match.
+- The step fails when baseline reports are found but none of the reports found in this run matches one by path or
+  report name. Reports filtered by `skip-unchanged` count too, even when they are not checked, so a PR that only
+  adds a new module (no baseline yet) passes while the unchanged modules match the baseline.
+- Renaming a report (its `<title>`) or removing it takes it out of the comparison, because it no longer matches a
+  baseline report. The gate guards against coverage regressions, not against a PR that changes its own reports.
+- If `skip-unchanged` filters every report and they are not evaluated (`evaluate-unchanged: false` and no
+  `fail-unchanged`), the gate passes. Otherwise the filtered reports are compared with the baseline too (see
+  [skip-unchanged.md](skip-unchanged.md)).
+- With `skip-unchanged: true`, `evaluate-unchanged: false` and `fail-unchanged` in the list, the filtered unchanged
+  reports are checked as report rows. The global and group rows still cover only reports with changed files, and
+  when every report is filtered, only the report rows are checked. If only unchanged reports match the baseline,
+  the global row is skipped with an INFO log line.
+- In the comment, a group or report row that dropped counts as failing for `comment-level: failed` and
+  `failed-or-changed`, so it is shown; its Status column still shows the fixed threshold (see
+  [comment-level.md](comment-level.md)).
+- Without `no-decrease` in the list, none of this is computed and the baseline does not affect the exit code.
 
 ## Impact
 
@@ -151,6 +200,26 @@ differ; `global-thresholds` guards the aggregated total independently.
 
 ```yaml
     fail-on-threshold: ''
+```
+
+### Coverage must not drop
+
+Fails when overall coverage drops against the baseline. Set `baseline-paths` (see
+[baseline-paths.md](baseline-paths.md)) and list `no-decrease`.
+
+```yaml
+    exclude-paths: 'baseline/**'
+    baseline-paths: 'baseline/master/jacoco/**/*.xml'
+    fail-on-threshold: 'overall,changed-files-average,per-changed-file,no-decrease'
+```
+
+### Allow a small drop
+
+```yaml
+    exclude-paths: 'baseline/**'
+    baseline-paths: 'baseline/master/jacoco/**/*.xml'
+    fail-on-threshold: 'no-decrease'
+    max-decrease: '0.5'
 ```
 
 ## See also

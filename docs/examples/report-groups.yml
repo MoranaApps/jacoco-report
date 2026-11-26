@@ -75,6 +75,10 @@ jobs:
           # Optional top-level baseline paths (used only when exactly one group omits baseline-paths).
           # baseline-paths: 'baseline/main/**/*.xml'
 
+          # The default top-level paths (**/jacoco.xml) would also find the baseline files;
+          # exclude them from the current reports. The baseline scan ignores exclude-paths.
+          exclude-paths: 'baseline/**'
+
           # Show rows with changes or failures; rows with no changes are still shown when failing.
           comment-level: 'failed-or-changed'
 

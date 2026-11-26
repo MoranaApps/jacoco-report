@@ -4,11 +4,15 @@ import os
 from typing import Any
 
 import pytest
+from pytest_mock import MockerFixture, MockType
 
 # TODO - remove this dependency
 
 from jacoco_report.action_inputs import ActionInputs
-from jacoco_report.utils.enums import CommentLevelEnum, MetricTypeEnum
+from jacoco_report.evaluator.coverage_evaluator import CoverageEvaluator
+from jacoco_report.model.counter import Counter
+from jacoco_report.model.evaluated_report_coverage import EvaluatedReportCoverage
+from jacoco_report.utils.enums import CommentLevelEnum, FailOnThresholdEnum, MetricTypeEnum
 
 comment_no_data_no_baseline = """**JaCoCo Coverage Report**
 
@@ -1935,13 +1939,13 @@ modules_thresholds_100_all = {
 }
 
 
-def test_run_not_pull_request_event(jacoco_report, mocker):
+def test_run_not_pull_request_event(jacoco_report, mocker: MockerFixture):
     mocker.patch.object(ActionInputs, "get_event_name", return_value="push")
     jacoco_report.run()
     assert "Not a pull request event." in jacoco_report.violations
 
 
-def test_run_no_pr_number(jacoco_report, mocker):
+def test_run_no_pr_number(jacoco_report, mocker: MockerFixture):
     mocker.patch.object(ActionInputs, "get_event_name", return_value="pull_request")
     mocker.patch.object(ActionInputs, "get_token", return_value="fake_token")
     mocker.patch("jacoco_report.utils.github.GitHub.get_pr_number", return_value=None)
@@ -1949,7 +1953,7 @@ def test_run_no_pr_number(jacoco_report, mocker):
     assert "No pull request number found." in jacoco_report.violations
 
 
-def test_run_changed_files_use_pr_number_input_not_github_ref(jacoco_report, mocker, monkeypatch):
+def test_run_changed_files_use_pr_number_input_not_github_ref(jacoco_report, mocker: MockerFixture, monkeypatch):
     """The pr-number input is the PR for both the changed files and the comment, whatever GITHUB_REF says."""
     monkeypatch.setenv("INPUT_PR_NUMBER", "5")
     monkeypatch.setenv("GITHUB_REF", "refs/pull/7/merge")
@@ -1965,7 +1969,7 @@ def test_run_changed_files_use_pr_number_input_not_github_ref(jacoco_report, moc
     mock_changed_files.assert_called_once_with(5)
 
 
-def test_run_failed_to_retrieve_changed_files(jacoco_report, mocker):
+def test_run_failed_to_retrieve_changed_files(jacoco_report, mocker: MockerFixture):
     """Test that action fails gracefully when GitHub API fails to return changed files."""
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value="pull_request")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_token", return_value="fake_token")
@@ -1983,7 +1987,7 @@ def test_run_failed_to_retrieve_changed_files(jacoco_report, mocker):
     assert jacoco_report.reached_threshold_per_change_file is False
 
 
-def test_run_no_jacoco_xml_files(jacoco_report, caplog, mocker):
+def test_run_no_jacoco_xml_files(jacoco_report, caplog, mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value="pull_request")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_token", return_value="fake_token")
     mocker.patch("jacoco_report.utils.github.GitHub.get_pr_number", return_value=1)
@@ -1999,7 +2003,7 @@ def test_run_no_jacoco_xml_files(jacoco_report, caplog, mocker):
         mock_add_comment.assert_not_called()
 
 
-def test_run_with_report_groups_allows_empty_top_level_paths(jacoco_report, mocker):
+def test_run_with_report_groups_allows_empty_top_level_paths(jacoco_report, mocker: MockerFixture):
     from jacoco_report.model.report_group import ReportGroup
 
     group = ReportGroup(name="backend", paths=["tests/data/backend/**/jacoco.xml"])
@@ -2032,7 +2036,7 @@ def test_run_with_report_groups_allows_empty_top_level_paths(jacoco_report, mock
     assert "No input JaCoCo xml file found." not in jacoco_report.violations
 
 
-def test_run_with_report_groups_no_baseline_paths_no_group_warnings(jacoco_report, caplog, mocker):
+def test_run_with_report_groups_no_baseline_paths_no_group_warnings(jacoco_report, caplog, mocker: MockerFixture):
     from jacoco_report.model.report_group import ReportGroup
 
     group = ReportGroup(name="backend", paths=["tests/data/backend/**/jacoco.xml"])
@@ -2067,7 +2071,9 @@ def test_run_with_report_groups_no_baseline_paths_no_group_warnings(jacoco_repor
     assert "No baseline JaCoCo xml file found for group" not in caplog.text
 
 
-def test_run_with_report_groups_ambiguous_global_baseline_inheritance_skips_groups(jacoco_report, caplog, mocker):
+def test_run_with_report_groups_ambiguous_global_baseline_inheritance_skips_groups(
+    jacoco_report, caplog, mocker: MockerFixture
+):
     from jacoco_report.model.report_group import ReportGroup
 
     group1 = ReportGroup(name="group-a", paths=["group-a/**/*.xml"], baseline_paths=None)
@@ -2108,7 +2114,7 @@ def test_run_with_report_groups_ambiguous_global_baseline_inheritance_skips_grou
     assert "Ambiguous baseline configuration" in caplog.text
 
 
-def test_run_with_report_groups_explicit_empty_baseline_does_not_inherit_global(jacoco_report, mocker):
+def test_run_with_report_groups_explicit_empty_baseline_does_not_inherit_global(jacoco_report, mocker: MockerFixture):
     from jacoco_report.model.report_group import ReportGroup
 
     group1 = ReportGroup(name="group-a", paths=["group-a/**/*.xml"], baseline_paths=[])
@@ -2151,7 +2157,7 @@ def test_run_with_report_groups_explicit_empty_baseline_does_not_inherit_global(
     assert baseline_parse_calls[0].kwargs.get("group_name") == "group-b"
 
 
-def test_run_successful_empty_no_baseline(jacoco_report, mocker):
+def test_run_successful_empty_no_baseline(jacoco_report, mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value="pull_request")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_run_id", return_value="")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_action_ref", return_value="")
@@ -2176,7 +2182,7 @@ def test_run_successful_empty_no_baseline(jacoco_report, mocker):
     mock_add_comment.assert_called_once_with(35, comment_no_data_no_baseline)
 
 
-def test_run_successful_empty_with_baseline(jacoco_report, mocker):
+def test_run_successful_empty_with_baseline(jacoco_report, mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value="pull_request")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_run_id", return_value="")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_action_ref", return_value="")
@@ -2213,7 +2219,9 @@ one_source_file_scenarios = [
 
 
 @pytest.mark.parametrize("metric, comment, ov_cov, ch_cov, ov_cov_b, ch_cov_b", one_source_file_scenarios)
-def test_successful_one_source_file(jacoco_report, metric, comment, ov_cov, ch_cov, ov_cov_b, ch_cov_b, mocker):
+def test_successful_one_source_file(
+    jacoco_report, metric, comment, ov_cov, ch_cov, ov_cov_b, ch_cov_b, mocker: MockerFixture
+):
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value="pull_request")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_run_id", return_value="")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_action_ref", return_value="")
@@ -2288,7 +2296,7 @@ def test_successful_more_source_files(
     violations,
     skip_unchanged,
     use_baseline,
-    mocker,
+    mocker: MockerFixture,
 ):
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value="pull_request")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_run_id", return_value="")
@@ -2525,7 +2533,7 @@ violations_scenarios = [
 
 
 @pytest.mark.parametrize("id, level, changed_files, violations", violations_scenarios)
-def test_violations(jacoco_report, id, level, changed_files, violations, mocker):
+def test_violations(jacoco_report, id, level, changed_files, violations, mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value="pull_request")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_token", return_value="fake_token")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_comment_level", return_value=level)
@@ -2555,7 +2563,7 @@ def test_violations(jacoco_report, id, level, changed_files, violations, mocker)
         assert violation in actual_merger_violations
 
 
-def test_filtered_out_all_from_changed_file(jacoco_report, mocker):
+def test_filtered_out_all_from_changed_file(jacoco_report, mocker: MockerFixture):
     changed_files = ["com/example/ExampleClass.java"]
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_comment_level", return_value=CommentLevelEnum.FULL)
     mocker.patch(
@@ -2580,7 +2588,7 @@ def test_filtered_out_all_from_changed_file(jacoco_report, mocker):
 # --- Issue 3: Duplicate report files when group paths overlap ---
 
 
-def test_scan_groups_no_overlap_deduplication(jacoco_report, mocker):
+def test_scan_groups_no_overlap_deduplication(jacoco_report, mocker: MockerFixture):
     """Test that each report appears once when groups have non-overlapping paths"""
     from jacoco_report.model.report_group import ReportGroup
 
@@ -2627,7 +2635,7 @@ def test_scan_groups_no_overlap_deduplication(jacoco_report, mocker):
     assert parsed_paths == ["group-a.xml", "group-b.xml"]
 
 
-def test_scan_groups_with_overlap_deduplication(jacoco_report, mocker):
+def test_scan_groups_with_overlap_deduplication(jacoco_report, mocker: MockerFixture):
     """Test that overlapping paths in groups are deduplicated"""
     from jacoco_report.model.report_group import ReportGroup
 
@@ -2687,7 +2695,7 @@ def test_scan_groups_with_overlap_deduplication(jacoco_report, mocker):
 # ---------------------------------------------------------------------------
 
 
-def _patch_jr_run_inputs(mocker, *, exclude_paths=None, report_groups=None):
+def _patch_jr_run_inputs(mocker: MockerFixture, *, exclude_paths=None, report_groups=None):
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value="pull_request")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_token", return_value="token")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=["**/jacoco.xml"])
@@ -2723,7 +2731,9 @@ def _patch_jr_run_inputs(mocker, *, exclude_paths=None, report_groups=None):
     mocker.patch("jacoco_report.utils.github.GitHub.add_comment", return_value=None)
 
 
-def test_groups_coverage_output_contains_real_group_data(jacoco_report, mocker, make_report_file_coverage):
+def test_groups_coverage_output_contains_real_group_data(
+    jacoco_report, mocker: MockerFixture, make_report_file_coverage
+):
     """When report-groups are configured, evaluated_coverage_groups is non-empty JSON with group entries."""
     from jacoco_report.model.report_group import ReportGroup
 
@@ -2742,7 +2752,9 @@ def test_groups_coverage_output_contains_real_group_data(jacoco_report, mocker, 
     assert "team-a" in groups_data
 
 
-def test_groups_coverage_output_empty_json_when_no_groups(jacoco_report, mocker, make_report_file_coverage):
+def test_groups_coverage_output_empty_json_when_no_groups(
+    jacoco_report, mocker: MockerFixture, make_report_file_coverage
+):
     """Without report-groups, evaluated_coverage_groups is '{}'."""
     report = make_report_file_coverage(name="mod-1")
 
@@ -2763,7 +2775,7 @@ def _reports_by_name(evaluated_coverage_json: str) -> dict:
     return {entry["name"]: entry for entry in json.loads(evaluated_coverage_json).values()}
 
 
-def test_delta_outputs_with_baseline(jacoco_report, mocker):
+def test_delta_outputs_with_baseline(jacoco_report, mocker: MockerFixture):
     """The delta outputs and the per-report delta carry the comment's Δ values (snapshot_baseline_no_groups.md)."""
     _patch_jr_run_inputs(mocker)
     mocker.patch(
@@ -2783,7 +2795,7 @@ def test_delta_outputs_with_baseline(jacoco_report, mocker):
     assert "delta" not in reports["Module Small Report"]
 
 
-def test_delta_outputs_empty_without_baseline(jacoco_report, mocker):
+def test_delta_outputs_empty_without_baseline(jacoco_report, mocker: MockerFixture):
     """Without baseline-paths the delta outputs stay empty and no report entry gets a delta."""
     _patch_jr_run_inputs(mocker)
     mocker.patch(
@@ -2798,7 +2810,7 @@ def test_delta_outputs_empty_without_baseline(jacoco_report, mocker):
     assert all("delta" not in entry for entry in json.loads(jacoco_report.evaluated_coverage_reports).values())
 
 
-def test_delta_outputs_empty_when_no_report_matches_the_baseline(jacoco_report, mocker):
+def test_delta_outputs_empty_when_no_report_matches_the_baseline(jacoco_report, mocker: MockerFixture):
     """A baseline whose reports match none of the current ones gives empty outputs, not 0.0."""
     _patch_jr_run_inputs(mocker)
     mocker.patch(
@@ -2816,7 +2828,7 @@ def test_delta_outputs_empty_when_no_report_matches_the_baseline(jacoco_report, 
     assert jacoco_report.total_changed_files_coverage_delta is None
 
 
-def test_group_delta_only_for_groups_with_a_baseline(jacoco_report, mocker):
+def test_group_delta_only_for_groups_with_a_baseline(jacoco_report, mocker: MockerFixture):
     """groups-coverage carries a delta for the group with a baseline and none for the group without one."""
     from jacoco_report.model.report_group import ReportGroup
 
@@ -2838,7 +2850,7 @@ def test_group_delta_only_for_groups_with_a_baseline(jacoco_report, mocker):
     assert "delta" not in groups_data["notification"]
 
 
-def test_global_delta_covers_only_kept_reports_when_evaluate_unchanged_is_false(jacoco_report, mocker):
+def test_global_delta_covers_only_kept_reports_when_evaluate_unchanged_is_false(jacoco_report, mocker: MockerFixture):
     """With skip-unchanged and evaluate-unchanged false, the global Δ covers only the kept reports (see baseline-paths docs)."""
     _patch_jr_run_inputs(mocker)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_unchanged", return_value=True)
@@ -2858,7 +2870,9 @@ def test_global_delta_covers_only_kept_reports_when_evaluate_unchanged_is_false(
     assert jacoco_report.total_changed_files_coverage_delta == -4.75
 
 
-def test_delta_outputs_empty_when_all_reports_are_filtered_without_evaluate_unchanged(jacoco_report, mocker):
+def test_delta_outputs_empty_when_all_reports_are_filtered_without_evaluate_unchanged(
+    jacoco_report, mocker: MockerFixture
+):
     """All reports filtered by skip-unchanged and none evaluated: there is nothing to compare, so no Δ is set."""
     _patch_jr_run_inputs(mocker)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_unchanged", return_value=True)
@@ -2877,7 +2891,9 @@ def test_delta_outputs_empty_when_all_reports_are_filtered_without_evaluate_unch
     assert jacoco_report.total_changed_files_coverage_delta is None
 
 
-def test_delta_output_set_when_all_reports_are_filtered_and_evaluate_unchanged_true(jacoco_report, mocker):
+def test_delta_output_set_when_all_reports_are_filtered_and_evaluate_unchanged_true(
+    jacoco_report, mocker: MockerFixture
+):
     """All reports filtered with evaluate-unchanged true: the evaluated unchanged reports are compared with the baseline.
 
     Same value as the main path over all nine reports (snapshot_baseline_no_groups.md); no report has changed files.
@@ -2899,7 +2915,9 @@ def test_delta_output_set_when_all_reports_are_filtered_and_evaluate_unchanged_t
     assert jacoco_report.total_changed_files_coverage_delta == 0.0
 
 
-def test_exclude_paths_forwarded_to_scan_jacoco_xml_files(jacoco_report, mocker, make_report_file_coverage):
+def test_exclude_paths_forwarded_to_scan_jacoco_xml_files(
+    jacoco_report, mocker: MockerFixture, make_report_file_coverage
+):
     """JaCoCoReport.scan_jacoco_xml_files receives the exclude_paths configured in action inputs."""
     report = make_report_file_coverage(name="mod")
     _patch_jr_run_inputs(mocker, exclude_paths=["**/exclude_me.xml"])
@@ -2919,7 +2937,7 @@ def test_exclude_paths_forwarded_to_scan_jacoco_xml_files(jacoco_report, mocker,
     assert captured.get("exclude_paths") == ["**/exclude_me.xml"]
 
 
-def test_excluded_files_absent_from_evaluated_reports(jacoco_report, mocker, make_report_file_coverage):
+def test_excluded_files_absent_from_evaluated_reports(jacoco_report, mocker: MockerFixture, make_report_file_coverage):
     """Files excluded by exclude_paths are not present in the evaluation output."""
     included_report = make_report_file_coverage(path="included.xml", name="included-mod")
 
@@ -2942,7 +2960,7 @@ def test_excluded_files_absent_from_evaluated_reports(jacoco_report, mocker, mak
 # ---------------------------------------------------------------------------
 
 
-def test_global_overall_scope_all_includes_ungrouped_reports(jacoco_report, mocker):
+def test_global_overall_scope_all_includes_ungrouped_reports(jacoco_report, mocker: MockerFixture):
     """With scope=all, reports outside all groups are parsed and included in evaluation."""
     from jacoco_report.model.report_group import ReportGroup
 
@@ -2980,7 +2998,7 @@ def test_global_overall_scope_all_includes_ungrouped_reports(jacoco_report, mock
     assert "frontend/jacoco.xml" in parsed_paths
 
 
-def test_global_overall_scope_groups_only_excludes_ungrouped_reports(jacoco_report, mocker):
+def test_global_overall_scope_groups_only_excludes_ungrouped_reports(jacoco_report, mocker: MockerFixture):
     """With scope=groups-only, no top-level scan is triggered; ungrouped files are never parsed."""
     from jacoco_report.model.report_group import ReportGroup
 
@@ -3016,7 +3034,7 @@ def test_global_overall_scope_groups_only_excludes_ungrouped_reports(jacoco_repo
     assert parse_mock.call_args_list[0].args[0] == "backend/jacoco.xml"
 
 
-def test_global_overall_scope_all_empty_paths_skips_extra_scan(jacoco_report, mocker):
+def test_global_overall_scope_all_empty_paths_skips_extra_scan(jacoco_report, mocker: MockerFixture):
     """With scope=all but paths is empty, no extra top-level scan is triggered."""
     from jacoco_report.model.report_group import ReportGroup
 
@@ -3050,7 +3068,7 @@ def test_global_overall_scope_all_empty_paths_skips_extra_scan(jacoco_report, mo
     assert scan_mock.call_count == 1
 
 
-def test_global_overall_scope_all_ungrouped_reports_emit_warning(jacoco_report, caplog, mocker):
+def test_global_overall_scope_all_ungrouped_reports_emit_warning(jacoco_report, caplog, mocker: MockerFixture):
     """With scope=all, a warning is logged for each report not assigned to any group."""
     from jacoco_report.model.report_group import ReportGroup
 
@@ -3088,7 +3106,7 @@ def test_global_overall_scope_all_ungrouped_reports_emit_warning(jacoco_report, 
     assert "groups-only" in caplog.text
 
 
-def test_empty_paths_falls_back_to_default_when_no_groups(jacoco_report, mocker):
+def test_empty_paths_falls_back_to_default_when_no_groups(jacoco_report, mocker: MockerFixture):
     """When paths is empty and no report groups are configured, the runtime falls back to **/jacoco.xml."""
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value="pull_request")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_token", return_value="fake_token")
@@ -3118,7 +3136,7 @@ def test_empty_paths_falls_back_to_default_when_no_groups(jacoco_report, mocker)
     assert called_paths == ["**/jacoco.xml"]
 
 
-def test_run_builds_github_client_with_ca_bundle(jacoco_report, mocker):
+def test_run_builds_github_client_with_ca_bundle(jacoco_report, mocker: MockerFixture):
     mocker.patch.object(ActionInputs, "get_event_name", return_value="pull_request")
     mocker.patch.object(ActionInputs, "get_token", return_value="fake_token")
     mocker.patch.object(ActionInputs, "get_ca_bundle", return_value="/etc/ssl/corp-ca.pem")
@@ -3136,14 +3154,14 @@ def test_run_builds_github_client_with_ca_bundle(jacoco_report, mocker):
 # ---------------------------------------------------------------------------
 
 
-def _patch_scan(mocker, jacoco_report, **kwargs):
+def _patch_scan(mocker: MockerFixture, jacoco_report, **kwargs):
     from typing import cast
     from unittest.mock import MagicMock
 
     return cast(MagicMock, mocker.patch.object(jacoco_report, "scan_jacoco_xml_files", **kwargs))
 
 
-def test_scan_reports_ungrouped_falls_back_to_default_paths(jacoco_report, mocker):
+def test_scan_reports_ungrouped_falls_back_to_default_paths(jacoco_report, mocker: MockerFixture):
     from jacoco_report.utils.constants import DEFAULT_PATHS
 
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=[])
@@ -3156,7 +3174,7 @@ def test_scan_reports_ungrouped_falls_back_to_default_paths(jacoco_report, mocke
     scan_mock.assert_called_once_with(paths=[DEFAULT_PATHS], exclude_paths=["vendor/**"])
 
 
-def test_scan_reports_grouped_scope_all_scans_top_level_paths(jacoco_report, mocker):
+def test_scan_reports_grouped_scope_all_scans_top_level_paths(jacoco_report, mocker: MockerFixture):
     from jacoco_report.model.report_group import ReportGroup
 
     group = ReportGroup(name="backend", paths=["backend/**/jacoco.xml"])
@@ -3170,7 +3188,7 @@ def test_scan_reports_grouped_scope_all_scans_top_level_paths(jacoco_report, moc
     scan_mock.assert_called_once_with(paths=["**/jacoco.xml"], exclude_paths=["vendor/**"])
 
 
-def test_scan_reports_grouped_scope_all_without_paths_does_not_scan(jacoco_report, mocker, caplog):
+def test_scan_reports_grouped_scope_all_without_paths_does_not_scan(jacoco_report, mocker: MockerFixture, caplog):
     from jacoco_report.model.report_group import ReportGroup
 
     group = ReportGroup(name="backend", paths=["backend/**/jacoco.xml"])
@@ -3185,7 +3203,7 @@ def test_scan_reports_grouped_scope_all_without_paths_does_not_scan(jacoco_repor
     assert "global-overall-scope=all but top-level 'paths' is empty" in caplog.text
 
 
-def test_scan_reports_groups_only_does_not_scan_top_level(jacoco_report, mocker):
+def test_scan_reports_groups_only_does_not_scan_top_level(jacoco_report, mocker: MockerFixture):
     from jacoco_report.model.report_group import ReportGroup
 
     group = ReportGroup(name="backend", paths=["backend/**/jacoco.xml"])
@@ -3198,7 +3216,7 @@ def test_scan_reports_groups_only_does_not_scan_top_level(jacoco_report, mocker)
     scan_mock.assert_not_called()
 
 
-def test_parse_reports_ungrouped_parses_each_path_without_group(jacoco_report, mocker):
+def test_parse_reports_ungrouped_parses_each_path_without_group(jacoco_report, mocker: MockerFixture):
     from unittest.mock import call
 
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_exclude_paths", return_value=[])
@@ -3214,7 +3232,7 @@ def test_parse_reports_ungrouped_parses_each_path_without_group(jacoco_report, m
     assert ungrouped_reports == []
 
 
-def test_parse_reports_overlapping_groups_deduplicate_first_group_wins(jacoco_report, mocker):
+def test_parse_reports_overlapping_groups_deduplicate_first_group_wins(jacoco_report, mocker: MockerFixture):
     from unittest.mock import call
 
     from jacoco_report.model.report_group import ReportGroup
@@ -3236,7 +3254,9 @@ def test_parse_reports_overlapping_groups_deduplicate_first_group_wins(jacoco_re
     assert ungrouped_reports == []
 
 
-def test_parse_reports_scope_all_includes_unmatched_top_level_report_with_warning(jacoco_report, mocker, caplog):
+def test_parse_reports_scope_all_includes_unmatched_top_level_report_with_warning(
+    jacoco_report, mocker: MockerFixture, caplog
+):
     from unittest.mock import call
 
     from jacoco_report.model.report_group import ReportGroup
@@ -3257,7 +3277,7 @@ def test_parse_reports_scope_all_includes_unmatched_top_level_report_with_warnin
     assert "Report 'orphan.xml' is not assigned to any report group" in caplog.text
 
 
-def test_parse_reports_groups_only_ignores_top_level_paths(jacoco_report, mocker):
+def test_parse_reports_groups_only_ignores_top_level_paths(jacoco_report, mocker: MockerFixture):
     from unittest.mock import call
 
     from jacoco_report.model.report_group import ReportGroup
@@ -3276,7 +3296,7 @@ def test_parse_reports_groups_only_ignores_top_level_paths(jacoco_report, mocker
     assert ungrouped_reports == []
 
 
-def test_collect_baseline_reports_ungrouped_without_baseline_paths_does_not_scan(jacoco_report, mocker):
+def test_collect_baseline_reports_ungrouped_without_baseline_paths_does_not_scan(jacoco_report, mocker: MockerFixture):
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=[])
     scan_mock = _patch_scan(mocker, jacoco_report, return_value=[])
     parser = mocker.Mock()
@@ -3288,7 +3308,7 @@ def test_collect_baseline_reports_ungrouped_without_baseline_paths_does_not_scan
     parser.parse.assert_not_called()
 
 
-def test_collect_baseline_reports_ungrouped_parses_baseline_without_group(jacoco_report, mocker):
+def test_collect_baseline_reports_ungrouped_parses_baseline_without_group(jacoco_report, mocker: MockerFixture):
     from unittest.mock import call
 
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["base/**"])
@@ -3302,7 +3322,7 @@ def test_collect_baseline_reports_ungrouped_parses_baseline_without_group(jacoco
     assert len(result) == 1
 
 
-def test_collect_baseline_reports_single_group_inherits_global_baseline(jacoco_report, mocker):
+def test_collect_baseline_reports_single_group_inherits_global_baseline(jacoco_report, mocker: MockerFixture):
     from unittest.mock import call
 
     from jacoco_report.model.report_group import ReportGroup
@@ -3319,7 +3339,9 @@ def test_collect_baseline_reports_single_group_inherits_global_baseline(jacoco_r
     assert len(result) == 1
 
 
-def test_collect_baseline_reports_ambiguous_inheritance_skips_groups_with_warning(jacoco_report, mocker, caplog):
+def test_collect_baseline_reports_ambiguous_inheritance_skips_groups_with_warning(
+    jacoco_report, mocker: MockerFixture, caplog
+):
     from jacoco_report.model.report_group import ReportGroup
 
     group1 = ReportGroup(name="group-a", paths=["group-a/**"])
@@ -3337,7 +3359,7 @@ def test_collect_baseline_reports_ambiguous_inheritance_skips_groups_with_warnin
     assert "Ambiguous baseline configuration" in caplog.text
 
 
-def test_collect_baseline_reports_shared_baseline_paths_scan_once_and_deduplicate(jacoco_report, mocker):
+def test_collect_baseline_reports_shared_baseline_paths_scan_once_and_deduplicate(jacoco_report, mocker: MockerFixture):
     from unittest.mock import call
 
     from jacoco_report.model.report_group import ReportGroup
@@ -3355,7 +3377,7 @@ def test_collect_baseline_reports_shared_baseline_paths_scan_once_and_deduplicat
     assert len(result) == 2
 
 
-def test_run_without_ungrouped_reports_exits_before_changed_files_api_call(jacoco_report, mocker):
+def test_run_without_ungrouped_reports_exits_before_changed_files_api_call(jacoco_report, mocker: MockerFixture):
     """No top-level JaCoCo report exits before the PR changed-files API call (#274 keeps this order)."""
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value="pull_request")
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_token", return_value="fake_token")
@@ -3373,7 +3395,9 @@ def test_run_without_ungrouped_reports_exits_before_changed_files_api_call(jacoc
     assert jacoco_report.has_operational_failure is True
 
 
-def test_collect_baseline_reports_explicit_empty_group_baseline_disables_inheritance(jacoco_report, mocker):
+def test_collect_baseline_reports_explicit_empty_group_baseline_disables_inheritance(
+    jacoco_report, mocker: MockerFixture
+):
     from jacoco_report.model.report_group import ReportGroup
 
     group = ReportGroup(name="g1", paths=["g1/**"], baseline_paths=[])
@@ -3388,7 +3412,7 @@ def test_collect_baseline_reports_explicit_empty_group_baseline_disables_inherit
     assert result == []
 
 
-def test_collect_baseline_reports_group_own_baseline_overrides_global(jacoco_report, mocker):
+def test_collect_baseline_reports_group_own_baseline_overrides_global(jacoco_report, mocker: MockerFixture):
     from unittest.mock import call
 
     from jacoco_report.model.report_group import ReportGroup
@@ -3403,7 +3427,9 @@ def test_collect_baseline_reports_group_own_baseline_overrides_global(jacoco_rep
     assert scan_mock.call_args_list == [call(paths=["own/**"], exclude_paths=[])]
 
 
-def test_collect_baseline_reports_group_scan_finds_nothing_warns_and_parses_nothing(jacoco_report, mocker, caplog):
+def test_collect_baseline_reports_group_scan_finds_nothing_warns_and_parses_nothing(
+    jacoco_report, mocker: MockerFixture, caplog
+):
     from jacoco_report.model.report_group import ReportGroup
 
     group = ReportGroup(name="g1", paths=["g1/**"])
@@ -3419,7 +3445,9 @@ def test_collect_baseline_reports_group_scan_finds_nothing_warns_and_parses_noth
     assert "No baseline JaCoCo xml file found for group 'g1'" in caplog.text
 
 
-def test_collect_baseline_reports_ungrouped_scan_finds_nothing_warns_and_parses_nothing(jacoco_report, mocker, caplog):
+def test_collect_baseline_reports_ungrouped_scan_finds_nothing_warns_and_parses_nothing(
+    jacoco_report, mocker: MockerFixture, caplog
+):
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["base/**"])
     _patch_scan(mocker, jacoco_report, return_value=[])
     parser = mocker.Mock()
@@ -3484,3 +3512,268 @@ def test_split_unchanged_reports_evaluate_filtered_logs_threshold_only_message(
         "Filtering report 'Report A' from comment rows and changed-files evaluation: no changed files "
         "(overall threshold checks may still apply)." in caplog.text
     )
+
+
+# --- no-decrease gate through run() ---
+
+_TEST_PROJECT_PATHS = ["tests/data/test_project/**/jacoco.xml"]
+_BASELINE_PATHS = ["tests/data_baseline/**/*.xml"]
+_USER_INFO_API_CHANGED_FILES = ["com/example/user-info/api/ApiClass.java"]
+_MODULE_SMALL_CHANGED_FILES = ["com/example/module_small/ClassS1.java"]
+_MODULE_LARGE_DROP = "Report 'Module Large Report' overall coverage dropped"
+_DROP_SUFFIX = " against the baseline"
+_NO_BASELINE_MESSAGE = (
+    "'no-decrease' needs a baseline, but no baseline report was found. "
+    "Set 'baseline-paths' to the JaCoCo reports of the base branch."
+)
+
+
+def _patch_no_decrease_run(
+    mocker: MockerFixture,
+    *,
+    fail_on_threshold: list[str],
+    skip_unchanged: bool = False,
+    evaluate_unchanged: bool = True,
+    changed_files: list[str] | None = None,
+    baseline_paths: list[str] | None = None,
+    max_decrease: float = 0.0,
+    event_name: str = "pull_request",
+) -> MockType:
+    """Patch the run() inputs on the tests/data test project and its baseline; return the max-decrease mock."""
+    _patch_jr_run_inputs(mocker)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_event_name", return_value=event_name)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_unchanged", return_value=skip_unchanged)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_evaluate_unchanged", return_value=evaluate_unchanged)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_fail_on_threshold", return_value=fail_on_threshold)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=_TEST_PROJECT_PATHS)
+    mocker.patch(
+        "jacoco_report.action_inputs.ActionInputs.get_baseline_paths",
+        return_value=_BASELINE_PATHS if baseline_paths is None else baseline_paths,
+    )
+    mocker.patch(
+        "jacoco_report.utils.github.GitHub.get_pr_changed_files",
+        return_value=[] if changed_files is None else changed_files,
+    )
+    return mocker.patch("jacoco_report.action_inputs.ActionInputs.get_max_decrease", return_value=max_decrease)
+
+
+def _drop_messages(violations: list[str]) -> list[str]:
+    return [message for message in violations if _DROP_SUFFIX in message]
+
+
+def test_no_decrease_gate_not_selected_does_not_read_max_decrease(jacoco_report, mocker: MockerFixture):
+    """Without no-decrease the drop of Module Large is not gated: max-decrease is not read and no drop is reported."""
+    max_decrease = _patch_no_decrease_run(
+        mocker, fail_on_threshold=[FailOnThresholdEnum.OVERALL], changed_files=_MODULE_LARGE_CHANGED_FILES
+    )
+
+    jacoco_report.run()
+
+    max_decrease.assert_not_called()
+    assert _drop_messages(jacoco_report.violations) == []
+    assert jacoco_report.reached_threshold_no_decrease is True
+
+
+def test_no_decrease_drop_is_appended_after_the_threshold_violations(jacoco_report, mocker: MockerFixture):
+    _patch_no_decrease_run(
+        mocker,
+        fail_on_threshold=[FailOnThresholdEnum.OVERALL, FailOnThresholdEnum.NO_DECREASE],
+        changed_files=_MODULE_LARGE_CHANGED_FILES,
+    )
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_global_overall_threshold", return_value=100.0)
+
+    jacoco_report.run()
+
+    assert jacoco_report.violations[0].startswith("Global overall coverage ")
+    assert "is below the threshold" in jacoco_report.violations[0]
+    assert any(message.startswith(_MODULE_LARGE_DROP) for message in jacoco_report.violations[1:])
+    assert jacoco_report.reached_threshold_no_decrease is False
+
+
+def test_no_decrease_drop_within_max_decrease_passes(jacoco_report, mocker: MockerFixture):
+    """Module Large dropped 4.17 points, so a tolerance of 10 lets the run pass."""
+    _patch_no_decrease_run(
+        mocker,
+        fail_on_threshold=[FailOnThresholdEnum.NO_DECREASE],
+        changed_files=_MODULE_LARGE_CHANGED_FILES,
+        max_decrease=10.0,
+    )
+
+    jacoco_report.run()
+
+    assert jacoco_report.violations == []
+    assert jacoco_report.reached_threshold_no_decrease is True
+
+
+def test_no_decrease_without_baseline_gives_exactly_the_no_baseline_violation(jacoco_report, mocker: MockerFixture):
+    _patch_no_decrease_run(
+        mocker,
+        fail_on_threshold=[FailOnThresholdEnum.NO_DECREASE],
+        changed_files=_MODULE_LARGE_CHANGED_FILES,
+        baseline_paths=[],
+    )
+
+    jacoco_report.run()
+
+    assert jacoco_report.violations == [_NO_BASELINE_MESSAGE]
+    assert jacoco_report.reached_threshold_no_decrease is False
+
+
+def test_no_decrease_operational_failure_fails_the_gate(jacoco_report, mocker: MockerFixture):
+    _patch_no_decrease_run(mocker, fail_on_threshold=[FailOnThresholdEnum.NO_DECREASE], event_name="push")
+
+    jacoco_report.run()
+
+    assert jacoco_report.has_operational_failure is True
+    assert jacoco_report.reached_threshold_no_decrease is False
+
+
+def test_no_decrease_is_not_evaluated_when_all_reports_are_filtered_without_evaluate_unchanged(
+    jacoco_report, mocker: MockerFixture
+):
+    """Nothing is evaluated on that path, so the gate has no result to fail on."""
+    _patch_jr_run_inputs(mocker)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_unchanged", return_value=True)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_evaluate_unchanged", return_value=False)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_fail_on_threshold", return_value=["no-decrease"])
+    mocker.patch(
+        "jacoco_report.action_inputs.ActionInputs.get_paths", return_value=["tests/data/test_project/**/jacoco.xml"]
+    )
+    mocker.patch(
+        "jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["tests/data_baseline/**/*.xml"]
+    )
+    mocker.patch("jacoco_report.utils.github.GitHub.get_pr_changed_files", return_value=[])
+
+    jacoco_report.run()
+
+    assert jacoco_report.violations == []
+    assert jacoco_report.reached_threshold_no_decrease is True
+
+
+def test_no_decrease_is_applied_when_all_reports_are_filtered_and_evaluate_unchanged(
+    jacoco_report, mocker: MockerFixture
+):
+    """With evaluate-unchanged the filtered reports are evaluated, so the gate applies to them: the Module Large drop."""
+    _patch_jr_run_inputs(mocker)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_skip_unchanged", return_value=True)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_evaluate_unchanged", return_value=True)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_fail_on_threshold", return_value=["no-decrease"])
+    mocker.patch(
+        "jacoco_report.action_inputs.ActionInputs.get_paths", return_value=["tests/data/test_project/**/jacoco.xml"]
+    )
+    mocker.patch(
+        "jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["tests/data_baseline/**/*.xml"]
+    )
+    mocker.patch("jacoco_report.utils.github.GitHub.get_pr_changed_files", return_value=[])
+
+    jacoco_report.run()
+
+    assert jacoco_report.reached_threshold_no_decrease is False
+    assert any(
+        message.startswith("Report 'Module Large Report' overall coverage dropped")
+        for message in jacoco_report.violations
+    )
+
+
+def test_no_decrease_with_fail_unchanged_gates_a_filtered_report_that_dropped(jacoco_report, mocker: MockerFixture):
+    """A filtered report that dropped is gated when fail-unchanged reads it, though it is left out of the results."""
+    _patch_no_decrease_run(
+        mocker,
+        fail_on_threshold=["fail-unchanged", "no-decrease"],
+        skip_unchanged=True,
+        evaluate_unchanged=False,
+        changed_files=_USER_INFO_API_CHANGED_FILES,
+    )
+
+    jacoco_report.run()
+
+    assert any(message.startswith(_MODULE_LARGE_DROP) for message in jacoco_report.violations)
+    assert jacoco_report.reached_threshold_no_decrease is False
+
+
+def test_no_decrease_without_fail_unchanged_does_not_gate_a_filtered_report(jacoco_report, mocker: MockerFixture):
+    """Without fail-unchanged the filtered report is out of the results, so its drop is not gated."""
+    _patch_no_decrease_run(
+        mocker,
+        fail_on_threshold=["no-decrease"],
+        skip_unchanged=True,
+        evaluate_unchanged=False,
+        changed_files=_USER_INFO_API_CHANGED_FILES,
+    )
+
+    jacoco_report.run()
+
+    assert not any(message.startswith(_MODULE_LARGE_DROP) for message in jacoco_report.violations)
+    assert jacoco_report.reached_threshold_no_decrease is True
+
+
+def test_no_decrease_new_module_pr_with_filtered_baseline_matches_passes(jacoco_report, mocker: MockerFixture):
+    """A PR that only adds module Small: no kept report has a baseline, the filtered ones match, so no NO_MATCH."""
+    _patch_no_decrease_run(
+        mocker,
+        fail_on_threshold=[FailOnThresholdEnum.NO_DECREASE],
+        skip_unchanged=True,
+        evaluate_unchanged=False,
+        changed_files=_MODULE_SMALL_CHANGED_FILES,
+    )
+
+    jacoco_report.run()
+
+    assert jacoco_report.violations == []
+    assert jacoco_report.reached_threshold_no_decrease is True
+
+
+def _write_coverage_report(path, name: str, missed: int, covered: int) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        f'<?xml version="1.0" encoding="UTF-8"?>\n<report name="{name}">'
+        f'<counter type="INSTRUCTION" missed="{missed}" covered="{covered}"/></report>\n',
+        encoding="utf-8",
+    )
+
+
+def _write_all_filtered_reports(root) -> None:
+    """Reports A and B: A is 90 % in both runs; B grew from 100 to 200 instructions at the same 10 %."""
+    _write_coverage_report(root / "baseline" / "a" / "jacoco.xml", "A", missed=10, covered=90)
+    _write_coverage_report(root / "baseline" / "b" / "jacoco.xml", "B", missed=90, covered=10)
+    _write_coverage_report(root / "current" / "a" / "jacoco.xml", "A", missed=10, covered=90)
+    _write_coverage_report(root / "current" / "b" / "jacoco.xml", "B", missed=180, covered=20)
+
+
+def _patch_all_filtered_run(mocker: MockerFixture, fail_on_threshold: list[str], evaluate_unchanged: bool) -> None:
+    _patch_no_decrease_run(
+        mocker,
+        fail_on_threshold=fail_on_threshold,
+        skip_unchanged=True,
+        evaluate_unchanged=evaluate_unchanged,
+    )
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_paths", return_value=["current/**/jacoco.xml"])
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_paths", return_value=["baseline/**/jacoco.xml"])
+
+
+def test_all_filtered_fail_unchanged_gates_report_rows_only(
+    jacoco_report, mocker: MockerFixture, monkeypatch, tmp_path
+):
+    """Every report filtered, evaluate-unchanged false: the global row (50 % to 36.67 %) is not gated, no report dropped."""
+    _write_all_filtered_reports(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    _patch_all_filtered_run(mocker, ["fail-unchanged", "no-decrease"], evaluate_unchanged=False)
+
+    jacoco_report.run()
+
+    assert jacoco_report.violations == []
+    assert jacoco_report.reached_threshold_no_decrease is True
+
+
+def test_all_filtered_evaluate_unchanged_gates_the_global_row(
+    jacoco_report, mocker: MockerFixture, monkeypatch, tmp_path
+):
+    """Counterpart: with evaluate-unchanged true the same data gives the global drop."""
+    _write_all_filtered_reports(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    _patch_all_filtered_run(mocker, ["fail-unchanged", "no-decrease"], evaluate_unchanged=True)
+
+    jacoco_report.run()
+
+    assert any(message.startswith("Global overall coverage dropped") for message in jacoco_report.violations)
+    assert jacoco_report.reached_threshold_no_decrease is False
