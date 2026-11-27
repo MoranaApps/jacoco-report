@@ -37,6 +37,10 @@ MAX_DECREASE = "max-decrease"
 DEBUG = "debug"
 
 BASELINE_PATHS = "baseline-paths"
+# A full commit SHA: 40 hex characters (SHA-1) or 64 (SHA-256 repositories).
+COMMIT_SHA_REGEX = r"[0-9a-fA-F]{40}(?:[0-9a-fA-F]{24})?"
+BASELINE_SHA = "baseline-sha"
+BASELINE_METADATA_PATH = "baseline-metadata-path"
 
 CA_BUNDLE = "ca-bundle"
 

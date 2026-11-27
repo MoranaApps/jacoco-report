@@ -149,6 +149,8 @@ Input values are passed to the action exactly as written: `$VAR`, `$(…)` and b
 | `skip-unchanged`    | If `true`, reports with no changed files are filtered out from comment rows. With default `evaluate-unchanged=true`, filtered reports can still affect threshold results.                                                        | No       | `false`                                          |
 | `evaluate-unchanged` | Applies only when `skip-unchanged=true`. If `true`, filtered reports can still fail overall thresholds. If `false`, they are excluded from threshold evaluation, except reports read by `fail-unchanged`, which `no-decrease` also checks. | No       | `true`                                           |
 | `baseline-paths`    | Paths to baseline coverage reports for comparison. Supports wildcard glob patterns. With `no-decrease` in `fail-on-threshold`, a coverage drop fails the step, see [baseline-paths](docs/inputs/baseline-paths.md).            | No       | `''`                                             |
+| `baseline-sha`      | Full commit SHA (40 or 64 hex characters) the baseline must come from, e.g. `${{ github.event.pull_request.base.sha }}`. Set together with `baseline-metadata-path`. See [Verify the baseline commit](docs/inputs/baseline-paths.md#verify-the-baseline-commit). | No       | `''`                                             |
+| `baseline-metadata-path` | Path (relative to the workspace) to a JSON file `{"sha": "<full sha>"}` written with the baseline reports. Set together with `baseline-sha`. See [Verify the baseline commit](docs/inputs/baseline-paths.md#verify-the-baseline-commit). | No       | `''`                                             |
 | `update-comment`    | If `true`, updates an existing comment instead of creating a new one.                                                                                                                                                          | No       | `true`                                           |
 | `pass-symbol`       | Symbol for passing checks in PR comments (e.g., ✅, **Passed**).                                                                                                                                                               | No       | `✅`                                              |
 | `fail-symbol`       | Symbol for failing checks in PR comments (e.g., ❌, **Failed**).                                                                                                                                                               | No       | `❌`                                              |
@@ -173,6 +175,9 @@ The following outputs are set by the JaCoCo GitHub Action:
   Empty without a baseline, or when no report matched a baseline report. Example: `-0.59`
 - `coverage-changed-files-delta`: The same change for the changed-files coverage; `0.0` when a baseline matched but
   no report has changed-file coverage now. Example: `1.25`
+- `baseline-verified`: `true` when the baseline matches `baseline-sha` in `baseline-metadata-path`, `false` when it does
+  not (`no-decrease` is then skipped), and empty when verification is not configured. See
+  [Verify the baseline commit](docs/inputs/baseline-paths.md#verify-the-baseline-commit). Example: `true`
 - `reports-coverage`: A JSON string containing the evaluated coverage per report. With `baseline-paths`, a report
   that matched a baseline report also gets `delta` (percentage points, as in the outputs above). Example:
   ```json
@@ -305,6 +310,10 @@ Right after that error, a `Hint:` line names the likely cause:
   `'no-decrease' found baseline reports, but none matches` when no report found in the run (reports filtered by
   `skip-unchanged` included) matches one. Check
   `baseline-paths` and the report paths or names. See [thresholds](docs/inputs/thresholds.md#no-decrease-rules).
+- With `baseline-sha` and `baseline-metadata-path` set, a baseline that does not match the SHA (or whose metadata file
+  is missing or invalid) is unverified: the action warns, and `no-decrease` is skipped and passes. Producer and
+  consumer workflow examples are in
+  [baseline-paths](docs/inputs/baseline-paths.md#verified-baseline-producer-and-consumer-workflows).
 
 ### `fail-on-threshold` selection looks incorrect
 

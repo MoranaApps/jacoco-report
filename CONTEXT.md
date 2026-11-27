@@ -27,7 +27,7 @@ digging through CI logs.
 - `jacoco_report/` — the action's package: `action_inputs.py` (reads/validates every `INPUT_*` env
   var), `jacoco_report.py` (orchestrator, class `JaCoCoReport`), `scanner/` (glob-based XML
   discovery), `parser/` (JaCoCo XML → model), `evaluator/` (threshold evaluation; `baseline_comparison.py`:
-  baseline matching and Δ), `generator/` (PR
+  baseline matching and Δ; `baseline_verification.py`: the `baseline-sha` check), `generator/` (PR
   comment and job summary markdown), `model/` (data classes), `utils/` (GitHub API client, GH Actions I/O, enums,
   constants, logging)
 - `main.py` — entry point: `ActionInputs` → `JaCoCoReport` → GH Action outputs/exit code
@@ -193,9 +193,10 @@ service is needed.
   shared by the report and baseline parses. `run()` reads `report-groups` and `global-overall-scope` once and passes
   them in.
 - Baseline Δ has one source, `BaselineComparison(evaluator, bs_evaluator)` (`evaluator/baseline_comparison.py`, #288):
-  the generator renders it (comment and job summary) and `_apply_results` turns it into the outputs
-  `coverage-overall-delta`/`coverage-changed-files-delta` and the `delta` key (`CoverageDelta.to_dict()`:
-  `overall`, `changed_files`) of `reports-coverage`/`groups-coverage`, so all show the same numbers.
+  the generator renders it (comment and job summary); `_apply_results` stores the global one in
+  `JaCoCoReport.total_coverage_delta`, whose properties `main.py` writes to the outputs
+  `coverage-overall-delta`/`coverage-changed-files-delta`, and adds the `delta` key (`CoverageDelta.to_dict()`:
+  `overall`, `changed_files`) to `reports-coverage`/`groups-coverage`, so all show the same numbers.
   - Matching: a report row takes the baseline report with its path, else the first with its name; global and group
     pair by path when any path matches, else by name. A group needs its name in the baseline's groups.
   - Every Δ is in percentage points, rounded to two decimals, `-0.0` turned into `0.0`. Report Δ = difference of the
@@ -215,6 +216,8 @@ service is needed.
     fails, so always computing it would add messages for existing callers. It then sets
     `reached_threshold_no_decrease` and `self.violations = evaluator.violations + gate violations` (a new list; the
     evaluator's is not mutated). Order: global, groups, reports of the results evaluator, then `unchanged_reports`.
+    With `baseline_verified is False` and baseline data, `_apply_results` skips the gate (INFO log), so the step passes
+    (see Baseline verification).
   - When the results evaluator leaves the filtered unchanged reports out (`skip-unchanged`, `evaluate-unchanged:
     false`, so `evaluator_for_results is not overall_evaluator`), `_evaluate_coverage` passes their
     `overall_evaluator` rows on: with `fail-unchanged` as `unchanged_reports` (checked as report rows, as
@@ -225,6 +228,7 @@ service is needed.
     marks group/report rows that dropped (`BaselineComparison.group_dropped`/`report_dropped`, the gate's rule) as
     failing for `comment-level: failed`/`failed-or-changed`, else a row failing only the gate is hidden while the
     step fails. The Status column stays fixed-threshold; `get_max_decrease` is read only when `no-decrease` is on.
+    An unverified baseline (`baseline_unverified`) makes `_dropped_row_keys` return empty.
   - Before the comment-level filter, rows whose changed files all have zero weight for the selected metric
     (`had_changed_files_before_filtering`) are hidden at every level, except rows that fail a fixed threshold or
     dropped (`_keep_zero_weight_rows_that_fail`; drops are computed before it). Such a kept row counts as changed
@@ -235,23 +239,46 @@ service is needed.
     A report row's Δ is the difference of the rounded reached values (as the comment shows it), so it can be up to
     0.01 off the exact change: a 0.004 pp drop across a rounding step is `-0.01` and fails `max-decrease: 0.0`, while
     global/group rows round the exact change once.
-  - No baseline data → only `NO_BASELINE_VIOLATION`. `NO_MATCH_VIOLATION` (alone) only when no report of the run
-    matches a baseline report: results evaluator, `unchanged_reports` and `match_evidence`. It is meant for
-    misconfiguration (renamed `<title>`, wrong folder); counting the filtered reports keeps a PR that only adds a
-    new module (no baseline yet) from failing. If only `unchanged_reports`/`match_evidence` matched, the global row is
-    skipped with an INFO log. A group or report without a match is skipped with an INFO log. When skip-unchanged
-    filters every report without evaluating them, `_apply_results` is not called and the gate passes. When it
-    evaluates them only because of `fail-unchanged` (`evaluate-unchanged: false`), `_apply_results` gets
-    `include_aggregate_rows=False`: report rows only, as for the filtered reports of a mixed run. A global row over
-    unchanged reports can drop with every report row unchanged (stale baseline, report sizes changed).
-    `max-decrease` is validated even when `no-decrease` is not selected.
+  - No baseline data → only `NO_BASELINE_VIOLATION`, also when the baseline is unverified (owner decision: the
+    verification only decides whether baseline data that was found comes from the base commit, it never excuses a
+    missing one). `NO_MATCH_VIOLATION` (alone) only when no report of the run matches a baseline report: results
+    evaluator, `unchanged_reports` and `match_evidence`. It is meant for misconfiguration (renamed `<title>`, wrong
+    folder); counting the filtered reports keeps a PR that only adds a new module (no baseline yet) from failing. If
+    only `unchanged_reports`/`match_evidence` matched, the global row is skipped with an INFO log. A group or report
+    without a match is skipped with an INFO log. When skip-unchanged filters every report without evaluating them,
+    `_apply_results` is not called and the gate passes. When it evaluates them only because of `fail-unchanged`
+    (`evaluate-unchanged: false`), `_apply_results` gets `include_aggregate_rows=False`: report rows only, as for the
+    filtered reports of a mixed run. A global row over unchanged reports can drop with every report row unchanged
+    (stale baseline, report sizes changed). `max-decrease` is validated even when `no-decrease` is not selected.
+- Baseline verification (`baseline-sha` + `baseline-metadata-path`, #290; `evaluator/baseline_verification.py`):
+  - Inputs: both or neither (`ActionInputs._validate_baseline_verification`, run right after `max-decrease` in
+    `validate_inputs()`); `baseline-sha` must be 40 or 64 hex characters (`_COMMIT_SHA_PATTERN`).
+  - `JaCoCoReport._verify_baseline()` runs once per run, right after the PR number is logged, so the
+    all-reports-filtered path is covered too. It sets `baseline_verified`: `None` (not configured), `True`, or `False`,
+    and `main.py` writes `baseline-verified` as `""`/`true`/`false` (`main._verified_output`).
+  - The file's `sha` is compared case-insensitively with the stripped `baseline-sha`. A mismatch or unusable file gives
+    one `::warning::` (`print_action_warning`, which escapes it) with the reason, naming the path and, on a mismatch,
+    both SHAs. The PR comment never contains the file's SHA.
+  - The file is attacker-shaped data (any artifact producer chooses it): it is read as `utf-8-sig` and at most 65,536
+    characters, `RecursionError` from `json.loads` counts as invalid JSON, and the file's `sha` is echoed only when it
+    is a full commit SHA (`COMMIT_SHA_REGEX` in `constants.py`, shared with the input validation). A lone surrogate
+    from JSON would otherwise make `print()` raise and crash the run. The check is consistency with the base commit,
+    not authenticity: the docs' consumer example lists runs with `--event push` so a fork PR's run is never picked.
+  - Unverified + baseline data: `no-decrease` is skipped, the Δ columns and `coverage-*-delta`/`delta` stay as they are,
+    `_dropped_row_keys` is empty, and `UNVERIFIED_BASELINE_NOTE` is appended to the comment/summary head (after the
+    basic table, never cut) when the Δ column shows.
+  - One SHA and one metadata file cover the top-level and every group `baseline-paths`.
+  - Reason (ticket #290): a baseline from another commit must not fail or pass a PR for reasons outside it, so it warns
+    instead.
 - A new `fail-on-threshold` value needs a `FailOnThresholdEnum` member, a `reached_threshold_*` flag on `JaCoCoReport`
   set in `_apply_results` and reset to False in `_mark_operational_failure`, and an entry in `main.py`'s
   `threshold_checks`.
 - `run()` sits at the `too-many-locals` limit (`max-locals=20`, enabled; `self` counts): a new local there trips it,
   so new logic goes in a helper.
 - `CoverageEvaluator` and `JaCoCoReport` sit at the `too-many-instance-attributes` limit (`max-attributes=15`): a new
-  attribute trips it.
+  attribute trips it. `JaCoCoReport`'s Δ is one attribute, `total_coverage_delta: Optional[CoverageDelta]`;
+  `total_overall_coverage_delta`/`total_changed_files_coverage_delta` are read-only properties over it (tests read
+  them). Its other slot is `baseline_verified`.
   Its public result attributes are read by `PRCommentGenerator` and set directly by tests (`report_group_order`
   included), so keep them plain attributes. A group's threshold fallback (group field → `report-thresholds-default`)
   lives only in `_group_thresholds(group)`, used by `evaluate_group` and `_set_thresholds`.
@@ -318,6 +345,8 @@ service is needed.
   lookup finds no changed files in such reports, so the changed-file checks pass without checking anything.
   Fixture: `tests/data/report_aggregate/` (kept outside `test_project/`, which the self-test and snapshots scan).
 - Pylint's gate is zero messages: `.pylintrc` `fail-under=10`; CI runs pylint and uses its exit code, not a score.
+- `make lint`, `make format`, `make build` and the black step of `make check` take `$(git ls-files '*.py')`: a new
+  untracked `.py` file is not linted, formatted or compiled until it is `git add`ed. pytest and `mypy .` still see it.
 - The `secrets` context is not allowed in a step- or job-level `if:`; GitHub rejects the whole workflow
   file as invalid and no job in it runs (issue #240: `renovate.yml` never auto-merged). Expose the
   secret via an `env:` var (e.g. `HAS_REVIEW_TOKEN: ${{ secrets.X != '' }}`) and test that instead.

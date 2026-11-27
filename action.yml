@@ -72,6 +72,20 @@ inputs:
   baseline-paths:
     description: 'Paths to JaCoCo baseline reports.'
     required: false
+  baseline-sha:
+    description: >
+      Full commit SHA (40 or 64 hexadecimal characters) that the baseline-paths reports were built from.
+      Set it together with baseline-metadata-path. The baseline counts as verified only when the metadata file names
+      this SHA; otherwise the run warns, skips the no-decrease gate for the unverified baseline and sets
+      baseline-verified to false.
+    required: false
+    default: ''
+  baseline-metadata-path:
+    description: >
+      Path to a JSON file shipped with the baseline-paths reports: an object with a string 'sha' field naming the
+      commit they were built from. Set it together with baseline-sha.
+    required: false
+    default: ''
   update-comment:
     description: 'If true, update an existing action comment with the same title instead of creating a new one.'
     required: false
@@ -133,6 +147,9 @@ outputs:
   coverage-changed-files-delta:
     description: 'Change of the changed-files coverage against baseline-paths, in percentage points. Empty without a matched baseline.'
     value: ${{ steps.jacoco-report-to-pr-comment.outputs.coverage-changed-files-delta }}
+  baseline-verified:
+    description: "'true' when the baseline matches baseline-sha, 'false' when it does not, empty when baseline-sha is not set."
+    value: ${{ steps.jacoco-report-to-pr-comment.outputs.baseline-verified }}
   reports-coverage:
     description: 'Coverage for each report.'
     value: ${{ steps.jacoco-report-to-pr-comment.outputs.reports-coverage }}
@@ -226,6 +243,8 @@ runs:
         INPUT_EVALUATE_UNCHANGED: ${{ inputs.evaluate-unchanged }}
         INPUT_GLOBAL_OVERALL_SCOPE: ${{ inputs.global-overall-scope }}
         INPUT_BASELINE_PATHS: ${{ inputs.baseline-paths }}
+        INPUT_BASELINE_SHA: ${{ inputs.baseline-sha }}
+        INPUT_BASELINE_METADATA_PATH: ${{ inputs.baseline-metadata-path }}
         INPUT_UPDATE_COMMENT: ${{ inputs.update-comment }}
         INPUT_PASS_SYMBOL: ${{ inputs.pass-symbol }}
         INPUT_FAIL_SYMBOL: ${{ inputs.fail-symbol }}

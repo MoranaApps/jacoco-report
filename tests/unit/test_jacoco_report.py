@@ -3777,3 +3777,126 @@ def test_all_filtered_evaluate_unchanged_gates_the_global_row(
 
     assert any(message.startswith("Global overall coverage dropped") for message in jacoco_report.violations)
     assert jacoco_report.reached_threshold_no_decrease is False
+
+
+_EXPECTED_SHA = "a" * 40
+_OTHER_SHA = "b" * 40
+_UNVERIFIED_WARNING = (
+    f"Unverified baseline: metadata file '{{path}}' names commit {_OTHER_SHA}, but baseline-sha is {_EXPECTED_SHA}. "
+    "The Δ against it is informational, and 'no-decrease' skips it."
+)
+
+
+def _write_metadata(tmp_path, sha: str) -> str:
+    metadata = tmp_path / "metadata.json"
+    metadata.write_text(json.dumps({"sha": sha}), encoding="utf-8")
+    return str(metadata)
+
+
+def _baseline_warnings(warning: MockType) -> list[str]:
+    """The baseline warnings printed, without the PR comment warnings the offline run may also print."""
+    return [call.args[0] for call in warning.call_args_list if call.args[0].startswith("Unverified baseline")]
+
+
+def _patch_baseline_verification(mocker: MockerFixture, metadata_path: str) -> MockType:
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_sha", return_value=_EXPECTED_SHA)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_metadata_path", return_value=metadata_path)
+    return mocker.patch("jacoco_report.jacoco_report.print_action_warning")
+
+
+def test_baseline_verification_is_not_configured_by_default(jacoco_report, mocker: MockerFixture):
+    warning = mocker.patch("jacoco_report.jacoco_report.print_action_warning")
+    _patch_no_decrease_run(
+        mocker, fail_on_threshold=[FailOnThresholdEnum.OVERALL], changed_files=_MODULE_LARGE_CHANGED_FILES
+    )
+
+    jacoco_report.run()
+
+    assert jacoco_report.baseline_verified is None
+    assert _baseline_warnings(warning) == []
+
+
+def test_matching_metadata_verifies_the_baseline_and_the_gate_applies(jacoco_report, mocker: MockerFixture, tmp_path):
+    warning = _patch_baseline_verification(mocker, _write_metadata(tmp_path, _EXPECTED_SHA.upper()))
+    _patch_no_decrease_run(
+        mocker, fail_on_threshold=[FailOnThresholdEnum.NO_DECREASE], changed_files=_MODULE_LARGE_CHANGED_FILES
+    )
+
+    jacoco_report.run()
+
+    assert jacoco_report.baseline_verified is True
+    assert any(message.startswith(_MODULE_LARGE_DROP) for message in jacoco_report.violations)
+    assert jacoco_report.reached_threshold_no_decrease is False
+    assert _baseline_warnings(warning) == []
+
+
+def test_unverified_baseline_skips_no_decrease_warns_once_and_keeps_the_deltas(
+    jacoco_report, mocker: MockerFixture, tmp_path, caplog
+):
+    caplog.set_level(logging.INFO, logger="jacoco_report.jacoco_report")
+    metadata = _write_metadata(tmp_path, _OTHER_SHA)
+    warning = _patch_baseline_verification(mocker, metadata)
+    _patch_no_decrease_run(
+        mocker, fail_on_threshold=[FailOnThresholdEnum.NO_DECREASE], changed_files=_MODULE_LARGE_CHANGED_FILES
+    )
+
+    jacoco_report.run()
+
+    assert jacoco_report.baseline_verified is False
+    assert _drop_messages(jacoco_report.violations) == []
+    assert jacoco_report.reached_threshold_no_decrease is True
+    assert "'no-decrease' skipped: the baseline could not be verified against 'baseline-sha'." in caplog.text
+    assert _baseline_warnings(warning) == [_UNVERIFIED_WARNING.format(path=metadata)]
+    assert jacoco_report.total_overall_coverage_delta is not None
+
+
+def test_unverified_baseline_without_baseline_data_still_fails_no_decrease(
+    jacoco_report, mocker: MockerFixture, tmp_path
+):
+    warning = _patch_baseline_verification(mocker, _write_metadata(tmp_path, _OTHER_SHA))
+    _patch_no_decrease_run(
+        mocker,
+        fail_on_threshold=[FailOnThresholdEnum.NO_DECREASE],
+        changed_files=_MODULE_LARGE_CHANGED_FILES,
+        baseline_paths=[],
+    )
+
+    jacoco_report.run()
+
+    assert jacoco_report.baseline_verified is False
+    assert jacoco_report.violations == [_NO_BASELINE_MESSAGE]
+    assert jacoco_report.reached_threshold_no_decrease is False
+    assert len(_baseline_warnings(warning)) == 1
+
+
+def test_baseline_verification_runs_once_on_the_all_reports_filtered_path(
+    jacoco_report, mocker: MockerFixture, tmp_path
+):
+    warning = _patch_baseline_verification(mocker, _write_metadata(tmp_path, _OTHER_SHA))
+    _patch_no_decrease_run(
+        mocker,
+        fail_on_threshold=[FailOnThresholdEnum.NO_DECREASE],
+        skip_unchanged=True,
+        evaluate_unchanged=False,
+    )
+
+    jacoco_report.run()
+
+    assert jacoco_report.baseline_verified is False
+    assert len(_baseline_warnings(warning)) == 1
+
+
+def test_unverified_baseline_skips_no_decrease_on_the_evaluated_all_reports_filtered_path(
+    jacoco_report, mocker: MockerFixture, monkeypatch, tmp_path
+):
+    """The data of test_all_filtered_evaluate_unchanged_gates_the_global_row, with an unverified baseline: no drop."""
+    _write_all_filtered_reports(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    _patch_all_filtered_run(mocker, ["fail-unchanged", "no-decrease"], evaluate_unchanged=True)
+    _patch_baseline_verification(mocker, _write_metadata(tmp_path, _OTHER_SHA))
+
+    jacoco_report.run()
+
+    assert jacoco_report.baseline_verified is False
+    assert _drop_messages(jacoco_report.violations) == []
+    assert jacoco_report.reached_threshold_no_decrease is True

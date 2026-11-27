@@ -18,6 +18,11 @@ def _delta_output(delta: Optional[float]) -> str:
     return "" if delta is None else str(delta)
 
 
+def _verified_output(verified: Optional[bool]) -> str:
+    """Return the baseline-verified output: empty when baseline-sha is not set, else 'true' or 'false'."""
+    return "" if verified is None else str(verified).lower()
+
+
 def run() -> None:
     """
     The main function to run the JaCoCo GitHub Action adding the JaCoCo coverage report to the pull request.
@@ -45,6 +50,7 @@ def run() -> None:
     set_action_output("coverage-changed-files-passed", str(jr.total_changed_files_coverage_passed))
     set_action_output("coverage-overall-delta", _delta_output(jr.total_overall_coverage_delta))
     set_action_output("coverage-changed-files-delta", _delta_output(jr.total_changed_files_coverage_delta))
+    set_action_output("baseline-verified", _verified_output(jr.baseline_verified))
     set_action_output_text("reports-coverage", jr.evaluated_coverage_reports)
     set_action_output_text("groups-coverage", jr.evaluated_coverage_groups)
 
@@ -54,6 +60,7 @@ def run() -> None:
     logger.debug("Action output 'coverage-changed-files-passed' set to: %s", jr.total_changed_files_coverage_passed)
     logger.debug("Action output 'coverage-overall-delta' set to: %s", jr.total_overall_coverage_delta)
     logger.debug("Action output 'coverage-changed-files-delta' set to: %s", jr.total_changed_files_coverage_delta)
+    logger.debug("Action output 'baseline-verified' set to: %s", _verified_output(jr.baseline_verified))
     logger.debug("Action output 'reports-coverage' set to: %s", jr.evaluated_coverage_reports)
     logger.debug("Action output 'groups-coverage' set to: %s", jr.evaluated_coverage_groups)
 

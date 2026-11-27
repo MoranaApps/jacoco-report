@@ -8,6 +8,7 @@ import pytest
 from pytest_mock import MockerFixture
 
 from jacoco_report.action_inputs import ActionInputs
+from jacoco_report.evaluator.baseline_verification import UNVERIFIED_BASELINE_NOTE
 from jacoco_report.evaluator.coverage_evaluator import CoverageEvaluator
 from jacoco_report.generator.pr_comment_generator import PRCommentGenerator, SummaryRow
 from jacoco_report.model.counter import Counter
@@ -2253,3 +2254,50 @@ def test_changed_level_keeps_a_zero_weight_report_that_passes_hidden(mock_github
     gen.generate()
 
     assert "`api`" not in mock_github.add_comment.call_args[0][1]
+
+
+def test_unverified_baseline_drops_no_row_under_no_decrease(mock_github, mocker: MockerFixture):
+    gen = _dropped_api_generator(
+        mock_github, mocker, comment_level=CommentLevelEnum.FAILED, fail_on_threshold=["no-decrease"]
+    )
+    gen.baseline_unverified = True
+
+    gen.generate()
+
+    body = mock_github.add_comment.call_args[0][1]
+    assert "`api`" not in body
+    assert "No rows match the selected comment level." in body
+
+
+def test_unverified_baseline_adds_the_note_after_the_basic_table(mock_github, mocker: MockerFixture):
+    gen = _dropped_api_generator(
+        mock_github, mocker, comment_level=CommentLevelEnum.FULL, fail_on_threshold=["no-decrease"]
+    )
+    gen.baseline_unverified = True
+
+    _, parts = gen._get_comment_content(CommentLevelEnum.FULL)
+
+    assert parts.head.endswith(UNVERIFIED_BASELINE_NOTE)
+    assert parts.head.count(UNVERIFIED_BASELINE_NOTE) == 1
+
+
+def test_verified_or_unconfigured_baseline_has_no_note(mock_github, mocker: MockerFixture):
+    gen = _dropped_api_generator(
+        mock_github, mocker, comment_level=CommentLevelEnum.FULL, fail_on_threshold=["no-decrease"]
+    )
+
+    _, parts = gen._get_comment_content(CommentLevelEnum.FULL)
+
+    assert UNVERIFIED_BASELINE_NOTE not in parts.head
+
+
+def test_unverified_baseline_without_baseline_data_has_no_note(mock_github, mocker: MockerFixture):
+    gen = _dropped_api_generator(
+        mock_github, mocker, comment_level=CommentLevelEnum.FULL, fail_on_threshold=["no-decrease"]
+    )
+    gen.baseline_unverified = True
+    gen.bs_evaluator = None
+
+    _, parts = gen._get_comment_content(CommentLevelEnum.FULL)
+
+    assert UNVERIFIED_BASELINE_NOTE not in parts.head
