@@ -29,6 +29,13 @@ def _third_party_uses(path: Path = CI_WORKFLOW) -> list[str]:
     return [step["uses"] for step in _all_steps(path) if "uses" in step and not step["uses"].startswith("./")]
 
 
+def _trigger_names(path: Path) -> set[str]:
+    workflow = _workflow(path)
+    # PyYAML reads the bare key `on` as the boolean True (YAML 1.1).
+    triggers = workflow["on"] if "on" in workflow else workflow[True]
+    return {triggers} if isinstance(triggers, str) else set(triggers)
+
+
 def test_setup_python_steps_with_pip_cache_cover_both_requirement_files():
     """Every pip-cached setup-python step keys its cache on runtime and dev pins, so a pin bump invalidates it."""
     cached = [
@@ -63,6 +70,12 @@ def test_every_third_party_uses_is_pinned_to_a_full_commit_sha(workflow):
         match = THIRD_PARTY_USES.fullmatch(uses)
         assert match, f"unparsable uses: {uses}"
         assert FULL_SHA.fullmatch(match.group("ref")), f"{uses} is not pinned to a 40-hex commit SHA"
+
+
+@pytest.mark.parametrize("workflow", WORKFLOW_FILES, ids=lambda path: path.name)
+def test_no_workflow_triggers_on_pull_request_target(workflow):
+    # GitHub blocks pull_request_target in public repositories by default: such a workflow fails without running a job.
+    assert "pull_request_target" not in _trigger_names(workflow)
 
 
 def test_workflow_default_token_permissions_are_read_only():

@@ -307,6 +307,14 @@ service is needed.
   (e.g. `colorama` for pytest/pylint), which breaks Windows dev installs.
 - `renovate.yml` gates on the PR's changed files, not on labels: Renovate adds labels after it opens the PR, so a
   label check races on `opened`.
+- `renovate.yml` triggers on `pull_request`, not `pull_request_target`: GitHub blocks `pull_request_target` in public
+  repos by default from 2026-12-02 (the run fails with an error annotation and runs no job). Renovate's branches live
+  in this repo, so a `pull_request` run still gets the job's write token and `RENOVATE_REVIEW_TOKEN`. Costs: the job,
+  including its `if` and `review-gate`, runs from the PR's merge commit, so a writer's push to the PR can change or
+  drop them; a PR with a merge conflict gets no run, so the required check waits until Renovate rebases. Its job name
+  `Auto-enable auto-merge for Renovate PRs` is a required check in the ruleset: renaming it leaves every PR waiting.
+  `test_ci_workflow.py` fails on `pull_request_target` in any `*.yml` workflow. Rejected: allowing
+  `pull_request_target` in an Actions event policy (a setting outside the repo and its tests).
 - No `--only-binary=:all:` for pip: `--require-hashes` checks sdists too, but an sdist build's isolated env fetches
   build tools unhashed. pyyaml 6.0.3 has no cp315 or pure wheel, so 3.15 builds it. Rejected: it would break 3.15
   callers. Revisit when pyyaml ships cp315 wheels (#278).
@@ -569,7 +577,8 @@ service is needed.
     variable first. If `requirements.in`, `requirements.txt` or any file under `.github/workflows/` changed, it sets
     `review-required=true`, and the PAT approval and `gh pr merge --auto` steps are skipped; the job stays green. A
     failed or empty file list fails the step, so nothing is approved or merged. The job is a required status check,
-    so it must still succeed on those PRs.
+    so it must still succeed on those PRs. The gate holds against Renovate, not against a writer: it runs from the
+    PR's merge commit, so a writer's push can change it.
   - `.github/CODEOWNERS`: `/requirements.in` and `/requirements.txt` have an owner, but `RENOVATE_REVIEW_TOKEN` is the
     owner's PAT (MoranaApps org), so its approval counts as code-owner review. For Renovate PRs the gate is the only
     control that matters. `/requirements-dev.txt` is unowned, so dev minor/patch automerge still works.
