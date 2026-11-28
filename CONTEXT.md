@@ -309,7 +309,7 @@ service is needed.
   label check races on `opened`.
 - `renovate.yml` triggers on `pull_request`, not `pull_request_target`: GitHub blocks `pull_request_target` in public
   repos by default from 2026-12-02 (the run fails with an error annotation and runs no job). Renovate's branches live
-  in this repo, so a `pull_request` run still gets the job's write token and `RENOVATE_REVIEW_TOKEN`. Costs: the job,
+  in this repo, so a `pull_request` run still gets the job's write token. Costs: the job,
   including its `if` and `review-gate`, runs from the PR's merge commit, so a writer's push to the PR can change or
   drop them; a PR with a merge conflict gets no run, so the required check waits until Renovate rebases. Its job name
   `Auto-enable auto-merge for Renovate PRs` is a required check in the ruleset: renaming it leaves every PR waiting.
@@ -357,7 +357,7 @@ service is needed.
   untracked `.py` file is not linted, formatted or compiled until it is `git add`ed. pytest and `mypy .` still see it.
 - The `secrets` context is not allowed in a step- or job-level `if:`; GitHub rejects the whole workflow
   file as invalid and no job in it runs (issue #240: `renovate.yml` never auto-merged). Expose the
-  secret via an `env:` var (e.g. `HAS_REVIEW_TOKEN: ${{ secrets.X != '' }}`) and test that instead.
+  secret via an `env:` var (e.g. `HAS_X: ${{ secrets.X != '' }}`) and test that instead.
 - `action.yml` hands inputs to `main.py` only via the Run step's `env:` (`INPUT_<NAME>: ${{ inputs.<name> }}`,
   `-` → `_`, upper-cased) — a new input needs a line there and a `get_action_input` read in code.
 - `action.yml` `run:` scripts contain no `${{ … }}` in any spelling: GitHub pastes expressions into the
@@ -575,20 +575,13 @@ service is needed.
     sets no `minimumReleaseAge`); lock file maintenance does not wait (`--upgrade` takes the latest version).
   - `.github/workflows/renovate.yml`: step `review-gate` reads the PR's changed files from the GitHub API into a
     variable first. If `requirements.in`, `requirements.txt` or any file under `.github/workflows/` changed, it sets
-    `review-required=true`, and the PAT approval and `gh pr merge --auto` steps are skipped; the job stays green. A
-    failed or empty file list fails the step, so nothing is approved or merged. The job is a required status check,
+    `review-required=true`, and the `gh pr merge --auto` step is skipped; the job stays green. A failed or empty file
+    list fails the step, so nothing is set to auto-merge. The job is a required status check,
     so it must still succeed on those PRs. The gate holds against Renovate, not against a writer: it runs from the
     PR's merge commit, so a writer's push can change it.
   - `.github/CODEOWNERS`: `*`, `/requirements.in` and `/requirements.txt` belong to the owner; `/requirements-dev.txt`
-    is unowned; a test pins that set. `RENOVATE_REVIEW_TOKEN` is a classic PAT (`public_repo`) of a dedicated bot
-    account (outside collaborator, write access, not a code owner), so its approval meets the one required approval
-    but never code-owner review. Classic because an outside collaborator can't use a fine-grained PAT on an org repo;
-    org membership was rejected because the org's base permission would open its private repos to the bot. Every
-    writer can read repo secrets, so the token must never belong to a code owner. An expired or revoked token fails
-    the approve step, so the required check fails on every ungated Renovate PR. Residual risk: any writer can get a
-    PR that changes only unowned files (`requirements-dev.txt`, any update type) merged without the owner, approved
-    with this token or with `GITHUB_TOKEN` (the repo lets Actions approve PRs; `agd-update.yml` needs that setting
-    to open its PR).
+    is unowned. Every Renovate PR waits for a person's approval (no CI step approves, see below); after it, dev
+    minor/patch updates auto-merge.
 - Workflow-file PRs (any change under `.github/workflows/`) never automerge either, via the same `review-gate`.
   - Gate covers all of `.github/workflows/`, not a list of workflows: a list goes stale, and the workflows holding
     secrets are not only those with write access. Cost: about 2 manual merges a month.
@@ -600,10 +593,10 @@ service is needed.
     `secrets.TOKEN`; the delay detects nothing, and a GitHub tag's age comes from its commit or tagger date, which
     an attacker can backdate.
   - Rejected: binding approval or auto-merge to the head SHA (a race of seconds, needs a push to Renovate's branch).
-- Only the Renovate app and admins can create or update `renovate/**`: ruleset "Renovate branches" (rules `creation`
-  and `update`; bypass: the Renovate app, id 2740, and the admin role). `renovate.yml`'s `if` checks the PR author,
-  not the pusher, so without it a writer's commit on a Renovate branch gets the job's approval and auto-merge.
-  Deletion stays open: GitHub deletes merged head branches. It lives in repo settings; no test sees it.
+- No CI step approves a PR: `renovate.yml` uses no secret but `GITHUB_TOKEN`, and a test pins that. Every writer can
+  read repo secrets, so an approving token there lets any writer approve as its owner (with the owner's PAT, as code
+  owner). Rejected: a dedicated bot account that is not a code owner (one more account and token to secure, to save
+  one approval per dev-tool update).
 
 ## Read more
 

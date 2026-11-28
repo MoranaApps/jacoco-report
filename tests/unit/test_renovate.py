@@ -15,7 +15,6 @@ CODEOWNERS = REPO_ROOT / ".github" / "CODEOWNERS"
 RUNTIME_FILES = ["requirements.in", "requirements.txt"]
 GATE_ID = "review-gate"
 GATE_CLEAR = f"steps.{GATE_ID}.outputs.review-required == 'false'"
-APPROVE_STEP = "Approve Renovate PR (optional PAT)"
 MERGE_STEP = "Enable auto-merge for Renovate PR"
 
 
@@ -197,24 +196,24 @@ def test_gate_fails_closed_when_the_file_list_is_empty(tmp_path):
     assert "::error::" in result.stdout
 
 
-def test_gate_logs_why_approval_and_merge_are_skipped_for_a_runtime_change(tmp_path):
+def test_gate_logs_why_auto_merge_is_skipped_for_a_runtime_change(tmp_path):
     result, _, _ = _run_gate(tmp_path, ["requirements.txt"])
     assert result.returncode == 0, result.stdout + result.stderr
-    assert "Skipping approval and auto-merge: runtime dependencies (requirements.in/requirements.txt)" in result.stdout
+    assert "Skipping auto-merge: runtime dependencies (requirements.in/requirements.txt)" in result.stdout
     assert "need a person to review and merge" in result.stdout
 
 
 def test_gate_logs_the_workflow_directory_when_a_workflow_file_changed(tmp_path):
     result, _, _ = _run_gate(tmp_path, [".github/workflows/check_links.yml"])
     assert result.returncode == 0, result.stdout + result.stderr
-    assert "Skipping approval and auto-merge:" in result.stdout
+    assert "Skipping auto-merge:" in result.stdout
     assert ".github/workflows/" in result.stdout
 
 
 def test_gate_stays_quiet_about_the_skip_when_no_runtime_file_changed(tmp_path):
     result, _, _ = _run_gate(tmp_path, ["requirements-dev.txt"])
     assert result.returncode == 0, result.stdout + result.stderr
-    assert "Skipping approval" not in result.stdout
+    assert "Skipping auto-merge" not in result.stdout
 
 
 def _renovate_steps():
@@ -225,46 +224,39 @@ def _step_named(name):
     return next(step for step in _renovate_steps() if step.get("name") == name)
 
 
+def test_the_workflow_approves_no_pr():
+    # Every Renovate PR waits for a person's approval. Every writer can read repo secrets, so an approving token in
+    # them would let any writer approve as its owner.
+    text = RENOVATE_WORKFLOW.read_text(encoding="utf-8")
+    assert "gh pr review" not in text
+    assert set(re.findall(r"secrets\.(\w+)", text)) == {"GITHUB_TOKEN"}
+
+
 def test_workflow_runs_on_pull_request_when_a_pr_opens_or_gets_new_commits():
-    # Renovate's branches live in this repo, so a pull_request run gets the job's write token and the repo secrets.
+    # Renovate's branches live in this repo, so a pull_request run gets the job's write token.
     workflow = yaml.safe_load(RENOVATE_WORKFLOW.read_text(encoding="utf-8"))
     # PyYAML reads the bare key `on` as the boolean True (YAML 1.1).
     triggers = workflow["on"] if "on" in workflow else workflow[True]
     assert triggers == {"pull_request": {"types": ["opened", "synchronize"]}}
 
 
-def test_approval_and_auto_merge_run_only_when_the_gate_finds_no_runtime_change():
-    approve = _step_named(APPROVE_STEP)["if"]
-    assert GATE_CLEAR in approve
-    assert "env.HAS_REVIEW_TOKEN == 'true'" in approve
+def test_auto_merge_runs_only_when_the_gate_finds_no_runtime_change():
     assert GATE_CLEAR in _step_named(MERGE_STEP)["if"]
 
 
-def test_the_gate_step_runs_before_approval_and_merge():
+def test_the_gate_step_runs_before_auto_merge():
     names = [step.get("name") for step in _renovate_steps()]
     gate = next(step for step in _renovate_steps() if step.get("id") == GATE_ID)
-    assert names.index(gate["name"]) < names.index(APPROVE_STEP) < names.index(MERGE_STEP)
+    assert names.index(gate["name"]) < names.index(MERGE_STEP)
     assert "if" not in gate
 
 
-def _code_owners():
+def test_code_owners_cover_the_runtime_inputs_and_leave_dev_unowned():
     owners = {}
     for line in CODEOWNERS.read_text(encoding="utf-8").splitlines():
         parts = line.split()
         if parts and not parts[0].startswith("#"):
             owners[parts[0]] = parts[1:]
-    return owners
-
-
-def test_every_file_but_the_dev_requirements_has_a_code_owner():
-    # RENOVATE_REVIEW_TOKEN's bot is not a code owner, so its approval completes any PR that changes only unowned files.
-    owners = _code_owners()
-    assert owners.get("*"), "* has no code owner"
-    assert {pattern for pattern, names in owners.items() if not names} == {"/requirements-dev.txt"}
-
-
-def test_code_owners_cover_the_runtime_inputs_and_leave_dev_unowned():
-    owners = _code_owners()
     assert owners["/requirements.in"], "requirements.in has no code owner"
     assert owners["/requirements.txt"], "requirements.txt has no code owner"
     assert owners["/requirements-dev.txt"] == []

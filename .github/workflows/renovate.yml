@@ -1,8 +1,10 @@
 # NOTE: Auto-merge waits only for the ruleset's required status checks and reviews. The ruleset is meant to require
 # `CI result`, which aggregates the static_analysis_and_tests.yml jobs except context-check (see CONTEXT.md).
+# Nothing here approves a PR: every Renovate PR waits for a person's approval. Every writer can read repo secrets, so
+# an approving token in them would let any writer approve as its owner.
 # `pull_request`, not `pull_request_target`: GitHub blocks the latter in public repositories by default. Renovate's
-# branches live in this repo, so a `pull_request` run still gets the write token and the repo secrets. Fork PRs get
-# neither, and the job's `if` skips them anyway.
+# branches live in this repo, so a `pull_request` run still gets the write token. Fork PRs get a read-only token, and
+# the job's `if` skips them anyway.
 
 name: Renovate auto-merge
 on:
@@ -18,9 +20,6 @@ jobs:
     name: Auto-enable auto-merge for Renovate PRs
     runs-on: ubuntu-latest
     if: github.event.pull_request.user.login == 'renovate[bot]' && github.repository == 'MoranaApps/jacoco-report'
-    env:
-      # The secrets context is not allowed in step-level `if:`, so expose it via env first.
-      HAS_REVIEW_TOKEN: ${{ secrets.RENOVATE_REVIEW_TOKEN != '' }}
     steps:
       # Runtime dependency PRs (requirements.in, requirements.txt) and workflow-file PRs (.github/workflows/) always
       # need a person to review and merge them: a workflow bump runs third-party code with this repo's write access and
@@ -33,7 +32,7 @@ jobs:
           [ -n "$files" ] || { echo "::error::Could not read the PR's changed files."; exit 1; }
           if grep -qxE 'requirements\.(in|txt)|\.github/workflows/.+' <<< "$files"; then
             echo "review-required=true" >> "$GITHUB_OUTPUT"
-            echo "Skipping approval and auto-merge: runtime dependencies (requirements.in/requirements.txt) and workflow files (.github/workflows/) need a person to review and merge."
+            echo "Skipping auto-merge: runtime dependencies (requirements.in/requirements.txt) and workflow files (.github/workflows/) need a person to review and merge."
           else
             echo "review-required=false" >> "$GITHUB_OUTPUT"
           fi
@@ -41,19 +40,6 @@ jobs:
           REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      # RENOVATE_REVIEW_TOKEN belongs to a bot account that is not a code owner: every writer can read repo secrets, so
-      # its approval must never count as code-owner review.
-      - name: Approve Renovate PR (optional PAT)
-        if: ${{ env.HAS_REVIEW_TOKEN == 'true' && steps.review-gate.outputs.review-required == 'false' }}
-        run: gh pr review --approve "$PR_URL"
-        env:
-          PR_URL: ${{ github.event.pull_request.html_url }}
-          GH_TOKEN: ${{ secrets.RENOVATE_REVIEW_TOKEN }}
-
-      - name: Skip approval (no review token configured)
-        if: ${{ env.HAS_REVIEW_TOKEN != 'true' }}
-        run: echo "Skipping PR approval. Configure RENOVATE_REVIEW_TOKEN to enable automated approvals."
 
       - name: Enable auto-merge for Renovate PR
         if: ${{ steps.review-gate.outputs.review-required == 'false' }}
