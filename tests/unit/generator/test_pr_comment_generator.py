@@ -1820,13 +1820,13 @@ def _count_table_rows(body):
 
 def test_comment_over_real_limit_is_cut_to_fit(pr_comment_generator, mocker: MockerFixture, monkeypatch):
     """Real-limit fixture: the body is over 65,536 characters without the cut, and fits with it."""
-    monkeypatch.setattr("jacoco_report.generator.pr_comment_generator.MAX_COMMENT_LENGTH", 10**9)
+    monkeypatch.setattr("jacoco_report.generator.report_body.MAX_COMMENT_LENGTH", 10**9)
     _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="full")
     _populate_large_evaluator(pr_comment_generator)
     uncut = _comment_body(pr_comment_generator, "full")
     assert len(uncut) > 65_536
 
-    monkeypatch.setattr("jacoco_report.generator.pr_comment_generator.MAX_COMMENT_LENGTH", 65_536)
+    monkeypatch.setattr("jacoco_report.generator.report_body.MAX_COMMENT_LENGTH", 65_536)
     pr_comment_generator.generate()
 
     body = pr_comment_generator.gh.add_comment.call_args[0][1]
@@ -1877,11 +1877,11 @@ def test_omitted_rows_are_logged_with_their_table_header(
     """
     _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="full")
     _populate_large_evaluator(pr_comment_generator)
-    monkeypatch.setattr("jacoco_report.generator.pr_comment_generator.MAX_COMMENT_LENGTH", 10**9)
+    monkeypatch.setattr("jacoco_report.generator.report_body.MAX_COMMENT_LENGTH", 10**9)
     uncut = _comment_body(pr_comment_generator, "full")
     monkeypatch.undo()
 
-    with caplog.at_level(logging.INFO, logger="jacoco_report.generator.pr_comment_generator"):
+    with caplog.at_level(logging.INFO, logger="jacoco_report.generator.report_body"):
         pr_comment_generator.generate()
 
     body = pr_comment_generator.gh.add_comment.call_args[0][1]
@@ -1902,14 +1902,14 @@ def test_body_exactly_at_limit_is_unchanged_and_one_over_is_cut(
     """The limit is inclusive: a body of exactly MAX_COMMENT_LENGTH characters is not cut."""
     _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="full")
     _populate_large_evaluator(pr_comment_generator)
-    monkeypatch.setattr("jacoco_report.generator.pr_comment_generator.MAX_COMMENT_LENGTH", 10**9)
+    monkeypatch.setattr("jacoco_report.generator.report_body.MAX_COMMENT_LENGTH", 10**9)
     uncut = _comment_body(pr_comment_generator, "full")
 
-    monkeypatch.setattr("jacoco_report.generator.pr_comment_generator.MAX_COMMENT_LENGTH", len(uncut))
+    monkeypatch.setattr("jacoco_report.generator.report_body.MAX_COMMENT_LENGTH", len(uncut))
     at_limit = _comment_body(pr_comment_generator, "full")
     assert at_limit == uncut
 
-    monkeypatch.setattr("jacoco_report.generator.pr_comment_generator.MAX_COMMENT_LENGTH", len(uncut) - 1)
+    monkeypatch.setattr("jacoco_report.generator.report_body.MAX_COMMENT_LENGTH", len(uncut) - 1)
     over_limit = _comment_body(pr_comment_generator, "full")
     assert over_limit != uncut
     assert len(over_limit) <= len(uncut) - 1
@@ -1920,7 +1920,7 @@ def test_table_with_all_rows_omitted_leaves_no_header(pr_comment_generator, mock
     """When the changed-files rows do not fit at all, their table disappears instead of keeping a bare header."""
     _configure_generator_for_comment_tests(pr_comment_generator, mocker, comment_level="full")
     _populate_large_evaluator(pr_comment_generator)
-    monkeypatch.setattr("jacoco_report.generator.pr_comment_generator.MAX_COMMENT_LENGTH", 10**9)
+    monkeypatch.setattr("jacoco_report.generator.report_body.MAX_COMMENT_LENGTH", 10**9)
     uncut = _comment_body(pr_comment_generator, "full")
 
     # Head, group and report rows, a note counting every changed-file row, and the footer: nothing else fits.
@@ -1929,7 +1929,7 @@ def test_table_with_all_rows_omitted_leaves_no_header(pr_comment_generator, mock
     note = f"… {_LARGE_CHANGED_FILES} rows omitted (GitHub's 65,536-character comment limit), see the job log."
     expected = f"{prefix}\n\n{note}{footer}"
 
-    monkeypatch.setattr("jacoco_report.generator.pr_comment_generator.MAX_COMMENT_LENGTH", len(expected))
+    monkeypatch.setattr("jacoco_report.generator.report_body.MAX_COMMENT_LENGTH", len(expected))
     body = _comment_body(pr_comment_generator, "full")
 
     assert body == expected
@@ -1942,7 +1942,7 @@ def test_last_resort_cuts_body_to_limit_and_keeps_title(pr_comment_generator, mo
     _populate_large_evaluator(pr_comment_generator)
     mocker.patch("jacoco_report.action_inputs.ActionInputs.get_title", return_value="T" * 70_000)
 
-    with caplog.at_level(logging.WARNING, logger="jacoco_report.generator.pr_comment_generator"):
+    with caplog.at_level(logging.WARNING, logger="jacoco_report.generator.report_body"):
         body = _comment_body(pr_comment_generator, "full")
 
     assert len(body) == 65_536
@@ -1992,7 +1992,7 @@ def test_ungrouped_list_is_cut_by_items_and_keeps_its_frame(
     names = [f"module-{i:05d}/some-very-long-report-name-padding-padding.xml" for i in range(2000)]
     pr_comment_generator.ungrouped_reports = names
 
-    with caplog.at_level(logging.INFO, logger="jacoco_report.generator.pr_comment_generator"):
+    with caplog.at_level(logging.INFO, logger="jacoco_report.generator.report_body"):
         pr_comment_generator.generate()
 
     body = pr_comment_generator.gh.add_comment.call_args[0][1]

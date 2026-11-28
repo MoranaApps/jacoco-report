@@ -12,7 +12,7 @@ import pytest
 from pytest_mock import MockerFixture
 
 from jacoco_report.evaluator.coverage_evaluator import CoverageEvaluator
-from jacoco_report.generator import pr_comment_generator as generator_module
+from jacoco_report.generator import report_body
 from jacoco_report.generator.pr_comment_generator import (
     SUMMARY_NO_COMMENT_INFO,
     PRCommentGenerator,
@@ -23,6 +23,7 @@ from jacoco_report.model.evaluated_report_coverage import EvaluatedReportCoverag
 from jacoco_report.utils.gh_action import SUMMARY_NOT_SET_WARNING, SUMMARY_WRITE_FAILED_WARNING
 
 GENERATOR_LOGGER = "jacoco_report.generator.pr_comment_generator"
+REPORT_BODY_LOGGER = "jacoco_report.generator.report_body"
 RUN_URL = "https://github.com/owner/repo/actions/runs/42"
 SUMMARY_LOG_NOTE = "Full report (job summary was cut)"
 SAMPLE_REPORTS = 2
@@ -121,11 +122,11 @@ def _generator(gh, evaluator, ungrouped=None):
 
 
 def _lower_comment_limit(monkeypatch, limit):
-    monkeypatch.setattr(generator_module, "MAX_COMMENT_LENGTH", limit)
+    monkeypatch.setattr(report_body, "MAX_COMMENT_LENGTH", limit)
 
 
 def _lower_summary_limit(monkeypatch, limit):
-    monkeypatch.setattr(generator_module, "MAX_SUMMARY_BYTES", limit)
+    monkeypatch.setattr(report_body, "MAX_SUMMARY_BYTES", limit)
 
 
 def _uncut_body_length(gh, evaluator, configure, monkeypatch, **settings):
@@ -284,7 +285,7 @@ def test_b4_summary_over_the_limit_is_cut_with_the_full_body_in_the_log(
     _lower_comment_limit(monkeypatch, 10**9)
     _lower_summary_limit(monkeypatch, SMALL_SUMMARY_LIMIT)
 
-    with caplog.at_level(logging.INFO, logger=GENERATOR_LOGGER):
+    with caplog.at_level(logging.INFO, logger=REPORT_BODY_LOGGER):
         _generator(gh, evaluator).generate()
 
     written = summary_file.read_text(encoding="utf-8")
@@ -304,7 +305,7 @@ def test_b4_log_carries_the_whole_uncut_body_once(gh, evaluator, configure, summ
     configure(report_target="summary")
     _lower_summary_limit(monkeypatch, SMALL_SUMMARY_LIMIT)
 
-    with caplog.at_level(logging.INFO, logger=GENERATOR_LOGGER):
+    with caplog.at_level(logging.INFO, logger=REPORT_BODY_LOGGER):
         _generator(gh, evaluator).generate()
 
     assert caplog.text.count(SUMMARY_LOG_NOTE) == 1
@@ -354,7 +355,7 @@ def test_b4_backstop_never_splits_a_utf8_character(gh, evaluator, configure, sum
     monkeypatch.setattr("jacoco_report.action_inputs.ActionInputs.get_title", lambda: "✅" * 40)
     _lower_summary_limit(monkeypatch, 101)
 
-    with caplog.at_level(logging.WARNING, logger=GENERATOR_LOGGER):
+    with caplog.at_level(logging.WARNING, logger=REPORT_BODY_LOGGER):
         _generator(gh, evaluator).generate()
 
     raw = summary_file.read_bytes()
@@ -446,7 +447,7 @@ def test_c1_comment_cut_warning_keeps_its_wording(gh, evaluator, configure, monk
     limit = _cut_limit(gh, evaluator, configure, monkeypatch, report_target="comment")
     _lower_comment_limit(monkeypatch, limit)
 
-    with caplog.at_level(logging.WARNING, logger=GENERATOR_LOGGER):
+    with caplog.at_level(logging.WARNING, logger=REPORT_BODY_LOGGER):
         _generator(gh, evaluator).generate()
 
     assert re.search(
