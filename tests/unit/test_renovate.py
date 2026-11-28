@@ -247,12 +247,22 @@ def test_the_gate_step_runs_before_approval_and_merge():
     assert "if" not in gate
 
 
-def test_code_owners_cover_the_runtime_inputs_and_leave_dev_unowned():
+def _code_owners():
     owners = {}
     for line in CODEOWNERS.read_text(encoding="utf-8").splitlines():
         parts = line.split()
         if parts and not parts[0].startswith("#"):
             owners[parts[0]] = parts[1:]
+    return owners
+
+
+def test_code_owners_own_every_file_by_default():
+    # RENOVATE_REVIEW_TOKEN's bot is not a code owner, so its approval must not complete a PR that changes code.
+    assert _code_owners().get("*"), "* has no code owner"
+
+
+def test_code_owners_cover_the_runtime_inputs_and_leave_dev_unowned():
+    owners = _code_owners()
     assert owners["/requirements.in"], "requirements.in has no code owner"
     assert owners["/requirements.txt"], "requirements.txt has no code owner"
     assert owners["/requirements-dev.txt"] == []

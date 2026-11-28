@@ -42,6 +42,8 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # RENOVATE_REVIEW_TOKEN belongs to a bot account that is not a code owner: every writer can read repo secrets, so
+      # its approval must never count as code-owner review.
       - name: Approve Renovate PR (optional PAT)
         if: ${{ env.HAS_REVIEW_TOKEN == 'true' && steps.review-gate.outputs.review-required == 'false' }}
         run: gh pr review --approve "$PR_URL"

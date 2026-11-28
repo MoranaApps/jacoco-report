@@ -579,9 +579,11 @@ service is needed.
     failed or empty file list fails the step, so nothing is approved or merged. The job is a required status check,
     so it must still succeed on those PRs. The gate holds against Renovate, not against a writer: it runs from the
     PR's merge commit, so a writer's push can change it.
-  - `.github/CODEOWNERS`: `/requirements.in` and `/requirements.txt` have an owner, but `RENOVATE_REVIEW_TOKEN` is the
-    owner's PAT (MoranaApps org), so its approval counts as code-owner review. For Renovate PRs the gate is the only
-    control that matters. `/requirements-dev.txt` is unowned, so dev minor/patch automerge still works.
+  - `.github/CODEOWNERS`: `*`, `/requirements.in` and `/requirements.txt` belong to the owner; `/requirements-dev.txt`
+    is unowned. `RENOVATE_REVIEW_TOKEN` is the PAT of a dedicated bot account (write access, not a code owner), so its
+    approval meets the one required approval but never code-owner review. Every writer can read repo secrets, so the
+    token must never belong to a code owner. Residual risk: it completes any PR that changes only unowned files
+    (`requirements-dev.txt`), any update type, including a writer's own PR.
 - Workflow-file PRs (any change under `.github/workflows/`) never automerge either, via the same `review-gate`.
   - Gate covers all of `.github/workflows/`, not a list of workflows: a list goes stale, and the workflows holding
     secrets are not only those with write access. Cost: about 2 manual merges a month.
@@ -592,8 +594,10 @@ service is needed.
   - Known limits: vulnerability-fix PRs skip the wait; a compromise unnoticed for over 7 days still reaches
     `secrets.TOKEN`; the delay detects nothing, and a GitHub tag's age comes from its commit or tagger date, which
     an attacker can backdate.
-  - Rejected: binding approval or auto-merge to the head SHA (a race of seconds, needs a push to Renovate's branch);
-    a dedicated bot account for `RENOVATE_REVIEW_TOKEN` (the PAT no longer approves gated PRs).
+  - Rejected: binding approval or auto-merge to the head SHA (a race of seconds, needs a push to Renovate's branch).
+- Only Renovate can push to `renovate/**`: ruleset "Renovate branches" (rule `update`; bypass: the Renovate app,
+  id 2740, and the admin role). `renovate.yml`'s `if` checks the PR author, not the pusher, so without it a writer's
+  commit on a Renovate branch gets the job's approval and auto-merge. It lives in repo settings; no test sees it.
 
 ## Read more
 
