@@ -256,9 +256,11 @@ def _code_owners():
     return owners
 
 
-def test_code_owners_own_every_file_by_default():
-    # RENOVATE_REVIEW_TOKEN's bot is not a code owner, so its approval must not complete a PR that changes code.
-    assert _code_owners().get("*"), "* has no code owner"
+def test_every_file_but_the_dev_requirements_has_a_code_owner():
+    # RENOVATE_REVIEW_TOKEN's bot is not a code owner, so its approval completes any PR that changes only unowned files.
+    owners = _code_owners()
+    assert owners.get("*"), "* has no code owner"
+    assert {pattern for pattern, names in owners.items() if not names} == {"/requirements-dev.txt"}
 
 
 def test_code_owners_cover_the_runtime_inputs_and_leave_dev_unowned():
