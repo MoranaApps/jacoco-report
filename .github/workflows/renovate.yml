@@ -1,9 +1,12 @@
 # NOTE: Auto-merge waits only for the ruleset's required status checks and reviews. The ruleset is meant to require
 # `CI result`, which aggregates the static_analysis_and_tests.yml jobs except context-check (see CONTEXT.md).
+# `pull_request`, not `pull_request_target`: GitHub blocks the latter in public repositories by default. Renovate's
+# branches live in this repo, so a `pull_request` run still gets the write token and the repo secrets. Fork PRs get
+# neither, and the job's `if` skips them anyway.
 
 name: Renovate auto-merge
 on:
-  pull_request_target:
+  pull_request:
     types: [opened, synchronize]
 
 permissions:

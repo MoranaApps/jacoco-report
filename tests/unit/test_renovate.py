@@ -225,6 +225,14 @@ def _step_named(name):
     return next(step for step in _renovate_steps() if step.get("name") == name)
 
 
+def test_workflow_runs_on_pull_request_when_a_pr_opens_or_gets_new_commits():
+    # Renovate's branches live in this repo, so a pull_request run gets the job's write token and the repo secrets.
+    workflow = yaml.safe_load(RENOVATE_WORKFLOW.read_text(encoding="utf-8"))
+    # PyYAML reads the bare key `on` as the boolean True (YAML 1.1).
+    triggers = workflow["on"] if "on" in workflow else workflow[True]
+    assert triggers == {"pull_request": {"types": ["opened", "synchronize"]}}
+
+
 def test_approval_and_auto_merge_run_only_when_the_gate_finds_no_runtime_change():
     approve = _step_named(APPROVE_STEP)["if"]
     assert GATE_CLEAR in approve
