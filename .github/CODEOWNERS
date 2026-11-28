@@ -3,5 +3,5 @@
 /requirements.in @miroslavpojer
 /requirements.txt @miroslavpojer
 
-# Dev pins stay unowned, so automerge can merge their minor and patch updates without a review.
+# Dev pins stay unowned, so their minor and patch updates automerge after any maintainer's approval, not only a code owner's.
 /requirements-dev.txt
