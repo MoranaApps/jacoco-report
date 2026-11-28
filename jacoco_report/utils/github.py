@@ -15,17 +15,22 @@ from urllib3.connectionpool import ConnectionPool
 from urllib3.response import BaseHTTPResponse
 from urllib3.util.retry import Retry
 
+from jacoco_report.model.pull_request_files import PullRequestFiles
 from jacoco_report.utils.constants import (
     DEFAULT_GITHUB_API_URL,
     DEFAULT_GITHUB_SERVER_URL,
     GITHUB_API_URL,
     GITHUB_SERVER_URL,
 )
+from jacoco_report.utils.patch_parser import changed_lines_from_patch
 
 logger = logging.getLogger(__name__)
 
 # (connect, read) seconds for every GitHub API call
 REQUEST_TIMEOUT = (10, 60)
+
+# The pull request files endpoint lists at most this many files
+PR_FILES_CAP = 3000
 
 # Static hints logged after "HTTP error occurred" for the statuses that usually mean a token problem
 HINT_TOKEN_INVALID = "Hint: the GitHub token is invalid or expired. Check the `token` input."
@@ -40,6 +45,25 @@ HINT_NOT_FOUND = (
     "Hint: the token can't access this repository or pull request, e.g. a private repository it can't see, "
     "or GITHUB_API_URL points to the wrong server on GitHub Enterprise Server."
 )
+
+
+def _changed_lines_of(file_info: dict[str, Any]) -> Optional[frozenset[int]]:
+    """
+    Gets the changed lines of one file from its entry in the pull request files list.
+
+    Parameters:
+        file_info (dict[str, Any]): The file entry as GitHub returns it.
+
+    Returns:
+        Optional[frozenset[int]]: The added or modified line numbers, an empty set when the file has no
+            content change (a pure rename or mode change), or None when GitHub sent no patch for a changed file.
+    """
+    patch = file_info.get("patch")
+    if isinstance(patch, str):
+        return changed_lines_from_patch(patch)
+    if file_info.get("changes") == 0:
+        return frozenset()
+    return None
 
 
 def _hint_for_http_error(http_err: requests.HTTPError) -> Optional[str]:
@@ -152,22 +176,23 @@ class GitHub:
 
         return self.__session
 
-    def get_pr_changed_files(self, pr_number: int) -> Optional[list[str]]:
+    def get_pr_files(self, pr_number: int) -> Optional[PullRequestFiles]:
         """
-        Gets the list of changed files in the pull request.
+        Gets the files changed in the pull request, with the line numbers each file adds or modifies.
 
         Parameters:
             pr_number (int): The PR number.
 
         Returns:
-            Optional[list[str]]: The list of changed files in the pull request, or None if they could not be read.
+            Optional[PullRequestFiles]: The changed files and their changed lines, or None if they could not be read.
         """
         repo = os.getenv("GITHUB_REPOSITORY")
         logger.debug("GitHub - Repository: %s", repo)
 
         per_page = 100  # Maximum GitHub allows
         page = 1
-        file_list = []
+        filenames: list[str] = []
+        changed_lines: dict[str, Optional[frozenset[int]]] = {}
 
         while True:
             api_url = f"{self.__gh_url}/repos/{repo}/pulls/{pr_number}/files"
@@ -185,15 +210,40 @@ class GitHub:
 
             for file_info in page_files:
                 filename = file_info.get("filename")
-                if filename:
-                    file_list.append(filename)
+                if not filename:
+                    continue
+                filenames.append(filename)
+                if file_info.get("status") != "removed":
+                    changed_lines[filename] = _changed_lines_of(file_info)
 
             if len(page_files) < per_page:
                 break  # No more pages
             page += 1
 
-        logger.info("List of changed files in PR: %s", file_list)
-        return file_list
+        unknown_lines = [name for name, lines in changed_lines.items() if lines is None]
+        logger.info("List of changed files in PR: %s", filenames)
+        if unknown_lines:
+            logger.info("Changed lines unknown (GitHub sent no patch) for files: %s", unknown_lines)
+        if len(filenames) >= PR_FILES_CAP:
+            logger.warning(
+                "GitHub lists at most %d files per pull request, so the list may be truncated "
+                "and changed files beyond it are not evaluated.",
+                PR_FILES_CAP,
+            )
+        return PullRequestFiles(filenames=filenames, changed_lines=changed_lines)
+
+    def get_pr_changed_files(self, pr_number: int) -> Optional[list[str]]:
+        """
+        Gets the list of changed files in the pull request.
+
+        Parameters:
+            pr_number (int): The PR number.
+
+        Returns:
+            Optional[list[str]]: The list of changed files in the pull request, or None if they could not be read.
+        """
+        pr_files = self.get_pr_files(pr_number)
+        return None if pr_files is None else pr_files.filenames
 
     def send_request(
         self, method: str, url: str, data: Optional[dict] = None, params: Optional[dict] = None

@@ -468,6 +468,16 @@ service is needed.
 - The PR number has one source: `ActionInputs.get_pr_number()`, resolved once in `JaCoCoReport.run()` and passed to
   every GitHub call that needs it (`get_pr_changed_files`, `get_comments`, `add_comment`). Nothing reads `GITHUB_REF`,
   so changed files and the comment always come from the same PR.
+- `GitHub.get_pr_files()` (`utils/github.py`) returns `PullRequestFiles` (`model/pull_request_files.py`):
+  `filenames` keeps every file, removed ones included, because the baseline reports go through the same
+  `JaCoCoReportParser` and dropping removed files would change the baseline changed-files Δ. `changed_lines`
+  maps the new name (renames) to the added/modified new-side lines parsed from `patch` (`utils/patch_parser.py`).
+  The parser splits on `\n` only: `splitlines()` also breaks on `\x0c`, ` `, a lone `\r` etc. inside a
+  content line, which shifts later numbers and lets a PR author forge a hunk header (tests pin both).
+  Removed files are absent. No `patch`: `frozenset()` when `changes == 0` (pure rename or mode change), else
+  `None` ("lines unknown", one INFO line per run). Reading `PR_FILES_CAP` (3000, the endpoint's cap) files or
+  more logs one WARNING that the list may be truncated. `get_pr_changed_files()` wraps it, and the orchestrator
+  still uses only the names; nothing evaluates `changed_lines` yet.
 - `GitHub` (`utils/github.py`) passes `verify=<path>` per request, only when `ca-bundle` is set. Reason: requests lets
   `REQUESTS_CA_BUNDLE`/`CURL_CA_BUNDLE` override `session.verify` but not a per-request `verify`. Unset → no `verify`
   kwarg (tests pin the exact call args).
