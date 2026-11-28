@@ -404,6 +404,24 @@ def test_run_step_passes_max_decrease_to_main():
     assert _step(RUN_ID)["env"]["INPUT_MAX_DECREASE"] == "${{ inputs.max-decrease }}"
 
 
+def test_baseline_verification_inputs_are_optional_and_default_to_empty():
+    inputs = _load_action()["inputs"]
+    for name in ("baseline-sha", "baseline-metadata-path"):
+        assert inputs[name]["required"] is False
+        assert inputs[name]["default"] == ""
+
+
+def test_run_step_passes_baseline_verification_inputs_to_main():
+    run_env = _step(RUN_ID)["env"]
+    assert run_env["INPUT_BASELINE_SHA"] == "${{ inputs.baseline-sha }}"
+    assert run_env["INPUT_BASELINE_METADATA_PATH"] == "${{ inputs.baseline-metadata-path }}"
+
+
+def test_baseline_verified_output_is_wired_to_the_run_step():
+    outputs = _load_action()["outputs"]
+    assert outputs["baseline-verified"]["value"] == "${{ steps.jacoco-report-to-pr-comment.outputs.baseline-verified }}"
+
+
 def test_fail_on_threshold_description_lists_no_decrease():
     assert "no-decrease" in _load_action()["inputs"]["fail-on-threshold"]["description"]
 

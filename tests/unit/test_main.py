@@ -1,3 +1,4 @@
+import pytest
 from pytest_mock import MockerFixture, MockType
 
 from jacoco_report.action_inputs import ActionInputs
@@ -397,3 +398,26 @@ def test_run_no_decrease_not_selected_does_not_fail_on_its_flag(mocker: MockerFi
     mock_set_action_failed.assert_called_once_with(
         messages=["Global overall coverage dropped from 80.0 to 70.0."], fail=False
     )
+
+
+@pytest.mark.parametrize(
+    "verified, expected",
+    [
+        pytest.param(None, "", id="not-configured"),
+        pytest.param(True, "true", id="verified"),
+        pytest.param(False, "false", id="unverified"),
+    ],
+)
+def test_run_sets_baseline_verified_output(mocker: MockerFixture, verified: bool | None, expected: str):
+    mocker.patch("main.setup_logging")
+    mocker.patch.object(ActionInputs, "validate_inputs")
+    mock_jr = mocker.patch("main.JaCoCoReport").return_value
+    mock_set_output = mocker.patch("main.set_action_output")
+    mocker.patch("main.set_action_output_text")
+    mocker.patch("sys.exit")
+    mock_jr.baseline_verified = verified
+    mock_jr.violations = []
+
+    run()
+
+    mock_set_output.assert_any_call("baseline-verified", expected)

@@ -11,6 +11,7 @@ from typing import NamedTuple, Optional
 
 from jacoco_report.action_inputs import ActionInputs
 from jacoco_report.evaluator.baseline_comparison import BaselineComparison, CoverageDelta
+from jacoco_report.evaluator.baseline_verification import UNVERIFIED_BASELINE_NOTE
 from jacoco_report.evaluator.coverage_evaluator import CoverageEvaluator
 from jacoco_report.model.evaluated_report_coverage import EvaluatedReportCoverage
 from jacoco_report.utils.constants import ACTION_REPOSITORY, ACTION_REPOSITORY_URL
@@ -283,6 +284,7 @@ class PRCommentGenerator:
         pr_number: int,
         skip_report_names: frozenset[str] = frozenset(),
         ungrouped_reports: list[str] | None = None,
+        baseline_unverified: bool = False,
     ):
         self.gh: GitHub = gh
         self.evaluator: CoverageEvaluator = evaluator
@@ -290,6 +292,7 @@ class PRCommentGenerator:
         self.pr_number: int = pr_number
         self.skip_report_names: frozenset[str] = skip_report_names
         self.ungrouped_reports: list[str] = ungrouped_reports or []
+        self.baseline_unverified: bool = baseline_unverified
         self.github_repository: str = ActionInputs.get_repository()
         self.github_server_url: str = get_server_url()
         # Set by generate(): whether the report reached the job summary, and the warning for the caller to print
@@ -377,6 +380,8 @@ class PRCommentGenerator:
         f = ActionInputs.get_fail_symbol()
 
         head = f"{title}\n\n{self.get_basic_table_for_all(p, f)}"
+        if self.baseline_unverified and self._has_baseline_data():
+            head += f"\n\n{UNVERIFIED_BASELINE_NOTE}"
         detail_sections: list[str] = []
 
         if comment_level != CommentLevelEnum.MINIMAL:
@@ -472,7 +477,7 @@ class PRCommentGenerator:
         Empty unless 'no-decrease' is selected, so the max-decrease input is only read then. A row without a matching
         baseline is not dropped.
         """
-        if FailOnThresholdEnum.NO_DECREASE not in ActionInputs.get_fail_on_threshold():
+        if self.baseline_unverified or FailOnThresholdEnum.NO_DECREASE not in ActionInputs.get_fail_on_threshold():
             return frozenset()
 
         max_decrease = ActionInputs.get_max_decrease()

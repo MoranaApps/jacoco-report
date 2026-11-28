@@ -126,6 +126,9 @@ A float from 0 to 100, inclusive. Empty or whitespace-only means `0.0`. Other va
 - In the comment, a group or report row that dropped counts as failing for `comment-level: failed` and
   `failed-or-changed`, so it is shown; its Status column still shows the fixed threshold (see
   [comment-level.md](comment-level.md)).
+- Baseline verification (`baseline-sha` with `baseline-metadata-path`): when the baseline is unverified, the gate is
+  skipped and passes, with one warning and an INFO log line. No row counts as dropped. Without a baseline report at all,
+  the step still fails. See [baseline-paths.md](baseline-paths.md#verify-the-baseline-commit).
 - Without `no-decrease` in the list, none of this is computed and the baseline does not affect the exit code.
 
 ## Impact

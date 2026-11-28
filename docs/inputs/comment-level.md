@@ -121,7 +121,9 @@ Reports, and Changed-files tables. The global summary table is always shown in f
 With `no-decrease` in `fail-on-threshold`, a group or report row whose overall coverage dropped
 against the baseline counts as failing too, so it is shown even when it passes its fixed threshold.
 Its Status column still reflects the fixed threshold; the drop shows in the Δ column. The same applies
-to `failed-or-changed`.
+to `failed-or-changed`. When the baseline is unverified (see
+[baseline-paths.md](baseline-paths.md#verify-the-baseline-commit)), no row counts as dropped, so these levels hide it
+as a passing row.
 
 Use this in high-coverage projects where you only want the PR comment to highlight regressions.
 
@@ -162,6 +164,11 @@ reports can still fail overall thresholds even though they do not appear in tabl
 When `baseline-paths` is configured, a **Δ Coverage** column appears in all tables.
 The column is omitted only when no baseline evaluator data exists at all. Rows without a matching
 baseline entry render a `0.0%` delta.
+
+With an unverified baseline (`baseline-sha` and `baseline-metadata-path` set, see
+[baseline-paths.md](baseline-paths.md#verify-the-baseline-commit)), the comment and the job summary show a
+`⚠️ **Unverified baseline:**` note under the summary table, whenever the Δ column is shown. The note is never cut
+by the length limit.
 
 ## Comment length limit
 

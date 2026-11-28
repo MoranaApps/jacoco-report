@@ -7,7 +7,8 @@ import logging
 from typing import Collection, Optional
 
 from jacoco_report.action_inputs import ActionInputs
-from jacoco_report.evaluator.baseline_comparison import BaselineComparison
+from jacoco_report.evaluator.baseline_comparison import BaselineComparison, CoverageDelta
+from jacoco_report.evaluator.baseline_verification import unverified_baseline_reason
 from jacoco_report.evaluator.coverage_evaluator import CoverageEvaluator
 from jacoco_report.generator.pr_comment_generator import (
     SUMMARY_NO_COMMENT_INFO,
@@ -43,8 +44,9 @@ class JaCoCoReport:
         self.total_overall_coverage_passed: bool = False
         self.total_changed_files_coverage_passed: bool = False
         # Δ against the baseline in percentage points; None without a baseline or a matched baseline report.
-        self.total_overall_coverage_delta: Optional[float] = None
-        self.total_changed_files_coverage_delta: Optional[float] = None
+        self.total_coverage_delta: Optional[CoverageDelta] = None
+        # Whether the baseline matches baseline-sha; None when baseline-sha is not set.
+        self.baseline_verified: Optional[bool] = None
 
         self.evaluated_coverage_reports: str = ""
         self.evaluated_coverage_groups: str = ""
@@ -56,6 +58,16 @@ class JaCoCoReport:
         self.reached_threshold_fail_unchanged = True
         self.reached_threshold_no_decrease = True
         self.has_operational_failure = False
+
+    @property
+    def total_overall_coverage_delta(self) -> Optional[float]:
+        """The overall coverage Δ in percentage points, None without a matched baseline."""
+        return None if self.total_coverage_delta is None else self.total_coverage_delta.overall
+
+    @property
+    def total_changed_files_coverage_delta(self) -> Optional[float]:
+        """The changed-files coverage Δ in percentage points, None without a matched baseline."""
+        return None if self.total_coverage_delta is None else self.total_coverage_delta.changed_files
 
     def run(self) -> None:
         """
@@ -76,6 +88,7 @@ class JaCoCoReport:
             self._mark_operational_failure()
             return
         logger.info("Pull request number: %s", pr_number)
+        self._verify_baseline()
 
         # get report groups (if configured)
         report_groups: list[ReportGroup] = ActionInputs.get_report_groups()
@@ -153,7 +166,13 @@ class JaCoCoReport:
             else frozenset()
         )
         generator = PRCommentGenerator(
-            gh, evaluator_for_results, bs_evaluator, pr_number, skip_report_names, ungrouped_reports
+            gh,
+            evaluator_for_results,
+            bs_evaluator,
+            pr_number,
+            skip_report_names,
+            ungrouped_reports,
+            baseline_unverified=self.baseline_verified is False,
         )
         self._report_generator_result(generator)
 
@@ -557,9 +576,7 @@ class JaCoCoReport:
         self.total_changed_files_coverage_passed = evaluator.total_coverage_changed_files_passed
 
         baseline = BaselineComparison(evaluator, bs_evaluator)
-        global_delta = baseline.global_delta()
-        self.total_overall_coverage_delta = None if global_delta is None else global_delta.overall
-        self.total_changed_files_coverage_delta = None if global_delta is None else global_delta.changed_files
+        self.total_coverage_delta = baseline.global_delta()
 
         reports: dict[str, dict] = {}
         for key, report in evaluator.evaluated_reports_coverage.items():
@@ -585,11 +602,28 @@ class JaCoCoReport:
         # The gate is opt-in: nothing is computed and no violation is added unless no-decrease is selected.
         self.reached_threshold_no_decrease = True
         if FailOnThresholdEnum.NO_DECREASE in ActionInputs.get_fail_on_threshold():
-            gate_violations = baseline.no_decrease_violations(
-                ActionInputs.get_max_decrease(), unchanged_reports, match_evidence, include_aggregate_rows
-            )
-            self.violations = evaluator.violations + gate_violations
-            self.reached_threshold_no_decrease = not gate_violations
+            if self.baseline_verified is False and baseline.has_baseline_data():
+                logger.info("'no-decrease' skipped: the baseline could not be verified against 'baseline-sha'.")
+            else:
+                gate_violations = baseline.no_decrease_violations(
+                    ActionInputs.get_max_decrease(), unchanged_reports, match_evidence, include_aggregate_rows
+                )
+                self.violations = evaluator.violations + gate_violations
+                self.reached_threshold_no_decrease = not gate_violations
+
+    def _verify_baseline(self) -> None:
+        """Check the baseline metadata against baseline-sha, once per run. A mismatch is a warning, not a failure."""
+        expected_sha = ActionInputs.get_baseline_sha()
+        metadata_path = ActionInputs.get_baseline_metadata_path()
+        if not expected_sha and not metadata_path:
+            return
+        reason = unverified_baseline_reason(expected_sha, metadata_path)
+        if reason is None:
+            self.baseline_verified = True
+            logger.info("Baseline verified: its metadata names the commit in 'baseline-sha'.")
+            return
+        self.baseline_verified = False
+        print_action_warning(reason)
 
     def _delete_stale_comment_if_update_enabled(self, gh: GitHub, pr_number: int) -> None:
         """Delete the previous JaCoCo PR comment when update-comment is enabled."""

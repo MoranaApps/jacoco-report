@@ -28,6 +28,7 @@ _EXPECTED_OUTPUTS = {
     "coverage-changed-files-passed",
     "coverage-overall-delta",
     "coverage-changed-files-delta",
+    "baseline-verified",
     "reports-coverage",
     "groups-coverage",
 }

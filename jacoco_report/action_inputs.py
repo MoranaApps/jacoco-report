@@ -38,6 +38,9 @@ from jacoco_report.utils.constants import (
     METRIC,
     PR_NUMBER,
     BASELINE_PATHS,
+    BASELINE_SHA,
+    BASELINE_METADATA_PATH,
+    COMMIT_SHA_REGEX,
     CA_BUNDLE,
     GITHUB_RUN_ID,
     GITHUB_ACTION_PATH,
@@ -55,6 +58,8 @@ _T = TypeVar("_T")
 
 # `<runner work dir>/_actions/<owner>/<repo>/<ref>`; the ref may contain `/`
 _ACTION_PATH_REF_PATTERN = re.compile(r"/_actions/[^/]+/[^/]+/(.+?)/*$")
+
+_COMMIT_SHA_PATTERN = re.compile(COMMIT_SHA_REGEX)
 
 
 def _is_valid_threshold_float(value: str) -> bool:
@@ -553,11 +558,39 @@ class ActionInputs:  # pylint: disable=too-many-public-methods
         return ActionInputs.__parse_paths(baseline_paths)
 
     @staticmethod
+    def get_baseline_sha() -> str:
+        """
+        Get the expected commit SHA of the baseline, stripped. An empty string means unset.
+        """
+        return get_action_input(BASELINE_SHA, "").strip()
+
+    @staticmethod
+    def get_baseline_metadata_path() -> str:
+        """
+        Get the path of the baseline metadata file, stripped. An empty string means unset.
+        """
+        return get_action_input(BASELINE_METADATA_PATH, "").strip()
+
+    @staticmethod
     def get_ca_bundle() -> str:
         """
         Get the ca-bundle path from the action inputs. An empty string means unset.
         """
         return get_action_input(CA_BUNDLE, "").strip()
+
+    @staticmethod
+    def _validate_baseline_verification() -> list[str]:
+        """
+        Validate baseline-sha and baseline-metadata-path: both set or both empty, and the SHA a full commit SHA.
+        """
+        baseline_sha = ActionInputs.get_baseline_sha()
+        baseline_metadata_path = ActionInputs.get_baseline_metadata_path()
+        errors: list[str] = []
+        if bool(baseline_sha) != bool(baseline_metadata_path):
+            errors.append("'baseline-sha' and 'baseline-metadata-path' must be set together, or both left empty.")
+        if baseline_sha and not _COMMIT_SHA_PATTERN.fullmatch(baseline_sha):
+            errors.append("'baseline-sha' must be a full commit SHA (40 or 64 hexadecimal characters).")
+        return errors
 
     @staticmethod
     def validate_ca_bundle() -> list[str]:
@@ -720,6 +753,7 @@ class ActionInputs:  # pylint: disable=too-many-public-methods
         errors.extend(ActionInputs._validate_symbols())
         fail_on_threshold = _read_or_record(ActionInputs.get_fail_on_threshold, errors) or []
         max_decrease = _read_or_record(ActionInputs.get_max_decrease, errors)
+        errors.extend(ActionInputs._validate_baseline_verification())
         debug = _read_or_record(ActionInputs.get_debug, errors)
         errors.extend(ActionInputs.validate_ca_bundle())
 
@@ -759,6 +793,8 @@ class ActionInputs:  # pylint: disable=too-many-public-methods
             "Paths: %s\n"
             "Exclude paths: %s\n"
             "Baseline paths: %s\n"
+            "Baseline SHA: %s\n"
+            "Baseline metadata path: %s\n"
             "CA bundle: %s\n"
             "\n"
             "Global thresholds: overall=%s, avg_changed_files=%s\n"
@@ -783,6 +819,8 @@ class ActionInputs:  # pylint: disable=too-many-public-methods
             ActionInputs.get_paths(),
             ActionInputs.get_exclude_paths(),
             ActionInputs.get_baseline_paths(),
+            ActionInputs.get_baseline_sha(),
+            ActionInputs.get_baseline_metadata_path(),
             ActionInputs.get_ca_bundle(),
             ActionInputs.get_global_overall_threshold(),
             ActionInputs.get_global_changed_files_average_threshold(),

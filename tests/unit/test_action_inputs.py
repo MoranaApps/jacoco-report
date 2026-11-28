@@ -30,6 +30,8 @@ success_case = {
     "get_fail_symbol": "❗",
     "get_fail_on_threshold": ["overall", "changed-files-average", "per-changed-file"],
     "get_max_decrease": 0.0,
+    "get_baseline_sha": "",
+    "get_baseline_metadata_path": "",
     "get_debug": True,
 }
 
@@ -330,6 +332,8 @@ def test_validate_inputs_logs_errors_in_validation_order(tmp_path, mocker: Mocke
             "get_pass_symbol": "",
             "get_fail_symbol": "",
             "get_ca_bundle": missing_ca_bundle,
+            "get_baseline_sha": "abc123",
+            "get_baseline_metadata_path": "baseline/metadata.json",
         }
     )
     patchers = apply_mocks(case, mocker)
@@ -360,6 +364,7 @@ def test_validate_inputs_logs_errors_in_validation_order(tmp_path, mocker: Mocke
             "'fail-symbol' must be a non-empty string and have a length from 1.",
             raising_getters["get_fail_on_threshold"],
             raising_getters["get_max_decrease"],
+            "'baseline-sha' must be a full commit SHA (40 or 64 hexadecimal characters).",
             raising_getters["get_debug"],
             f"'ca-bundle' must be a path to an existing PEM file: '{missing_ca_bundle}'.",
         ]
@@ -1523,5 +1528,90 @@ def test_validate_inputs_logs_report_target_value(mocker: MockerFixture):
         logged = mock_info.call_args_list[0].args
         assert "Report target: %s\n" in logged[0]
         assert "summary" in logged
+    finally:
+        stop_mocks(patchers)
+
+
+BASELINE_SHA = "0123456789abcdef0123456789abcdef01234567"
+BASELINE_SHA_256 = BASELINE_SHA + "0123456789abcdef01234567"
+BASELINE_METADATA = "baseline/metadata.json"
+
+
+def test_get_baseline_sha_strips_surrounding_whitespace(mocker: MockerFixture):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value=f"  {BASELINE_SHA}\n")
+    assert ActionInputs.get_baseline_sha() == BASELINE_SHA
+
+
+def test_get_baseline_sha_defaults_to_empty(mocker: MockerFixture):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value="")
+    assert ActionInputs.get_baseline_sha() == ""
+
+
+def test_get_baseline_metadata_path_strips_surrounding_whitespace(mocker: MockerFixture):
+    mocker.patch("jacoco_report.action_inputs.get_action_input", return_value=f" {BASELINE_METADATA} \n")
+    assert ActionInputs.get_baseline_metadata_path() == BASELINE_METADATA
+
+
+@pytest.mark.parametrize(
+    "sha, path, expected_errors",
+    [
+        pytest.param("", "", [], id="neither-set"),
+        pytest.param(BASELINE_SHA, BASELINE_METADATA, [], id="both-set-40-hex"),
+        pytest.param(BASELINE_SHA_256, BASELINE_METADATA, [], id="both-set-64-hex"),
+        pytest.param(BASELINE_SHA.upper(), BASELINE_METADATA, [], id="upper-case-hex-accepted"),
+        pytest.param(
+            BASELINE_SHA,
+            "",
+            ["'baseline-sha' and 'baseline-metadata-path' must be set together, or both left empty."],
+            id="only-sha-set",
+        ),
+        pytest.param(
+            "",
+            BASELINE_METADATA,
+            ["'baseline-sha' and 'baseline-metadata-path' must be set together, or both left empty."],
+            id="only-path-set",
+        ),
+        pytest.param(
+            "abc1234",
+            BASELINE_METADATA,
+            ["'baseline-sha' must be a full commit SHA (40 or 64 hexadecimal characters)."],
+            id="short-sha",
+        ),
+        pytest.param(
+            BASELINE_SHA + "0",
+            BASELINE_METADATA,
+            ["'baseline-sha' must be a full commit SHA (40 or 64 hexadecimal characters)."],
+            id="41-characters",
+        ),
+        pytest.param(
+            "g" * 40,
+            BASELINE_METADATA,
+            ["'baseline-sha' must be a full commit SHA (40 or 64 hexadecimal characters)."],
+            id="not-hex",
+        ),
+        pytest.param(
+            BASELINE_SHA_256 + "0",
+            BASELINE_METADATA,
+            ["'baseline-sha' must be a full commit SHA (40 or 64 hexadecimal characters)."],
+            id="65-characters",
+        ),
+    ],
+)
+def test_validate_baseline_verification(sha, path, expected_errors, mocker: MockerFixture):
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_sha", return_value=sha)
+    mocker.patch("jacoco_report.action_inputs.ActionInputs.get_baseline_metadata_path", return_value=path)
+    assert ActionInputs._validate_baseline_verification() == expected_errors
+
+
+def test_validate_inputs_logs_baseline_verification(mocker: MockerFixture, caplog):
+    case = success_case.copy()
+    case["get_baseline_sha"] = BASELINE_SHA
+    case["get_baseline_metadata_path"] = BASELINE_METADATA
+    patchers = apply_mocks(case, mocker)
+    try:
+        caplog.set_level(logging.INFO, logger="jacoco_report.action_inputs")
+        ActionInputs.validate_inputs()
+        assert f"Baseline SHA: {BASELINE_SHA}" in caplog.text
+        assert f"Baseline metadata path: {BASELINE_METADATA}" in caplog.text
     finally:
         stop_mocks(patchers)
