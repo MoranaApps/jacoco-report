@@ -51,7 +51,7 @@ pip install -r requirements-dev.txt
   ```
 
 - Renovate opens runtime updates as PRs that never automerge. Review and merge them by hand. Dev-tool
-  minor and patch updates still automerge. GitHub Actions bumps (any PR changing `.github/workflows/`) also
+  minor and patch updates automerge once you approve them; nothing in CI approves a PR. GitHub Actions bumps (any PR changing `.github/workflows/`) also
   never automerge and need a manual review and merge; they open only after a 7-day wait. See `CONTEXT.md` →
   "Invariants and gotchas".
 

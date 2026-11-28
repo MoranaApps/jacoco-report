@@ -580,8 +580,8 @@ service is needed.
     so it must still succeed on those PRs. The gate holds against Renovate, not against a writer: it runs from the
     PR's merge commit, so a writer's push can change it.
   - `.github/CODEOWNERS`: `*`, `/requirements.in` and `/requirements.txt` belong to the owner; `/requirements-dev.txt`
-    is unowned. Every Renovate PR waits for a person's approval (no CI step approves, see below); after it, dev
-    minor/patch updates auto-merge.
+    is unowned. Every Renovate PR waits for a person's approval (no CI step approves, see below); after it, a PR that
+    passed `review-gate` auto-merges, any update type.
 - Workflow-file PRs (any change under `.github/workflows/`) never automerge either, via the same `review-gate`.
   - Gate covers all of `.github/workflows/`, not a list of workflows: a list goes stale, and the workflows holding
     secrets are not only those with write access. Cost: about 2 manual merges a month.
@@ -595,8 +595,11 @@ service is needed.
   - Rejected: binding approval or auto-merge to the head SHA (a race of seconds, needs a push to Renovate's branch).
 - No CI step approves a PR: `renovate.yml` uses no secret but `GITHUB_TOKEN`, and a test pins that. Every writer can
   read repo secrets, so an approving token there lets any writer approve as its owner (with the owner's PAT, as code
-  owner). Rejected: a dedicated bot account that is not a code owner (one more account and token to secure, to save
-  one approval per dev-tool update).
+  owner). Cost: a Renovate rebase dismisses the approval (`dismiss_stale_reviews_on_push`), so the owner approves
+  again. Residual: the repo lets Actions create and approve PRs (`agd-update.yml` needs it to open its PR), so a
+  writer's own workflow can approve with `GITHUB_TOKEN` a PR that changes only unowned files; it never counts as
+  code-owner review. Rejected: a dedicated bot account that is not a code owner (one more account and token to
+  secure, to save one approval per Renovate push; as an outside collaborator it could use only a classic PAT).
 
 ## Read more
 

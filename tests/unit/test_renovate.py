@@ -162,7 +162,7 @@ def test_gate_reports_a_workflow_file_change(tmp_path, changed_files):
     ],
 )
 def test_gate_reports_no_review_for_near_miss_paths(tmp_path, changed_files):
-    # Only files under .github/workflows/ need a person. Other .github files and look-alike paths still get approval.
+    # Only files under .github/workflows/ need a person. Other .github files and look-alike paths still get auto-merge.
     result, output, _ = _run_gate(tmp_path, changed_files)
     assert result.returncode == 0, result.stdout + result.stderr
     assert "review-required=false" in output.splitlines()
@@ -189,7 +189,7 @@ def test_gate_fails_when_the_file_list_cannot_be_read(tmp_path):
 
 
 def test_gate_fails_closed_when_the_file_list_is_empty(tmp_path):
-    # An empty list must not read as "no review needed", or a PR whose file list failed to load would be approved.
+    # An empty list must not read as "no review needed", or a PR whose file list failed to load would be set to auto-merge.
     result, output, _ = _run_gate(tmp_path, [])
     assert result.returncode != 0
     assert "review-required" not in output
@@ -228,7 +228,9 @@ def test_the_workflow_approves_no_pr():
     # Every Renovate PR waits for a person's approval. Every writer can read repo secrets, so an approving token in
     # them would let any writer approve as its owner.
     text = RENOVATE_WORKFLOW.read_text(encoding="utf-8")
-    assert "gh pr review" not in text
+    for approval in ("gh pr review", "/reviews", "addPullRequestReview"):
+        assert approval not in text, f"renovate.yml approves a PR via {approval!r}"
+    assert "secrets[" not in text
     assert set(re.findall(r"secrets\.(\w+)", text)) == {"GITHUB_TOKEN"}
 
 
