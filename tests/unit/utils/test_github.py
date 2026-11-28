@@ -10,7 +10,7 @@ from urllib3.connectionpool import HTTPConnectionPool
 from urllib3.exceptions import ConnectTimeoutError, ProtocolError, ReadTimeoutError
 from urllib3.response import HTTPResponse
 
-from jacoco_report.utils.github import GitHub, get_api_url, get_server_url
+from jacoco_report.utils.github import PR_FILES_CAP, GitHub, get_api_url, get_server_url
 
 # get_pr_changed_files
 
@@ -781,3 +781,197 @@ def test_other_statuses_log_no_hint(
     errors = _error_messages(caplog)
     assert len(errors) == 1
     assert errors[0].startswith("HTTP error occurred:")
+
+
+# get_pr_files
+
+
+def _files_page(mocker: MockerFixture, files: list[dict]):
+    response = mocker.Mock()
+    response.json.return_value = files
+    return response
+
+
+def test_get_pr_files_parses_patch_into_changed_lines(mocker: MockerFixture, monkeypatch):
+    monkeypatch.setenv("GITHUB_REPOSITORY", "fake_repo")
+    patch = "@@ -1,2 +1,3 @@\n a\n+b\n c"
+    mocker.patch.object(
+        GitHub,
+        "send_request",
+        return_value=_files_page(mocker, [{"filename": "a.py", "status": "modified", "changes": 1, "patch": patch}]),
+    )
+    github = GitHub("fake_token")
+
+    result = github.get_pr_files(1)
+    assert result is not None
+
+    assert result.filenames == ["a.py"]
+    assert result.changed_lines == {"a.py": frozenset({2})}
+
+
+def test_get_pr_files_without_patch_and_no_changes_has_no_changed_lines(mocker: MockerFixture, monkeypatch):
+    monkeypatch.setenv("GITHUB_REPOSITORY", "fake_repo")
+    mocker.patch.object(
+        GitHub,
+        "send_request",
+        return_value=_files_page(mocker, [{"filename": "moved.py", "status": "renamed", "changes": 0}]),
+    )
+    github = GitHub("fake_token")
+
+    result = github.get_pr_files(1)
+    assert result is not None
+
+    assert result.changed_lines == {"moved.py": frozenset()}
+
+
+def test_get_pr_files_without_patch_with_changes_is_unknown_and_logged_once(mocker: MockerFixture, monkeypatch, caplog):
+    monkeypatch.setenv("GITHUB_REPOSITORY", "fake_repo")
+    mocker.patch.object(
+        GitHub,
+        "send_request",
+        return_value=_files_page(
+            mocker,
+            [
+                {"filename": "big.java", "status": "modified", "changes": 4000},
+                {"filename": "logo.png", "status": "modified", "changes": 3},
+                {"filename": "ok.py", "status": "modified", "changes": 1, "patch": "@@ -1 +1 @@\n+x"},
+            ],
+        ),
+    )
+    github = GitHub("fake_token")
+
+    with caplog.at_level(logging.INFO, logger="jacoco_report.utils.github"):
+        result = github.get_pr_files(1)
+        assert result is not None
+
+    assert result.changed_lines == {"big.java": None, "logo.png": None, "ok.py": frozenset({1})}
+    unknown_records = [r for r in caplog.records if "lines unknown" in r.getMessage()]
+    assert len(unknown_records) == 1
+    assert unknown_records[0].levelno == logging.INFO
+    assert "big.java" in unknown_records[0].getMessage()
+    assert "logo.png" in unknown_records[0].getMessage()
+    assert "ok.py" not in unknown_records[0].getMessage()
+
+
+def test_get_pr_files_without_patch_and_changes_key_missing_is_unknown(mocker: MockerFixture, monkeypatch):
+    monkeypatch.setenv("GITHUB_REPOSITORY", "fake_repo")
+    mocker.patch.object(GitHub, "send_request", return_value=_files_page(mocker, [{"filename": "x.bin"}]))
+    github = GitHub("fake_token")
+
+    result = github.get_pr_files(1)
+    assert result is not None
+
+    assert result.changed_lines == {"x.bin": None}
+
+
+def test_get_pr_files_keys_renamed_file_by_new_name(mocker: MockerFixture, monkeypatch):
+    monkeypatch.setenv("GITHUB_REPOSITORY", "fake_repo")
+    patch = "@@ -4 +4 @@\n-old\n+new"
+    mocker.patch.object(
+        GitHub,
+        "send_request",
+        return_value=_files_page(
+            mocker,
+            [
+                {
+                    "filename": "new/Name.java",
+                    "previous_filename": "old/Name.java",
+                    "status": "renamed",
+                    "changes": 2,
+                    "patch": patch,
+                }
+            ],
+        ),
+    )
+    github = GitHub("fake_token")
+
+    result = github.get_pr_files(1)
+    assert result is not None
+
+    assert result.filenames == ["new/Name.java"]
+    assert result.changed_lines == {"new/Name.java": frozenset({4})}
+
+
+def test_get_pr_files_keeps_removed_file_in_filenames_only(mocker: MockerFixture, monkeypatch):
+    monkeypatch.setenv("GITHUB_REPOSITORY", "fake_repo")
+    mocker.patch.object(
+        GitHub,
+        "send_request",
+        return_value=_files_page(
+            mocker,
+            [{"filename": "gone.py", "status": "removed", "changes": 2, "patch": "@@ -1,2 +0,0 @@\n-a\n-b"}],
+        ),
+    )
+    github = GitHub("fake_token")
+
+    result = github.get_pr_files(1)
+    assert result is not None
+
+    assert result.filenames == ["gone.py"]
+    assert "gone.py" not in result.changed_lines
+
+
+def test_get_pr_files_reads_every_page(mocker: MockerFixture, monkeypatch):
+    monkeypatch.setenv("GITHUB_REPOSITORY", "fake_repo")
+    first_page = [{"filename": f"f{i}.py", "changes": 0} for i in range(100)]
+    second_page = [{"filename": "last.py", "changes": 0}]
+    mock_send = mocker.patch.object(
+        GitHub,
+        "send_request",
+        side_effect=[_files_page(mocker, first_page), _files_page(mocker, second_page)],
+    )
+    github = GitHub("fake_token")
+
+    result = github.get_pr_files(1)
+    assert result is not None
+
+    assert len(result.filenames) == 101
+    assert result.filenames[-1] == "last.py"
+    assert [c.kwargs["params"]["page"] for c in mock_send.call_args_list] == [1, 2]
+
+
+def test_get_pr_files_none_response(mocker: MockerFixture, monkeypatch):
+    monkeypatch.setenv("GITHUB_REPOSITORY", "fake_repo")
+    mocker.patch.object(GitHub, "send_request", return_value=None)
+    github = GitHub("fake_token")
+
+    assert github.get_pr_files(1) is None
+
+
+def _paged_files(mocker: MockerFixture, total: int):
+    """Fake the files endpoint: pages of 100 entries, then an empty page."""
+
+    def respond(method, url, params=None):
+        start = (params["page"] - 1) * 100
+        return _files_page(
+            mocker, [{"filename": f"f{i}.py", "changes": 0} for i in range(start, min(start + 100, total))]
+        )
+
+    return respond
+
+
+def test_get_pr_files_warns_once_when_read_reaches_the_file_cap(mocker: MockerFixture, monkeypatch, caplog):
+    monkeypatch.setenv("GITHUB_REPOSITORY", "fake_repo")
+    mocker.patch.object(GitHub, "send_request", side_effect=_paged_files(mocker, PR_FILES_CAP))
+    github = GitHub("fake_token")
+
+    with caplog.at_level(logging.WARNING, logger="jacoco_report.utils.github"):
+        result = github.get_pr_files(1)
+        assert result is not None
+
+    assert len(result.filenames) == PR_FILES_CAP
+    warnings = [r for r in caplog.records if r.levelno == logging.WARNING]
+    assert len(warnings) == 1
+    assert "truncated" in warnings[0].getMessage()
+    assert str(PR_FILES_CAP) in warnings[0].getMessage()
+
+
+def test_get_pr_files_no_cap_warning_below_the_file_cap(mocker: MockerFixture, monkeypatch, caplog):
+    monkeypatch.setenv("GITHUB_REPOSITORY", "fake_repo")
+    mocker.patch.object(GitHub, "send_request", side_effect=_paged_files(mocker, PR_FILES_CAP - 1))
+    github = GitHub("fake_token")
+
+    with caplog.at_level(logging.WARNING, logger="jacoco_report.utils.github"):
+        github.get_pr_files(1)
+
+    assert [r for r in caplog.records if r.levelno == logging.WARNING] == []
